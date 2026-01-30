@@ -1,10 +1,10 @@
 import { Resend } from 'resend';
 
-if (!process.env.RESEND_API_KEY) {
-  console.warn('RESEND_API_KEY is not set. Email functionality will not work.');
+function getResendClient() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  return new Resend(key);
 }
-
-export const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailOptions {
   to: string | string[];
@@ -15,6 +15,12 @@ interface SendEmailOptions {
 
 export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
   try {
+    const resend = getResendClient();
+    if (!resend) {
+      console.warn('RESEND_API_KEY is not set. Email functionality will not work.');
+      throw new Error('RESEND_API_KEY is not set');
+    }
+
     const { data, error } = await resend.emails.send({
       from: from || process.env.EMAIL_FROM || 'noreply@example.com',
       to,
