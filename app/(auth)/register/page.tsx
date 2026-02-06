@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
@@ -23,16 +24,16 @@ export default function RegisterPage() {
     setError(null);
     
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       
-      const result = await res.json();
+      const result = await res.json().catch(() => null);
       
       if (!res.ok) {
-        setError(result.error || '회원가입에 실패했습니다.');
+        setError(result?.message || result?.error || '회원가입에 실패했습니다.');
         return;
       }
       
@@ -157,6 +158,20 @@ export default function RegisterPage() {
           {isSubmitting ? '가입 중...' : '회원가입'}
         </button>
       </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-200" />
+        <span className="text-xs text-gray-500">또는</span>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => signIn('kakao', { callbackUrl: '/' })}
+        className="w-full bg-[#FEE500] text-[#191600] py-2 rounded-md hover:opacity-90 transition-opacity font-medium"
+      >
+        카카오로 간편가입
+      </button>
       
       <div className="mt-4 text-center text-sm text-gray-600">
         이미 계정이 있으신가요?{' '}

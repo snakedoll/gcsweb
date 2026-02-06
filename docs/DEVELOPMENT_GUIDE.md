@@ -96,7 +96,7 @@ app/api/[리소스명]/route.ts
 |------|------|:---------:|
 | `lib/auth.ts` | NextAuth.js 인증 설정 | ⚠️ 주의 |
 | `lib/db.ts` | Prisma 클라이언트 인스턴스 | ❌ |
-| `lib/email.ts` | Resend 이메일 설정 및 템플릿 | ✅ |
+| `lib/email.ts` | Brevo 이메일 설정 및 템플릿 | ✅ |
 | `lib/utils.ts` | 유틸리티 함수 (cn, formatDate 등) | ✅ |
 | `lib/validations/` | Zod 검증 스키마 | ✅ |
 
@@ -283,7 +283,7 @@ npm run db:studio    # Prisma Studio (DB GUI)
 ### 환경변수 설정
 
 ```bash
-cp env.example .env  # .env 파일 생성
+cp env.sample .env  # .env 파일 생성
 # .env 파일 열어서 값 설정
 ```
 

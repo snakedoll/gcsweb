@@ -14,19 +14,25 @@ datasource db {
 // User - 사용자
 // ============================================
 
+enum SignupMethod {
+  EMAIL
+  KAKAO
+}
+
 model User {
   id                String    @id @default(cuid())
   email             String    @unique
-  password          String
+  password          String?
   nickname          String    @unique
   name              String
-  phone             String
+  phone             String?
   memberType        Int       @default(0) // 0: general, 1: major, 2: admin
   isSeller          Boolean   @default(false)
   studentId         String?
   major             String?
   profileImage      String?
   isVerified        Boolean   @default(false)
+  signupMethod      SignupMethod @default(EMAIL)
   isRepresentative  Boolean   @default(false)
   failedLoginAttempts Int     @default(0)
   lockedUntil       DateTime?

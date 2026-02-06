@@ -1,9 +1,25 @@
-import { Resend } from 'resend';
+type EmailSender = { email: string; name?: string };
 
-function getResendClient() {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  return new Resend(key);
+function parseSender(value: string): EmailSender {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(.*)<([^>]+)>$/);
+  if (match) {
+    const name = match[1]?.trim().replace(/^"(.+)"$/, '$1');
+    const email = match[2]?.trim();
+    return { email, name: name || undefined };
+  }
+  return { email: trimmed };
+}
+
+function getBrevoConfig() {
+  const apiKey = process.env.BREVO_API_KEY;
+  const defaultFrom =
+    process.env.BREVO_FROM_EMAIL ||
+    // Backward-compat for a common typo seen in env setups
+    process.env.BREVO_FROM_EMAL ||
+    process.env.EMAIL_FROM;
+
+  return { apiKey, defaultFrom };
 }
 
 interface SendEmailOptions {
@@ -15,24 +31,40 @@ interface SendEmailOptions {
 
 export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
   try {
-    const resend = getResendClient();
-    if (!resend) {
-      console.warn('RESEND_API_KEY is not set. Email functionality will not work.');
-      throw new Error('RESEND_API_KEY is not set');
+    const { apiKey, defaultFrom } = getBrevoConfig();
+    if (!apiKey) {
+      console.warn('BREVO_API_KEY is not set. Email functionality will not work.');
+      throw new Error('BREVO_API_KEY is not set');
     }
 
-    const { data, error } = await resend.emails.send({
-      from: from || process.env.EMAIL_FROM || 'noreply@example.com',
-      to,
-      subject,
-      html,
+    const fromValue = from || defaultFrom || 'noreply@example.com';
+    const sender = parseSender(fromValue);
+    const senderWithName = { name: sender.name || 'GCS', email: sender.email };
+
+    const toList = (Array.isArray(to) ? to : [to]).map((email) => ({ email }));
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        sender: senderWithName,
+        to: toList,
+        subject,
+        htmlContent: html,
+      }),
     });
 
-    if (error) {
-      console.error('Failed to send email:', error);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error('Failed to send email:', response.status, errorText);
       throw new Error('이메일 발송에 실패했습니다.');
     }
 
+    const data = await response.json().catch(() => null);
     return data;
   } catch (error) {
     console.error('Email error:', error);

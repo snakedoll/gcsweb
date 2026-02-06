@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     });
 
     // Always return AUTH_FAILED for non-existent users
-    if (!user) {
+    if (!user || !user.password) {
       return jsonError(401, 'AUTH_FAILED', '아이디 또는 비밀번호를 확인해주세요.');
     }
 

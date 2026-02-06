@@ -11,7 +11,7 @@ Next.js 14 기반 풀스택 웹 애플리케이션
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand + TanStack Query
 - **Form**: React Hook Form + Zod
-- **Email**: Resend
+- **Email**: Brevo (Transactional Email)
 - **Deployment**: Railway / Vercel
 
 ## 프로젝트 구조
@@ -27,7 +27,7 @@ Next.js 14 기반 풀스택 웹 애플리케이션
 ├── lib/                   # 라이브러리 설정 및 유틸리티
 │   ├── auth.ts            # NextAuth 설정
 │   ├── db.ts              # Prisma 클라이언트
-│   ├── email.ts           # Resend 이메일
+│   ├── email.ts           # Brevo 이메일
 │   ├── utils.ts           # 유틸리티 함수
 │   └── validations/       # Zod 스키마
 ├── stores/                # Zustand 스토어
@@ -47,14 +47,21 @@ npm install
 ### 2. 환경 변수 설정
 
 ```bash
-cp env.example .env
+cp env.sample .env
 ```
 
 `.env` 파일을 열어 아래 값들을 설정:
 
 - `DATABASE_URL`: PostgreSQL 연결 문자열
 - `NEXTAUTH_SECRET`: NextAuth 시크릿 키 (생성: `openssl rand -base64 32`)
-- `RESEND_API_KEY`: Resend API 키
+- `BREVO_API_KEY`: Brevo API 키
+- `BREVO_FROM_EMAIL`: 발신자 이메일(예: `noreply@yourdomain.com`)
+
+PowerShell 사용 시:
+
+```powershell
+Copy-Item env.sample .env
+```
 
 ### 3. 데이터베이스 설정
 

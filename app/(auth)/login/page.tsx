@@ -89,6 +89,20 @@ export default function LoginPage() {
           {isSubmitting ? '로그인 중...' : '로그인'}
         </button>
       </form>
+
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-200" />
+        <span className="text-xs text-gray-500">또는</span>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => signIn('kakao', { callbackUrl: '/' })}
+        className="w-full bg-[#FEE500] text-[#191600] py-2 rounded-md hover:opacity-90 transition-opacity font-medium"
+      >
+        카카오로 계속하기
+      </button>
       
       <div className="mt-4 text-center text-sm text-gray-600">
         계정이 없으신가요?{' '}

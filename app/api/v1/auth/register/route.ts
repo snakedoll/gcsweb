@@ -20,6 +20,10 @@ function isStrongPassword(value: unknown): value is string {
   return typeof value === 'string' && value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
 }
 
+function isValidNickname(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length >= 2 && value.trim().length <= 30;
+}
+
 function normalizeNicknameBase(email: string) {
   const local = email.split('@')[0] ?? 'user';
   const cleaned = local.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
@@ -52,6 +56,7 @@ export async function POST(request: Request) {
     const name = (body as any).name;
     const phone = (body as any).phone;
     const email = (body as any).email;
+    const nicknameInput = (body as any).nickname;
     const password = (body as any).password;
     const confirmPassword = (body as any).confirmPassword;
 
@@ -86,7 +91,23 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await hash(password, 12);
-    const nickname = await createUniqueNickname(email);
+
+    const trimmedNickname = typeof nicknameInput === 'string' ? nicknameInput.trim() : null;
+    if (trimmedNickname && !isValidNickname(trimmedNickname)) {
+      return jsonError(400, 'INVALID_INPUT', '닉네임 형식이 올바르지 않습니다.');
+    }
+
+    if (trimmedNickname) {
+      const existingNickname = await prisma.user.findUnique({
+        where: { nickname: trimmedNickname },
+        select: { id: true },
+      });
+      if (existingNickname) {
+        return jsonError(409, 'NICKNAME_EXISTS', '이미 사용 중인 닉네임입니다.');
+      }
+    }
+
+    const nickname = trimmedNickname || (await createUniqueNickname(email));
 
     const user = await prisma.user.create({
       data: {
@@ -95,6 +116,7 @@ export async function POST(request: Request) {
         phone,
         nickname,
         password: hashedPassword,
+        signupMethod: 'EMAIL',
       },
       select: {
         email: true,

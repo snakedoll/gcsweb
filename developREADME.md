@@ -28,7 +28,7 @@
 - **TypeScript**: 엄격 모드(`strict: true`)
 - **Prisma + PostgreSQL**: DB 스키마/쿼리
 - **NextAuth.js**: 인증(세션/JWT 전략)
-- **Resend**: 이메일 발송(템플릿은 `lib/email.ts`)
+- **Brevo**: 이메일 발송(템플릿은 `lib/email.ts`)
 - **TanStack Query**: 서버 상태/캐싱(클라이언트)
 - **Zustand**: 클라이언트 전역 UI 상태(예: 사이드 메뉴)
 - **React Hook Form + Zod**: 폼 + 스키마 검증
@@ -55,7 +55,7 @@
   - `app/api/**`: 백엔드 엔드포인트
   - `lib/db.ts`: Prisma Client
   - `lib/auth.ts`: NextAuth 설정
-  - `lib/email.ts`: Resend 이메일 발송/템플릿
+  - `lib/email.ts`: Brevo 이메일 발송/템플릿
   - `prisma/schema.prisma`: DB 스키마
 
 ### 참고 문서
@@ -72,8 +72,8 @@
 - `DATABASE_URL`
 - `NEXTAUTH_URL`
 - `NEXTAUTH_SECRET`
-- `RESEND_API_KEY`
-- `EMAIL_FROM`
+- `BREVO_API_KEY`
+- `BREVO_FROM_EMAIL`
 
 ### 명령어
 
