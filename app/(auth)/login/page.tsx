@@ -8,7 +8,7 @@ import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Checkbox, LoginSupportLinks } from '@/components/ui';
+import { Checkbox, LoginSupportLinks, TextField } from '@/components/ui';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
 
@@ -80,28 +80,12 @@ export default function LoginPage() {
     router.refresh();
   };
 
-  const getInputClasses = (field: 'email' | 'password', hasValue: boolean) => {
-    if (isWarningState) {
-      return [
-        'h-[45px] w-full rounded-lg border border-[#ce1e1b] bg-[#fdfdfd] px-3 text-[13px] text-[#3f3835] outline-none',
-      ].join(' ');
-    }
-
-    if (isBlockedState) {
-      return [
-        'h-[45px] w-full rounded-lg border border-[#c7c5c4] bg-[#f6f6f5] px-3 text-[13px] text-[#999694] outline-none',
-      ].join(' ');
-    }
-
-    const isFocused = focusedField === field;
-    const borderColor = isFocused ? 'border-[#f6874c]' : hasValue ? 'border-[#c7c5c4]' : 'border-[#f1f1f1]';
-    const textColor = isFocused ? 'text-[#999694]' : hasValue ? 'text-[#2f2824]' : 'text-[#999694]';
-
-    return [
-      'h-[45px] w-full rounded-lg bg-[#fdfdfd] px-3 text-[13px] outline-none placeholder:text-[#999694]',
-      borderColor,
-      textColor,
-    ].join(' ');
+  const getFieldState = (field: 'email' | 'password', hasValue: boolean) => {
+    if (isWarningState) return 'warning' as const;
+    if (isBlockedState) return 'blocked' as const;
+    if (focusedField === field) return 'focus' as const;
+    if (hasValue) return 'filled' as const;
+    return 'default' as const;
   };
 
   return (
@@ -140,69 +124,54 @@ export default function LoginPage() {
             <div className="border-t border-[#f1f1f1]" />
 
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label
-                  htmlFor="email"
-                  className={isWarningState ? 'block text-[15px] font-bold text-[#ce1e1b]' : 'block text-[15px] font-bold text-[#3f3835]'}
-                >
-                  아이디(이메일)
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  {...register('email', {
+              <TextField
+                id="email"
+                type="email"
+                label="아이디(이메일)"
+                placeholder="example@gmail.com"
+                state={getFieldState('email', emailValue.trim().length > 0)}
+                inputProps={{
+                  ...register('email', {
                     onBlur: () => setFocusedField(null),
                     onChange: () => {
                       if (loginUiState === 'warning') setLoginUiState('default');
                     },
-                  })}
-                  onFocus={() => setFocusedField('email')}
-                  disabled={isBlockedState}
-                  className={getInputClasses('email', emailValue.trim().length > 0)}
-                  placeholder="example@gmail.com"
-                />
-                {isWarningState && (
-                  <p className="text-[13px] text-[#ce1e1b]">Caption</p>
-                )}
-                {isBlockedState && (
-                  <p className="text-[13px] text-[#f6874c]">잠시 후 다시 시도해주세요.</p>
-                )}
-                {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
-                )}
-              </div>
+                  }),
+                  onFocus: () => setFocusedField('email'),
+                  disabled: isBlockedState,
+                }}
+                rightSlot={
+                  isWarningState ? (
+                    <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                  ) : undefined
+                }
+                caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
+                captionClassName={isWarningState ? 'text-[13px] text-[#ce1e1b]' : 'text-[13px] text-[#f6874c]'}
+              />
 
-              <div className="space-y-1">
-                <label
-                  htmlFor="password"
-                  className={isWarningState ? 'block text-[15px] font-bold text-[#ce1e1b]' : 'block text-[15px] font-bold text-[#3f3835]'}
-                >
-                  비밀번호
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    {...register('password', {
-                      onBlur: () => setFocusedField(null),
-                      onChange: () => {
-                        if (loginUiState === 'warning') setLoginUiState('default');
-                      },
-                    })}
-                    onFocus={() => setFocusedField('password')}
-                    disabled={isBlockedState}
-                    className={getInputClasses('password', passwordValue.trim().length > 0) + ' pr-10'}
-                    placeholder="비밀번호를 입력해주세요."
-                  />
-                  {isWarningState ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                    </span>
+              <TextField
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                label="비밀번호"
+                placeholder="비밀번호를 입력해주세요."
+                state={getFieldState('password', passwordValue.trim().length > 0)}
+                inputProps={{
+                  ...register('password', {
+                    onBlur: () => setFocusedField(null),
+                    onChange: () => {
+                      if (loginUiState === 'warning') setLoginUiState('default');
+                    },
+                  }),
+                  onFocus: () => setFocusedField('password'),
+                  disabled: isBlockedState,
+                }}
+                rightSlot={
+                  isWarningState ? (
+                    <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
                   ) : (
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
                       aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                       disabled={isBlockedState}
                     >
@@ -213,18 +182,11 @@ export default function LoginPage() {
                         height={20}
                       />
                     </button>
-                  )}
-                </div>
-                {isWarningState && (
-                  <p className="text-[13px] text-[#ce1e1b]">Caption</p>
-                )}
-                {isBlockedState && (
-                  <p className="text-[13px] text-[#f6874c]">잠시 후 다시 시도해주세요.</p>
-                )}
-                {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
-                )}
-              </div>
+                  )
+                }
+                caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
+                captionClassName={isWarningState ? 'text-[13px] text-[#ce1e1b]' : 'text-[13px] text-[#f6874c]'}
+              />
             </div>
 
             <Checkbox

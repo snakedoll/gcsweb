@@ -4,6 +4,8 @@ interface CheckboxProps {
   label: string;
   checkedLabelClassName?: string;
   uncheckedLabelClassName?: string;
+  checkedBoxClassName?: string;
+  uncheckedBoxClassName?: string;
 }
 
 export default function Checkbox({
@@ -12,6 +14,8 @@ export default function Checkbox({
   label,
   checkedLabelClassName = 'text-[13px] text-[#3f3835]',
   uncheckedLabelClassName = 'text-[13px] text-[#999694]',
+  checkedBoxClassName = 'border-[#f6874c] bg-[#f6874c]',
+  uncheckedBoxClassName = 'border-[#999694] bg-transparent',
 }: CheckboxProps) {
   return (
     <label className="inline-flex h-7 cursor-pointer items-center gap-2">
@@ -24,7 +28,7 @@ export default function Checkbox({
       <span
         className={[
           'inline-flex h-5 w-5 items-center justify-center rounded-[6px] border',
-          checked ? 'border-[#f6874c] bg-[#f6874c]' : 'border-[#2f2824] bg-transparent',
+          checked ? checkedBoxClassName : uncheckedBoxClassName,
         ].join(' ')}
       >
         {checked ? (
