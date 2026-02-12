@@ -95,7 +95,7 @@ export default function LoginPage() {
 
     const isFocused = focusedField === field;
     const borderColor = isFocused ? 'border-[#f6874c]' : hasValue ? 'border-[#c7c5c4]' : 'border-[#f1f1f1]';
-    const textColor = hasValue ? 'text-[#2f2824]' : 'text-[#999694]';
+    const textColor = isFocused ? 'text-[#999694]' : hasValue ? 'text-[#2f2824]' : 'text-[#999694]';
 
     return [
       'h-[45px] w-full rounded-lg bg-[#fdfdfd] px-3 text-[13px] outline-none placeholder:text-[#999694]',
@@ -152,6 +152,9 @@ export default function LoginPage() {
                   type="email"
                   {...register('email', {
                     onBlur: () => setFocusedField(null),
+                    onChange: () => {
+                      if (loginUiState === 'warning') setLoginUiState('default');
+                    },
                   })}
                   onFocus={() => setFocusedField('email')}
                   disabled={isBlockedState}
@@ -182,6 +185,9 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     {...register('password', {
                       onBlur: () => setFocusedField(null),
+                      onChange: () => {
+                        if (loginUiState === 'warning') setLoginUiState('default');
+                      },
                     })}
                     onFocus={() => setFocusedField('password')}
                     disabled={isBlockedState}
