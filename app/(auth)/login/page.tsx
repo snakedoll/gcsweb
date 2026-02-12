@@ -8,7 +8,7 @@ import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
-import { LoginSupportLinks, RememberIdCheckbox } from '@/components/ui';
+import { Checkbox, LoginSupportLinks } from '@/components/ui';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
 
@@ -227,7 +227,11 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <RememberIdCheckbox checked={rememberEmail} onChange={setRememberEmail} />
+            <Checkbox
+              checked={rememberEmail}
+              onChange={setRememberEmail}
+              label="아이디 기억하기"
+            />
           </div>
 
           <div className="space-y-3 pt-8">

@@ -1,16 +1,25 @@
-interface RememberIdCheckboxProps {
+interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
+  label: string;
+  checkedLabelClassName?: string;
+  uncheckedLabelClassName?: string;
 }
 
-export default function RememberIdCheckbox({ checked, onChange }: RememberIdCheckboxProps) {
+export default function Checkbox({
+  checked,
+  onChange,
+  label,
+  checkedLabelClassName = 'text-[13px] text-[#3f3835]',
+  uncheckedLabelClassName = 'text-[13px] text-[#999694]',
+}: CheckboxProps) {
   return (
     <label className="inline-flex h-7 cursor-pointer items-center gap-2">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="peer sr-only"
+        className="sr-only"
       />
       <span
         className={[
@@ -24,9 +33,7 @@ export default function RememberIdCheckbox({ checked, onChange }: RememberIdChec
           </svg>
         ) : null}
       </span>
-      <span className={checked ? 'text-[13px] text-[#3f3835]' : 'text-[13px] text-[#999694]'}>
-        아이디 기억하기
-      </span>
+      <span className={checked ? checkedLabelClassName : uncheckedLabelClassName}>{label}</span>
     </label>
   );
 }
