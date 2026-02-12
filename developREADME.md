@@ -164,7 +164,7 @@ DB는 `prisma/schema.prisma`를 “진실의 원천(source of truth)”으로 �
 ### 커밋 메시지 규칙(필수)
 - 단일 라인: `type: subject`
 - `type`는 아래 중 하나:
-  - `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+- `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - 예: `feat: Add v1 auth login endpoint`
 
 ### staging 규칙(팀 규칙)
@@ -198,4 +198,3 @@ DB는 `prisma/schema.prisma`를 “진실의 원천(source of truth)”으로 �
 - Prisma가 DB의 단일 진실
 - 인증은 NextAuth(세션) + 일부 API 명세는 토큰 응답 엔드포인트 병행
 - 에러 포맷/코드 통일 필요
-
