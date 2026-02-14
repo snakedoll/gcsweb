@@ -1,0 +1,25 @@
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+
+export default function NavBar() {
+  return (
+    <div className="w-full border-b border-[#f1f1f1] bg-[#f6f6f5] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
+      <div className="h-[34px] w-full bg-[#f6f6f5]" />
+      <div className="mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-between px-4 py-[10px]">
+        <Link href="/login" aria-label="로그인" className="inline-flex h-6 w-6 items-center justify-center">
+          <Image src="/assets/icons/icon-user-nav.svg" alt="" width={24} height={24} />
+        </Link>
+
+        <Link href="/" aria-label="홈" className="inline-flex items-center justify-center">
+          <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={53} height={19} />
+        </Link>
+
+        <Link href="/cart" aria-label="장바구니" className="inline-flex h-6 w-6 items-center justify-center">
+          <Image src="/assets/icons/icon-cart-nav.svg" alt="" width={24} height={24} />
+        </Link>
+      </div>
+    </div>
+  );
+}
