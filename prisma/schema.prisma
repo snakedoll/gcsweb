@@ -36,6 +36,7 @@ model User {
   isRepresentative  Boolean   @default(false)
   failedLoginAttempts Int     @default(0)
   lockedUntil       DateTime?
+  hasSellingPermission Boolean @default(false)
   likeCount         Int       @default(0)
   notificationCount Int       @default(0)
   createdAt         DateTime  @default(now())
