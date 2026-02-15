@@ -1,5 +1,3 @@
-import { typography } from '@/lib/styles/typography';
-
 interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -14,8 +12,8 @@ export default function Checkbox({
   checked,
   onChange,
   label,
-  checkedLabelClassName = `${typography.bodyXSmall} text-neutral-10`,
-  uncheckedLabelClassName = `${typography.bodyXSmall} text-neutral-7`,
+  checkedLabelClassName = 'typo-body-xsmall text-neutral-10',
+  uncheckedLabelClassName = 'typo-body-xsmall text-neutral-7',
   checkedBoxClassName = 'border-orange-5 bg-orange-5',
   uncheckedBoxClassName = 'border-neutral-7 bg-transparent',
 }: CheckboxProps) {

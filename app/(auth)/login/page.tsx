@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
 import { Checkbox, LoginSupportLinks, TextField } from '@/components/ui';
-import { typography } from '@/lib/styles/typography';
 import { cn } from '@/lib/utils';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
@@ -105,20 +104,20 @@ export default function LoginPage() {
 
       <div className="flex flex-col items-center gap-3 pb-7 pt-7">
         <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-        <p className={cn(typography.bodyXSmall, 'text-orange-5')}>Graphic Communication Science</p>
+        <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
       </div>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
         <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-[570px] flex-col justify-between">
           <div className="space-y-6">
             <div className="space-y-5">
-              <h1 className={cn('text-center text-neutral-10', typography.headingSmall)}>로그인</h1>
+              <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>로그인</h1>
               <button
                 type="button"
                 onClick={() => signIn('kakao', { callbackUrl: '/' })}
                 className={cn(
                   'flex h-[45px] w-full items-center justify-center gap-2 rounded-lg bg-[#fee500] text-[#191600]',
-                  typography.bodySmallBold
+                  'typo-body-small-bold'
                 )}
               >
                 <Image src="/assets/icons/icon-kakao-symbol.svg" alt="" width={18} height={17} />
@@ -151,7 +150,7 @@ export default function LoginPage() {
                   ) : undefined
                 }
                 caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
-                captionClassName={cn(typography.bodyXSmall, isWarningState ? 'text-danger' : 'text-orange-5')}
+                captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
               />
 
               <TextField
@@ -190,7 +189,7 @@ export default function LoginPage() {
                   )
                 }
                 caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
-                captionClassName={cn(typography.bodyXSmall, isWarningState ? 'text-danger' : 'text-orange-5')}
+                captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
               />
             </div>
 
@@ -206,16 +205,16 @@ export default function LoginPage() {
               type="submit"
               disabled={isSubmitting || !hasCredentials || isErrorLikeState}
               className={[
-                cn('h-[55px] w-full rounded-lg text-neutral-2 transition-colors', typography.bodySmallBold),
+                cn('h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold'),
                 hasCredentials && !isErrorLikeState ? 'bg-orange-5' : 'bg-orange-3',
               ].join(' ')}
             >
               {isSubmitting ? '로그인 중...' : hasCredentials ? '로그인' : '이메일로 로그인'}
             </button>
 
-            <div className={cn('flex items-center justify-center gap-2', typography.bodyXSmall)}>
+            <div className={cn('flex items-center justify-center gap-2 typo-body-xsmall')}>
               <p className="text-neutral-8">아직 계정이 없으신가요?</p>
-              <Link href="/register" className={cn(typography.bodyXSmallBold, 'text-orange-4')}>
+              <Link href="/register" className={cn('typo-body-xsmall-bold', 'text-orange-4')}>
                 회원가입
               </Link>
             </div>
