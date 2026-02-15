@@ -5,6 +5,7 @@ interface UserProfile {
   id: string;
   email: string;
   name: string;
+  nickname?: string;
   role: string;
   profileImage?: string;
   createdAt: string;
