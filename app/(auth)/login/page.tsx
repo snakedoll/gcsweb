@@ -89,8 +89,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-[375px] bg-[#f6f6f5]">
-      <div className="border-b border-[#f1f1f1] bg-[#f6f6f5] px-4 pb-[10px] pt-[10px]">
+    <div className="w-full max-w-[375px] bg-neutral-3">
+      <div className="border-b border-neutral-4 bg-neutral-3 px-4 pb-[10px] pt-[10px]">
         <button
           type="button"
           onClick={() => router.back()}
@@ -103,14 +103,14 @@ export default function LoginPage() {
 
       <div className="flex flex-col items-center gap-3 pb-7 pt-7">
         <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-        <p className="text-[13px] text-[#f6874c]">Graphic Communication Science</p>
+        <p className="text-[13px] text-orange-5">Graphic Communication Science</p>
       </div>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
         <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-[570px] flex-col justify-between">
           <div className="space-y-6">
             <div className="space-y-5">
-              <h1 className="text-center text-[19px] font-bold text-[#443e3c]">로그인</h1>
+              <h1 className="text-center text-[19px] font-bold text-neutral-10">로그인</h1>
               <button
                 type="button"
                 onClick={() => signIn('kakao', { callbackUrl: '/' })}
@@ -121,7 +121,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="border-t border-[#f1f1f1]" />
+            <div className="border-t border-neutral-4" />
 
             <div className="space-y-4">
               <TextField
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   ) : undefined
                 }
                 caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
-                captionClassName={isWarningState ? 'text-[13px] text-[#ce1e1b]' : 'text-[13px] text-[#f6874c]'}
+                captionClassName={isWarningState ? 'text-[13px] text-danger' : 'text-[13px] text-orange-5'}
               />
 
               <TextField
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   )
                 }
                 caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
-                captionClassName={isWarningState ? 'text-[13px] text-[#ce1e1b]' : 'text-[13px] text-[#f6874c]'}
+                captionClassName={isWarningState ? 'text-[13px] text-danger' : 'text-[13px] text-orange-5'}
               />
             </div>
 
@@ -201,16 +201,16 @@ export default function LoginPage() {
               type="submit"
               disabled={isSubmitting || !hasCredentials || isErrorLikeState}
               className={[
-                'h-[55px] w-full rounded-lg text-[15px] font-bold text-[#fdfdfd] transition-colors',
-                hasCredentials && !isErrorLikeState ? 'bg-[#f6874c]' : 'bg-[#fac0a1]',
+                'h-[55px] w-full rounded-lg text-[15px] font-bold text-neutral-2 transition-colors',
+                hasCredentials && !isErrorLikeState ? 'bg-orange-5' : 'bg-orange-3',
               ].join(' ')}
             >
               {isSubmitting ? '로그인 중...' : hasCredentials ? '로그인' : '이메일로 로그인'}
             </button>
 
             <div className="flex items-center justify-center gap-2 text-[13px]">
-              <p className="text-[#6c6764]">아직 계정이 없으신가요?</p>
-              <Link href="/register" className="font-semibold text-[#ff7e38]">
+              <p className="text-neutral-8">아직 계정이 없으신가요?</p>
+              <Link href="/register" className="font-semibold text-orange-4">
                 회원가입
               </Link>
             </div>

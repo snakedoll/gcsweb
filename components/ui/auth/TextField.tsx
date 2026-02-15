@@ -1,4 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { typography } from '@/lib/styles/typography';
 
 type TextFieldState = 'default' | 'focus' | 'filled' | 'warning' | 'blocked';
 
@@ -27,20 +29,35 @@ export default function TextField({
 }: TextFieldProps) {
   const labelClassName =
     state === 'warning'
-      ? 'block text-[15px] font-bold text-[#ce1e1b]'
-      : 'block text-[15px] font-bold text-[#3f3835]';
+      ? cn('block', typography.bodySmallBold, 'text-danger')
+      : cn('block', typography.bodySmallBold, 'text-neutral-10');
 
   const inputClassNameByState: Record<TextFieldState, string> = {
     default:
-      'h-[45px] w-full rounded-lg border border-[#f1f1f1] bg-[#fdfdfd] px-3 text-[13px] text-[#999694] outline-none placeholder:text-[#999694]',
+      cn(
+        'h-[45px] w-full rounded-lg border border-neutral-4 bg-neutral-2 px-3 text-neutral-7 outline-none placeholder:text-neutral-7',
+        typography.bodyXSmall
+      ),
     focus:
-      'h-[45px] w-full rounded-lg border border-[#f6874c] bg-[#fdfdfd] px-3 text-[13px] text-[#999694] outline-none placeholder:text-[#999694]',
+      cn(
+        'h-[45px] w-full rounded-lg border border-orange-5 bg-neutral-2 px-3 text-neutral-7 outline-none placeholder:text-neutral-7',
+        typography.bodyXSmall
+      ),
     filled:
-      'h-[45px] w-full rounded-lg border border-[#c7c5c4] bg-[#fdfdfd] px-3 text-[13px] text-[#2f2824] outline-none placeholder:text-[#999694]',
+      cn(
+        'h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-2 px-3 text-neutral-12 outline-none placeholder:text-neutral-7',
+        typography.bodyXSmall
+      ),
     warning:
-      'h-[45px] w-full rounded-lg border border-[#ce1e1b] bg-[#fdfdfd] px-3 text-[13px] text-[#3f3835] outline-none placeholder:text-[#999694]',
+      cn(
+        'h-[45px] w-full rounded-lg border border-danger bg-neutral-2 px-3 text-neutral-10 outline-none placeholder:text-neutral-7',
+        typography.bodyXSmall
+      ),
     blocked:
-      'h-[45px] w-full rounded-lg border border-[#c7c5c4] bg-[#f6f6f5] px-3 text-[13px] text-[#999694] outline-none placeholder:text-[#999694]',
+      cn(
+        'h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-3 px-3 text-neutral-7 outline-none placeholder:text-neutral-7',
+        typography.bodyXSmall
+      ),
   };
 
   const needsRightPadding = Boolean(rightSlot);
@@ -63,7 +80,7 @@ export default function TextField({
         ) : null}
       </div>
       {caption ? (
-        <p className={captionClassName ?? 'text-[13px] text-[#999694]'}>{caption}</p>
+        <p className={cn(typography.bodyXSmall, captionClassName ?? 'text-neutral-7')}>{caption}</p>
       ) : null}
     </div>
   );

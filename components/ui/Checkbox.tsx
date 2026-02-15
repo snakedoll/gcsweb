@@ -12,10 +12,10 @@ export default function Checkbox({
   checked,
   onChange,
   label,
-  checkedLabelClassName = 'text-[13px] text-[#3f3835]',
-  uncheckedLabelClassName = 'text-[13px] text-[#999694]',
-  checkedBoxClassName = 'border-[#f6874c] bg-[#f6874c]',
-  uncheckedBoxClassName = 'border-[#999694] bg-transparent',
+  checkedLabelClassName = 'text-[13px] text-neutral-10',
+  uncheckedLabelClassName = 'text-[13px] text-neutral-7',
+  checkedBoxClassName = 'border-orange-5 bg-orange-5',
+  uncheckedBoxClassName = 'border-neutral-7 bg-transparent',
 }: CheckboxProps) {
   return (
     <label className="inline-flex h-7 cursor-pointer items-center gap-2">

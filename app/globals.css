@@ -1,20 +1,110 @@
+@import url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 248, 246, 244;
-}
+  --color-positive: #20a05c;
+  --color-warning: #e2b32c;
+  --color-danger: #ce1e1b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 0, 0, 0;
-  }
+  --color-orange-1: #fef0e9;
+  --color-orange-2: #fcdccb;
+  --color-orange-3: #fac0a1;
+  --color-orange-4: #f8a376;
+  --color-orange-5: #f6874c;
+  --color-orange-6: #f46d25;
+  --color-orange-7: #cf5d1f;
+  --color-orange-8: #ad4d1a;
+  --color-orange-9: #8b3e15;
+  --color-orange-10: #6e3111;
+
+  --color-neutral-1: #ffffff;
+  --color-neutral-2: #fdfdfd;
+  --color-neutral-3: #f6f6f5;
+  --color-neutral-4: #f1f1f1;
+  --color-neutral-5: #dddcdb;
+  --color-neutral-6: #c7c5c4;
+  --color-neutral-7: #999694;
+  --color-neutral-8: #6c6764;
+  --color-neutral-9: #5a5451;
+  --color-neutral-10: #3f3835;
+  --color-neutral-11: #38312e;
+  --color-neutral-12: #2f2824;
+  --color-neutral-13: #1d1511;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  background: var(--color-neutral-3);
+}
+
+@layer utilities {
+  .typo-display-large {
+    @apply text-[44px] font-extrabold leading-[155%] tracking-[0];
+  }
+
+  .typo-display-medium {
+    @apply text-[32px] font-extrabold leading-[150%] tracking-[0];
+  }
+
+  .typo-display-small {
+    @apply text-[28px] font-extrabold leading-[175%] tracking-[0];
+  }
+
+  .typo-heading-xlarge {
+    @apply text-[28px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-heading-large {
+    @apply text-[24px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-heading-medium {
+    @apply text-[22px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-heading-small {
+    @apply text-[19px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-heading-xsmall {
+    @apply text-[17px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-heading-xxsmall {
+    @apply text-[15px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-body-large-bold {
+    @apply text-[19px] font-bold leading-[155%] tracking-[0];
+  }
+
+  .typo-body-medium-bold {
+    @apply text-[17px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-body-small-bold {
+    @apply text-[15px] font-bold leading-[150%] tracking-[0];
+  }
+
+  .typo-body-xsmall-bold {
+    @apply text-[13px] font-semibold leading-[150%] tracking-[-0.02em];
+  }
+
+  .typo-body-large {
+    @apply text-[19px] font-normal leading-[150%] tracking-[0];
+  }
+
+  .typo-body-medium {
+    @apply text-[17px] font-normal leading-[150%] tracking-[0];
+  }
+
+  .typo-body-small {
+    @apply text-[15px] font-normal leading-[150%] tracking-[0];
+  }
+
+  .typo-body-xsmall {
+    @apply text-[13px] font-normal leading-[150%] tracking-[-0.02em];
+  }
 }
