@@ -2,6 +2,8 @@
 
 import { Footer, NavBar } from '@/components/layout';
 import { useUser } from '@/hooks/useUser';
+import { typography } from '@/lib/styles/typography';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -104,7 +106,7 @@ export default function MypagePage() {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#f8f6f4]">
-        <p className="text-sm text-[#999694]">로딩 중...</p>
+        <p className={cn(typography.bodyXSmall, 'text-neutral-7')}>로딩 중...</p>
       </div>
     );
   }
@@ -134,7 +136,7 @@ export default function MypagePage() {
                 </defs>
               </svg>
               <div
-                className="absolute inset-0 overflow-hidden bg-[#f1f1f1]"
+                className="absolute inset-0 overflow-hidden bg-neutral-4"
                 style={{ clipPath: `url(#${clipPathId})` }}
               >
                 {profile?.profileImage ? (
@@ -146,7 +148,7 @@ export default function MypagePage() {
                     sizes="80px"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[#999694]">
+                  <div className="flex h-full w-full items-center justify-center text-neutral-7">
                     <svg className="h-10 w-10" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                     </svg>
@@ -158,67 +160,67 @@ export default function MypagePage() {
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-bold text-[#443e3c]">{displayName}</p>
-              <p className="truncate text-sm text-[#999694]">{roleLabel}</p>
+              <p className={cn('truncate text-neutral-10', typography.bodySmallBold)}>{displayName}</p>
+              <p className={cn('truncate text-neutral-7', typography.bodyXSmall)}>{roleLabel}</p>
             </div>
           </div>
           {/* 알림 / 찜한 상품 / 스크랩 카드 */}
           <div className="mt-4 grid grid-cols-3 gap-2">
             <Link
               href="/mypage/notifications"
-              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-[#f1f1f1]"
+              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-neutral-4"
             >
               <IconBell />
-              <span className="text-xs text-[#443e3c]">알림 <span className="text-[#E8754D]">{NOTIFICATION_COUNT}</span></span>
+              <span className={cn(typography.bodyXSmall, 'text-neutral-10')}>알림 <span className="text-[#E8754D]">{NOTIFICATION_COUNT}</span></span>
             </Link>
             <Link
               href="/mypage/likes"
-              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-[#f1f1f1]"
+              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-neutral-4"
             >
               <IconHeart />
-              <span className="text-xs text-[#443e3c]">찜한 상품 <span className="text-[#E8754D]">{LIKES_COUNT}</span></span>
+              <span className={cn(typography.bodyXSmall, 'text-neutral-10')}>찜한 상품 <span className="text-[#E8754D]">{LIKES_COUNT}</span></span>
             </Link>
             <Link
               href="/mypage/scraps"
-              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-[#f1f1f1]"
+              className="flex flex-col items-center gap-1 rounded-lg border border-[#e5e3e1] bg-[#fafafa] px-3 py-3 transition-colors hover:bg-neutral-4"
             >
               <IconBookmark />
-              <span className="text-xs text-[#443e3c]">스크랩 <span className="text-[#E8754D]">{SCRAP_COUNT}</span></span>
+              <span className={cn(typography.bodyXSmall, 'text-neutral-10')}>스크랩 <span className="text-[#E8754D]">{SCRAP_COUNT}</span></span>
             </Link>
           </div>
         </section>
 
         {/* 나의 쇼핑 정보 */}
         <section className="mb-4 rounded-xl bg-white shadow-sm overflow-hidden">
-          <h2 className="border-b border-[#f1f1f1] px-4 py-3 text-sm font-semibold text-[#443e3c]">
+          <h2 className={cn('border-b border-neutral-4 px-4 py-3 text-neutral-10', typography.bodyXSmallBold)}>
             나의 쇼핑 정보
           </h2>
-          <ul className="divide-y divide-[#f1f1f1]">
+          <ul className="divide-y divide-neutral-4">
             <li>
               <Link
                 href="/mypage/orders"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 주문 내역
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
             <li>
               <Link
                 href="/mypage/returns"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 반품/교환 내역
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
             <li>
               <Link
                 href="/mypage/reviews"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 상품 리뷰
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
           </ul>
@@ -226,35 +228,35 @@ export default function MypagePage() {
 
         {/* 나의 창작 정보 */}
         <section className="mb-4 rounded-xl bg-white shadow-sm overflow-hidden">
-          <h2 className="border-b border-[#f1f1f1] px-4 py-3 text-sm font-semibold text-[#443e3c]">
+          <h2 className={cn('border-b border-neutral-4 px-4 py-3 text-neutral-10', typography.bodyXSmallBold)}>
             나의 창작 정보
           </h2>
-          <ul className="divide-y divide-[#f1f1f1]">
+          <ul className="divide-y divide-neutral-4">
             <li>
               <Link
                 href="/mypage/creator-guide"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 창작자 가이드
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
             <li>
               <Link
                 href="/mypage/my-products"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 내가 등록한 상품
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
             <li>
               <Link
                 href="/mypage/sales"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 판매 활동
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
           </ul>
@@ -262,15 +264,15 @@ export default function MypagePage() {
 
         {/* 고객센터 */}
         <section className="mb-4 rounded-xl bg-white shadow-sm overflow-hidden">
-          <h2 className="border-b border-[#f1f1f1] px-4 py-3 text-sm font-semibold text-[#443e3c]">고객센터</h2>
-          <ul className="divide-y divide-[#f1f1f1]">
+          <h2 className={cn('border-b border-neutral-4 px-4 py-3 text-neutral-10', typography.bodyXSmallBold)}>고객센터</h2>
+          <ul className="divide-y divide-neutral-4">
             <li>
               <Link
                 href="/mypage/inquiries"
-                className="flex items-center justify-between px-4 py-3 text-[15px] text-[#443e3c] transition-colors hover:bg-[#fafafa]"
+                className={cn('flex items-center justify-between px-4 py-3 text-neutral-10 transition-colors hover:bg-[#fafafa]', typography.bodySmall)}
               >
                 문의하기
-                <span className="text-[#999694]"><IconChevronRight /></span>
+                <span className="text-neutral-7"><IconChevronRight /></span>
               </Link>
             </li>
           </ul>

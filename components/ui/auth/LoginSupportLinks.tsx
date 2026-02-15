@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { typography } from '@/lib/styles/typography';
 
 export default function LoginSupportLinks() {
   return (
-    <div className="flex items-center justify-center gap-[10px] p-[2px] text-[13px] tracking-[-0.02em] text-neutral-7">
+    <div className={`flex items-center justify-center gap-[10px] p-[2px] text-neutral-7 ${typography.bodyXSmall}`}>
       <Link href="/forgot-id" className="hover:underline">
         아이디 찾기
       </Link>

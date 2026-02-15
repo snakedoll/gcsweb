@@ -1,6 +1,8 @@
 'use client';
 
 import { NavBar } from '@/components/layout';
+import { typography } from '@/lib/styles/typography';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -19,11 +21,11 @@ export default function MypageSettingsPage() {
           >
             <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
           </button>
-          <h1 className="text-lg font-bold text-[#443e3c]">설정</h1>
+          <h1 className={cn(typography.headingSmall, 'text-neutral-10')}>설정</h1>
           <div className="w-6" />
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-[#999694]">설정 페이지 준비 중입니다.</p>
+          <p className={cn(typography.bodyXSmall, 'text-neutral-7')}>설정 페이지 준비 중입니다.</p>
         </div>
       </div>
     </div>

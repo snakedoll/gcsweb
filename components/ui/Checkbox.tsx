@@ -1,3 +1,5 @@
+import { typography } from '@/lib/styles/typography';
+
 interface CheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -12,8 +14,8 @@ export default function Checkbox({
   checked,
   onChange,
   label,
-  checkedLabelClassName = 'text-[13px] text-neutral-10',
-  uncheckedLabelClassName = 'text-[13px] text-neutral-7',
+  checkedLabelClassName = `${typography.bodyXSmall} text-neutral-10`,
+  uncheckedLabelClassName = `${typography.bodyXSmall} text-neutral-7`,
   checkedBoxClassName = 'border-orange-5 bg-orange-5',
   uncheckedBoxClassName = 'border-neutral-7 bg-transparent',
 }: CheckboxProps) {
@@ -32,8 +34,16 @@ export default function Checkbox({
         ].join(' ')}
       >
         {checked ? (
-          <svg width="11" height="8" viewBox="0 0 11 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M1 4L4.1 7L10 1" stroke="#FDFDFD" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            width="11"
+            height="8"
+            viewBox="0 0 11 8"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            className="text-neutral-2"
+          >
+            <path d="M1 4L4.1 7L10 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ) : null}
       </span>

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { typography } from '@/lib/styles/typography';
 
 function IconSettings() {
   return (
@@ -48,7 +49,7 @@ export default function NavBar() {
             >
               <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
             </Link>
-            <span className="text-lg font-bold text-[#443e3c]">마이페이지</span>
+            <span className={`${typography.headingSmall} text-neutral-10`}>마이페이지</span>
             <Link
               href="/mypage/settings"
               aria-label="설정"
@@ -66,7 +67,7 @@ export default function NavBar() {
             >
               <Image src="/assets/icons/icon-user-nav.svg" alt="" width={24} height={24} />
             </Link>
-            <span className="text-lg font-bold text-[#443e3c]">마이페이지</span>
+            <span className={`${typography.headingSmall} text-neutral-10`}>마이페이지</span>
             <Link href="/cart" aria-label="장바구니" className="inline-flex h-6 w-6 items-center justify-center">
               <Image src="/assets/icons/icon-cart-nav.svg" alt="" width={24} height={24} />
             </Link>
