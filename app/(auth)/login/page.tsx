@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CheckboxButton, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
-import Link from 'next/link';
-import { useState } from 'react';
-import Image from 'next/image';
-import { Checkbox, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
@@ -19,12 +19,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
-  
+
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -32,12 +32,13 @@ export default function LoginPage() {
       password: '',
     },
   });
+
   const emailValue = watch('email');
   const passwordValue = watch('password');
   const hasCredentials = emailValue.trim().length > 0 && passwordValue.trim().length > 0;
+
   const isWarningState = loginUiState === 'warning';
   const isBlockedState = loginUiState === 'blocked';
-  const isErrorLikeState = isWarningState || isBlockedState;
 
   const onSubmit = async (data: LoginInput) => {
     if (isBlockedState) return;
@@ -54,6 +55,7 @@ export default function LoginPage() {
 
     if (!loginResponse.ok) {
       const code = loginResult?.code as string | undefined;
+
       if (code === 'ACCOUNT_LOCKED') {
         setLoginUiState('blocked');
         setRememberEmail(true);
@@ -111,6 +113,7 @@ export default function LoginPage() {
           <div className="space-y-6">
             <div className="space-y-5">
               <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>로그인</h1>
+
               <button
                 type="button"
                 onClick={() => signIn('kakao', { callbackUrl: '/' })}
@@ -148,7 +151,13 @@ export default function LoginPage() {
                     <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
                   ) : undefined
                 }
-                caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
+                caption={
+                  isWarningState
+                    ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
+                    : isBlockedState
+                      ? '잠시 후 다시 시도해주세요.'
+                      : undefined
+                }
                 captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
               />
 
@@ -187,16 +196,18 @@ export default function LoginPage() {
                     </button>
                   )
                 }
-                caption={isWarningState ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)' : isBlockedState ? '잠시 후 다시 시도해주세요.' : undefined}
+                caption={
+                  isWarningState
+                    ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
+                    : isBlockedState
+                      ? '잠시 후 다시 시도해주세요.'
+                      : undefined
+                }
                 captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
               />
             </div>
 
-            <Checkbox
-              checked={rememberEmail}
-              onChange={setRememberEmail}
-              label="아이디 기억하기"
-            />
+            <CheckboxButton checked={rememberEmail} onChange={setRememberEmail} label="아이디 기억하기" />
           </div>
 
           <div className="flex flex-col items-center gap-2 pt-8">
