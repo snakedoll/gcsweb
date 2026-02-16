@@ -1,11 +1,20 @@
-import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+type ErrorPayload = {
+  status: 'error';
+  code: string;
+  message: string;
+};
+
 function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
+  return NextResponse.json<ErrorPayload>(
+    { status: 'error', code, message },
+    { status }
+  );
 }
 
 function isEmail(value: unknown): value is string {
@@ -20,11 +29,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
     const email = body?.email;
-    const type = body?.type ?? 'register';
     const code = body?.code;
+    const type = body?.type ?? 'register';
 
     if (!email || !code) {
-      return jsonError(400, 'INVALID_INPUT', '필수 정보가 누락되었습니다.');
+      return jsonError(400, 'INVALID_INPUT', '필수값이 누락되었습니다.');
     }
 
     if (!isEmail(email)) {
@@ -32,11 +41,11 @@ export async function POST(request: Request) {
     }
 
     if (type !== 'register') {
-      return jsonError(400, 'INVALID_INPUT', '필수 정보가 누락되었습니다.');
+      return jsonError(400, 'INVALID_INPUT', '지원하지 않는 인증 타입입니다.');
     }
 
     if (typeof code !== 'string' || code.trim().length === 0) {
-      return jsonError(400, 'INVALID_INPUT', '필수 정보가 누락되었습니다.');
+      return jsonError(400, 'INVALID_INPUT', '필수값이 누락되었습니다.');
     }
 
     const identifier = `verify:${type}:${email}`;
@@ -53,18 +62,17 @@ export async function POST(request: Request) {
     }
 
     if (token.expires.getTime() < Date.now()) {
-      await prisma.verificationToken.delete({ where: { id: token.id } });
+      await prisma.verificationToken.deleteMany({ where: { identifier } });
       return jsonError(400, 'CODE_EXPIRED', '인증번호가 만료되었습니다.');
     }
 
-    // mark verified if user exists
+    // 인증 성공 시 유저가 있으면 verified 갱신 (없으면 register에서 재검증)
     await prisma.user.updateMany({
       where: { email },
       data: { isVerified: true },
     });
 
-    // consume token
-    await prisma.verificationToken.delete({ where: { id: token.id } });
+    await prisma.verificationToken.deleteMany({ where: { identifier } });
 
     return NextResponse.json(
       {
@@ -75,9 +83,8 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (e) {
-    console.error('verify code error:', e);
-    return jsonError(500, 'SERVER_ERROR', '서버 오류 발생.');
+  } catch (error) {
+    console.error('verify code error:', error);
+    return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
   }
 }
-

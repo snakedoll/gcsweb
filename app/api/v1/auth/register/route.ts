@@ -1,11 +1,18 @@
-import { NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { hash } from 'bcryptjs';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+type ErrorPayload = {
+  status: 'error';
+  code: string;
+  message: string;
+};
+
 function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json(
+  return NextResponse.json<ErrorPayload>(
     { status: 'error', code, message },
     { status }
   );
@@ -16,12 +23,16 @@ function isEmail(value: unknown): value is string {
 }
 
 function isStrongPassword(value: unknown): value is string {
-  // Spec: letters + numbers, 8+; allow special chars
-  return typeof value === 'string' && value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
+  return (
+    typeof value === 'string' &&
+    value.length >= 8 &&
+    /[A-Za-z]/.test(value) &&
+    /\d/.test(value)
+  );
 }
 
-function isValidNickname(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length >= 2 && value.trim().length <= 30;
+function sha256(value: string) {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function normalizeNicknameBase(email: string) {
@@ -32,55 +43,58 @@ function normalizeNicknameBase(email: string) {
 
 async function createUniqueNickname(email: string) {
   const base = normalizeNicknameBase(email);
+  const candidates = [
+    base,
+    ...Array.from({ length: 9 }, (_, i) => `${base}${String(i + 1).padStart(4, '0')}`),
+  ];
 
-  // try base first, then base + 4-digit suffix
-  const candidates = [base, ...Array.from({ length: 9 }, (_, i) => `${base}${String(i + 1).padStart(4, '0')}`)];
-
-  for (const nick of candidates) {
-    const exists = await prisma.user.findUnique({ where: { nickname: nick }, select: { id: true } });
-    if (!exists) return nick;
+  for (const candidate of candidates) {
+    const exists = await prisma.user.findUnique({
+      where: { nickname: candidate },
+      select: { id: true },
+    });
+    if (!exists) return candidate;
   }
 
-  // fallback: base + random
-  return `${base}${Math.floor(Math.random() * 1_000_000).toString().padStart(6, '0')}`;
+  return `${base}${Math.floor(Math.random() * 1_000_000)
+    .toString()
+    .padStart(6, '0')}`;
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
 
-    if (!body || typeof body !== 'object') {
-      return jsonError(400, 'INVALID_INPUT', '필수 정보가 누락되었습니다.');
+    const name = body?.name;
+    const phone = body?.phone;
+    const email = body?.email;
+    const password = body?.password;
+    const confirmPassword = body?.confirmPassword;
+    const verificationCode = body?.verificationCode;
+
+    if (
+      !name ||
+      !phone ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !verificationCode
+    ) {
+      return jsonError(400, 'INVALID_INPUT', '필수값이 누락되었습니다.');
     }
 
-    const name = (body as any).name;
-    const phone = (body as any).phone;
-    const email = (body as any).email;
-    const nicknameInput = (body as any).nickname;
-    const password = (body as any).password;
-    const confirmPassword = (body as any).confirmPassword;
-
-    // Required checks (missing)
-    if (!name || !phone || !email || !password || !confirmPassword) {
-      return jsonError(400, 'INVALID_INPUT', '필수 정보가 누락되었습니다.');
-    }
-
-    // Email format
     if (!isEmail(email)) {
       return jsonError(400, 'INVALID_FORMAT', '올바른 이메일 형식이 아닙니다.');
     }
 
-    // Password rule
     if (!isStrongPassword(password)) {
-      return jsonError(400, 'WEAK_PASSWORD', '비밀번호 보안 규칙에 미달합니다.');
+      return jsonError(400, 'WEAK_PASSWORD', '비밀번호 규칙을 충족하지 않습니다.');
     }
 
-    // Confirm mismatch
     if (password !== confirmPassword) {
       return jsonError(400, 'PASSWORD_MISMATCH', '비밀번호가 일치하지 않습니다.');
     }
 
-    // Email exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
@@ -90,24 +104,26 @@ export async function POST(request: Request) {
       return jsonError(409, 'EMAIL_EXISTS', '이미 사용 중인 이메일입니다.');
     }
 
+    const identifier = `verify:register:${email}`;
+    const codeHash = sha256(String(verificationCode).trim());
+
+    const token = await prisma.verificationToken.findFirst({
+      where: { identifier, token: codeHash },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, expires: true },
+    });
+
+    if (!token) {
+      return jsonError(400, 'INVALID_CODE', '인증번호가 올바르지 않습니다.');
+    }
+
+    if (token.expires.getTime() < Date.now()) {
+      await prisma.verificationToken.deleteMany({ where: { identifier } });
+      return jsonError(400, 'CODE_EXPIRED', '인증번호가 만료되었습니다.');
+    }
+
+    const nickname = await createUniqueNickname(email);
     const hashedPassword = await hash(password, 12);
-
-    const trimmedNickname = typeof nicknameInput === 'string' ? nicknameInput.trim() : null;
-    if (trimmedNickname && !isValidNickname(trimmedNickname)) {
-      return jsonError(400, 'INVALID_INPUT', '닉네임 형식이 올바르지 않습니다.');
-    }
-
-    if (trimmedNickname) {
-      const existingNickname = await prisma.user.findUnique({
-        where: { nickname: trimmedNickname },
-        select: { id: true },
-      });
-      if (existingNickname) {
-        return jsonError(409, 'NICKNAME_EXISTS', '이미 사용 중인 닉네임입니다.');
-      }
-    }
-
-    const nickname = trimmedNickname || (await createUniqueNickname(email));
 
     const user = await prisma.user.create({
       data: {
@@ -117,12 +133,16 @@ export async function POST(request: Request) {
         nickname,
         password: hashedPassword,
         signupMethod: 'EMAIL',
+        isVerified: true,
       },
       select: {
         email: true,
         name: true,
       },
     });
+
+    // consume register verification token (one-time use)
+    await prisma.verificationToken.deleteMany({ where: { identifier } });
 
     return NextResponse.json(
       {
@@ -134,9 +154,8 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (e) {
-    console.error('v1 register error:', e);
-    return jsonError(500, 'SERVER_ERROR', '서버 오류 발생.');
+  } catch (error) {
+    console.error('register v1 error:', error);
+    return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
   }
 }
-
