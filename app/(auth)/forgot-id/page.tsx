@@ -140,7 +140,7 @@ export default function ForgotIdPage() {
                   hasAllFields || isSuccessState ? 'bg-orange-5' : 'bg-orange-3'
                 )}
               >
-                이메일로 로그인
+                아이디 찾기
               </button>
 
               {!isSuccessState ? (

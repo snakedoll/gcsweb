@@ -19,7 +19,7 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'col
 function ArrowIcon({ direction = 'right' }: { direction?: 'left' | 'right' }) {
   return (
     <Image
-      src="/assets/icons/icon-chevron-right.svg"
+      src="/assets/icons/icon-right.svg"
       alt=""
       width={20}
       height={20}

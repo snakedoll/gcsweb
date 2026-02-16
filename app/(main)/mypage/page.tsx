@@ -47,7 +47,7 @@ function MenuSection({ title, items }: MenuSectionProps) {
           <li key={item.href}>
             <Link href={item.href} className="flex items-center justify-between typo-body-xsmall text-neutral-8">
               <span>{item.label}</span>
-              <Image src="/assets/icons/icon-chevron-right.svg" alt="" width={20} height={20} />
+              <Image src="/assets/icons/icon-right.svg" alt="" width={20} height={20} />
             </Link>
           </li>
         ))}
