@@ -8,7 +8,7 @@ import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Checkbox, LoginSupportLinks, TextField } from '@/components/ui';
+import { Checkbox, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
@@ -102,9 +102,8 @@ export default function LoginPage() {
         </button>
       </div>
 
-      <div className="flex flex-col items-center gap-3 pb-7 pt-7">
-        <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-        <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
+      <div className="flex items-center justify-center pb-7 pt-7">
+        <LogoSubtext />
       </div>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
@@ -180,7 +179,7 @@ export default function LoginPage() {
                       disabled={isBlockedState}
                     >
                       <Image
-                        src={isBlockedState ? '/assets/icons/icon-eye-dark.svg' : '/assets/icons/icon-eye.svg'}
+                        src={showPassword ? '/assets/icons/icon-eye-show.svg' : '/assets/icons/icon-eye-hide.svg'}
                         alt=""
                         width={20}
                         height={20}
@@ -200,23 +199,25 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-3 pt-8">
-            <button
-              type="submit"
-              disabled={isSubmitting || !hasCredentials || isErrorLikeState}
-              className={[
-                cn('h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold'),
-                hasCredentials && !isErrorLikeState ? 'bg-orange-5' : 'bg-orange-3',
-              ].join(' ')}
-            >
-              {isSubmitting ? '로그인 중...' : hasCredentials ? '로그인' : '이메일로 로그인'}
-            </button>
+          <div className="flex flex-col items-center gap-2 pt-8">
+            <div className="flex w-full flex-col items-center gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting || !hasCredentials || isBlockedState}
+                className={[
+                  cn('h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold'),
+                  hasCredentials && !isBlockedState ? 'bg-orange-5' : 'bg-orange-3',
+                ].join(' ')}
+              >
+                {isSubmitting ? '로그인 중...' : '이메일로 로그인'}
+              </button>
 
-            <div className={cn('flex items-center justify-center gap-2 typo-body-xsmall')}>
-              <p className="text-neutral-8">아직 계정이 없으신가요?</p>
-              <Link href="/register" className={cn('typo-body-xsmall-bold', 'text-orange-4')}>
-                회원가입
-              </Link>
+              <div className={cn('flex items-center justify-center gap-2 typo-body-xsmall')}>
+                <p className="text-neutral-8">아직 계정이 없으신가요?</p>
+                <Link href="/register" className={cn('typo-body-xsmall-bold', 'text-orange-4')}>
+                  회원가입
+                </Link>
+              </div>
             </div>
 
             <LoginSupportLinks />

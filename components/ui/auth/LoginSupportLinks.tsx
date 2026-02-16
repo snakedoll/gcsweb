@@ -1,12 +1,35 @@
 import Link from 'next/link';
 
-export default function LoginSupportLinks() {
+type LoginSupportLinksVariant = 'default' | 'forgot_pw' | 'forgot_id';
+
+interface LoginSupportLinksProps {
+  variant?: LoginSupportLinksVariant;
+  className?: string;
+}
+
+export default function LoginSupportLinks({ variant = 'default', className }: LoginSupportLinksProps) {
+  if (variant === 'forgot_pw') {
+    return (
+      <div className={`typo-body-xsmall flex items-center justify-center p-[2px] text-neutral-7 ${className ?? ''}`.trim()}>
+        비밀번호 찾기
+      </div>
+    );
+  }
+
+  if (variant === 'forgot_id') {
+    return (
+      <div className={`typo-body-xsmall flex items-center justify-center p-[2px] text-neutral-7 ${className ?? ''}`.trim()}>
+        아이디 찾기
+      </div>
+    );
+  }
+
   return (
-    <div className="typo-body-xsmall flex items-center justify-center gap-[10px] p-[2px] text-neutral-7">
+    <div className={`typo-body-xsmall flex items-center justify-center gap-[10px] p-[2px] text-neutral-7 ${className ?? ''}`.trim()}>
       <Link href="/forgot-id" className="hover:underline">
         아이디 찾기
       </Link>
-      <span className="text-neutral-5">|</span>
+      <span className="h-[15px] w-px bg-neutral-7" aria-hidden />
       <Link href="/forgot-password" className="hover:underline">
         비밀번호 찾기
       </Link>

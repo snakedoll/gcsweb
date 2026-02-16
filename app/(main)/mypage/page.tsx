@@ -79,7 +79,7 @@ export default function MypagePage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <NavBar />
+      <NavBar variant="title-back" title="마이페이지" />
       <main className="mx-auto w-full max-w-[375px] flex-1 px-4 pt-6">
         <section className="mb-5">
           <div className="flex items-center gap-6 px-2">

@@ -59,7 +59,6 @@ export default function TextField({
   const isError = status === 'error';
   const isDisabled = status === 'disabled';
   const isSuccess = status === 'success';
-  const isFilled = status === 'filled';
   const isType = status === 'type';
   const isTime = status === 'time';
 
@@ -95,24 +94,12 @@ export default function TextField({
       return <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />;
     }
     if (isSuccess) {
-      return (
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-positive text-neutral-2">
-          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <path d="M1 4L3.6 7L9 1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-      );
+      return <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />;
     }
     if (isType) {
-      return (
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-neutral-5 text-neutral-2">
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        </span>
-      );
+      return <Image src="/assets/icons/icon-clear.svg" alt="" width={20} height={20} />;
     }
-    return <Image src="/assets/icons/icon-eye.svg" alt="" width={20} height={20} />;
+    return <Image src="/assets/icons/icon-eye-hide.svg" alt="" width={20} height={20} />;
   };
 
   const captionText = caption ?? helperText;
