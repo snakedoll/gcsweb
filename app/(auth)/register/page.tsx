@@ -7,7 +7,7 @@ import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
 import Link from 'next/link';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Checkbox } from '@/components/ui';
+import { CheckboxButton } from '@/components/ui';
 import TermsDetailModal from '@/components/auth/TermsDetailModal';
 import { PRIVACY_COLLECTION, TERMS_OF_USE } from '@/lib/terms-content';
 import { formatPhoneWithHyphen } from '@/lib/format-phone';
@@ -202,14 +202,14 @@ export default function RegisterPage() {
           <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원 가입</h1>
 
           <div className="mt-6 border-t border-neutral-4 pt-4">
-            <Checkbox
+            <CheckboxButton
               checked={agreeAll}
               onChange={handleAgreeAllChange}
               label="약관 전체 동의"
             />
           </div>
           <div className="mt-4 border-t border-neutral-4 pt-4 space-y-4">
-            <Checkbox
+            <CheckboxButton
               checked={agreeAge}
               onChange={(c) => {
                 setAgreeAge(c);
@@ -218,7 +218,7 @@ export default function RegisterPage() {
               label="[필수] 만 14세 이상입니다."
             />
             <div className="flex items-center justify-between gap-2">
-              <Checkbox
+              <CheckboxButton
                 checked={agreeTerms}
                 onChange={(c) => {
                   setAgreeTerms(c);
@@ -236,7 +236,7 @@ export default function RegisterPage() {
               </button>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <Checkbox
+              <CheckboxButton
                 checked={agreePrivacy}
                 onChange={(c) => {
                   setAgreePrivacy(c);
