@@ -1,5 +1,6 @@
 'use client';
 
+import DevSessionClear from '@/components/auth/DevSessionClear';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { useState, type ReactNode } from 'react';
@@ -23,9 +24,11 @@ export default function Providers({ children }: ProvidersProps) {
 
   return (
     <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <DevSessionClear>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </DevSessionClear>
     </SessionProvider>
   );
 }
