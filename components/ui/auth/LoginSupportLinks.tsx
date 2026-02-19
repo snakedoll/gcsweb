@@ -11,7 +11,9 @@ export default function LoginSupportLinks({ variant = 'default', className }: Lo
   if (variant === 'forgot_pw') {
     return (
       <div className={`typo-body-xsmall flex items-center justify-center p-[2px] text-neutral-7 ${className ?? ''}`.trim()}>
-        비밀번호 찾기
+        <Link href="/forgot-password" className="hover:underline">
+          비밀번호 찾기
+        </Link>
       </div>
     );
   }
