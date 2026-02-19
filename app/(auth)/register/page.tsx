@@ -193,10 +193,10 @@ export default function RegisterPage() {
           </button>
         </div>
 
-        <div className="flex flex-col items-center gap-3 pb-7 pt-7">
+        <Link href="/" className="flex flex-col items-center gap-3 pb-7 pt-7" aria-label="메인으로 이동">
           <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
           <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
-        </div>
+        </Link>
 
         <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
           <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원 가입</h1>
@@ -286,10 +286,10 @@ export default function RegisterPage() {
         </button>
       </div>
 
-      <div className="flex flex-col items-center gap-3 pb-7 pt-7">
+      <Link href="/" className="flex flex-col items-center gap-3 pb-7 pt-7" aria-label="메인으로 이동">
         <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
         <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
-      </div>
+      </Link>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
         <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원가입</h1>
