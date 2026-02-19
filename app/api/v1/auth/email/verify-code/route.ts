@@ -72,9 +72,8 @@ export async function POST(request: Request) {
       data: { isVerified: true },
     });
 
-    await prisma.verificationToken.deleteMany({ where: { identifier } });
-
     if (type === 'reset-password') {
+      await prisma.verificationToken.deleteMany({ where: { identifier } });
       const resetToken = randomBytes(32).toString('hex');
       const resetExpires = new Date(Date.now() + 10 * 60 * 1000);
       await prisma.verificationToken.create({

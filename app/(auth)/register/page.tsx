@@ -103,6 +103,7 @@ export default function RegisterPage() {
       setVerificationSent(true);
       setVerificationSuccess(false);
       setVerificationCode('');
+      setValue('verificationCode', '', { shouldValidate: true });
     } catch {
       setEmailDuplicateError('확인에 실패했습니다.');
     } finally {
@@ -128,6 +129,7 @@ export default function RegisterPage() {
         return;
       }
       setVerificationSuccess(true);
+      setValue('verificationCode', code, { shouldValidate: true });
       setVerificationError(null);
     } catch {
       setVerificationError('인증 확인에 실패했습니다.');
@@ -139,11 +141,18 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setError(null);
     setEmailDuplicateError(null);
+    if (!verificationSuccess) {
+      setVerificationError('인증번호를 먼저 확인해주세요.');
+      return;
+    }
     try {
       const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          verificationCode: verificationCode.trim(),
+        }),
       });
       const result = await res.json().catch(() => null);
       if (!res.ok) {
@@ -295,6 +304,7 @@ export default function RegisterPage() {
         <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원가입</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+          <input type="hidden" {...register('verificationCode')} />
           {error && (
             <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div>
           )}
@@ -417,7 +427,9 @@ export default function RegisterPage() {
                         maxLength={6}
                         value={verificationCode}
                         onChange={(e) => {
-                          setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                          const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setVerificationCode(nextCode);
+                          setValue('verificationCode', nextCode, { shouldValidate: true });
                           setVerificationError(null);
                         }}
                         className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"

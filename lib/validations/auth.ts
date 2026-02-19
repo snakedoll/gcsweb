@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
 export const loginSchema = z.object({
   email: z
@@ -40,6 +40,10 @@ export const registerSchema = z
         '비밀번호는 영문과 숫자를 포함해야 합니다.'
       ),
     confirmPassword: z.string(),
+    verificationCode: z
+      .string()
+      .min(1, '인증번호를 입력해주세요.')
+      .regex(/^\d{6}$/, '인증번호는 숫자 6자리여야 합니다.'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: '비밀번호가 일치하지 않습니다.',
