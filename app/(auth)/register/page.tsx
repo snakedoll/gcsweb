@@ -4,14 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
-import Link from 'next/link';
-import { useState } from 'react';
 import Image from 'next/image';
-import { CheckboxButton } from '@/components/ui';
-import TermsDetailModal from '@/components/auth/TermsDetailModal';
-import { PRIVACY_COLLECTION, TERMS_OF_USE } from '@/lib/terms-content';
-import { formatPhoneWithHyphen } from '@/lib/format-phone';
+import { useState } from 'react';
+import { NavBar } from '@/components/layout';
 import { cn } from '@/lib/utils';
+import { formatPhoneWithHyphen } from '@/lib/format-phone';
 
 const PASSWORD_HINT = '8자 이상 영문, 숫자 조합';
 
@@ -23,18 +20,8 @@ function normalizePhoneDigits(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
-type RegisterStep = 'terms' | 'form';
-type TermsDetailType = 'terms' | 'privacy' | null;
-
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<RegisterStep>('terms');
-  const [detailModal, setDetailModal] = useState<TermsDetailType>(null);
-
-  const [agreeAll, setAgreeAll] = useState(false);
-  const [agreeAge, setAgreeAge] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreePrivacy, setAgreePrivacy] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [emailDuplicateError, setEmailDuplicateError] = useState<string | null>(null);
@@ -45,19 +32,6 @@ export default function RegisterPage() {
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
-
-  const allRequiredChecked = agreeAge && agreeTerms && agreePrivacy;
-
-  const handleAgreeAllChange = (checked: boolean) => {
-    setAgreeAll(checked);
-    setAgreeAge(checked);
-    setAgreeTerms(checked);
-    setAgreePrivacy(checked);
-  };
-
-  const updateAgreeAll = () => {
-    setAgreeAll(agreeAge && agreeTerms && agreePrivacy);
-  };
 
   const {
     register,
@@ -203,317 +177,203 @@ export default function RegisterPage() {
     }
   };
 
-  if (detailModal === 'terms') {
-    return (
-      <TermsDetailModal
-        title="홈페이지 이용약관"
-        content={TERMS_OF_USE}
-        onConfirm={() => setDetailModal(null)}
-      />
-    );
-  }
+  return (
+    <div className="w-full max-w-[375px]">
+      <NavBar variant="home" />
 
-  if (detailModal === 'privacy') {
-    return (
-      <TermsDetailModal
-        title="개인정보 수집 이용"
-        content={PRIVACY_COLLECTION}
-        onConfirm={() => setDetailModal(null)}
-      />
-    );
-  }
+      <div className="flex flex-col items-center gap-3 pb-7 pt-7">
+        <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
+        <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
+      </div>
 
-  if (step === 'terms') {
-    return (
-      <div className="w-full max-w-[375px]">
-        <div className="border-b border-neutral-4 px-4 pb-[10px] pt-[10px]">
+      <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[10px]">
+        <div className="flex items-center border-b border-neutral-4 py-[10px]">
           <button
             type="button"
-            onClick={() => router.push('/login')}
-            className="inline-flex h-6 w-3 items-center justify-center"
+            onClick={() => router.back()}
+            className="inline-flex h-6 w-6 items-center justify-center"
             aria-label="뒤로가기"
           >
             <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
           </button>
+          <h1 className={cn('flex-1 text-center typo-heading-small text-neutral-10')}>회원가입</h1>
+          <div className="h-6 w-6" aria-hidden />
         </div>
 
-        <Link href="/" className="flex flex-col items-center gap-3 pb-7 pt-7" aria-label="메인으로 이동">
-          <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-          <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
-        </Link>
-
-        <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
-          <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원 가입</h1>
-
-          <div className="mt-6 border-t border-neutral-4 pt-4">
-            <CheckboxButton checked={agreeAll} onChange={handleAgreeAllChange} label="약관 전체 동의" />
-          </div>
-
-          <div className="mt-4 space-y-4 border-t border-neutral-4 pt-4">
-            <CheckboxButton
-              checked={agreeAge}
-              onChange={(c) => {
-                setAgreeAge(c);
-                updateAgreeAll();
-              }}
-              label="[필수] 만 14세 이상입니다"
-            />
-
-            <div className="flex items-center justify-between gap-2">
-              <CheckboxButton
-                checked={agreeTerms}
-                onChange={(c) => {
-                  setAgreeTerms(c);
-                  updateAgreeAll();
-                }}
-                label="[필수] 홈페이지 이용약관 동의"
-              />
-              <button type="button" onClick={() => setDetailModal('terms')} className="shrink-0 p-1" aria-label="홈페이지 이용약관 상세 보기">
-                <Image src="/assets/icons/icon-right.svg" alt="" width={24} height={24} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <CheckboxButton
-                checked={agreePrivacy}
-                onChange={(c) => {
-                  setAgreePrivacy(c);
-                  updateAgreeAll();
-                }}
-                label="[필수] 개인정보 수집·이용 동의"
-              />
-              <button type="button" onClick={() => setDetailModal('privacy')} className="shrink-0 p-1" aria-label="개인정보 수집 이용 상세 보기">
-                <Image src="/assets/icons/icon-right.svg" alt="" width={24} height={24} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <button
-              type="button"
-              onClick={() => setStep('form')}
-              disabled={!allRequiredChecked}
-              className={cn(
-                'h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2',
-                allRequiredChecked ? 'bg-orange-5' : 'bg-orange-3'
-              )}
-            >
-              다음
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full max-w-[375px]">
-      <div className="border-b border-neutral-4 px-4 pb-[10px] pt-[10px]">
-        <button
-          type="button"
-          onClick={() => setStep('terms')}
-          className="inline-flex h-6 w-3 items-center justify-center"
-          aria-label="뒤로가기"
-        >
-          <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
-        </button>
-      </div>
-
-      <Link href="/" className="flex flex-col items-center gap-3 pb-7 pt-7" aria-label="메인으로 이동">
-        <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-        <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
-      </Link>
-
-      <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
-        <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>회원가입</h1>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-[25px] space-y-[30px]">
           <input type="hidden" {...register('verificationCode')} />
 
           {error && <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div>}
 
-          <section>
-            <h2 className="mb-4 typo-body-small-bold text-neutral-10">회원정보</h2>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="typo-body-xsmall-bold text-neutral-10">이름</label>
-                <input
-                  id="name"
-                  type="text"
-                  {...register('name')}
-                  className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                  placeholder="이름"
-                />
-                {errors.name && <p className="mt-1 typo-body-xsmall text-danger">{errors.name.message}</p>}
-              </div>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="typo-body-small-bold text-neutral-10">이름</label>
+              <input
+                id="name"
+                type="text"
+                {...register('name')}
+                className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
+                placeholder="홍길동"
+              />
+              {errors.name && <p className="mt-1 typo-body-xsmall text-danger">{errors.name.message}</p>}
+            </div>
 
-              <div>
-                <label htmlFor="phone" className="typo-body-xsmall-bold text-neutral-10">전화번호</label>
+            <div>
+              <label htmlFor="phone" className="typo-body-small-bold text-neutral-10">전화번호</label>
+              <input
+                id="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="010-1234-5678"
+                className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
+                {...register('phone', {
+                  onChange: (e) => {
+                    const formatted = formatPhoneWithHyphen(e.target.value);
+                    if (formatted !== e.target.value) setValue('phone', formatted);
+                  },
+                })}
+              />
+              {errors.phone && <p className="mt-1 typo-body-xsmall text-danger">{errors.phone.message}</p>}
+            </div>
+          </div>
+
+          <div className="h-px w-full bg-neutral-4" />
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="typo-body-small-bold text-neutral-10">아이디 (이메일)</label>
+              <div className="mt-1 flex gap-[10px]">
                 <input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  placeholder="010-1234-5678"
-                  className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                  {...register('phone', {
-                    onChange: (e) => {
-                      const formatted = formatPhoneWithHyphen(e.target.value);
-                      if (formatted !== e.target.value) setValue('phone', formatted);
+                  id="email"
+                  type="email"
+                  {...register('email', {
+                    onChange: () => {
+                      setEmailDuplicateError(null);
+                      setVerificationSent(false);
+                      setVerificationSuccess(false);
+                      setVerificationError(null);
+                      setVerificationCode('');
+                      setValue('verificationCode', '', { shouldValidate: true });
                     },
                   })}
+                  className="h-12 flex-1 rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
+                  placeholder="example@gmail.com"
                 />
-                {errors.phone && <p className="mt-1 typo-body-xsmall text-danger">{errors.phone.message}</p>}
+                <button
+                  type="button"
+                  onClick={handleEmailCheck}
+                  disabled={emailCheckLoading}
+                  className="h-12 shrink-0 rounded-lg bg-neutral-10 px-4 typo-body-small-bold text-neutral-2 disabled:opacity-50"
+                >
+                  {emailCheckLoading ? '전송 중' : '전송'}
+                </button>
               </div>
+              {verificationSent && <p className="mt-1 typo-body-xsmall text-orange-5">인증번호를 전송했습니다.</p>}
+              {emailDuplicateError && <p className="mt-1 typo-body-xsmall text-danger">{emailDuplicateError}</p>}
+              {errors.email && !emailDuplicateError && !verificationSent && (
+                <p className="mt-1 typo-body-xsmall text-danger">{errors.email.message}</p>
+              )}
             </div>
-          </section>
 
-          <section>
-            <h2 className="mb-4 typo-body-small-bold text-neutral-10">ID/PW</h2>
-            <div className="space-y-4">
+            {verificationSent && (
               <div>
-                <label htmlFor="email" className="typo-body-xsmall-bold text-neutral-10">아이디(이메일)</label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    id="email"
-                    type="email"
-                    {...register('email', {
-                      onChange: () => {
-                        setEmailDuplicateError(null);
-                        setVerificationSent(false);
-                        setVerificationSuccess(false);
+                <label htmlFor="verificationCode" className="typo-body-small-bold text-neutral-10">인증번호</label>
+                <div className="mt-1 flex gap-[10px]">
+                  <div
+                    className={cn(
+                      'flex h-12 flex-1 items-center rounded-lg border bg-neutral-2 px-3',
+                      verificationError ? 'border-danger' : 'border-neutral-5'
+                    )}
+                  >
+                    <input
+                      id="verificationCode"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) => {
+                        const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setVerificationCode(nextCode);
+                        setValue('verificationCode', nextCode, { shouldValidate: true });
                         setVerificationError(null);
-                        setVerificationCode('');
-                        setValue('verificationCode', '', { shouldValidate: true });
-                      },
-                    })}
-                    className="h-12 flex-1 rounded-lg border border-neutral-5 bg-neutral-1 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                    placeholder="example@gmail.com"
-                  />
+                      }}
+                      className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
+                      placeholder="인증번호를 입력해주세요."
+                    />
+                    {verificationError && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
+                  </div>
                   <button
                     type="button"
-                    onClick={handleEmailCheck}
-                    disabled={emailCheckLoading}
-                    className="h-12 shrink-0 rounded-lg bg-neutral-8 px-4 typo-body-xsmall-bold text-neutral-1 disabled:opacity-50"
+                    onClick={handleVerifyCode}
+                    disabled={verifyLoading || verificationCode.length === 0}
+                    className="h-12 shrink-0 rounded-lg bg-neutral-10 px-4 typo-body-small-bold text-neutral-2 disabled:bg-neutral-5 disabled:text-neutral-7"
                   >
-                    {emailCheckLoading ? '전송 중' : '전송'}
+                    {verifyLoading ? '확인 중' : '확인'}
                   </button>
                 </div>
+                {verificationError && <p className="mt-1 typo-body-xsmall text-danger">{verificationError}</p>}
+                {verificationSuccess && <p className="mt-1 typo-body-xsmall text-orange-5">인증에 성공했습니다.</p>}
+              </div>
+            )}
 
-                {verificationSent && <p className="mt-1 typo-body-xsmall text-orange-5">인증번호를 전송했습니다.</p>}
-                {emailDuplicateError && <p className="mt-1 typo-body-xsmall text-danger">{emailDuplicateError}</p>}
-                {errors.email && !emailDuplicateError && !verificationSent && (
-                  <p className="mt-1 typo-body-xsmall text-danger">{errors.email.message}</p>
+            <div>
+              <label htmlFor="password" className="typo-body-small-bold text-neutral-10">비밀번호</label>
+              <div
+                className={cn(
+                  'mt-1 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
+                  passwordInvalid ? 'border-danger' : 'border-neutral-5'
                 )}
+              >
+                <input
+                  id="password"
+                  type="password"
+                  {...register('password')}
+                  className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
+                  placeholder="비밀번호를 입력해주세요."
+                />
+                {passwordInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
               </div>
-
-              {verificationSent && (
-                <div>
-                  <label htmlFor="verificationCode" className="typo-body-xsmall-bold text-neutral-10">인증번호</label>
-                  <div className="mt-1 flex gap-2">
-                    <div
-                      className={cn(
-                        'flex h-12 flex-1 items-center rounded-lg border bg-neutral-1 px-3',
-                        verificationError ? 'border-danger' : 'border-neutral-5'
-                      )}
-                    >
-                      <input
-                        id="verificationCode"
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={6}
-                        value={verificationCode}
-                        onChange={(e) => {
-                          const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
-                          setVerificationCode(nextCode);
-                          setValue('verificationCode', nextCode, { shouldValidate: true });
-                          setVerificationError(null);
-                        }}
-                        className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                        placeholder="인증번호를 입력해주세요."
-                      />
-                      {verificationError && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleVerifyCode}
-                      disabled={verifyLoading || verificationCode.length === 0}
-                      className="h-12 shrink-0 rounded-lg bg-neutral-8 px-4 typo-body-xsmall-bold text-neutral-1 disabled:bg-neutral-5 disabled:text-neutral-7"
-                    >
-                      {verifyLoading ? '확인 중' : '확인'}
-                    </button>
-                  </div>
-
-                  {verificationError && <p className="mt-1 typo-body-xsmall text-danger">{verificationError}</p>}
-                  {verificationSuccess && <p className="mt-1 typo-body-xsmall text-orange-5">인증에 성공했습니다.</p>}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="password" className="typo-body-xsmall-bold text-neutral-10">비밀번호</label>
-                <div
-                  className={cn(
-                    'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                    passwordInvalid ? 'border-danger' : 'border-neutral-5'
-                  )}
-                >
-                  <input
-                    id="password"
-                    type="password"
-                    {...register('password')}
-                    className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                    placeholder="비밀번호를 입력해주세요."
-                  />
-                  {passwordInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
-                </div>
-                <p className={cn('mt-1 typo-body-xsmall', passwordInvalid ? 'text-danger' : 'text-neutral-7')}>
-                  {PASSWORD_HINT}
-                </p>
-                {errors.password && <p className="mt-1 typo-body-xsmall text-danger">{errors.password.message}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="typo-body-xsmall-bold text-neutral-10">비밀번호 확인</label>
-                <div
-                  className={cn(
-                    'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                    confirmInvalid ? 'border-danger' : 'border-neutral-5'
-                  )}
-                >
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    {...register('confirmPassword')}
-                    className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                    placeholder="비밀번호를 다시 입력해주세요."
-                  />
-                  {confirmInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
-                </div>
-                <p className={cn('mt-1 typo-body-xsmall', confirmInvalid ? 'text-danger' : 'text-neutral-7')}>
-                  {PASSWORD_HINT}
-                </p>
-                {errors.confirmPassword && (
-                  <p className="mt-1 typo-body-xsmall text-danger">{errors.confirmPassword.message}</p>
-                )}
-              </div>
+              <p className={cn('mt-1 typo-body-xsmall', passwordInvalid ? 'text-danger' : 'text-neutral-7')}>
+                {PASSWORD_HINT}
+              </p>
+              {errors.password && <p className="mt-1 typo-body-xsmall text-danger">{errors.password.message}</p>}
             </div>
-          </section>
+
+            <div>
+              <label htmlFor="confirmPassword" className="typo-body-small-bold text-neutral-10">비밀번호 확인</label>
+              <div
+                className={cn(
+                  'mt-1 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
+                  confirmInvalid ? 'border-danger' : 'border-neutral-5'
+                )}
+              >
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  {...register('confirmPassword')}
+                  className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
+                  placeholder="비밀번호를 입력해주세요."
+                />
+                {confirmInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
+              </div>
+              <p className={cn('mt-1 typo-body-xsmall', confirmInvalid ? 'text-danger' : 'text-neutral-7')}>
+                {PASSWORD_HINT}
+              </p>
+              {errors.confirmPassword && (
+                <p className="mt-1 typo-body-xsmall text-danger">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+          </div>
 
           <button
             type="submit"
             disabled={isSubmitting || !verificationSuccess}
-            className={cn('h-[55px] w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:bg-orange-3')}
+            className="h-[55px] w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:bg-orange-3"
           >
             {isSubmitting ? '가입 중...' : '회원가입'}
           </button>
         </form>
-
-        <div className="mt-4 flex items-center justify-center gap-2 typo-body-xsmall">
-          <span className="text-neutral-8">이미 계정이 있으신가요?</span>
-          <Link href="/login" className="typo-body-xsmall-bold text-orange-4">
-            로그인
-          </Link>
-        </div>
       </div>
     </div>
   );
