@@ -351,7 +351,7 @@ export default function NewProductPage() {
                   render={({ field }) => (
                     <DatePicker
                       selected={salesStartDate}
-                      onChange={(date) => {
+                      onChange={(date: Date | null) => {
                         const value = date ? format(date, 'yyyy-MM-dd') : '';
                         field.onChange(value);
                         if (salesEndDate && date && salesEndDate < date) {
@@ -380,7 +380,7 @@ export default function NewProductPage() {
                   render={({ field }) => (
                     <DatePicker
                       selected={salesEndDate}
-                      onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                      onChange={(date: Date | null) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
                       onBlur={field.onBlur}
                       minDate={salesStartDate ?? today}
                       locale={ko}
