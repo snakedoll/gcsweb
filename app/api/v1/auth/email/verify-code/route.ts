@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       return jsonError(400, 'INVALID_FORMAT', '올바른 이메일 형식이 아닙니다.');
     }
 
-    if (type !== 'register') {
+    if (type !== 'register' && type !== 'reset-password') {
       return jsonError(400, 'INVALID_INPUT', '지원하지 않는 인증 타입입니다.');
     }
 
@@ -73,6 +73,25 @@ export async function POST(request: Request) {
     });
 
     await prisma.verificationToken.deleteMany({ where: { identifier } });
+
+    if (type === 'reset-password') {
+      const resetToken = randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await prisma.verificationToken.create({
+        data: {
+          identifier: `reset:${email}`,
+          token: resetToken,
+          expires: resetExpires,
+        },
+      });
+      return NextResponse.json(
+        {
+          status: 'success',
+          data: { message: '이메일 인증이 완료되었습니다.', resetToken },
+        },
+        { status: 200 }
+      );
+    }
 
     return NextResponse.json(
       {

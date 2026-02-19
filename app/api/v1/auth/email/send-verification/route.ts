@@ -44,8 +44,18 @@ export async function POST(request: Request) {
       return jsonError(400, 'INVALID_FORMAT', '올바른 이메일 형식이 아닙니다.');
     }
 
-    if (type !== 'register') {
+    if (type !== 'register' && type !== 'reset-password') {
       return jsonError(400, 'INVALID_INPUT', '지원하지 않는 인증 타입입니다.');
+    }
+
+    if (type === 'reset-password') {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (!user) {
+        return jsonError(404, 'EMAIL_NOT_FOUND', '가입한 이메일이 없습니다.');
+      }
     }
 
     const identifier = `verify:${type}:${email}`;

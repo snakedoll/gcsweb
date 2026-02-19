@@ -18,7 +18,8 @@ interface ForgotIdInput {
 export default function ForgotIdPage() {
   const router = useRouter();
   const [uiState, setUiState] = useState<ForgotIdUiState>('default');
-  const [foundEmail, setFoundEmail] = useState('exa****@email.com');
+  const [foundEmail, setFoundEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<'name' | 'phone' | null>(null);
 
   const { register, handleSubmit, watch, setValue } = useForm<ForgotIdInput>({
@@ -41,17 +42,31 @@ export default function ForgotIdPage() {
     return 'default' as const;
   };
 
-  const onSubmit = (data: ForgotIdInput) => {
+  const onSubmit = async (data: ForgotIdInput) => {
     const normalizedName = data.name.trim();
     const normalizedPhone = data.phone.trim();
+    if (!normalizedName || !normalizedPhone) return;
 
-    if (normalizedName === '유혜민' && normalizedPhone === '010-9999-3821') {
-      setFoundEmail('exa****@email.com');
+    setLoading(true);
+    setUiState('default');
+    try {
+      const res = await fetch('/api/v1/auth/find-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: normalizedName, phone: normalizedPhone }),
+      });
+      const result = await res.json().catch(() => null);
+      if (!res.ok) {
+        setUiState('failure');
+        return;
+      }
+      setFoundEmail(result?.data?.email ?? '');
       setUiState('success');
-      return;
+    } catch {
+      setUiState('failure');
+    } finally {
+      setLoading(false);
     }
-
-    setUiState('failure');
   };
 
   const handleInputChange = () => {
@@ -134,13 +149,13 @@ export default function ForgotIdPage() {
               <button
                 type={isSuccessState ? 'button' : 'submit'}
                 onClick={isSuccessState ? () => router.push('/login') : undefined}
-                disabled={!isSuccessState && !hasAllFields}
+                disabled={(!isSuccessState && !hasAllFields) || loading}
                 className={cn(
                   'h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold',
                   hasAllFields || isSuccessState ? 'bg-orange-5' : 'bg-orange-3'
                 )}
               >
-                아이디 찾기
+                {loading ? '찾는 중...' : '아이디 찾기'}
               </button>
 
               {!isSuccessState ? (
