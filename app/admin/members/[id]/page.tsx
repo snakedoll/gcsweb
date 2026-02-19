@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { NavBar } from '@/components/layout';
+import DeleteAccountModal from '@/components/admin/DeleteAccountModal';
 import { formatPhoneWithHyphen } from '@/lib/format-phone';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ export default function AdminMemberDetailPage() {
 
   const [member, setMember] = useState<MemberDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -171,6 +173,7 @@ export default function AdminMemberDetailPage() {
         <div className="mt-4 flex justify-end px-4 pb-4">
           <button
             type="button"
+            onClick={() => setDeleteModalOpen(true)}
             className={cn(
               'flex items-center gap-2 rounded-lg px-4 py-3 typo-body-small-bold text-neutral-1',
               'bg-danger'
@@ -181,6 +184,16 @@ export default function AdminMemberDetailPage() {
           </button>
         </div>
       </div>
+
+      <DeleteAccountModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={async () => {
+          const res = await fetch(`/api/admin/members/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Failed to delete');
+          router.push('/admin/members');
+        }}
+      />
     </div>
   );
 }

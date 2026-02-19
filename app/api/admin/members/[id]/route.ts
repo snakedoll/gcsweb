@@ -41,3 +41,27 @@ export async function GET(
     createdAt: user.createdAt.toISOString(),
   });
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || session?.user?.role !== 'admin') {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: params.id },
+  });
+
+  if (!user) {
+    return NextResponse.json({ message: 'User not found' }, { status: 404 });
+  }
+
+  await prisma.user.delete({
+    where: { id: params.id },
+  });
+
+  return NextResponse.json({ success: true });
+}
