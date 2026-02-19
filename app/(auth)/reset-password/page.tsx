@@ -25,9 +25,12 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false);
 
   const passwordInvalid = password.length > 0 && !isPasswordValid(password);
+  const passwordValid = password.length > 0 && isPasswordValid(password);
+  const confirmMismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const confirmInvalid =
     confirmPassword.length > 0 &&
     (confirmPassword !== password || !isPasswordValid(password));
+  const confirmValid = confirmPassword.length > 0 && password === confirmPassword && isPasswordValid(password);
   const canSubmit =
     isPasswordValid(password) &&
     password === confirmPassword &&
@@ -100,13 +103,19 @@ function ResetPasswordForm() {
           )}
 
           <div>
-            <label htmlFor="new-password" className="typo-body-xsmall-bold text-neutral-10">
+            <label
+              htmlFor="new-password"
+              className={cn(
+                'typo-body-xsmall-bold',
+                passwordInvalid ? 'text-danger' : 'text-neutral-10'
+              )}
+            >
               새 비밀번호
             </label>
             <div
               className={cn(
                 'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                passwordInvalid ? 'border-danger' : 'border-neutral-5'
+                passwordInvalid ? 'border-danger' : passwordValid ? 'border-neutral-6' : 'border-neutral-5'
               )}
             >
               <input
@@ -115,10 +124,13 @@ function ResetPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="새 비밀번호를 입력해주세요."
-                className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
+                className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none pr-10"
               />
               {passwordInvalid && (
-                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
+              )}
+              {passwordValid && !passwordInvalid && (
+                <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
               )}
             </div>
             <p
@@ -132,13 +144,19 @@ function ResetPasswordForm() {
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="typo-body-xsmall-bold text-neutral-10">
+            <label
+              htmlFor="confirm-password"
+              className={cn(
+                'typo-body-xsmall-bold',
+                confirmInvalid ? 'text-danger' : 'text-neutral-10'
+              )}
+            >
               비밀번호 확인
             </label>
             <div
               className={cn(
                 'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                confirmInvalid ? 'border-danger' : 'border-neutral-5'
+                confirmInvalid ? 'border-danger' : confirmValid ? 'border-neutral-6' : 'border-neutral-5'
               )}
             >
               <input
@@ -147,20 +165,25 @@ function ResetPasswordForm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="새 비밀번호를 입력해주세요."
-                className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
+                className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none pr-10"
               />
               {confirmInvalid && (
-                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
+              )}
+              {confirmValid && (
+                <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
               )}
             </div>
-            <p
-              className={cn(
-                'mt-1 typo-body-xsmall',
-                confirmInvalid ? 'text-danger' : 'text-neutral-7'
-              )}
-            >
-              {PASSWORD_HINT}
-            </p>
+            {(confirmInvalid || confirmPassword.length === 0) && (
+              <p
+                className={cn(
+                  'mt-1 typo-body-xsmall',
+                  confirmInvalid ? 'text-danger' : 'text-neutral-7'
+                )}
+              >
+                {confirmMismatch ? '비밀번호가 일치하지 않습니다.' : PASSWORD_HINT}
+              </p>
+            )}
           </div>
 
           <button
