@@ -147,6 +147,50 @@ function TeamDropdown({
   );
 }
 
+/** 정사각형 단계 표시: 완료=주황+흰 체크, 현재=Figma 5020-2903(연한 배경+주황 테두리), 비활성=회색 */
+function StepIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const totalSteps = 3;
+  return (
+    <div
+      className="mb-6 flex justify-center gap-2"
+      role="progressbar"
+      aria-valuenow={currentStep}
+      aria-valuemin={1}
+      aria-valuemax={totalSteps}
+      aria-label={`등록 단계 ${currentStep} of ${totalSteps}`}
+    >
+      {[1, 2, 3].map((step) => {
+        const isCompleted = step < currentStep;
+        const isCurrent = step === currentStep;
+        return (
+          <span
+            key={step}
+            aria-current={isCurrent ? 'step' : undefined}
+            className={cn(
+              'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg',
+              isCompleted && 'bg-orange-6',
+              isCurrent && 'border-2 border-orange-6 bg-orange-1',
+              !isCompleted && !isCurrent && 'bg-neutral-4'
+            )}
+          >
+            {isCompleted && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M9.5 11.5L11.5 13.5L15.5 9.5"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function NewProductPage() {
   const router = useRouter();
   const { profile, isLoading: userLoading, isAuthenticated } = useUser();
@@ -188,6 +232,7 @@ export default function NewProductPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [detailFiles, setDetailFiles] = useState<File[]>([]);
   const [detailDragIndex, setDetailDragIndex] = useState<number | null>(null);
@@ -235,12 +280,7 @@ export default function NewProductPage() {
       <NavBar variant="title-back" title="새 상품 등록" />
 
       <div className="mx-auto w-full min-w-0 max-w-[375px] flex-1 px-4 pb-8 pt-4">
-        {/* Step indicator - 크기 확대, 중앙 배치 */}
-        <div className="mb-6 flex justify-center gap-2">
-          <span className="h-3 w-10 rounded-sm bg-orange-5" aria-current="step" />
-          <span className="h-3 w-10 rounded-sm bg-neutral-4" />
-          <span className="h-3 w-10 rounded-sm bg-neutral-4" />
-        </div>
+        <StepIndicator currentStep={currentStep} />
 
         <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-5">
           {/* 판매팀 */}
@@ -259,10 +299,15 @@ export default function NewProductPage() {
             </div>
           </section>
 
-          {/* 상품명 */}
+          {/* 상품명 - Figma 5083-9264: 에러 시 라벨/테두리/아이콘/메시지 모두 빨간색 */}
           <section>
-            <label className="typo-body-small-bold text-neutral-12">
-              상품명 <span className="text-orange-5">*</span>
+            <label
+              className={cn(
+                'typo-body-small-bold',
+                (errors.name || nameOverLimit) ? 'text-red-5' : 'text-neutral-12'
+              )}
+            >
+              상품명 <span className={(errors.name || nameOverLimit) ? 'text-red-5' : 'text-orange-5'}>*</span>
             </label>
             <div className="relative mt-1">
               <input
@@ -270,18 +315,18 @@ export default function NewProductPage() {
                 maxLength={PRODUCT_NAME_MAX_LENGTH}
                 placeholder="예) ECO 북극곰 컵홀더"
                 className={cn(
-                  'h-12 w-full rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
-                  (errors.name || nameOverLimit) ? 'border-red-5 pr-10' : 'border-neutral-5'
+                  'h-12 w-full rounded-lg border bg-neutral-1 px-4 pr-10 typo-body-small text-neutral-12 placeholder:text-neutral-6',
+                  (errors.name || nameOverLimit) ? 'border-red-5' : 'border-neutral-5'
                 )}
               />
               {(errors.name || nameOverLimit) && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" aria-hidden>
                   <Image src="/assets/icons/icon-warning-triangle.svg" alt="" width={20} height={20} />
                 </span>
               )}
             </div>
             {(errors.name?.message || nameOverLimit) && (
-              <p className="mt-1 typo-body-xsmall text-red-5">
+              <p className="mt-1 typo-body-xsmall text-red-5" role="alert">
                 {nameOverLimit ? '글자수는 13자 이내로 작성해주세요' : errors.name?.message}
               </p>
             )}
