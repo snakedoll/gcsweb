@@ -108,3 +108,31 @@ body {
     @apply text-[13px] font-normal leading-[150%] tracking-[-0.02em];
   }
 }
+
+/* react-datepicker: 앱 테마(주황) 적용 */
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--selected,
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: var(--color-orange-5);
+}
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--selected:hover,
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--color-orange-6);
+}
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__header {
+  background-color: var(--color-neutral-3);
+}
+.gcs-datepicker-calendar.react-datepicker .react-datepicker__current-month {
+  color: var(--color-neutral-12);
+}
+
+/* 예상 판매 기간: DatePicker wrapper가 컨테이너 안에서 잘리지 않도록 */
+.date-range-field .react-datepicker-wrapper {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.date-range-field .react-datepicker-wrapper input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
