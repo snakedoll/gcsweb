@@ -232,7 +232,7 @@ export default function RegisterPage() {
                 className="shrink-0 p-1"
                 aria-label="홈페이지 이용약관 상세 보기"
               >
-                <Image src="/assets/icons/icon-chevron-right.svg" alt="" width={24} height={24} />
+                <Image src="/assets/icons/icon-right.svg" alt="" width={24} height={24} />
               </button>
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -250,7 +250,7 @@ export default function RegisterPage() {
                 className="shrink-0 p-1"
                 aria-label="개인정보 수집 이용 상세 보기"
               >
-                <Image src="/assets/icons/icon-chevron-right.svg" alt="" width={24} height={24} />
+                <Image src="/assets/icons/icon-right.svg" alt="" width={24} height={24} />
               </button>
             </div>
           </div>
