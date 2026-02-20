@@ -35,7 +35,7 @@ export default function AdminMembersPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    fetch(`/api/admin/members?${params}`)
+    fetch(`/api/v1/admin/members?${params}`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch');
         return res.json();

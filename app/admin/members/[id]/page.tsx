@@ -41,7 +41,7 @@ export default function AdminMemberDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/admin/members/${id}`)
+    fetch(`/api/v1/admin/members/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch');
         return res.json();
@@ -189,7 +189,7 @@ export default function AdminMemberDetailPage() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={async () => {
-          const res = await fetch(`/api/admin/members/${id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/v1/admin/members/${id}`, { method: 'DELETE' });
           if (!res.ok) throw new Error('Failed to delete');
           router.push('/admin/members');
         }}
