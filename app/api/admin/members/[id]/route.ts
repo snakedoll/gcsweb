@@ -22,6 +22,7 @@ export async function GET(
       profileImage: true,
       memberType: true,
       isSeller: true,
+      hasSellingPermission: true,
       createdAt: true,
     },
   });
@@ -37,7 +38,6 @@ export async function GET(
     phone: user.phone ?? '',
     profileImage: user.profileImage ?? undefined,
     memberType: user.memberType,
-    isSeller: user.isSeller,
     createdAt: user.createdAt.toISOString(),
   });
 }

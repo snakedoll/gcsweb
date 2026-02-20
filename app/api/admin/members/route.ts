@@ -32,7 +32,12 @@ export async function GET(request: Request) {
       id: u.id,
       name: u.name,
       phone: u.phone ?? '',
-      role: u.memberType === 2 ? 'admin' : u.memberType === 1 ? 'major' : 'general',
+      role:
+        Number(u.memberType) === 2
+          ? 'admin'
+          : Number(u.memberType) === 1
+          ? 'major'
+          : 'general',
     })),
   });
 }

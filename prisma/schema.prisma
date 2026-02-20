@@ -49,6 +49,8 @@ model User {
   posts       Post[]
   inquiries   Inquiry[]
   likes       Like[]
+  scraps      Scrap[]
+  notifications Notification[]
 
   @@index([email])
   @@index([nickname])
@@ -114,6 +116,7 @@ model Product {
   orderItems      OrderItem[]
   reviews         Review[]
   likes           Like[]
+  scraps          Scrap[]
 
   @@index([teamId])
   @@index([type])
@@ -239,6 +242,29 @@ model OrderItem {
 }
 
 // ============================================
+// Scrap - 사용자 스크랩 (프로젝트/상품)
+// ============================================
+
+model Scrap {
+  id         String   @id @default(cuid())
+  userId     String
+  projectId  String?  
+  productId  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([productId])
+  @@unique([userId, projectId])
+  @@unique([userId, productId])
+}
+
+// ============================================
 // Review - 리뷰
 // ============================================
 
@@ -334,6 +360,7 @@ model Project {
 
   // Relations
   likes           Like[]
+  scraps          Scrap[]
 
   @@index([year])
   @@index([isPublic])
@@ -454,4 +481,25 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@index([identifier])
+}
+
+// ============================================
+// Notification - 사용자 알림
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      Int      @default(0) // 알림 타입 코드
+  title     String
+  content   String?
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
 }

@@ -42,8 +42,7 @@ export async function GET() {
     nickname: user.nickname,
     phone: user.phone ?? undefined,
     profileImage: user.profileImage ?? undefined,
-    role: user.memberType === 2 ? 'admin' : 'user',
-    isSeller: user.isSeller,
+    role: Number(user.memberType) === 2 ? 'admin' : 'user',
     hasSellingPermission: user.hasSellingPermission,
     createdAt: user.createdAt.toISOString(),
   });
