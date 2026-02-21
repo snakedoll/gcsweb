@@ -75,19 +75,42 @@ export default function TeamModal({ onClose, onCreate, onCreated, initialTeam }:
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <form onSubmit={handleCreate} className="bg-white p-6 rounded shadow z-10 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">팀 생성</h3>
-        <label className="block mb-2">
-          <div className="text-sm mb-1">팀 이름</div>
-          <input value={teamName} onChange={(e) => setTeamName(e.target.value)} className="w-full border px-2 py-1" />
-        </label>
-        <label className="block mb-4">
-          <div className="text-sm mb-1">판매 계정 URL (선택)</div>
-          <input value={accountUrl} onChange={(e) => setAccountUrl(e.target.value)} className="w-full border px-2 py-1" />
-        </label>
-        {error && <div className="text-sm text-danger mb-2">{error}</div>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-1 border rounded">취소</button>
-          <button type="submit" disabled={!teamName.trim()} className={`px-3 py-1 text-white rounded ${teamName.trim() ? 'bg-primary' : 'bg-neutral-4 text-neutral-7 cursor-not-allowed'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">{initialTeam ? '팀 수정' : '팀 생성'}</h3>
+          <button type="button" onClick={onClose} aria-label="닫기" className="text-neutral-7 hover:text-neutral-9">✕</button>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block">
+            <div className="text-sm text-neutral-11 mb-1">팀 이름</div>
+            <input
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              placeholder="예: 디자인팀"
+            />
+          </label>
+
+          <label className="block">
+            <div className="text-sm text-neutral-11 mb-1">판매 계정 URL (선택)</div>
+            <input
+              value={accountUrl}
+              onChange={(e) => setAccountUrl(e.target.value)}
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              placeholder="https://store.example.com/your-account"
+            />
+            <div className="text-xs text-neutral-7 mt-1">판매 계정 URL을 입력하면 해당 팀은 판매팀으로 설정됩니다.</div>
+          </label>
+        </div>
+
+        {error && <div className="text-sm text-danger mt-3">{error}</div>}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button type="button" onClick={onClose} className="px-4 py-2 border rounded">취소</button>
+          <button
+            type="submit"
+            disabled={!teamName.trim()}
+            className={`px-4 py-2 text-white rounded ${teamName.trim() ? 'bg-primary-600 hover:bg-primary-700' : 'bg-neutral-4 text-neutral-7 cursor-not-allowed'}`}>
             {initialTeam ? '수정' : '생성'}
           </button>
         </div>

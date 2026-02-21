@@ -3,7 +3,109 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 
-export async function PATCH(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { status: 'error', code: 'UNAUTHORIZED', message: '토큰이 없거나 만료되었습니다.' },
+        { status: 401 }
+      );
+    }
+
+    const adminUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!adminUser || Number(adminUser.memberType) !== 2) {
+      return NextResponse.json(
+        { status: 'error', code: 'UNAUTHORIZED', message: '접근 권한이 없습니다.' },
+        { status: 401 }
+      );
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        teamName: true,
+        userId: true,
+        representativeName: true,
+        representativeNickname: true,
+        teamMember: true,
+        teamMemberNickname: true,
+        accountUrl: true,
+        totalSales: true,
+        createdAt: true,
+      },
+    });
+
+    if (!team) {
+      return NextResponse.json(
+        { status: 'error', code: 'NOT_FOUND', message: '팀을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    // Resolve member user info where possible
+    const memberIds: string[] = Array.isArray(team.teamMember) ? team.teamMember.filter(Boolean) : [];
+    const uniqueIds = Array.from(new Set([...(memberIds ?? []), team.userId]));
+
+    const users = uniqueIds.length
+      ? await prisma.user.findMany({ where: { id: { in: uniqueIds } }, select: { id: true, name: true, phone: true } })
+      : [];
+
+    const usersById = new Map(users.map((u: any) => [u.id, u]));
+
+    const members: any[] = [];
+
+    // leader: userId
+    if (team.userId) {
+      const leaderUser = usersById.get(team.userId);
+      if (leaderUser) {
+        members.push({ role: '대표', name: leaderUser.name, phone: leaderUser.phone ?? null });
+      } else {
+        members.push({ role: '대표', name: team.representativeName ?? team.representativeNickname ?? null, phone: null });
+      }
+    }
+
+    // other members
+    if (Array.isArray(memberIds) && memberIds.length) {
+      for (let i = 0; i < memberIds.length; i++) {
+        const id = memberIds[i];
+        if (!id || id === team.userId) continue; // skip leader duplicate
+        const u = usersById.get(id);
+        if (u) members.push({ role: '팀원', name: u.name, phone: u.phone ?? null });
+        else members.push({ role: '팀원', name: (team.teamMemberNickname && team.teamMemberNickname[i]) ?? null, phone: null });
+      }
+    }
+
+    const teamType = team.accountUrl ? 1 : 0;
+
+    const data = {
+      id: team.id,
+      teamName: team.teamName,
+      teamType,
+      accountUrl: team.accountUrl ?? null,
+      totalSales: team.totalSales ?? null,
+      createdAt: team.createdAt,
+      members,
+    };
+
+    return NextResponse.json({ status: 'success', data });
+  } catch (error: any) {
+    console.error('Admin team detail error:', error);
+    return NextResponse.json(
+      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -16,8 +118,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { teamId, teamType, teamName, leaderId, memberIds, accountUrl } = body as {
-      teamId?: string;
+    const { teamType, teamName, leaderId, memberIds, accountUrl } = body as {
       teamType?: number;
       teamName?: string;
       leaderId?: string | null;
@@ -25,14 +126,13 @@ export async function PATCH(request: Request) {
       accountUrl?: string | null;
     };
 
-    if (!teamId || typeof teamId !== 'string') {
-      return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'teamId는 필수입니다.' }, { status: 400 });
-    }
-
     // Fetch existing team
-    const existing = await prisma.team.findUnique({ where: { id: teamId } });
+    const existing = await prisma.team.findUnique({ where: { id: params.id } });
     if (!existing) {
-      return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: '존재하지 않는 팀입니다.' }, { status: 400 });
+      return NextResponse.json(
+        { status: 'error', code: 'NOT_FOUND', message: '팀을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
 
     // Validate provided fields
@@ -68,7 +168,6 @@ export async function PATCH(request: Request) {
     let representativeNickname = existing.representativeNickname ?? '';
     if (leaderId !== undefined) {
       if (leaderId === null) {
-        // clear leader -> keep existing owner? for safety, disallow null leader when teamType is seller
         newOwnerId = existing.userId;
       } else {
         const leader = await prisma.user.findUnique({ where: { id: leaderId }, select: { id: true, name: true, nickname: true } });
@@ -93,7 +192,6 @@ export async function PATCH(request: Request) {
       data.representativeNickname = representativeNickname;
     }
     if (uniqueMemberIds !== undefined) {
-      // build nicknames array aligned
       const foundMembers = await prisma.user.findMany({ where: { id: { in: uniqueMemberIds } }, select: { id: true, nickname: true } });
       const byId = new Map(foundMembers.map((u: any) => [u.id, u]));
       data.teamMember = uniqueMemberIds;
@@ -104,23 +202,16 @@ export async function PATCH(request: Request) {
       data.accountUrl = accountUrl || '';
     }
 
-    // If teamType changed, maybe clear accountUrl when switching to general
     if (teamType !== undefined) {
-      // store nothing in team record for teamType field (schema doesn't have explicit teamType)
       if (teamType === 0 && accountUrl === undefined) {
-        // switching to general, clear accountUrl
         data.accountUrl = '';
       }
     }
 
-    // Apply update
-    const updated = await prisma.team.update({ where: { id: teamId }, data });
+    const updated = await prisma.team.update({ where: { id: params.id }, data });
 
-    // Determine final memberIds for response
     const finalMemberIds = uniqueMemberIds ?? updated.teamMember ?? [];
     const finalLeaderId = leaderId !== undefined ? (leaderId ?? null) : updated.userId;
-
-    const memberCount = (finalMemberIds.filter((id: string) => id !== finalLeaderId)).length;
 
     const responseTeam = {
       id: updated.id,
@@ -129,7 +220,7 @@ export async function PATCH(request: Request) {
       leaderId: finalLeaderId,
       memberIds: finalMemberIds,
       accountUrl: updated.accountUrl || null,
-      memberCount,
+      memberCount: finalMemberIds.length,
     };
 
     return NextResponse.json({ status: 'success', data: { team: responseTeam } });

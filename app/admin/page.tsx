@@ -11,12 +11,12 @@ export default function AdminPage() {
         >
           회원 관리
         </Link>
-        <button
-          type="button"
+        <Link
+          href="/admin/team"
           className="rounded-lg bg-orange-5 px-4 py-3 text-left typo-body-small-bold text-neutral-2"
         >
           팀 관리
-        </button>
+        </Link>
       </div>
     </div>
   );
