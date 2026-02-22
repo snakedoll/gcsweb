@@ -17,14 +17,14 @@ function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
-function isNonEmptyString(value: unknown) {
+function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isValidUrlString(value: unknown) {
+function isValidUrlString(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
   try {
-    new URL(String(value));
+    new URL(value);
     return true;
   } catch {
     return false;
@@ -75,13 +75,13 @@ export async function POST(request: Request) {
       return errorResponse(400, 'INVALID_INPUT', '필수 입력값이 누락되었거나 형식이 올바르지 않습니다.');
     }
 
-    const safeTitle = (title as string).trim();
-    const safeTeamId = (teamId as string).trim();
-    const safeYearId = (yearId as string).trim();
-    const safeCategoryId = (categoryId as string).trim();
-    const safeThumbnailUrl = (thumbnailUrl as string).trim();
-    const safeDetailUrl = (detailUrl as string).trim();
-    const safeIsPublic = isPublic as boolean;
+    const safeTitle = title.trim();
+    const safeTeamId = teamId.trim();
+    const safeYearId = yearId.trim();
+    const safeCategoryId = categoryId.trim();
+    const safeThumbnailUrl = thumbnailUrl.trim();
+    const safeDetailUrl = detailUrl.trim();
+    const safeIsPublic = isPublic;
 
     const repo = prisma as any;
 
