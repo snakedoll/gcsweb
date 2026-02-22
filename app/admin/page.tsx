@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils';
 const ALERT_COUNT = 5;
 const INQUIRY_COUNT = 5;
 
-/** 마이페이지 StatusCard와 동일한 크기: h-20 w-[109px] */
 function AdminCard({
   href,
   iconSrc,
@@ -21,7 +20,7 @@ function AdminCard({
   count?: number;
 }) {
   const content = (
-    <div className="flex h-20 w-[109px] flex-col items-center justify-center gap-2 rounded-lg border border-neutral-5 bg-neutral-1">
+    <div className="flex h-[84px] w-[113px] flex-col items-center justify-center gap-2 rounded-lg border border-neutral-4 bg-neutral-1">
       <Image src={iconSrc} alt="" width={24} height={24} />
       <p className="typo-body-xsmall text-neutral-9">
         {label}
@@ -29,9 +28,9 @@ function AdminCard({
       </p>
     </div>
   );
-  if (href === '#') {
-    return <div className="shrink-0">{content}</div>;
-  }
+
+  if (href === '#') return <div className="shrink-0">{content}</div>;
+
   return (
     <Link href={href} className="shrink-0">
       {content}
@@ -39,7 +38,6 @@ function AdminCard({
   );
 }
 
-/** 마이페이지 MenuSection과 동일 스타일 */
 function AdminMenuSection({
   title,
   items,
@@ -48,10 +46,10 @@ function AdminMenuSection({
   items: { label: string; href: string }[];
 }) {
   return (
-    <section className="rounded-lg bg-neutral-1 px-4 py-3">
+    <section className="rounded-lg border border-neutral-4 bg-neutral-1 px-4 py-3">
       <h2 className="typo-body-small-bold text-neutral-12">{title}</h2>
-      <div className="my-1 h-px bg-neutral-4" />
-      <ul className="space-y-3 py-1">
+      <div className="my-2 h-px bg-neutral-4" />
+      <ul className="space-y-3">
         {items.map((item) => (
           <li key={item.label}>
             <Link
@@ -73,10 +71,10 @@ function AdminMenuSection({
 
 export default function AdminPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col">
+    <div className="flex min-h-screen w-full flex-col bg-neutral-3">
       <NavBar />
-      <main className="mx-auto w-full max-w-[375px] flex-1 px-4 py-6">
-        <div className="mb-5 flex justify-center gap-[7px]">
+      <main className="mx-auto w-full max-w-[375px] flex-1 px-3 py-4">
+        <div className="mb-4 flex justify-center gap-[6px]">
           <AdminCard href="#" iconSrc="/assets/icons/icon-bell.svg" label="알림" count={ALERT_COUNT} />
           <AdminCard href="#" iconSrc="/assets/icons/icon-message-square.svg" label="문의" count={INQUIRY_COUNT} />
           <AdminCard href="#" iconSrc="/assets/icons/icon-folder.svg" label="로그" />
@@ -93,13 +91,24 @@ export default function AdminPage() {
               { label: '상품 리뷰 관리', href: '#' },
             ]}
           />
+
           <AdminMenuSection
-            title="사용자 관리"
+            title="회원 · 팀 관리"
             items={[
-              { label: '사용자 관리', href: '/admin/members' },
+              { label: '회원 관리', href: '/admin/members' },
               { label: '팀 관리', href: '/admin/team' },
             ]}
           />
+
+          <AdminMenuSection
+            title="글 관리"
+            items={[
+              { label: 'About GCS 관리', href: '#' },
+              { label: 'Project 관리', href: '#' },
+              { label: 'News 관리', href: '#' },
+            ]}
+          />
+
           <AdminMenuSection
             title="데이터"
             items={[
@@ -107,6 +116,7 @@ export default function AdminPage() {
               { label: '매출 현황', href: '#' },
             ]}
           />
+
           <AdminMenuSection
             title="설정"
             items={[
