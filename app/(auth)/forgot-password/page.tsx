@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavBar } from '@/components/layout';
 import { LoginSupportLinks, LogoSubtext, Subtitle, TextField } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -36,12 +36,14 @@ export default function ForgotPasswordPage() {
   const handleSendCode = async () => {
     const trimmed = email.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setSendError('올바른 이메일 형식이 아닙니다.');
+      setSendError('올바른 이메일 형식을 입력해주세요.');
       return;
     }
+
     setSendError(null);
     setVerifyError(null);
     setSendLoading(true);
+
     try {
       const res = await fetch('/api/v1/auth/email/send-verification', {
         method: 'POST',
@@ -49,10 +51,12 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: trimmed, type: 'reset-password' }),
       });
       const data = await res.json().catch(() => null);
+
       if (!res.ok) {
         setSendError(data?.message ?? '인증번호 전송에 실패했습니다.');
         return;
       }
+
       setVerificationSent(true);
       setVerificationSuccess(false);
       setVerificationCode('');
@@ -68,8 +72,10 @@ export default function ForgotPasswordPage() {
     const trimmedEmail = email.trim();
     const code = verificationCode.trim();
     if (!trimmedEmail || !code) return;
+
     setVerifyError(null);
     setVerifyLoading(true);
+
     try {
       const res = await fetch('/api/v1/auth/email/verify-code', {
         method: 'POST',
@@ -77,12 +83,15 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email: trimmedEmail, code, type: 'reset-password' }),
       });
       const data = await res.json().catch(() => null);
+
       if (!res.ok) {
         setVerifyError(data?.message ?? '인증번호가 올바르지 않습니다.');
         return;
       }
+
       setVerificationSuccess(true);
       setVerifyError(null);
+
       const resetToken = data?.data?.resetToken;
       if (resetToken) {
         setTimeout(() => router.push(`/reset-password?token=${resetToken}`), 800);
@@ -121,12 +130,9 @@ export default function ForgotPasswordPage() {
               <div>
                 <label
                   htmlFor="forgot-email"
-                  className={cn(
-                    'typo-body-small-bold',
-                    sendError ? 'text-danger' : 'text-neutral-10'
-                  )}
+                  className={cn('typo-body-small-bold', sendError ? 'text-danger' : 'text-neutral-10')}
                 >
-                  아이디 (이메일)
+                  이메일
                 </label>
                 <div className="mt-1 flex gap-2">
                   <div className="relative flex flex-1 items-center">
@@ -152,11 +158,11 @@ export default function ForgotPasswordPage() {
                         verificationSent && !sendError && 'border-neutral-6 bg-neutral-3'
                       )}
                     />
-                    {sendError && (
+                    {sendError ? (
                       <div className="absolute right-3">
                         <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
                       </div>
-                    )}
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -164,16 +170,16 @@ export default function ForgotPasswordPage() {
                     disabled={sendLoading || !hasEmail || verificationSent}
                     className="h-12 shrink-0 rounded-lg bg-neutral-8 px-4 typo-body-xsmall-bold text-neutral-1 disabled:bg-neutral-5 disabled:text-neutral-7"
                   >
-                    {sendLoading ? '전송 중' : '전송'}
+                    {sendLoading ? '전송 중...' : '전송'}
                   </button>
                 </div>
-                {sendError && <p className="mt-1 typo-body-xsmall text-danger">{sendError}</p>}
-                {verificationSent && !sendError && (
+                {sendError ? <p className="mt-1 typo-body-xsmall text-danger">{sendError}</p> : null}
+                {verificationSent && !sendError ? (
                   <p className="mt-1 typo-body-xsmall text-orange-5">인증번호가 전송되었습니다.</p>
-                )}
+                ) : null}
               </div>
 
-              {verificationSent && (
+              {verificationSent ? (
                 <div>
                   <TextField
                     id="forgot-code"
@@ -192,14 +198,12 @@ export default function ForgotPasswordPage() {
                       inputMode: 'numeric',
                     }}
                   />
-                  {verifyError && (
-                    <p className="mt-1 typo-body-xsmall text-danger">{verifyError}</p>
-                  )}
-                  {verificationSuccess && (
+                  {verifyError ? <p className="mt-1 typo-body-xsmall text-danger">{verifyError}</p> : null}
+                  {verificationSuccess ? (
                     <p className="mt-1 typo-body-xsmall text-orange-5">인증번호가 확인되었습니다.</p>
-                  )}
+                  ) : null}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -210,16 +214,16 @@ export default function ForgotPasswordPage() {
                 onClick={handleFindPassword}
                 disabled={!canSubmit || verifyLoading || remainingSec <= 0}
                 className={cn(
-                  'h-[55px] w-full rounded-lg text-neutral-2 typo-body-small-bold transition-colors',
+                  'h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2 transition-colors',
                   canSubmit && remainingSec > 0 ? 'bg-orange-5' : 'bg-orange-3'
                 )}
               >
                 {verifyLoading ? '확인 중...' : '비밀번호 찾기'}
               </button>
 
-              <div className={cn('flex items-center justify-center gap-2 typo-body-xsmall')}>
+              <div className="flex items-center justify-center gap-2 typo-body-xsmall">
                 <p className="text-neutral-8">아직 계정이 없으신가요?</p>
-                <Link href="/register" className={cn('typo-body-xsmall-bold', 'text-orange-4')}>
+                <Link href="/register" className="typo-body-xsmall-bold text-orange-4">
                   회원가입
                 </Link>
               </div>
