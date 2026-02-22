@@ -10,7 +10,10 @@ export async function GET() {
   }
 
   const teams = await prisma.team.findMany({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      accountUrl: { not: '' },
+    },
     select: { id: true, teamName: true },
     orderBy: { teamName: 'asc' },
   });

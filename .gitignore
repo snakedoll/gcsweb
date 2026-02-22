@@ -38,3 +38,6 @@ next-env.d.ts
 # prisma
 # migrations 폴더는 버전 관리 필요 (migrate deploy용)
 
+# uploaded files
+/public/uploads/
+

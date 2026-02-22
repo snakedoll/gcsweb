@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { NavBar } from "@/components/layout";
 import TextField from "@/components/ui/TextField";
@@ -8,6 +8,8 @@ import Button from "@/components/ui/button/Button";
 import RadioButton from "@/components/ui/button/RadioButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+
+type UserItem = { id: string; name: string; phone: string; major: string };
 
 // Figma 아이콘 URL
 const CROWN_ICON = "/assets/icons/additional/tabler_crown.svg";
@@ -25,14 +27,31 @@ export default function AdminTeamCreatePage() {
   const [showLeaderModal, setShowLeaderModal] = useState(false);
   const [memberInputValue, setMemberInputValue] = useState("");
   const [leaderSearch, setLeaderSearch] = useState("");
-  const sampleMembers = [
-    { id: 'kim1', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-    { id: 'kim2', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-    { id: 'kim3', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-    { id: 'kim4', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-    { id: 'kim5', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-    { id: 'kim6', name: '김무성', phone: '010-1234-5678', major: '기계로봇에너지공학과' },
-  ];
+  const [usersList, setUsersList] = useState<UserItem[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/v1/admin/members");
+        const json = await res.json();
+        if (!res.ok || cancelled) return;
+        const list = (json.members ?? []).map((m: { id: string; name: string; phone?: string; major?: string }) => ({
+          id: m.id,
+          name: m.name,
+          phone: m.phone ?? "",
+          major: m.major ?? "",
+        }));
+        setUsersList(list);
+      } catch {
+        if (!cancelled) setUsersList([]);
+      } finally {
+        if (!cancelled) setUsersLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // 기본으로 '판매팀'으로 설정합니다 (요청: 이 화면은 판매팀임)
   const [teamType, setTeamType] = useState<number>(1);
@@ -113,12 +132,27 @@ export default function AdminTeamCreatePage() {
 
     setLoading(true);
     try {
+      let accountUrl: string | null = null;
+      if (teamType === 1 && accountImage) {
+        const form = new FormData();
+        form.append("image", accountImage);
+        const uploadRes = await fetch("/api/v1/images", { method: "POST", body: form });
+        const uploadJson = await uploadRes.json();
+        if (uploadJson?.status !== "success" || !uploadJson?.data?.imageUrl) {
+          alert(uploadJson?.message ?? "통장 사본 업로드에 실패했습니다.");
+          setLoading(false);
+          return;
+        }
+        const path = uploadJson.data.imageUrl as string;
+        accountUrl = path.startsWith("http") ? path : `${window.location.origin}${path}`;
+      }
+
       const payload = {
         teamType,
         teamName: teamName.trim(),
         leaderId: leaderId ?? memberIds[0],
         memberIds,
-        accountImageUrl: accountImageUrl || null,
+        accountUrl,
       };
 
       const res = await fetch("/api/v1/admin/teams", {
@@ -255,13 +289,13 @@ export default function AdminTeamCreatePage() {
               </button>
 
               {/* 팀장 정보 카드 */}
-              {leaderId && sampleMembers.find(m => m.id === leaderId) && (
+              {leaderId && (
                 <div className="rounded-lg bg-neutral-3 p-4 mt-3 border border-neutral-4">
                   <p className="typo-body-small-bold text-neutral-12">
-                    {sampleMembers.find(m => m.id === leaderId)?.name}
+                    {usersList.find(m => m.id === leaderId)?.name ?? leaderId}
                   </p>
                   <p className="typo-body-xsmall text-neutral-9 mt-1">
-                    {sampleMembers.find(m => m.id === leaderId)?.major}
+                    {usersList.find(m => m.id === leaderId)?.major ?? ""}
                   </p>
                 </div>
               )}
@@ -301,7 +335,7 @@ export default function AdminTeamCreatePage() {
               {memberIds.filter(id => id !== leaderId).length > 0 && (
                 <div className="border border-neutral-4 rounded-lg overflow-hidden">
                   {memberIds.filter(id => id !== leaderId).map((id, idx, arr) => {
-                    const member = sampleMembers.find(m => m.id === id);
+                    const member = usersList.find(m => m.id === id);
                     const isLast = idx === arr.length - 1;
                     return (
                       <div key={id}>
@@ -310,10 +344,10 @@ export default function AdminTeamCreatePage() {
                         >
                           <div className="flex-1">
                             <p className="typo-body-small-bold text-neutral-12">
-                              {member?.name}
+                              {member?.name ?? id}
                             </p>
                             <p className="typo-body-xsmall text-neutral-9 mt-1">
-                              {member?.major}
+                              {member?.major ?? ""}
                             </p>
                           </div>
                           <button
@@ -517,12 +551,19 @@ export default function AdminTeamCreatePage() {
                 </div>
 
                 {/* Member Count */}
-                <p className="typo-body-small text-neutral-12 mb-8">전체 {sampleMembers.length}명</p>
+                <p className="typo-body-small text-neutral-12 mb-8">전체 {usersList.length}명</p>
 
                 {/* Member List */}
                 <div className="mb-28 space-y-3">
-                  {sampleMembers
-                    .filter((m) => m.name.includes(memberInputValue) || m.phone.includes(memberInputValue))
+                  {usersLoading ? (
+                    <p className="typo-body-xsmall text-neutral-9">로딩 중...</p>
+                  ) : (
+                  usersList
+                    .filter((m) =>
+                      m.name.includes(memberInputValue) ||
+                      (m.phone && m.phone.includes(memberInputValue)) ||
+                      m.major.includes(memberInputValue)
+                    )
                     .map((member) => (
                       <button
                         key={member.id}
@@ -552,7 +593,8 @@ export default function AdminTeamCreatePage() {
                           </div>
                         )}
                       </button>
-                    ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -600,7 +642,13 @@ export default function AdminTeamCreatePage() {
               <div className="flex-1 overflow-y-auto px-4 pt-6">
                 {/* Search Bar */}
                 <div className="mb-8 flex h-12 items-center justify-between rounded-lg border border-neutral-5 bg-neutral-2 pl-4 pr-3">
-                  <p className="typo-body-xsmall text-neutral-7">이름, 전공, 학번으로 검색...</p>
+                  <input
+                    type="text"
+                    placeholder="이름, 전공, 학번으로 검색..."
+                    value={leaderSearch}
+                    onChange={(e) => setLeaderSearch(e.target.value)}
+                    className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 placeholder:text-neutral-7 focus:outline-none"
+                  />
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="10" cy="10" r="6" stroke="#999694" strokeWidth="1.5" />
                     <path d="M15 15l4 4" stroke="#999694" strokeWidth="1.5" strokeLinecap="round" />
@@ -608,11 +656,19 @@ export default function AdminTeamCreatePage() {
                 </div>
 
                 {/* Member Count */}
-                <p className="typo-body-small text-neutral-12 mb-8">전체 {sampleMembers.length}명</p>
+                <p className="typo-body-small text-neutral-12 mb-8">전체 {usersList.length}명</p>
 
                 {/* Member List */}
                 <div className="mb-28 overflow-hidden rounded-2xl border border-neutral-4">
-                  {sampleMembers.map((member, idx) => (
+                  {usersLoading ? (
+                    <p className="typo-body-xsmall text-neutral-9 p-4">로딩 중...</p>
+                  ) : (() => {
+                    const leaderFiltered = usersList.filter((m) =>
+                      m.name.includes(leaderSearch) ||
+                      (m.phone && m.phone.includes(leaderSearch)) ||
+                      m.major.includes(leaderSearch)
+                    );
+                    return leaderFiltered.map((member, idx) => (
                     <div key={member.id}>
                       <button
                         type="button"
@@ -643,9 +699,10 @@ export default function AdminTeamCreatePage() {
                           </div>
                         </div>
                       </button>
-                      {idx < sampleMembers.length - 1 && <div className="h-px bg-neutral-4" />}
+                      {idx < leaderFiltered.length - 1 && <div className="h-px bg-neutral-4" />}
                     </div>
-                  ))}
+                  ));
+                  })()}
                 </div>
               </div>
 

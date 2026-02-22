@@ -23,6 +23,8 @@ export async function GET(request: Request) {
       name: true,
       phone: true,
       memberType: true,
+      major: true,
+      nickname: true,
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -32,6 +34,8 @@ export async function GET(request: Request) {
       id: u.id,
       name: u.name,
       phone: u.phone ?? '',
+      major: u.major ?? '',
+      nickname: u.nickname ?? '',
       role:
         Number(u.memberType) === 2
           ? 'admin'
