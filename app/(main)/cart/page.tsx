@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useUser } from '@/hooks/useUser';
 import Footer from '@/components/layout/Footer';
 
 function MinusIcon({ disabled = false }: { disabled?: boolean }) {
@@ -321,8 +322,97 @@ function CartItemCard({
 /* ── 메인 페이지 ──────────────────────────────────────────── */
 export default function CartPage() {
   const router = useRouter();
-  const [items, setItems] = useState<CartItem[]>(DUMMY_ITEMS);
+  const { isAuthenticated, isLoading } = useUser();
+  const [items, setItems] = useState<CartItem[]>([]);
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // API: 장바구니 목록 조회
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
+    }
+
+    const fetchCart = async () => {
+      try {
+        const res = await fetch('/api/v1/mypage/cart/list?page=1&size=100');
+        if (!res.ok) {
+          console.error('Failed to fetch cart:', res.statusText);
+          setItems([]);
+          return;
+        }
+
+        const data = await res.json();
+        const cartItems: CartItem[] = (data?.data?.items ?? []).map((item: any) => ({
+          id: item.id,
+          teamName: item.team?.name ?? '팀명 없음',
+          productName: item.product?.name ?? '상품명 없음',
+          option1: item.option1 ?? '',
+          option2: item.option2 ?? '',
+          quantity: item.quantity ?? 1,
+          price: item.product?.price ?? 0,
+          imageUrl: item.product?.imageUrl ?? '',
+          soldOut: item.product?.status === 2 || item.product?.stock === 0,
+          liked: false,
+        }));
+
+        setItems(cartItems);
+      } catch (err) {
+        console.error('Cart fetch error:', err);
+        setItems([]);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, [isAuthenticated, isLoading, router]);
+
+  // API: 수량 변경
+  const updateCartQty = async (cartId: number, newQty: number) => {
+    try {
+      const res = await fetch('/api/v1/mypage/cart/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartId, quantity: newQty }),
+      });
+      if (!res.ok) {
+        console.error('Failed to update quantity:', res.statusText);
+      }
+    } catch (err) {
+      console.error('Update quantity error:', err);
+    }
+  };
+
+  // API: 항목 삭제
+  const deleteCartItem = async (cartId: number) => {
+    try {
+      const res = await fetch('/api/v1/mypage/cart/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartId }),
+      });
+      if (!res.ok) {
+        console.error('Failed to delete item:', res.statusText);
+      }
+    } catch (err) {
+      console.error('Delete item error:', err);
+    }
+  };
+
+  // API: 선택한 항목 삭제
+  const deleteSelectedItems = async () => {
+    const itemsToDelete = items.filter((i) => checkedIds.has(i.id));
+    for (const item of itemsToDelete) {
+      await deleteCartItem(item.id);
+    }
+    // UI 업데이트
+    setItems((prev) => prev.filter((i) => !checkedIds.has(i.id)));
+    setCheckedIds(new Set());
+  };
 
   const activeItems = items.filter((i) => !i.soldOut);
   const soldOutItems = items.filter((i) => i.soldOut);
@@ -353,6 +443,8 @@ export default function CartPage() {
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
     );
+    // API 호출
+    updateCartQty(id, qty);
   }
 
   function removeItem(id: number) {
@@ -362,6 +454,8 @@ export default function CartPage() {
       next.delete(id);
       return next;
     });
+    // API 호출
+    deleteCartItem(id);
   }
 
   function changeOptions(id: number, option1: string, option2: string) {
@@ -371,13 +465,20 @@ export default function CartPage() {
   }
 
   function deleteSelected() {
-    setItems((prev) => prev.filter((i) => !checkedIds.has(i.id)));
-    setCheckedIds(new Set());
+    deleteSelectedItems();
   }
 
   function toggleLike(id: number) {
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, liked: !i.liked } : i))
+    );
+  }
+
+  if (isLoading || pageLoading) {
+    return (
+      <div className="bg-[#f6f6f5] min-h-screen w-full flex items-center justify-center">
+        <p className="text-[#999694]">로딩 중...</p>
+      </div>
     );
   }
 
