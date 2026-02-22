@@ -7,6 +7,7 @@ type ListedcardVariant = string;
 interface ListedcardProps {
   className?: string;
   property1?: ListedcardVariant;
+  onContentClick?: () => void;
   imageSrc?: string;
   brand?: string;
   title?: string;
@@ -33,6 +34,7 @@ function StatusChip({ label }: { label: string }) {
 export default function Listedcard({
   className,
   property1 = 'project_post',
+  onContentClick,
   imageSrc = '/assets/images/profile_image.png',
   brand = '팀명',
   title = '프로젝트 제목',
@@ -61,7 +63,11 @@ export default function Listedcard({
           <div className="h-px w-full border-t border-dashed border-neutral-5" />
         </div>
 
-        <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={onContentClick}
+          className={cn('flex w-full items-center gap-4 text-left', onContentClick ? 'cursor-pointer' : 'cursor-default')}
+        >
           <div className="h-[125px] w-[102px] overflow-hidden rounded">
             <img src={imageSrc} alt="프로젝트 썸네일" className="size-full object-cover" />
           </div>
@@ -80,7 +86,7 @@ export default function Listedcard({
               ))}
             </div>
           </div>
-        </div>
+        </button>
 
         <div className="flex w-[250px] items-center justify-between text-[11px] leading-[1.5] text-neutral-8">
           <span>게시 {postedAt}</span>

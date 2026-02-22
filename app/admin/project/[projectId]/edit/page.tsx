@@ -9,7 +9,7 @@ import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 import { cn } from '@/lib/utils';
 
 type OpenMenu = 'none' | 'team' | 'year' | 'category';
-type ConfirmModal = 'none' | 'leave' | 'submit';
+type ConfirmModal = 'none' | 'leave' | 'submit' | 'delete';
 
 type Option = {
   label: string;
@@ -313,6 +313,48 @@ function SubmitConfirmModal({
   );
 }
 
+function DeleteConfirmModal({
+  onCancel,
+  onConfirm,
+  deleting,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+  deleting: boolean;
+}) {
+  return (
+    <ModalOverlay>
+      <div className="flex h-full items-center justify-center px-4">
+        <div className="w-full rounded-xl bg-white px-7 pb-6 pt-10 shadow-[0px_8px_16px_rgba(0,0,0,0.08)]">
+          <div className="space-y-2 text-center">
+            <p className="typo-body-small-bold text-neutral-12">프로젝트를 삭제하시겠습니까?</p>
+            <div className="space-y-1">
+              <p className="typo-body-xsmall text-neutral-8">삭제된 글은 삭제된 항목에서 복원 가능하며,</p>
+              <p className="typo-body-xsmall text-neutral-8">삭제일로부터 30일 경과 후 영구히 삭제됩니다.</p>
+            </div>
+          </div>
+          <div className="mt-6 flex gap-[14px]">
+            <Button
+              type="button"
+              color="orange"
+              size="m"
+              className="!w-full"
+              onClick={onConfirm}
+              disabled={deleting}
+              status={deleting ? 'disabled' : 'default'}
+            >
+              {deleting ? '삭제 중...' : '삭제'}
+            </Button>
+            <Button type="button" color="white" size="m" className="!w-full" onClick={onCancel} disabled={deleting}>
+              취소
+            </Button>
+          </div>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
 async function uploadImage(file: File, usage: 'PROJECT_THUMBNAIL' | 'PROJECT_DETAIL') {
   const form = new FormData();
   form.append('image', file);
@@ -363,6 +405,7 @@ export default function AdminProjectEditPage({ params }: { params: { projectId: 
   const [categoryInput, setCategoryInput] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [thumbnail, setThumbnail] = useState<UploadState>({ file: null, previewUrl: null, uploadedUrl: null, uploading: false });
   const [detail, setDetail] = useState<UploadState>({ file: null, previewUrl: null, uploadedUrl: null, uploading: false });
@@ -557,7 +600,31 @@ export default function AdminProjectEditPage({ params }: { params: { projectId: 
   };
 
   const handleTrashClick = () => {
-    alert('삭제 화면 디자인 전달 후 연결 예정입니다.');
+    setOpenMenu('none');
+    setConfirmModal('delete');
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/admin/project/${projectId}/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.status !== 'success') {
+        throw new Error(json?.message ?? '프로젝트 삭제에 실패했습니다.');
+      }
+
+      router.push('/admin/project?toast=project-deleted');
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message ?? '프로젝트 삭제에 실패했습니다.');
+      setDeleting(false);
+      setConfirmModal('none');
+    }
   };
 
   const handleCreateYearTag = () => {
@@ -707,6 +774,14 @@ export default function AdminProjectEditPage({ params }: { params: { projectId: 
           onCancel={() => setConfirmModal('none')}
           onConfirm={() => void handleConfirmUpdate()}
           submitting={submitting}
+        />
+      ) : null}
+
+      {confirmModal === 'delete' ? (
+        <DeleteConfirmModal
+          onCancel={() => setConfirmModal('none')}
+          onConfirm={() => void handleConfirmDelete()}
+          deleting={deleting}
         />
       ) : null}
     </div>

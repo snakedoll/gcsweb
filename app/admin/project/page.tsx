@@ -58,6 +58,8 @@ export default function AdminProjectPage() {
         ? '프로젝트가 공개 등록되었습니다.'
         : toastKey === 'project-updated'
           ? '프로젝트가 수정되었습니다.'
+          : toastKey === 'project-deleted'
+            ? '프로젝트가 삭제되었습니다.'
         : null;
 
   return (
@@ -106,6 +108,7 @@ export default function AdminProjectPage() {
                 <Listedcard
                   className="w-full"
                   property1="project_post"
+                  onContentClick={() => router.push('/admin/project/sample-project-1/edit')}
                   imageSrc="/assets/images/profile_image.png"
                   brand="팀명"
                   title="프로젝트 제목"
@@ -119,6 +122,7 @@ export default function AdminProjectPage() {
                 <Listedcard
                   className="w-full"
                   property1="project_post"
+                  onContentClick={() => router.push('/admin/project/sample-project-2/edit')}
                   imageSrc="/assets/images/profile_image.png"
                   brand="팀명"
                   title="프로젝트 제목"
