@@ -136,7 +136,7 @@ export default function AdminTeamCreatePage() {
       if (teamType === 1 && accountImage) {
         const form = new FormData();
         form.append("image", accountImage);
-        const uploadRes = await fetch("/api/v1/images", { method: "POST", body: form });
+        const uploadRes = await fetch("/api/v1/images?usage=BANK_ACCOUNT", { method: "POST", body: form });
         const uploadJson = await uploadRes.json();
         if (uploadJson?.status !== "success" || !uploadJson?.data?.imageUrl) {
           alert(uploadJson?.message ?? "통장 사본 업로드에 실패했습니다.");

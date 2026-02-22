@@ -340,7 +340,7 @@ function PreviewModal({ file, url, onCancel, onConfirm }: { file: File; url: str
       const form = new FormData();
       form.append('image', new File([blob], file.name, { type: file.type }));
 
-      const uploadRes = await fetch('/api/v1/images', { method: 'POST', body: form });
+      const uploadRes = await fetch('/api/v1/images?usage=PROFILE', { method: 'POST', body: form });
       if (!uploadRes.ok) {
         const json = await uploadRes.json().catch(() => ({}));
         alert(json?.message || '이미지 업로드에 실패했습니다.');

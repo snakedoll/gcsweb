@@ -40,7 +40,7 @@ export async function GET(request: Request) {
               select: {
                 id: true,
                 title: true,
-                thumbnailImgUrl: true,
+                thumbnailUrl: true,
               },
             },
           },
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
             id: p.id,
             teamName: null,
             title: p.title,
-            thumbnailUrl: p.thumbnailImgUrl ?? null,
+            thumbnailUrl: p.thumbnailUrl ?? null,
             keywords: [],
           }));
       }

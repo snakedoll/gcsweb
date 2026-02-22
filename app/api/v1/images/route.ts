@@ -1,94 +1,205 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const runtime = 'nodejs';
+
+type UsagePolicy = {
+  pathPrefix: string;
+  maxBytes: number;
+  allowedMimes: string[];
+  requiresAdmin: boolean;
+};
+
+const MB = 1024 * 1024;
+const MIME_TO_EXTS: Record<string, string[]> = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/webp': ['.webp'],
+};
+
+// NOTE: PROFILE 정책은 명세가 미확정이라 기존 동작(10MB, JPEG/PNG/WEBP) 기준으로 두었습니다.
+const USAGE_POLICIES: Record<string, UsagePolicy> = {
+  PROFILE: {
+    pathPrefix: 'profile',
+    maxBytes: 10 * MB,
+    allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+    requiresAdmin: false,
+  },
+  PROJECT_THUMBNAIL: {
+    pathPrefix: 'project/thumbnail',
+    maxBytes: 50 * MB,
+    allowedMimes: ['image/jpeg', 'image/png'],
+    requiresAdmin: true,
+  },
+  PROJECT_DETAIL: {
+    pathPrefix: 'project/detail',
+    maxBytes: 50 * MB,
+    allowedMimes: ['image/jpeg', 'image/png'],
+    requiresAdmin: true,
+  },
+  // Existing admin team flow uploads a bank-account copy via /api/v1/images.
+  BANK_ACCOUNT: {
+    pathPrefix: 'team/account',
+    maxBytes: 50 * MB,
+    allowedMimes: ['image/jpeg', 'image/png'],
+    requiresAdmin: true,
+  },
+};
+
+function errorResponse(status: number, code: string, message: string) {
+  return NextResponse.json({ status: 'error', code, message }, { status });
+}
+
+function getUsageFromRequest(request: Request, formData: FormData) {
+  const url = new URL(request.url);
+  const queryUsage = url.searchParams.get('usage');
+  const bodyUsage = formData.get('usage');
+  return (queryUsage ?? (typeof bodyUsage === 'string' ? bodyUsage : '')).trim();
+}
+
+function sanitizeBaseName(fileName: string) {
+  const ext = path.extname(fileName);
+  const base = path.basename(fileName, ext);
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').slice(0, 80);
+  return safe || 'image';
+}
+
+function yyyymmdd(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+function randomId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function inferCanonicalExt(mimeType: string) {
+  if (mimeType === 'image/jpeg') return '.jpg';
+  if (mimeType === 'image/png') return '.png';
+  if (mimeType === 'image/webp') return '.webp';
+  return '.bin';
+}
+
+function validateFile(file: File, policy: UsagePolicy) {
+  const size = Number(file.size ?? 0);
+  if (!size) {
+    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '파일이 비어있거나 지원하지 않는 이미지 형식입니다.') };
+  }
+
+  const mimeType = String(file.type ?? '').toLowerCase();
+  if (!mimeType || !policy.allowedMimes.includes(mimeType)) {
+    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.') };
+  }
+
+  const ext = path.extname(file.name || '').toLowerCase();
+  const allowedExts = new Set(policy.allowedMimes.flatMap((m) => MIME_TO_EXTS[m] ?? []));
+  if (!ext || !allowedExts.has(ext)) {
+    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.') };
+  }
+
+  if (size > policy.maxBytes) {
+    return { ok: false as const, response: errorResponse(413, 'FILE_TOO_LARGE', '파일 크기가 허용 용량을 초과했습니다.') };
+  }
+
+  return { ok: true as const, size, mimeType, ext };
+}
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '토큰이 없거나 만료되었습니다.' }, { status: 401 });
+      return errorResponse(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
     }
 
-    // Try to parse multipart/form-data via standard FormData API
     const contentType = request.headers.get('content-type') ?? '';
-
-    let file: File | null = null;
-
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      const f = formData.get('image') as File | null;
-      if (!f) {
-        return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '파일이 없습니다.' }, { status: 400 });
-      }
-      file = f;
-    } else {
-      // also accept JSON with base64 / dataUrl in `image` field
-      const body = await request.json().catch(() => ({}));
-      const data = body?.image ?? body?.dataUrl ?? body?.profileImageUrl;
-      if (!data) {
-        return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '파일이 없습니다.' }, { status: 400 });
-      }
-      // data is expected to be a data URL like data:image/png;base64,AAAA
-      if (typeof data !== 'string' || !data.startsWith('data:')) {
-        return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '올바른 data URL 형식이 아닙니다.' }, { status: 400 });
-      }
-      // create a File-like wrapper
-      const matches = data.match(/^data:(.+);base64,(.+)$/);
-      if (!matches) {
-        return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '지원하지 않는 데이터 형식입니다.' }, { status: 400 });
-      }
-      const mime = matches[1];
-      const base64 = matches[2];
-      const buffer = Buffer.from(base64, 'base64');
-      // create a minimal File-like object
-      file = new File([buffer], 'upload', { type: mime });
-      // @ts-ignore attach arrayBuffer method
-      (file as any).arrayBuffer = async () => buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    if (!contentType.includes('multipart/form-data')) {
+      return errorResponse(400, 'INVALID_INPUT', 'usage와 image는 필수입니다.');
     }
 
-    if (!file) {
-      return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '파일이 없습니다.' }, { status: 400 });
+    const formData = await request.formData();
+    const usage = getUsageFromRequest(request, formData);
+    const imageEntry = formData.get('image');
+    const file = imageEntry instanceof File ? imageEntry : null;
+
+    if (!usage || !file) {
+      return errorResponse(400, 'INVALID_INPUT', 'usage와 image는 필수입니다.');
     }
 
-    const size = Number((file as any).size ?? 0);
-    const type = (file as any).type ?? '';
-
-    if (!ALLOWED_TYPES.includes(type)) {
-      return NextResponse.json({ status: 'error', code: 'INVALID_FILE', message: '지원하지 않는 파일 형식입니다.' }, { status: 400 });
+    const policy = USAGE_POLICIES[usage];
+    if (!policy) {
+      return errorResponse(400, 'INVALID_USAGE', '지원하지 않는 usage 값입니다.');
     }
 
-    if (size > MAX_FILE_SIZE) {
-      return NextResponse.json({ status: 'error', code: 'FILE_TOO_LARGE', message: '이미지 파일은 10MB를 초과할 수 없습니다.' }, { status: 413 });
+    if (policy.requiresAdmin) {
+      const adminUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { memberType: true },
+      });
+
+      if (!adminUser || Number(adminUser.memberType) !== 2) {
+        return errorResponse(403, 'FORBIDDEN', '해당 이미지 업로드 권한이 없습니다.');
+      }
     }
 
-    // ensure uploads dir exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    const validated = validateFile(file, policy);
+    if (!validated.ok) {
+      return validated.response;
+    }
 
-    const ext = type.split('/')[1] ?? 'bin';
-    const filename = `${Date.now()}_${cryptoRandomId()}.${ext}`;
-    const outPath = path.join(uploadsDir, filename);
+    const originalExt = validated.ext;
+    const finalExt = originalExt || inferCanonicalExt(validated.mimeType);
+    const datePrefix = yyyymmdd();
+    const fileName = `${datePrefix}_${randomId()}_${sanitizeBaseName(file.name)}${finalExt}`;
 
-    const arrayBuffer = await (file as any).arrayBuffer();
+    const uploadsRoot = path.join(process.cwd(), 'public', 'uploads');
+    const usageDir = path.join(uploadsRoot, ...policy.pathPrefix.split('/'));
+    fs.mkdirSync(usageDir, { recursive: true });
+
+    const outputPath = path.join(usageDir, fileName);
+    const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    await fs.promises.writeFile(outPath, buffer);
 
-    const publicUrl = `/uploads/${filename}`;
+    try {
+      await fs.promises.writeFile(outputPath, buffer);
+    } catch (uploadError) {
+      console.error('Image upload storage error:', uploadError);
+      return errorResponse(500, 'UPLOAD_FAILED', '이미지 업로드에 실패했습니다.');
+    }
 
-    return NextResponse.json({ status: 'success', data: { imageUrl: publicUrl } });
-  } catch (error: any) {
-    console.error('image upload error', error);
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '이미지 업로드 중 오류가 발생했습니다.' }, { status: 500 });
+    const relativeUrl = `/uploads/${policy.pathPrefix}/${fileName}`.replace(/\\/g, '/');
+    const publicUrl = new URL(relativeUrl, request.url).toString();
+
+    try {
+      const repo = prisma as any;
+      await repo.image.create({
+        data: {
+          usage,
+          fileSize: validated.size,
+          mimeType: validated.mimeType,
+          imageUrl: publicUrl,
+        },
+      });
+    } catch (dbError) {
+      console.error('Image metadata save error:', dbError);
+      await fs.promises.unlink(outputPath).catch(() => undefined);
+      return errorResponse(500, 'SERVER_ERROR', '서버 내부 오류 발생.');
+    }
+
+    return NextResponse.json({
+      status: 'success',
+      data: { imageUrl: publicUrl },
+    });
+  } catch (error) {
+    console.error('Image upload API error:', error);
+    return errorResponse(500, 'SERVER_ERROR', '서버 내부 오류 발생.');
   }
-}
-
-function cryptoRandomId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  // fallback
-  return Math.random().toString(36).slice(2, 10);
 }

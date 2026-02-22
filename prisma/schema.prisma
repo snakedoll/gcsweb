@@ -76,6 +76,7 @@ model Team {
 
   // Relations
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects    Project[]
   products    Product[]
   settlements Settlement[]
 
@@ -308,6 +309,20 @@ model ReviewImage {
 // Post - 게시글 (Board / Lounge)
 // ============================================
 
+// ============================================
+// Image - 공용 업로드 이미지 메타데이터
+// ============================================
+
+model Image {
+  id       String @id @default(cuid()) @map("imageId")
+  usage    String
+  fileSize Int
+  mimeType String
+  imageUrl String
+
+  @@map("Image")
+}
+
 model Post {
   id           String    @id @default(cuid())
   userId       String
@@ -343,27 +358,67 @@ model Category {
 }
 
 // ============================================
-// Project - 프로젝트 (아카이브)
+// Project Category - 프로젝트 카테고리
+// ============================================
+
+model ProjectCategory {
+  id       String    @id @default(cuid()) @map("categoryId")
+  category String
+
+  // Relations
+  projects Project[]
+
+  @@map("Project Category")
+}
+
+// ============================================
+// Project Year - 프로젝트 연도
+// ============================================
+
+model ProjectYear {
+  id       String    @id @default(cuid()) @map("yearId")
+  year     Int
+
+  // Relations
+  projects Project[]
+
+  @@map("Proejct Year")
+}
+
+// ============================================
+// Project - 프로젝트 
 // ============================================
 
 model Project {
-  id              String    @id @default(cuid())
-  title           String
-  year            Int
-  thumbnailImgUrl String?
-  detailImgUrl    String?
-  likeCount       Int       @default(0)
-  viewCount       Int       @default(0)
-  isPublic        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(cuid()) @map("projectId")
+  teamId        String
+  title         String
+  categoryId    String
+  yearId        String
+  thumbnailUrl  String
+  detailUrl     String
+  isPublic      Boolean   @default(false)
+  likeCount     Int       @default(0)
+  viewCount     Int       @default(0)
+  isHome        Boolean   @default(false) @map("ishome")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  softDeletedAt DateTime?
+  hardDeleteAt  DateTime?
 
   // Relations
-  likes           Like[]
-  scraps          Scrap[]
+  team        Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  category    ProjectCategory @relation(fields: [categoryId], references: [id])
+  projectYear ProjectYear     @relation(fields: [yearId], references: [id])
+  likes       Like[]
+  scraps      Scrap[]
 
-  @@index([year])
+  @@index([teamId])
+  @@index([categoryId])
+  @@index([yearId])
   @@index([isPublic])
+  @@index([isHome])
+  @@index([softDeletedAt])
 }
 
 // ============================================
