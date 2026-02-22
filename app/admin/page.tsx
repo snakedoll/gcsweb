@@ -104,7 +104,7 @@ export default function AdminPage() {
             title="글 관리"
             items={[
               { label: 'About GCS 관리', href: '#' },
-              { label: 'Project 관리', href: '#' },
+              { label: 'Project 관리', href: '/admin/project' },
               { label: 'News 관리', href: '#' },
             ]}
           />
