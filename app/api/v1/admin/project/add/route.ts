@@ -75,12 +75,20 @@ export async function POST(request: Request) {
       return errorResponse(400, 'INVALID_INPUT', '필수 입력값이 누락되었거나 형식이 올바르지 않습니다.');
     }
 
+    const safeTitle = (title as string).trim();
+    const safeTeamId = (teamId as string).trim();
+    const safeYearId = (yearId as string).trim();
+    const safeCategoryId = (categoryId as string).trim();
+    const safeThumbnailUrl = (thumbnailUrl as string).trim();
+    const safeDetailUrl = (detailUrl as string).trim();
+    const safeIsPublic = isPublic as boolean;
+
     const repo = prisma as any;
 
     const [team, year, category] = await Promise.all([
-      repo.team.findUnique({ where: { id: teamId } }),
-      repo.projectYear?.findUnique?.({ where: { id: yearId } }),
-      repo.projectCategory?.findUnique?.({ where: { id: categoryId } }),
+      repo.team.findUnique({ where: { id: safeTeamId } }),
+      repo.projectYear?.findUnique?.({ where: { id: safeYearId } }),
+      repo.projectCategory?.findUnique?.({ where: { id: safeCategoryId } }),
     ]);
 
     if (!team) {
@@ -97,13 +105,13 @@ export async function POST(request: Request) {
 
     const created = await repo.project.create({
       data: {
-        title: title.trim(),
-        teamId: teamId.trim(),
-        yearId: yearId.trim(),
-        categoryId: categoryId.trim(),
-        thumbnailUrl: thumbnailUrl.trim(),
-        detailUrl: detailUrl.trim(),
-        isPublic,
+        title: safeTitle,
+        teamId: safeTeamId,
+        yearId: safeYearId,
+        categoryId: safeCategoryId,
+        thumbnailUrl: safeThumbnailUrl,
+        detailUrl: safeDetailUrl,
+        isPublic: safeIsPublic,
         isHome: false,
       },
       select: {
