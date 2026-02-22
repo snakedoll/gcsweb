@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
@@ -8,6 +8,8 @@ type ProjectAddBody = {
   teamId?: string;
   yearId?: string;
   categoryId?: string;
+  year?: string | number;
+  category?: string;
   thumbnailUrl?: string;
   detailUrl?: string;
   isPublic?: boolean;
@@ -31,12 +33,20 @@ function isValidUrlString(value: unknown): value is string {
   }
 }
 
+function parseYearValue(value: unknown) {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (!isNonEmptyString(value)) return null;
+  const parsed = Number(value.trim());
+  if (!Number.isInteger(parsed)) return null;
+  return parsed;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return errorResponse(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
+      return errorResponse(401, 'UNAUTHORIZED', '인증이 필요합니다.');
     }
 
     const adminUser = await prisma.user.findUnique({
@@ -45,70 +55,75 @@ export async function POST(request: Request) {
     });
 
     if (!adminUser) {
-      return errorResponse(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
+      return errorResponse(401, 'UNAUTHORIZED', '인증이 필요합니다.');
     }
 
     if (Number(adminUser.memberType) !== 2) {
-      return errorResponse(403, 'FORBIDDEN', '어드민 권한이 없습니다.');
+      return errorResponse(403, 'FORBIDDEN', '관리자 권한이 없습니다.');
     }
 
     const body = (await request.json().catch(() => ({}))) as ProjectAddBody;
-    const {
-      title,
-      teamId,
-      yearId,
-      categoryId,
-      thumbnailUrl,
-      detailUrl,
-      isPublic,
-    } = body;
+    const { title, teamId, yearId, categoryId, year, category, thumbnailUrl, detailUrl, isPublic } = body;
 
-    if (
-      !isNonEmptyString(title) ||
-      !isNonEmptyString(teamId) ||
-      !isNonEmptyString(yearId) ||
-      !isNonEmptyString(categoryId) ||
-      !isValidUrlString(thumbnailUrl) ||
-      !isValidUrlString(detailUrl) ||
-      typeof isPublic !== 'boolean'
-    ) {
+    if (!isNonEmptyString(title) || !isNonEmptyString(teamId) || !isValidUrlString(thumbnailUrl) || !isValidUrlString(detailUrl) || typeof isPublic !== 'boolean') {
       return errorResponse(400, 'INVALID_INPUT', '필수 입력값이 누락되었거나 형식이 올바르지 않습니다.');
     }
 
     const safeTitle = title.trim();
     const safeTeamId = teamId.trim();
-    const safeYearId = yearId.trim();
-    const safeCategoryId = categoryId.trim();
     const safeThumbnailUrl = thumbnailUrl.trim();
     const safeDetailUrl = detailUrl.trim();
     const safeIsPublic = isPublic;
+    const safeYearId = isNonEmptyString(yearId) ? yearId.trim() : '';
+    const safeCategoryId = isNonEmptyString(categoryId) ? categoryId.trim() : '';
+    const safeCategoryName = isNonEmptyString(category) ? category.trim() : '';
+    const parsedYear = parseYearValue(year);
+
+    if (!safeYearId && parsedYear == null) {
+      return errorResponse(400, 'YEAR_NOT_FOUND', '유효한 yearId 또는 year 값이 필요합니다.');
+    }
+
+    if (!safeCategoryId && !safeCategoryName) {
+      return errorResponse(400, 'CATEGORY_NOT_FOUND', '유효한 categoryId 또는 category 값이 필요합니다.');
+    }
 
     const repo = prisma as any;
 
-    const [team, year, category] = await Promise.all([
-      repo.team.findUnique({ where: { id: safeTeamId } }),
-      repo.projectYear?.findUnique?.({ where: { id: safeYearId } }),
-      repo.projectCategory?.findUnique?.({ where: { id: safeCategoryId } }),
-    ]);
-
+    const team = await repo.team.findUnique({ where: { id: safeTeamId } });
     if (!team) {
       return errorResponse(400, 'TEAM_NOT_FOUND', '유효하지 않은 teamId입니다.');
     }
 
-    if (!year) {
-      return errorResponse(400, 'YEAR_NOT_FOUND', '유효하지 않은 yearId입니다.');
+    let yearRecord = safeYearId
+      ? await repo.projectYear?.findUnique?.({ where: { id: safeYearId } })
+      : await repo.projectYear?.findFirst?.({ where: { year: parsedYear } });
+
+    if (!yearRecord && !safeYearId && parsedYear != null) {
+      yearRecord = await repo.projectYear.create({ data: { year: parsedYear } });
     }
 
-    if (!category) {
-      return errorResponse(400, 'CATEGORY_NOT_FOUND', '유효하지 않은 categoryId입니다.');
+    if (!yearRecord) {
+      return errorResponse(400, 'YEAR_NOT_FOUND', '유효하지 않은 yearId/year 입니다.');
+    }
+
+    let categoryRecord = safeCategoryId
+      ? await repo.projectCategory?.findUnique?.({ where: { id: safeCategoryId } })
+      : await repo.projectCategory?.findFirst?.({ where: { category: safeCategoryName } });
+
+    if (!categoryRecord && !safeCategoryId && safeCategoryName) {
+      categoryRecord = await repo.projectCategory.create({ data: { category: safeCategoryName } });
+    }
+
+    if (!categoryRecord) {
+      return errorResponse(400, 'CATEGORY_NOT_FOUND', '유효하지 않은 categoryId/category 입니다.');
     }
 
     const created = await repo.project.create({
       data: {
         title: safeTitle,
         teamId: safeTeamId,
-        yearId: safeYearId,
-        categoryId: safeCategoryId,
+        yearId: yearRecord.id,
+        categoryId: categoryRecord.id,
         thumbnailUrl: safeThumbnailUrl,
         detailUrl: safeDetailUrl,
         isPublic: safeIsPublic,

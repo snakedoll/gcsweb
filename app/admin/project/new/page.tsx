@@ -1,6 +1,7 @@
 ﻿'use client';
 
-import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import Button from '@/components/ui/button/Button';
@@ -15,26 +16,14 @@ type Option = {
   value: string;
 };
 
-const TEAM_OPTIONS: Option[] = [
-  { label: 'HUSH', value: 'hush' },
-  { label: '팀 이름', value: 'team-1' },
-  { label: '팀 이름', value: 'team-2' },
-  { label: '팀 이름', value: 'team-3' },
-  { label: '팀 이름', value: 'team-4' },
-];
+type UploadKind = 'thumbnail' | 'detail';
 
-const YEAR_OPTIONS: Option[] = [
-  { label: '2026', value: '2026' },
-  { label: '2025', value: '2025' },
-  { label: '2024', value: '2024' },
-  { label: '2023', value: '2023' },
-];
-
-const CATEGORY_OPTIONS: Option[] = [
-  { label: '여름 공모전', value: 'summer' },
-  { label: '겨울 공모전', value: 'winter' },
-  { label: '졸업 프로젝트', value: 'graduation' },
-];
+type UploadState = {
+  file: File | null;
+  previewUrl: string | null;
+  uploadedUrl: string | null;
+  uploading: boolean;
+};
 
 function PlusSmallIcon() {
   return (
@@ -79,7 +68,7 @@ function BaseFieldShell({
     <div
       className={cn(
         'flex h-10 w-full items-center justify-between rounded-lg border bg-neutral-2 px-3',
-        active ? 'border-neutral-6' : filled ? 'border-neutral-6' : 'border-neutral-5',
+        active || filled ? 'border-neutral-6' : 'border-neutral-5',
         className
       )}
     >
@@ -173,7 +162,51 @@ function OptionListPanel({
   );
 }
 
-function UploadPlaceholderCard({ title, onUpload }: { title: string; onUpload: () => void }) {
+function TagInputPanel({
+  placeholder,
+  value,
+  onChange,
+  onAdd,
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="absolute left-0 right-0 top-[calc(100%+1px)] z-20 overflow-hidden rounded-b-lg border border-neutral-5 border-t-0 bg-neutral-2">
+      <div className="flex h-10 items-center justify-between bg-neutral-5 px-3">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+          placeholder={placeholder}
+          className="w-full bg-transparent typo-body-xsmall text-neutral-10 placeholder:text-neutral-7 outline-none"
+        />
+        <button type="button" onClick={onAdd} className="ml-2 inline-flex size-5 items-center justify-center">
+          <PlusSmallIcon />
+        </button>
+      </div>
+      <div className="h-2 bg-neutral-2" />
+    </div>
+  );
+}
+
+function UploadPlaceholderCard({
+  title,
+  onUpload,
+  uploading,
+}: {
+  title: string;
+  onUpload: () => void;
+  uploading: boolean;
+}) {
   const kind = title.replace('이미지', '').trim();
 
   return (
@@ -188,8 +221,8 @@ function UploadPlaceholderCard({ title, onUpload }: { title: string; onUpload: (
             <p className="typo-body-small text-neutral-8">프로젝트 {kind} 이미지를 선택해주세요.</p>
             <p className="typo-body-xsmall text-neutral-7">50MB 이하의 JPEG, PNG 포멧</p>
           </div>
-          <Button type="button" color="orange" size="s" className="!w-auto px-4 py-2" onClick={onUpload}>
-            사진 업로드
+          <Button type="button" color="orange" size="s" className="!w-auto px-4 py-2" onClick={onUpload} disabled={uploading} status={uploading ? 'disabled' : 'default'}>
+            {uploading ? '업로드 중...' : '사진 업로드'}
           </Button>
         </div>
       </div>
@@ -197,37 +230,22 @@ function UploadPlaceholderCard({ title, onUpload }: { title: string; onUpload: (
   );
 }
 
-function ImageDocumentMock() {
-  return (
-    <div className="w-full rounded-lg border border-neutral-4 bg-neutral-2 p-3">
-      <div className="rounded bg-white p-3 shadow-[inset_0_0_0_1px_rgba(241,241,241,1)]">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="text-[36px] font-bold leading-none text-neutral-10">B</div>
-          <p className="text-[16px] font-bold text-neutral-10">kakaobank</p>
-        </div>
-        <div className="space-y-1 text-[10px] leading-[1.4] text-neutral-10">
-          <p className="text-[14px] font-bold">
-            강혜분 님 <span className="ml-2 text-[10px] font-normal text-danger">예시용 이미지로, 실제로는 모자이크 처리를 하시면 안됩니다.</span>
-          </p>
-          <p>예금종류 <span className="ml-3">입출금통장</span></p>
-          <p>계좌번호 <span className="ml-3">3333-##-######</span></p>
-          <p>개설일 <span className="ml-5">2017.08.29</span></p>
-        </div>
-        <div className="my-4 h-px bg-neutral-4" />
-        <div className="flex items-end justify-between text-[9px] text-neutral-8">
-          <p>위와 같이 계좌가 개설되어 있음을 확인합니다.</p>
-          <p>한국카카오은행(주)</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UploadPreviewCard({ title }: { title: string }) {
+function UploadPreviewCard({ title, previewUrl, uploading, onReplace }: { title: string; previewUrl: string; uploading: boolean; onReplace: () => void }) {
   return (
     <section className="space-y-4">
       <h2 className="typo-heading-small text-neutral-12">{title}</h2>
-      <ImageDocumentMock />
+      <div className="w-full rounded-lg border border-neutral-4 bg-neutral-2 p-3">
+        <div className="relative overflow-hidden rounded bg-white">
+          <div className="relative aspect-[343/319] w-full">
+            <Image src={previewUrl} alt={title} fill className="object-cover" unoptimized />
+          </div>
+          <div className="absolute right-3 top-3">
+            <Button type="button" color="white" size="s" className="!w-auto px-3 py-1.5" onClick={onReplace} disabled={uploading}>
+              {uploading ? '업로드 중...' : '변경'}
+            </Button>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -250,12 +268,8 @@ function LeaveConfirmModal({ onContinue, onLeave }: { onContinue: () => void; on
             <p className="typo-body-xsmall text-neutral-8">지금까지 작성한 글은 저장되지 않습니다.</p>
           </div>
           <div className="mt-8 flex gap-[14px]">
-            <Button type="button" color="white" size="m" className="!w-full" onClick={onContinue}>
-              이어서 작성
-            </Button>
-            <Button type="button" color="orange" size="m" className="!w-full" onClick={onLeave}>
-              나가기
-            </Button>
+            <Button type="button" color="white" size="m" className="!w-full" onClick={onContinue}>이어서 작성</Button>
+            <Button type="button" color="orange" size="m" className="!w-full" onClick={onLeave}>나가기</Button>
           </div>
         </div>
       </div>
@@ -268,11 +282,13 @@ function SubmitConfirmModal({
   onTogglePublic,
   onCancel,
   onConfirm,
+  submitting,
 }: {
   isPublic: boolean;
   onTogglePublic: (checked: boolean) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  submitting: boolean;
 }) {
   return (
     <ModalOverlay>
@@ -282,15 +298,13 @@ function SubmitConfirmModal({
             <p className="typo-body-small-bold text-neutral-12">프로젝트를 등록하시겠습니까?</p>
             <div className="flex items-center justify-center gap-[9px]">
               <span className="typo-body-small text-neutral-12">공개</span>
-              <ToggleSwitch checked={isPublic} onChange={onTogglePublic} />
+              <ToggleSwitch checked={isPublic} onChange={onTogglePublic} disabled={submitting} />
             </div>
           </div>
           <div className="mt-6 flex gap-[14px]">
-            <Button type="button" color="white" size="m" className="!w-full" onClick={onCancel}>
-              취소
-            </Button>
-            <Button type="button" color="orange" size="m" className="!w-full" onClick={onConfirm}>
-              등록
+            <Button type="button" color="white" size="m" className="!w-full" onClick={onCancel} disabled={submitting}>취소</Button>
+            <Button type="button" color="orange" size="m" className="!w-full" onClick={onConfirm} disabled={submitting} status={submitting ? 'disabled' : 'default'}>
+              {submitting ? '등록 중...' : '등록'}
             </Button>
           </div>
         </div>
@@ -299,32 +313,83 @@ function SubmitConfirmModal({
   );
 }
 
+async function uploadImage(file: File, usage: 'PROJECT_THUMBNAIL' | 'PROJECT_DETAIL') {
+  const form = new FormData();
+  form.append('image', file);
+
+  const res = await fetch(`/api/v1/images?usage=${usage}`, {
+    method: 'POST',
+    body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok || json?.status !== 'success' || !json?.data?.imageUrl) {
+    throw new Error(json?.message ?? '이미지 업로드에 실패했습니다.');
+  }
+
+  return String(json.data.imageUrl);
+}
+
 export default function AdminProjectCreatePage() {
   const router = useRouter();
+
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const detailInputRef = useRef<HTMLInputElement>(null);
+
   const [openMenu, setOpenMenu] = useState<OpenMenu>('none');
   const [confirmModal, setConfirmModal] = useState<ConfirmModal>('none');
 
+  const [teamOptions, setTeamOptions] = useState<Option[]>([]);
+  const [metaLoading, setMetaLoading] = useState(true);
+
   const [title, setTitle] = useState('');
   const [team, setTeam] = useState<Option | null>(null);
-  const [year, setYear] = useState<Option | null>(null);
-  const [category, setCategory] = useState<Option | null>(null);
+  const [yearTag, setYearTag] = useState('');
+  const [categoryTag, setCategoryTag] = useState('');
+  const [yearInput, setYearInput] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [coverUploaded, setCoverUploaded] = useState(false);
-  const [bodyUploaded, setBodyUploaded] = useState(false);
+  const [thumbnail, setThumbnail] = useState<UploadState>({ file: null, previewUrl: null, uploadedUrl: null, uploading: false });
+  const [detail, setDetail] = useState<UploadState>({ file: null, previewUrl: null, uploadedUrl: null, uploading: false });
 
-  const canSubmit = useMemo(() => Boolean(title.trim() && team && year && category && coverUploaded && bodyUploaded), [
-    title,
-    team,
-    year,
-    category,
-    coverUploaded,
-    bodyUploaded,
-  ]);
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/admin/project/meta');
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json?.status !== 'success') {
+          throw new Error(json?.message ?? '메타 데이터를 불러오지 못했습니다.');
+        }
+        if (cancelled) return;
+
+        setTeamOptions((json.data?.teams ?? []).map((item: any) => ({ label: String(item.label), value: String(item.id) })));
+      } catch (error: any) {
+        if (!cancelled) {
+          console.error(error);
+          alert(error?.message ?? '메타 데이터를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (!cancelled) setMetaLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const canSubmit = useMemo(
+    () => Boolean(title.trim() && team && yearTag && categoryTag && thumbnail.uploadedUrl && detail.uploadedUrl && !thumbnail.uploading && !detail.uploading && !metaLoading),
+    [title, team, yearTag, categoryTag, thumbnail, detail, metaLoading]
+  );
 
   const isDirty = useMemo(
-    () => Boolean(title.trim() || team || year || category || coverUploaded || bodyUploaded),
-    [title, team, year, category, coverUploaded, bodyUploaded]
+    () => Boolean(title.trim() || team || yearTag || categoryTag || yearInput.trim() || categoryInput.trim() || thumbnail.file || detail.file),
+    [title, team, yearTag, categoryTag, yearInput, categoryInput, thumbnail.file, detail.file]
   );
 
   const handleBack = () => {
@@ -336,15 +401,92 @@ export default function AdminProjectCreatePage() {
     router.push('/admin/project');
   };
 
+  const handleFileSelected = async (kind: UploadKind, file: File | null) => {
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('JPEG, PNG 형식만 업로드 가능합니다.');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      alert('50MB 이하 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    const setState = kind === 'thumbnail' ? setThumbnail : setDetail;
+    const usage = kind === 'thumbnail' ? 'PROJECT_THUMBNAIL' : 'PROJECT_DETAIL';
+
+    setState((prev) => ({ ...prev, file, previewUrl, uploading: true }));
+
+    try {
+      const uploadedUrl = await uploadImage(file, usage);
+      setState((prev) => ({ ...prev, file, previewUrl, uploadedUrl, uploading: false }));
+    } catch (error: any) {
+      console.error(error);
+      setState((prev) => ({ ...prev, uploading: false, uploadedUrl: null }));
+      alert(error?.message ?? '이미지 업로드에 실패했습니다.');
+    }
+  };
+
   const handleSubmitClick = () => {
     if (!canSubmit) return;
     setOpenMenu('none');
     setConfirmModal('submit');
   };
 
-  const handleConfirmRegister = () => {
-    const toast = isPublic ? 'project-created-public' : 'project-created-private';
-    router.push(`/admin/project?toast=${toast}`);
+  const handleConfirmRegister = async () => {
+    if (!team || !yearTag || !categoryTag || !thumbnail.uploadedUrl || !detail.uploadedUrl) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/admin/project/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          teamId: team.value,
+          year: yearTag,
+          category: categoryTag,
+          thumbnailUrl: thumbnail.uploadedUrl,
+          detailUrl: detail.uploadedUrl,
+          isPublic,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.status !== 'success') {
+        throw new Error(json?.message ?? '프로젝트 등록에 실패했습니다.');
+      }
+
+      const toast = isPublic ? 'project-created-public' : 'project-created-private';
+      router.push(`/admin/project?toast=${toast}`);
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message ?? '프로젝트 등록에 실패했습니다.');
+      setSubmitting(false);
+      setConfirmModal('none');
+    }
+  };
+
+  const handleCreateYearTag = () => {
+    const normalized = yearInput.trim();
+    if (!normalized) return;
+    if (!/^\d{4}$/.test(normalized)) {
+      alert('연도는 4자리 숫자로 입력해주세요. 예: 2025');
+      return;
+    }
+    setYearTag(normalized);
+    setYearInput('');
+    setOpenMenu('none');
+  };
+
+  const handleCreateCategoryTag = () => {
+    const normalized = categoryInput.trim();
+    if (!normalized) return;
+    setCategoryTag(normalized);
+    setCategoryInput('');
+    setOpenMenu('none');
   };
 
   return (
@@ -363,15 +505,15 @@ export default function AdminProjectCreatePage() {
                 <div className="relative">
                   <SelectField
                     label="팀"
-                    placeholder="판매팀 선택"
+                    placeholder={metaLoading ? '불러오는 중...' : '판매팀 선택'}
                     value={team?.label}
                     open={openMenu === 'team'}
-                    onToggle={() => setOpenMenu((prev) => (prev === 'team' ? 'none' : 'team'))}
+                    onToggle={() => !metaLoading && setOpenMenu((prev) => (prev === 'team' ? 'none' : 'team'))}
                   />
                   {openMenu === 'team' ? (
                     <OptionListPanel
                       header="팀 검색"
-                      items={TEAM_OPTIONS.filter((item) => item.value !== 'hush')}
+                      items={teamOptions}
                       rowHeight="h-12"
                       onSelect={(item) => {
                         setTeam(item);
@@ -385,19 +527,17 @@ export default function AdminProjectCreatePage() {
                   <SelectField
                     label="연도"
                     placeholder="연도 선택"
-                    value={year?.label}
+                    value={yearTag || undefined}
                     open={openMenu === 'year'}
-                    showAsTag={Boolean(year)}
+                    showAsTag={Boolean(yearTag)}
                     onToggle={() => setOpenMenu((prev) => (prev === 'year' ? 'none' : 'year'))}
                   />
                   {openMenu === 'year' ? (
-                    <OptionListPanel
-                      header="연도 선택"
-                      items={YEAR_OPTIONS}
-                      onSelect={(item) => {
-                        setYear(item);
-                        setOpenMenu('none');
-                      }}
+                    <TagInputPanel
+                      placeholder="연도 입력"
+                      value={yearInput}
+                      onChange={setYearInput}
+                      onAdd={handleCreateYearTag}
                     />
                   ) : null}
                 </div>
@@ -406,27 +546,34 @@ export default function AdminProjectCreatePage() {
                   <SelectField
                     label="카테고리"
                     placeholder="태그 선택"
-                    value={category?.label}
+                    value={categoryTag || undefined}
                     open={openMenu === 'category'}
-                    showAsTag={Boolean(category)}
+                    showAsTag={Boolean(categoryTag)}
                     onToggle={() => setOpenMenu((prev) => (prev === 'category' ? 'none' : 'category'))}
                   />
                   {openMenu === 'category' ? (
-                    <OptionListPanel
-                      header="태그 선택"
-                      items={CATEGORY_OPTIONS}
-                      onSelect={(item) => {
-                        setCategory(item);
-                        setOpenMenu('none');
-                      }}
+                    <TagInputPanel
+                      placeholder="태그 선택"
+                      value={categoryInput}
+                      onChange={setCategoryInput}
+                      onAdd={handleCreateCategoryTag}
                     />
                   ) : null}
                 </div>
               </div>
             </section>
 
-            {coverUploaded ? <UploadPreviewCard title="표지 이미지" /> : <UploadPlaceholderCard title="표지 이미지" onUpload={() => setCoverUploaded(true)} />}
-            {bodyUploaded ? <UploadPreviewCard title="본문 이미지" /> : <UploadPlaceholderCard title="본문 이미지" onUpload={() => setBodyUploaded(true)} />}
+            {thumbnail.previewUrl ? (
+              <UploadPreviewCard title="표지 이미지" previewUrl={thumbnail.previewUrl} uploading={thumbnail.uploading} onReplace={() => thumbnailInputRef.current?.click()} />
+            ) : (
+              <UploadPlaceholderCard title="표지 이미지" uploading={thumbnail.uploading} onUpload={() => thumbnailInputRef.current?.click()} />
+            )}
+
+            {detail.previewUrl ? (
+              <UploadPreviewCard title="본문 이미지" previewUrl={detail.previewUrl} uploading={detail.uploading} onReplace={() => detailInputRef.current?.click()} />
+            ) : (
+              <UploadPlaceholderCard title="본문 이미지" uploading={detail.uploading} onUpload={() => detailInputRef.current?.click()} />
+            )}
 
             <div className="pt-4">
               <Button type="button" color="orange" size="l" status={canSubmit ? 'default' : 'disabled'} disabled={!canSubmit} onClick={handleSubmitClick}>
@@ -437,6 +584,27 @@ export default function AdminProjectCreatePage() {
         </main>
       </div>
 
+      <input
+        ref={thumbnailInputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={(e) => {
+          void handleFileSelected('thumbnail', e.target.files?.[0] ?? null);
+          e.currentTarget.value = '';
+        }}
+      />
+      <input
+        ref={detailInputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={(e) => {
+          void handleFileSelected('detail', e.target.files?.[0] ?? null);
+          e.currentTarget.value = '';
+        }}
+      />
+
       {confirmModal === 'leave' ? (
         <LeaveConfirmModal onContinue={() => setConfirmModal('none')} onLeave={() => router.push('/admin/project')} />
       ) : null}
@@ -446,7 +614,8 @@ export default function AdminProjectCreatePage() {
           isPublic={isPublic}
           onTogglePublic={setIsPublic}
           onCancel={() => setConfirmModal('none')}
-          onConfirm={handleConfirmRegister}
+          onConfirm={() => void handleConfirmRegister()}
+          submitting={submitting}
         />
       ) : null}
     </div>
