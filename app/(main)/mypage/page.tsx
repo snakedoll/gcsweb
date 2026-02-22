@@ -200,6 +200,12 @@ export default function MypagePage() {
                 className="hidden profile-image-input"
                 id="profile-image-input-camera"
               />
+              <input
+                type="file"
+                accept="*/*"
+                className="hidden profile-image-input"
+                id="profile-image-input-file"
+              />
 
               <button
                 type="button"
@@ -256,7 +262,7 @@ export default function MypagePage() {
                         className="w-full py-4 text-center text-orange-5 font-medium bg-white"
                         onClick={() => {
                           setShowImagePicker(false);
-                          document.getElementById('profile-image-input-library')?.click();
+                          document.getElementById('profile-image-input-file')?.click();
                         }}
                       >파일 선택</button>
                     </div>

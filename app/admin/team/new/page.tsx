@@ -21,6 +21,8 @@ export default function AdminTeamCreatePage() {
   const { data: session } = useSession();
   const meId = session?.user?.id as string | undefined;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filePickerRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const memberInputRef = useRef<HTMLInputElement>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -451,8 +453,8 @@ export default function AdminTeamCreatePage() {
             </Button>
           </div>
         </form>
-
-        {/* 이미지 선택 모달 */}
+                    fileInputRef.current?.click();
+                    setShowImageModal(false);
         {showImageModal && (
           <div className="fixed inset-0 flex items-end justify-center z-50">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowImageModal(false)} />
@@ -473,10 +475,10 @@ export default function AdminTeamCreatePage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    alert("카메라 기능은 준비 중입니다.");
-                    setShowImageModal(false);
-                  }}
+                      onClick={() => {
+                        cameraInputRef.current?.click();
+                        setShowImageModal(false);
+                      }}
                   className="w-full py-4 text-center text-orange-5 font-medium bg-white"
                 >
                   사진 찍기
@@ -486,7 +488,7 @@ export default function AdminTeamCreatePage() {
                 <button
                   type="button"
                   onClick={() => {
-                    fileInputRef.current?.click();
+                    filePickerRef.current?.click();
                     setShowImageModal(false);
                   }}
                   className="w-full py-4 text-center text-orange-5 font-medium bg-white"
@@ -507,6 +509,23 @@ export default function AdminTeamCreatePage() {
             </div>
           </div>
         )}
+
+        <input
+          ref={filePickerRef}
+          type="file"
+          accept="*/*"
+          onChange={handleAccountImageChange}
+          className="hidden"
+        />
+
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleAccountImageChange}
+          className="hidden"
+        />
 
         {/* 팀원 추가 모달 */}
         {showMemberModal && (
