@@ -29,7 +29,9 @@ export default function LoginSupportLinks({ variant = 'default', className }: Lo
   }
 
   return (
-    <div className={`typo-body-xsmall flex items-center justify-center gap-[10px] p-[2px] text-neutral-7 ${className ?? ''}`.trim()}>
+    <div
+      className={`typo-body-xsmall flex items-center justify-center gap-[10px] p-[2px] text-neutral-7 ${className ?? ''}`.trim()}
+    >
       <Link href="/forgot-id" className="hover:underline">
         아이디 찾기
       </Link>

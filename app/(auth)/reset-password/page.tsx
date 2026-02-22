@@ -88,93 +88,93 @@ function ResetPasswordForm() {
       </div>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
-        <Subtitle title="새 비밀번호 설정" className="mb-6 w-full" onBack={() => router.push('/forgot-password')} />
+        <Subtitle title="새 비밀번호 설정" className="mb-10 w-full" onBack={() => router.push('/forgot-password')} />
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          {error ? <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div> : null}
+        <form onSubmit={onSubmit} className="flex min-h-[470px] flex-col">
+          <div className="space-y-4">
+            {error ? <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div> : null}
 
-          <div>
-            <label
-              htmlFor="new-password"
-              className={cn('typo-body-xsmall-bold', passwordInvalid ? 'text-danger' : 'text-neutral-10')}
-            >
-              새 비밀번호
-            </label>
-            <div
-              className={cn(
-                'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                passwordInvalid ? 'border-danger' : passwordValid ? 'border-neutral-6' : 'border-neutral-5'
-              )}
-            >
-              <input
-                id="new-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="새 비밀번호를 입력해주세요."
-                autoComplete="new-password"
-                className="flex-1 bg-transparent pr-10 typo-body-small text-neutral-10 outline-none placeholder:text-neutral-7"
-              />
-              {passwordInvalid ? (
-                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
-              ) : null}
-              {passwordValid ? (
-                <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
-              ) : null}
+            <div>
+              <label
+                htmlFor="new-password"
+                className={cn('typo-body-xsmall', passwordInvalid ? 'text-danger' : 'text-neutral-10')}
+              >
+                새 비밀번호
+              </label>
+              <div
+                className={cn(
+                  'mt-2 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
+                  passwordInvalid ? 'border-danger' : 'border-neutral-5'
+                )}
+              >
+                <input
+                  id="new-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="새 비밀번호를 입력해주세요."
+                  autoComplete="new-password"
+                  className="flex-1 bg-transparent pr-10 typo-body-small text-neutral-10 outline-none placeholder:text-neutral-7"
+                />
+                {passwordInvalid ? (
+                  <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
+                ) : null}
+                {passwordValid ? (
+                  <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
+                ) : null}
+              </div>
+              {passwordInvalid ? <p className="mt-2 typo-body-xsmall text-danger">{PASSWORD_HINT}</p> : null}
             </div>
-            {password.length > 0 ? (
-              <p className={cn('mt-1 typo-body-xsmall', passwordInvalid ? 'text-danger' : 'text-neutral-7')}>
-                {PASSWORD_HINT}
-              </p>
-            ) : null}
-          </div>
 
-          <div>
-            <label
-              htmlFor="confirm-password"
-              className={cn('typo-body-xsmall-bold', confirmInvalid ? 'text-danger' : 'text-neutral-10')}
-            >
-              비밀번호 확인
-            </label>
-            <div
-              className={cn(
-                'mt-1 flex h-12 items-center rounded-lg border bg-neutral-1 px-3',
-                confirmInvalid ? 'border-danger' : confirmValid ? 'border-neutral-6' : 'border-neutral-5'
-              )}
-            >
-              <input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="새 비밀번호를 입력해주세요."
-                autoComplete="new-password"
-                className="flex-1 bg-transparent pr-10 typo-body-small text-neutral-10 outline-none placeholder:text-neutral-7"
-              />
+            <div>
+              <label
+                htmlFor="confirm-password"
+                className={cn('typo-body-xsmall', confirmInvalid ? 'text-danger' : 'text-neutral-10')}
+              >
+                비밀번호 확인
+              </label>
+              <div
+                className={cn(
+                  'mt-2 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
+                  confirmInvalid ? 'border-danger' : 'border-neutral-5'
+                )}
+              >
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="새 비밀번호를 입력해주세요."
+                  autoComplete="new-password"
+                  className="flex-1 bg-transparent pr-10 typo-body-small text-neutral-10 outline-none placeholder:text-neutral-7"
+                />
+                {confirmInvalid ? (
+                  <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
+                ) : null}
+                {confirmValid ? (
+                  <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
+                ) : null}
+              </div>
               {confirmInvalid ? (
-                <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} className="shrink-0" />
-              ) : null}
-              {confirmValid ? (
-                <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} className="shrink-0" />
+                <p className="mt-2 typo-body-xsmall text-danger">
+                  {confirmMismatch ? '비밀번호가 일치하지 않습니다.' : PASSWORD_HINT}
+                </p>
               ) : null}
             </div>
-            {confirmInvalid ? (
-              <p className="mt-1 typo-body-xsmall text-danger">
-                {confirmMismatch ? '비밀번호가 일치하지 않습니다.' : PASSWORD_HINT}
-              </p>
-            ) : null}
           </div>
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={cn(
-              'mt-6 h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2',
-              canSubmit ? 'bg-orange-5' : 'bg-orange-3'
-            )}
-          >
-            {loading ? '변경 중...' : '비밀번호 변경'}
-          </button>
+          <div className="mt-auto pt-6">
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={cn(
+                'h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2 transition-colors',
+                canSubmit ? 'bg-orange-5' : 'bg-orange-3'
+              )}
+            >
+              {loading ? '변경 중...' : '비밀번호 변경'}
+            </button>
+          </div>
         </form>
 
         <div className="mt-4 flex flex-col items-center gap-2 typo-body-xsmall">

@@ -11,19 +11,11 @@ type ErrorPayload = {
 };
 
 function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json<ErrorPayload>(
-    { status: 'error', code, message },
-    { status }
-  );
+  return NextResponse.json<ErrorPayload>({ status: 'error', code, message }, { status });
 }
 
 function isStrongPassword(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length >= 8 &&
-    /[A-Za-z]/.test(value) &&
-    /\d/.test(value)
-  );
+  return typeof value === 'string' && value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
 }
 
 export async function POST(request: Request) {
@@ -73,7 +65,7 @@ export async function POST(request: Request) {
       await prisma.verificationToken.deleteMany({
         where: { identifier: resetRecord.identifier, token },
       });
-      return jsonError(400, 'USER_NOT_FOUND', '해당 이메일로 가입된 계정이 없습니다.');
+      return jsonError(400, 'USER_NOT_FOUND', '해당 이메일로 가입한 계정이 없습니다.');
     }
 
     const hashedPassword = await hash(password, 12);
@@ -86,10 +78,7 @@ export async function POST(request: Request) {
       where: { identifier: resetRecord.identifier, token },
     });
 
-    return NextResponse.json(
-      { status: 'success', data: { message: '비밀번호가 변경되었습니다.' } },
-      { status: 200 }
-    );
+    return NextResponse.json({ status: 'success', data: { message: '비밀번호가 변경되었습니다.' } }, { status: 200 });
   } catch (error) {
     console.error('reset password error:', error);
     return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
