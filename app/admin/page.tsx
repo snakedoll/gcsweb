@@ -1,23 +1,122 @@
+'use client';
+
+import { Footer, NavBar } from '@/components/layout';
+import Image from 'next/image';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+const ALERT_COUNT = 5;
+const INQUIRY_COUNT = 5;
+
+/** 마이페이지 StatusCard와 동일한 크기: h-20 w-[109px] */
+function AdminCard({
+  href,
+  iconSrc,
+  label,
+  count,
+}: {
+  href: string;
+  iconSrc: string;
+  label: string;
+  count?: number;
+}) {
+  const content = (
+    <div className="flex h-20 w-[109px] flex-col items-center justify-center gap-2 rounded-lg border border-neutral-5 bg-neutral-1">
+      <Image src={iconSrc} alt="" width={24} height={24} />
+      <p className="typo-body-xsmall text-neutral-9">
+        {label}
+        {count !== undefined && <span className="text-orange-5"> {count}</span>}
+      </p>
+    </div>
+  );
+  if (href === '#') {
+    return <div className="shrink-0">{content}</div>;
+  }
+  return (
+    <Link href={href} className="shrink-0">
+      {content}
+    </Link>
+  );
+}
+
+/** 마이페이지 MenuSection과 동일 스타일 */
+function AdminMenuSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: { label: string; href: string }[];
+}) {
+  return (
+    <section className="rounded-lg bg-neutral-1 px-4 py-3">
+      <h2 className="typo-body-small-bold text-neutral-12">{title}</h2>
+      <div className="my-1 h-px bg-neutral-4" />
+      <ul className="space-y-3 py-1">
+        {items.map((item) => (
+          <li key={item.label}>
+            <Link
+              href={item.href}
+              className={cn(
+                'flex items-center justify-between typo-body-xsmall text-neutral-8',
+                item.href === '#' && 'pointer-events-none'
+              )}
+            >
+              <span>{item.label}</span>
+              <Image src="/assets/icons/icon-right.svg" alt="" width={20} height={20} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function AdminPage() {
   return (
-    <div className="min-h-screen p-4">
-      <h1 className="typo-heading-small text-neutral-10 mb-6">관리자 페이지</h1>
-      <div className="flex flex-col gap-3">
-        <Link
-          href="/admin/members"
-          className="rounded-lg bg-orange-5 px-4 py-3 text-left typo-body-small-bold text-neutral-2"
-        >
-          회원 관리
-        </Link>
-        <Link
-          href="/admin/team"
-          className="rounded-lg bg-orange-5 px-4 py-3 text-left typo-body-small-bold text-neutral-2"
-        >
-          팀 관리
-        </Link>
-      </div>
+    <div className="flex min-h-screen w-full flex-col">
+      <NavBar />
+      <main className="mx-auto w-full max-w-[375px] flex-1 px-4 py-6">
+        <div className="mb-5 flex justify-center gap-[7px]">
+          <AdminCard href="#" iconSrc="/assets/icons/icon-bell.svg" label="알림" count={ALERT_COUNT} />
+          <AdminCard href="#" iconSrc="/assets/icons/icon-message-square.svg" label="문의" count={INQUIRY_COUNT} />
+          <AdminCard href="#" iconSrc="/assets/icons/icon-folder.svg" label="로그" />
+        </div>
+
+        <div className="space-y-3">
+          <AdminMenuSection
+            title="판매 관리"
+            items={[
+              { label: '상품글 관리', href: '#' },
+              { label: '주문 관리', href: '#' },
+              { label: '재고 관리 | Buy now', href: '#' },
+              { label: '정산 관리', href: '#' },
+              { label: '상품 리뷰 관리', href: '#' },
+            ]}
+          />
+          <AdminMenuSection
+            title="사용자 관리"
+            items={[
+              { label: '사용자 관리', href: '/admin/members' },
+              { label: '팀 관리', href: '/admin/team' },
+            ]}
+          />
+          <AdminMenuSection
+            title="데이터"
+            items={[
+              { label: '사용자 통계', href: '#' },
+              { label: '매출 현황', href: '#' },
+            ]}
+          />
+          <AdminMenuSection
+            title="설정"
+            items={[
+              { label: '약관 관리', href: '#' },
+              { label: '삭제된 항목', href: '#' },
+            ]}
+          />
+        </div>
+      </main>
+      <Footer showAdminButton />
     </div>
   );
 }
