@@ -95,12 +95,12 @@ export default function DeleteAccountModal({ isOpen, onClose, onConfirm }: Delet
             type="button"
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className={cn(
-              'flex-1 rounded-lg py-3 typo-body-small-bold',
-              canConfirm
-                ? 'bg-danger text-neutral-1'
-                : 'bg-neutral-4 text-neutral-7 cursor-not-allowed'
-            )}
+            className={cn('flex-1 rounded-lg py-3 typo-body-small-bold')}
+            style={
+              !canConfirm
+                ? { backgroundColor: '#C7C5C4', color: '#FDFDFD' }
+                : { backgroundColor: '#CE1E1B', color: '#FDFDFD' }
+            }
           >
             계정 삭제
           </button>
