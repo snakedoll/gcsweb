@@ -56,6 +56,8 @@ export default function AdminProjectPage() {
       ? '프로젝트가 비공개 등록되었습니다.'
       : toastKey === 'project-created-public'
         ? '프로젝트가 공개 등록되었습니다.'
+        : toastKey === 'project-updated'
+          ? '프로젝트가 수정되었습니다.'
         : null;
 
   return (

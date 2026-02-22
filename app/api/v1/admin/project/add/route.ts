@@ -8,7 +8,7 @@ type ProjectAddBody = {
   teamId?: string;
   yearId?: string;
   categoryId?: string;
-  year?: string | number;
+  year?: string;
   category?: string;
   thumbnailUrl?: string;
   detailUrl?: string;
@@ -34,9 +34,13 @@ function isValidUrlString(value: unknown): value is string {
 }
 
 function parseYearValue(value: unknown) {
-  if (typeof value === 'number' && Number.isInteger(value)) return value;
   if (!isNonEmptyString(value)) return null;
-  const parsed = Number(value.trim());
+  const normalized = value.trim();
+
+  // 정책: year는 신규 태그 생성 시 사용하는 4자리 문자열
+  if (!/^\d{4}$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
   if (!Number.isInteger(parsed)) return null;
   return parsed;
 }
@@ -79,6 +83,13 @@ export async function POST(request: Request) {
     const safeCategoryName = isNonEmptyString(category) ? category.trim() : '';
     const parsedYear = parseYearValue(year);
 
+    if (!safeYearId && isNonEmptyString(year) && parsedYear == null) {
+      return errorResponse(400, 'INVALID_YEAR', 'year는 4자리 숫자 문자열이어야 합니다. 예: 2025');
+    }
+
+    // 정책:
+    // - yearId / year 중 최소 1개 필수
+    // - categoryId / category 중 최소 1개 필수
     if (!safeYearId && parsedYear == null) {
       return errorResponse(400, 'YEAR_NOT_FOUND', '유효한 yearId 또는 year 값이 필요합니다.');
     }
