@@ -1,20 +1,21 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { NavBar } from '@/components/layout';
-import { LogoSubtext, Subtitle } from '@/components/ui';
-import { cn } from '@/lib/utils';
+import { Button, LogoSubtext, Subtitle, TextField } from '@/components/ui';
 import { formatPhoneWithHyphen } from '@/lib/format-phone';
+import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
 
 const PASSWORD_HINT = '8자 이상 영문, 숫자 조합';
+const EMAIL_DUPLICATE_MESSAGE = '사용 중인 이메일입니다.';
+
+type FocusField = 'name' | 'phone' | 'email' | 'verificationCode' | 'password' | 'confirmPassword' | null;
 
 function isPasswordValid(password: string): boolean {
-  return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+  return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /^[A-Za-z\d]+$/.test(password);
 }
 
 function normalizePhoneDigits(phone: string): string {
@@ -24,7 +25,7 @@ function normalizePhoneDigits(phone: string): string {
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [error, setError] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<FocusField>(null);
   const [emailDuplicateError, setEmailDuplicateError] = useState<string | null>(null);
   const [emailCheckLoading, setEmailCheckLoading] = useState(false);
 
@@ -52,49 +53,95 @@ export default function RegisterPage() {
     },
   });
 
-  const passwordValue = watch('password') ?? '';
-  const confirmPasswordValue = watch('confirmPassword') ?? '';
-  const emailValue = watch('email') ?? '';
+  const resetVerificationState = () => {
+    setVerificationSent(false);
+    setVerificationSuccess(false);
+    setVerificationError(null);
+    setVerificationCode('');
+    setValue('verificationCode', '', { shouldValidate: true });
+  };
+
+  const nameField = register('name');
+  const phoneField = register('phone', {
+    onChange: (e) => {
+      const formatted = formatPhoneWithHyphen(e.target.value);
+      if (formatted !== e.target.value) setValue('phone', formatted);
+    },
+  });
+  const emailField = register('email', {
+    onChange: () => {
+      setEmailDuplicateError(null);
+      resetVerificationState();
+    },
+  });
+  const passwordField = register('password');
+  const confirmPasswordField = register('confirmPassword');
+
   const nameValue = watch('name') ?? '';
   const phoneValue = watch('phone') ?? '';
+  const emailValue = watch('email') ?? '';
+  const passwordValue = watch('password') ?? '';
+  const confirmPasswordValue = watch('confirmPassword') ?? '';
 
   const emailTrimmed = emailValue.trim();
   const phoneDigits = normalizePhoneDigits(phoneValue);
   const emailFormatValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
 
-  const passwordValid = passwordValue.length > 0 && isPasswordValid(passwordValue);
-  const passwordInvalid = passwordValue.length > 0 && !isPasswordValid(passwordValue);
+  const nameHasValue = nameValue.trim().length > 0;
+  const nameLengthValid = nameValue.length >= 2 && nameValue.length <= 50;
+  const nameLengthInvalid = nameHasValue && !nameLengthValid;
 
-  const confirmMismatch = confirmPasswordValue.length > 0 && confirmPasswordValue !== passwordValue;
-  const confirmInvalid =
-    confirmPasswordValue.length > 0 &&
-    (confirmPasswordValue !== passwordValue || !isPasswordValid(passwordValue));
-  const confirmValid =
-    confirmPasswordValue.length > 0 &&
-    confirmPasswordValue === passwordValue &&
-    isPasswordValid(passwordValue);
+  const phoneHasValue = phoneValue.trim().length > 0;
+  const phoneFormatAllowed = /^[0-9+\-()\s]+$/.test(phoneValue);
+  const phoneValid = phoneDigits.length >= 9 && phoneDigits.length <= 20 && phoneFormatAllowed;
+
+  const passwordHasValue = passwordValue.length > 0;
+  const passwordValid = passwordHasValue && isPasswordValid(passwordValue);
+  const passwordInvalid = passwordHasValue && !isPasswordValid(passwordValue);
+
+  const confirmHasValue = confirmPasswordValue.length > 0;
+  const confirmMismatch = confirmHasValue && confirmPasswordValue !== passwordValue;
+  const confirmValid = confirmHasValue && confirmPasswordValue === passwordValue && isPasswordValid(passwordValue);
+  const confirmInvalid = confirmHasValue && !confirmValid;
 
   const emailHasError = Boolean(emailDuplicateError);
   const verifyCodeHasError = Boolean(verificationError);
+  const verifyCodeHasValue = verificationCode.length > 0;
+  const verifyCodeValueValid = /^\d{6}$/.test(verificationCode);
 
-  const canSendEmail = emailFormatValid && !emailCheckLoading && !emailHasError;
+  const nameCaption = nameLengthInvalid ? '이름은 2자 이상 50자 이하여야 합니다.' : undefined;
+  const emailCaption = emailDuplicateError ?? (verificationSent ? '인증번호를 전송했습니다.' : undefined);
+  const emailCaptionClassName = emailDuplicateError ? 'text-danger' : verificationSent ? 'text-orange-5' : undefined;
+  const verificationCaption = verificationError ?? (verificationSuccess ? '인증에 성공했습니다.' : undefined);
+  const verificationCaptionClassName = verificationError
+    ? 'text-danger'
+    : verificationSuccess
+      ? 'text-orange-5'
+      : undefined;
+  const confirmPasswordCaption = confirmInvalid
+    ? confirmMismatch
+      ? '비밀번호가 일치하지 않습니다.'
+      : PASSWORD_HINT
+    : undefined;
+
+  const canSendEmail =
+    emailFormatValid &&
+    !emailCheckLoading &&
+    !emailHasError &&
+    !(verificationSent && verificationCode.trim().length === 0 && !verificationSuccess);
   const canVerifyCode = verificationCode.length === 6 && !verifyLoading && !verifyCodeHasError;
   const canRegister =
     !isSubmitting &&
     verificationSuccess &&
-    nameValue.trim().length >= 2 &&
-    phoneDigits.length >= 9 &&
-    phoneDigits.length <= 20 &&
+    nameHasValue &&
+    nameLengthValid &&
+    phoneValid &&
     emailFormatValid &&
     passwordValid &&
     confirmValid;
 
   const handleEmailCheck = async () => {
-    const email = emailTrimmed;
-    if (!email || !emailFormatValid) {
-      setEmailDuplicateError('올바른 이메일 형식이 아닙니다.');
-      return;
-    }
+    if (!emailTrimmed || !emailFormatValid) return;
 
     setEmailDuplicateError(null);
     setVerificationError(null);
@@ -104,19 +151,19 @@ export default function RegisterPage() {
       const checkRes = await fetch('/api/v1/auth/email/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: emailTrimmed }),
       });
 
-      const checkData = await checkRes.json().catch(() => null);
+      await checkRes.json().catch(() => null);
       if (checkRes.status === 409) {
-        setEmailDuplicateError(checkData?.message ?? '사용 중인 이메일입니다.');
+        setEmailDuplicateError(EMAIL_DUPLICATE_MESSAGE);
         return;
       }
 
       const sendRes = await fetch('/api/v1/auth/email/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, type: 'register' }),
+        body: JSON.stringify({ email: emailTrimmed, type: 'register' }),
       });
 
       if (!sendRes.ok) {
@@ -127,6 +174,7 @@ export default function RegisterPage() {
 
       setVerificationSent(true);
       setVerificationSuccess(false);
+      setVerificationError(null);
       setVerificationCode('');
       setValue('verificationCode', '', { shouldValidate: true });
     } catch {
@@ -137,9 +185,8 @@ export default function RegisterPage() {
   };
 
   const handleVerifyCode = async () => {
-    const email = emailTrimmed;
     const code = verificationCode.trim();
-    if (!email || !code) return;
+    if (!emailTrimmed || !code) return;
 
     setVerificationError(null);
     setVerifyLoading(true);
@@ -148,7 +195,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/v1/auth/email/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, type: 'register', code }),
+        body: JSON.stringify({ email: emailTrimmed, type: 'register', code }),
       });
 
       const data = await res.json().catch(() => null);
@@ -159,8 +206,8 @@ export default function RegisterPage() {
       }
 
       setVerificationSuccess(true);
-      setValue('verificationCode', code, { shouldValidate: true });
       setVerificationError(null);
+      setValue('verificationCode', code, { shouldValidate: true });
     } catch {
       setVerificationSuccess(false);
       setVerificationError('인증번호 확인에 실패했습니다.');
@@ -170,7 +217,6 @@ export default function RegisterPage() {
   };
 
   const onSubmit = async (data: RegisterInput) => {
-    setError(null);
     setEmailDuplicateError(null);
 
     if (!verificationSuccess) {
@@ -192,19 +238,19 @@ export default function RegisterPage() {
       const result = await res.json().catch(() => null);
       if (!res.ok) {
         if (result?.code === 'EMAIL_EXISTS') {
-          setEmailDuplicateError(result?.message ?? '사용 중인 이메일입니다.');
+          setEmailDuplicateError(EMAIL_DUPLICATE_MESSAGE);
         } else if (result?.code === 'INVALID_CODE' || result?.code === 'CODE_EXPIRED') {
           setVerificationError(result?.message ?? '인증번호가 올바르지 않습니다.');
           setVerificationSuccess(false);
         } else {
-          setError(result?.message || result?.error || '회원가입에 실패했습니다.');
+          console.error('Register failed', result);
         }
         return;
       }
 
       router.push('/login?registered=true');
-    } catch {
-      setError('서버 오류가 발생했습니다.');
+    } catch (e) {
+      console.error('Register request failed', e);
     }
   };
 
@@ -216,7 +262,7 @@ export default function RegisterPage() {
         <LogoSubtext />
       </div>
 
-      <div className="rounded-t-[12px] bg-white px-4 pb-[38px] pt-[38px]">
+      <div className="rounded-t-[12px] bg-neutral-1 px-4 pb-[38px] pt-[38px]">
         <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-[833px] flex-col">
           <input type="hidden" {...register('verificationCode')} />
 
@@ -224,250 +270,222 @@ export default function RegisterPage() {
             <div className="space-y-[25px]">
               <Subtitle title="회원가입" className="w-full" />
 
-              {error ? <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div> : null}
-
               <div className="space-y-[30px]">
-                <div className="space-y-[6px]">
-                  <p className="typo-body-small-bold text-neutral-8">회원정보</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="name" className="typo-body-small-bold text-neutral-10">
-                        이름
-                      </label>
-                      <input
-                        id="name"
-                        type="text"
-                        {...register('name')}
-                        className="mt-1 h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-2 px-3 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5"
-                        placeholder="홍길동"
-                      />
-                      {errors.name ? <p className="mt-1 typo-body-xsmall text-danger">{errors.name.message}</p> : null}
-                    </div>
+                <div className="space-y-4">
+                  <TextField
+                    id="name"
+                    label="이름"
+                    placeholder="홍길동"
+                    state={
+                      nameLengthInvalid
+                        ? 'error'
+                        : focusedField === 'name'
+                          ? 'focus'
+                          : nameHasValue && nameLengthValid
+                            ? 'filled'
+                            : 'default'
+                    }
+                    inputProps={{
+                      ...nameField,
+                      onFocus: () => setFocusedField('name'),
+                      onBlur: (e) => {
+                        setFocusedField(null);
+                        nameField.onBlur(e);
+                      },
+                    }}
+                    caption={nameCaption}
+                    captionClassName="text-danger"
+                  />
 
-                    <div>
-                      <label htmlFor="phone" className="typo-body-small-bold text-neutral-10">
-                        전화번호
-                      </label>
-                      <input
-                        id="phone"
-                        type="tel"
-                        inputMode="numeric"
-                        autoComplete="tel"
-                        placeholder="010-1234-5678"
-                        className="mt-1 h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-2 px-3 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5"
-                        {...register('phone', {
-                          onChange: (e) => {
-                            const formatted = formatPhoneWithHyphen(e.target.value);
-                            if (formatted !== e.target.value) setValue('phone', formatted);
-                          },
-                        })}
-                      />
-                      {errors.phone ? <p className="mt-1 typo-body-xsmall text-danger">{errors.phone.message}</p> : null}
-                    </div>
-                  </div>
+                  <TextField
+                    id="phone"
+                    label="전화번호"
+                    placeholder="010-1234-5678"
+                    state={
+                      focusedField === 'phone'
+                        ? 'focus'
+                        : phoneHasValue && phoneValid
+                          ? 'filled'
+                          : 'default'
+                    }
+                    inputProps={{
+                      ...phoneField,
+                      type: 'tel',
+                      inputMode: 'numeric',
+                      autoComplete: 'tel',
+                      onFocus: () => setFocusedField('phone'),
+                      onBlur: (e) => {
+                        setFocusedField(null);
+                        phoneField.onBlur(e);
+                      },
+                    }}
+                  />
                 </div>
 
                 <div className="h-px w-full bg-neutral-4" />
 
-                <div className="space-y-[6px]">
-                  <p className="typo-body-small-bold text-neutral-8">ID/PW</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className={cn('typo-body-small-bold', emailHasError ? 'text-danger' : 'text-neutral-10')}
-                      >
-                        아이디 (이메일)
-                      </label>
-                      <div className="relative mt-1 flex items-start gap-[10px]">
-                        <input
-                          id="email"
-                          type="email"
-                          {...register('email', {
-                            onChange: () => {
-                              setEmailDuplicateError(null);
-                              setVerificationSent(false);
-                              setVerificationSuccess(false);
-                              setVerificationError(null);
-                              setVerificationCode('');
-                              setValue('verificationCode', '', { shouldValidate: true });
-                            },
-                          })}
-                          className={cn(
-                            'h-[45px] flex-1 rounded-lg border bg-neutral-2 px-3 pr-10 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5',
-                            emailHasError ? 'border-danger' : 'border-neutral-6'
-                          )}
-                          placeholder="example@gmail.com"
-                        />
-                        {emailHasError ? (
-                          <div className="pointer-events-none absolute right-[92px] top-[12px]">
-                            <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                          </div>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={handleEmailCheck}
-                          disabled={!canSendEmail}
-                          className={cn(
-                            'mt-[28px] h-10 w-[70px] shrink-0 rounded-lg typo-body-small-bold text-neutral-2',
-                            canSendEmail ? 'bg-neutral-10' : 'bg-neutral-6'
-                          )}
-                        >
-                          {emailCheckLoading ? '전송 중' : '전송'}
-                        </button>
-                      </div>
-                      {verificationSent ? <p className="mt-1 typo-body-xsmall text-orange-5">인증번호를 전송했습니다.</p> : null}
-                      {emailDuplicateError ? <p className="mt-1 typo-body-xsmall text-danger">{emailDuplicateError}</p> : null}
-                      {errors.email && !emailDuplicateError && !verificationSent ? (
-                        <p className="mt-1 typo-body-xsmall text-danger">{errors.email.message}</p>
-                      ) : null}
+                <div className="space-y-4">
+                  <div className={emailCaption ? 'flex items-center gap-[10px]' : 'flex items-end gap-[10px]'}>
+                    <div className="min-w-0 flex-1">
+                      <TextField
+                        id="email"
+                        type="email"
+                        label="아이디 (이메일)"
+                        placeholder="example@gmail.com"
+                        state={
+                          emailHasError
+                            ? 'error'
+                            : focusedField === 'email'
+                              ? 'focus'
+                              : emailTrimmed && emailFormatValid
+                                ? 'filled'
+                                : 'default'
+                        }
+                        inputProps={{
+                          ...emailField,
+                          onFocus: () => setFocusedField('email'),
+                          onBlur: (e) => {
+                            setFocusedField(null);
+                            emailField.onBlur(e);
+                          },
+                        }}
+                        caption={emailCaption}
+                        captionClassName={emailCaptionClassName}
+                      />
                     </div>
 
-                    {verificationSent ? (
-                      <div>
-                        <label
-                          htmlFor="verificationCode"
-                          className={cn('typo-body-small-bold', verificationError ? 'text-danger' : 'text-neutral-10')}
-                        >
-                          인증번호
-                        </label>
-                        <div className="mt-1 flex items-start gap-[10px]">
-                          <div
-                            className={cn(
-                              'flex h-[45px] flex-1 items-center rounded-lg border bg-neutral-2 px-3',
+                    <Button
+                      type="button"
+                      size="s"
+                      color="black"
+                      status={canSendEmail ? 'default' : 'disabled'}
+                      onClick={handleEmailCheck}
+                      disabled={!canSendEmail}
+                      className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0"
+                    >
+                      {emailCheckLoading ? '전송 중' : '전송'}
+                    </Button>
+                  </div>
+
+                  {verificationSent ? (
+                      <div
+                        className={
+                          verificationCaption ? 'flex items-center gap-[10px]' : 'flex items-end gap-[10px]'
+                        }
+                      >
+                        <div className="min-w-0 flex-1">
+                          <TextField
+                            id="verificationCode"
+                            label="인증번호"
+                            placeholder="인증번호를 입력해주세요."
+                            state={
                               verificationError
-                                ? 'border-danger'
-                                : verificationSuccess
-                                  ? 'border-neutral-6'
-                                  : 'border-neutral-5'
-                            )}
-                          >
-                            <input
-                              id="verificationCode"
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={6}
-                              value={verificationCode}
-                              onChange={(e) => {
+                                ? 'error'
+                                : focusedField === 'verificationCode'
+                                  ? 'focus'
+                                  : verifyCodeHasValue && verifyCodeValueValid
+                                    ? 'filled'
+                                    : 'default'
+                            }
+                            inputProps={{
+                              type: 'text',
+                              inputMode: 'numeric',
+                              maxLength: 6,
+                              value: verificationCode,
+                              onFocus: () => setFocusedField('verificationCode'),
+                              onBlur: () => setFocusedField(null),
+                              onChange: (e) => {
                                 const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
                                 setVerificationCode(nextCode);
-                                setValue('verificationCode', nextCode, { shouldValidate: true });
                                 setVerificationError(null);
                                 setVerificationSuccess(false);
-                              }}
-                              className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
-                              placeholder="인증번호를 입력해주세요."
-                            />
-                            {verificationError ? (
-                              <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                            ) : null}
-                            {verificationSuccess && !verificationError ? (
-                              <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
-                            ) : null}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleVerifyCode}
-                            disabled={!canVerifyCode}
-                            className={cn(
-                              'mt-[28px] h-10 w-[70px] shrink-0 rounded-lg typo-body-small-bold text-neutral-2',
-                              canVerifyCode ? 'bg-neutral-10' : 'bg-neutral-6'
-                            )}
-                          >
-                            {verifyLoading ? '확인 중' : '확인'}
-                          </button>
+                                setValue('verificationCode', nextCode, { shouldValidate: true });
+                              },
+                            }}
+                            caption={verificationCaption}
+                            captionClassName={verificationCaptionClassName}
+                          />
                         </div>
-                        {verificationError ? <p className="mt-1 typo-body-xsmall text-danger">{verificationError}</p> : null}
-                        {verificationSuccess ? (
-                          <p className="mt-1 typo-body-xsmall text-orange-5">인증에 성공했습니다.</p>
-                        ) : null}
-                      </div>
-                    ) : null}
 
-                    <div>
-                      <label
-                        htmlFor="password"
-                        className={cn('typo-body-small-bold', passwordInvalid ? 'text-danger' : 'text-neutral-10')}
-                      >
-                        비밀번호
-                      </label>
-                      <div
-                        className={cn(
-                          'mt-1 flex h-[45px] items-center rounded-lg border bg-neutral-2 px-3',
-                          passwordInvalid ? 'border-danger' : passwordValid ? 'border-neutral-6' : 'border-neutral-5'
-                        )}
-                      >
-                        <input
-                          id="password"
-                          type="password"
-                          {...register('password')}
-                          className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
-                          placeholder="비밀번호를 입력해주세요."
-                        />
-                        {passwordInvalid ? (
-                          <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                        ) : null}
-                        {passwordValid && !passwordInvalid ? (
-                          <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
-                        ) : null}
+                        <Button
+                          type="button"
+                          size="s"
+                          color="black"
+                          status={canVerifyCode ? 'default' : 'disabled'}
+                          onClick={handleVerifyCode}
+                          disabled={!canVerifyCode}
+                          className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0"
+                        >
+                          {verifyLoading ? '확인 중' : '확인'}
+                        </Button>
                       </div>
-                      {passwordInvalid ? <p className="mt-1 typo-body-xsmall text-danger">{PASSWORD_HINT}</p> : null}
-                      {errors.password && !passwordInvalid ? (
-                        <p className="mt-1 typo-body-xsmall text-danger">{errors.password.message}</p>
-                      ) : null}
-                    </div>
+                  ) : null}
 
-                    <div>
-                      <label
-                        htmlFor="confirmPassword"
-                        className={cn('typo-body-small-bold', confirmInvalid ? 'text-danger' : 'text-neutral-10')}
-                      >
-                        비밀번호 확인
-                      </label>
-                      <div
-                        className={cn(
-                          'mt-1 flex h-[45px] items-center rounded-lg border bg-neutral-2 px-3',
-                          confirmInvalid ? 'border-danger' : confirmValid ? 'border-neutral-6' : 'border-neutral-5'
-                        )}
-                      >
-                        <input
-                          id="confirmPassword"
-                          type="password"
-                          {...register('confirmPassword')}
-                          className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
-                          placeholder="비밀번호를 다시 입력해주세요."
-                        />
-                        {confirmInvalid ? (
-                          <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                        ) : null}
-                        {confirmValid && !confirmInvalid ? (
-                          <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
-                        ) : null}
-                      </div>
-                      {confirmInvalid ? (
-                        <p className="mt-1 typo-body-xsmall text-danger">
-                          {confirmMismatch ? '비밀번호가 일치하지 않습니다.' : PASSWORD_HINT}
-                        </p>
-                      ) : null}
-                      {errors.confirmPassword && !confirmInvalid ? (
-                        <p className="mt-1 typo-body-xsmall text-danger">{errors.confirmPassword.message}</p>
-                      ) : null}
-                    </div>
-                  </div>
+                  <TextField
+                    id="password"
+                    type="password"
+                    label="비밀번호"
+                    placeholder="비밀번호를 입력해주세요."
+                    state={
+                      passwordInvalid
+                        ? 'error'
+                        : focusedField === 'password'
+                          ? 'focus'
+                          : passwordValid
+                            ? 'filled'
+                            : 'default'
+                    }
+                    inputProps={{
+                      ...passwordField,
+                      onFocus: () => setFocusedField('password'),
+                      onBlur: (e) => {
+                        setFocusedField(null);
+                        passwordField.onBlur(e);
+                      },
+                    }}
+                    caption={passwordInvalid ? PASSWORD_HINT : undefined}
+                    captionClassName={passwordInvalid ? 'text-danger' : undefined}
+                  />
+
+                  <TextField
+                    id="confirmPassword"
+                    type="password"
+                    label="비밀번호 확인"
+                    placeholder="비밀번호를 다시 입력해주세요."
+                    state={
+                      confirmInvalid
+                        ? 'error'
+                        : focusedField === 'confirmPassword'
+                          ? 'focus'
+                          : confirmValid
+                            ? 'filled'
+                            : 'default'
+                    }
+                    inputProps={{
+                      ...confirmPasswordField,
+                      onFocus: () => setFocusedField('confirmPassword'),
+                      onBlur: (e) => {
+                        setFocusedField(null);
+                        confirmPasswordField.onBlur(e);
+                      },
+                    }}
+                    caption={confirmPasswordCaption}
+                    captionClassName={confirmInvalid ? 'text-danger' : undefined}
+                  />
                 </div>
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
+              size="l"
+              color="orange"
+              status={canRegister ? 'default' : 'disabled'}
               disabled={!canRegister}
-              className={cn(
-                'h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2',
-                canRegister ? 'bg-orange-5' : 'bg-orange-3'
-              )}
+              className="h-[55px] py-0"
             >
               {isSubmitting ? '가입 중...' : '회원가입'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
