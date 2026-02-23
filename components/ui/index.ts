@@ -19,6 +19,7 @@ export { default as Filter } from './project/Filter';
 export { default as FilterArea } from './project/FilterArea';
 export { default as Like } from './project/Like';
 export { default as Listedcard } from './project/Listedcard';
+export { default as ArchiveProjectCard } from './archive/ArchiveProjectCard';
 
 export { default as LogoSubtext } from './auth/LogoSubtext';
 export { default as LoginSupportLinks } from './auth/LoginSupportLinks';
