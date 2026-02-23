@@ -8,6 +8,9 @@ interface ListedcardProps {
   className?: string;
   property1?: ListedcardVariant;
   onContentClick?: () => void;
+  onHomeExposeChange?: (checked: boolean) => void;
+  onPublicChange?: (checked: boolean) => void;
+  actionDisabled?: boolean;
   imageSrc?: string;
   brand?: string;
   title?: string;
@@ -19,6 +22,7 @@ interface ListedcardProps {
   views?: number;
   postedAt?: string;
   publicExpose?: boolean;
+  publicChecked?: boolean;
   publicStatusText?: string;
   projectTags?: string[];
 }
@@ -35,6 +39,9 @@ export default function Listedcard({
   className,
   property1 = 'project_post',
   onContentClick,
+  onHomeExposeChange,
+  onPublicChange,
+  actionDisabled = false,
   imageSrc = '/assets/images/profile_image.png',
   brand = '팀명',
   title = '프로젝트 제목',
@@ -42,6 +49,7 @@ export default function Listedcard({
   views = 393,
   postedAt = '2025.01.04 15:13',
   publicExpose = true,
+  publicChecked = true,
   publicStatusText = '공개',
   projectTags = ['2025', '겨울 공모전'],
 }: ListedcardProps) {
@@ -54,10 +62,10 @@ export default function Listedcard({
       <div className="flex flex-col gap-[10px]">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <CheckboxButton checked={publicExpose} label="홈에 노출" />
+            <CheckboxButton checked={publicExpose} label="홈에 노출" onChange={onHomeExposeChange} disabled={actionDisabled} />
             <div className="inline-flex items-center gap-[9px]">
               <span className="text-[11px] leading-[1.5] text-neutral-7">{publicStatusText}</span>
-              <ToggleSwitch checked={publicExpose} />
+              <ToggleSwitch checked={publicChecked} onChange={onPublicChange} disabled={actionDisabled} />
             </div>
           </div>
           <div className="h-px w-full border-t border-dashed border-neutral-5" />

@@ -167,12 +167,20 @@ function TagInputPanel({
   value,
   onChange,
   onAdd,
+  items = [],
+  onSelectItem,
 }: {
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
   onAdd: () => void;
+  items?: Option[];
+  onSelectItem?: (item: Option) => void;
 }) {
+  const filteredItems = items.filter((item) =>
+    value.trim() ? item.label.toLowerCase().includes(value.trim().toLowerCase()) : true
+  );
+
   return (
     <div className="absolute left-0 right-0 top-[calc(100%+1px)] z-20 overflow-hidden rounded-b-lg border border-neutral-5 border-t-0 bg-neutral-2">
       <div className="flex h-10 items-center justify-between bg-neutral-5 px-3">
@@ -193,6 +201,20 @@ function TagInputPanel({
           <PlusSmallIcon />
         </button>
       </div>
+      {filteredItems.length > 0 ? (
+        <div className="max-h-[120px] overflow-y-auto border-t border-neutral-4 bg-neutral-2 py-1">
+          {filteredItems.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => onSelectItem?.(item)}
+              className="flex h-9 w-full items-center px-3 text-left typo-body-xsmall text-neutral-10"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="h-2 bg-neutral-2" />
     </div>
   );
@@ -340,6 +362,8 @@ export default function AdminProjectCreatePage() {
   const [confirmModal, setConfirmModal] = useState<ConfirmModal>('none');
 
   const [teamOptions, setTeamOptions] = useState<Option[]>([]);
+  const [yearOptions, setYearOptions] = useState<Option[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<Option[]>([]);
   const [metaLoading, setMetaLoading] = useState(true);
 
   const [title, setTitle] = useState('');
@@ -367,6 +391,8 @@ export default function AdminProjectCreatePage() {
         if (cancelled) return;
 
         setTeamOptions((json.data?.teams ?? []).map((item: any) => ({ label: String(item.label), value: String(item.id) })));
+        setYearOptions((json.data?.years ?? []).map((item: any) => ({ label: String(item.label), value: String(item.id) })));
+        setCategoryOptions((json.data?.categories ?? []).map((item: any) => ({ label: String(item.label), value: String(item.id) })));
       } catch (error: any) {
         if (!cancelled) {
           console.error(error);
@@ -538,6 +564,12 @@ export default function AdminProjectCreatePage() {
                       value={yearInput}
                       onChange={setYearInput}
                       onAdd={handleCreateYearTag}
+                      items={yearOptions}
+                      onSelectItem={(item) => {
+                        setYearTag(item.label);
+                        setYearInput('');
+                        setOpenMenu('none');
+                      }}
                     />
                   ) : null}
                 </div>
@@ -557,6 +589,12 @@ export default function AdminProjectCreatePage() {
                       value={categoryInput}
                       onChange={setCategoryInput}
                       onAdd={handleCreateCategoryTag}
+                      items={categoryOptions}
+                      onSelectItem={(item) => {
+                        setCategoryTag(item.label);
+                        setCategoryInput('');
+                        setOpenMenu('none');
+                      }}
                     />
                   ) : null}
                 </div>
