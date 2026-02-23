@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 import { NavBar } from '@/components/layout';
 import DeleteAccountModal from '@/components/admin/DeleteAccountModal';
 import ToastMessage from '@/components/ui/ToastMessage';
@@ -35,6 +36,7 @@ function formatJoinDate(iso: string): string {
 export default function AdminMemberDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const id = params?.id as string;
 
   const [member, setMember] = useState<MemberDetail | null>(null);
@@ -70,6 +72,7 @@ export default function AdminMemberDetailPage() {
   async function updateMemberType(newType: number) {
     if (!member) return;
     const prevType = member.memberType;
+    const isSelfRoleChange = session?.user?.id === member.id && prevType !== newType;
     try {
       // optimistic UI
       setMember({ ...member, memberType: newType });
@@ -85,6 +88,10 @@ export default function AdminMemberDetailPage() {
       const updatedUser = json?.data?.user;
       if (updatedUser && typeof updatedUser.memberType === 'number') {
         setMember((m) => (m ? { ...m, memberType: updatedUser.memberType } : m));
+      }
+
+      if (isSelfRoleChange) {
+        await signOut({ callbackUrl: '/login' });
       }
     } catch (err) {
       // revert on error
