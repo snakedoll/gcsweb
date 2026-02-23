@@ -124,6 +124,21 @@ export default function RegisterPage() {
       : PASSWORD_HINT
     : undefined;
 
+  const registerPasswordFieldState = passwordInvalid
+    ? 'error'
+    : passwordValid
+      ? 'success'
+      : focusedField === 'password'
+        ? 'focus'
+        : 'default';
+  const registerConfirmPasswordFieldState = confirmInvalid
+    ? 'error'
+    : confirmValid
+      ? 'success'
+      : focusedField === 'confirmPassword'
+        ? 'focus'
+        : 'default';
+
   const canSendEmail =
     emailFormatValid &&
     !emailCheckLoading &&
@@ -426,15 +441,7 @@ export default function RegisterPage() {
                     type="password"
                     label="비밀번호"
                     placeholder="비밀번호를 입력해주세요."
-                    state={
-                      passwordInvalid
-                        ? 'error'
-                        : focusedField === 'password'
-                          ? 'focus'
-                          : passwordValid
-                            ? 'filled'
-                            : 'default'
-                    }
+                    state={registerPasswordFieldState}
                     inputProps={{
                       ...passwordField,
                       onFocus: () => setFocusedField('password'),
@@ -452,15 +459,7 @@ export default function RegisterPage() {
                     type="password"
                     label="비밀번호 확인"
                     placeholder="비밀번호를 다시 입력해주세요."
-                    state={
-                      confirmInvalid
-                        ? 'error'
-                        : focusedField === 'confirmPassword'
-                          ? 'focus'
-                          : confirmValid
-                            ? 'filled'
-                            : 'default'
-                    }
+                    state={registerConfirmPasswordFieldState}
                     inputProps={{
                       ...confirmPasswordField,
                       onFocus: () => setFocusedField('confirmPassword'),

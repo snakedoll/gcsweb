@@ -36,6 +36,14 @@ function ResetPasswordForm() {
   const canSubmit = Boolean(token) && passwordValid && confirmValid && !loading;
 
   const confirmPasswordCaption = confirmMismatch ? '비밀번호가 일치하지 않습니다.' : undefined;
+  const passwordFieldState = passwordInvalid ? 'error' : passwordValid ? 'success' : focusedField === 'password' ? 'focus' : 'default';
+  const confirmPasswordFieldState = confirmInvalid
+    ? 'error'
+    : confirmValid
+      ? 'success'
+      : focusedField === 'confirmPassword'
+        ? 'focus'
+        : 'default';
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +110,7 @@ function ResetPasswordForm() {
                 type="password"
                 label="새 비밀번호"
                 placeholder="새 비밀번호를 입력해주세요."
-                state={
-                  passwordInvalid ? 'error' : focusedField === 'password' ? 'focus' : passwordValid ? 'success' : 'default'
-                }
+                state={passwordFieldState}
                 inputProps={{
                   value: password,
                   autoComplete: 'new-password',
@@ -121,15 +127,7 @@ function ResetPasswordForm() {
                 type="password"
                 label="비밀번호 확인"
                 placeholder="새 비밀번호를 입력해주세요."
-                state={
-                  confirmInvalid
-                    ? 'error'
-                    : focusedField === 'confirmPassword'
-                      ? 'focus'
-                      : confirmValid
-                        ? 'success'
-                        : 'default'
-                }
+                state={confirmPasswordFieldState}
                 inputProps={{
                   value: confirmPassword,
                   autoComplete: 'new-password',
