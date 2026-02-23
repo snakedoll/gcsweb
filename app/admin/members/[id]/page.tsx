@@ -69,23 +69,26 @@ export default function AdminMemberDetailPage() {
 
   async function updateMemberType(newType: number) {
     if (!member) return;
+    const prevType = member.memberType;
     try {
       // optimistic UI
       setMember({ ...member, memberType: newType });
-      const res = await fetch(`/api/v1/admin/members/${member.id}`, {
+      const res = await fetch(`/api/v1/admin/members/${member.id}/update`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberType: newType }),
+        body: JSON.stringify({ id: member.id, memberType: newType }),
       });
       if (!res.ok) {
         throw new Error('Failed to update');
       }
-      // if server returns updated member, update state
-      const updated = await res.json().catch(() => null);
-      if (updated) setMember((m) => (m ? { ...m, ...updated } : m));
+      const json = await res.json().catch(() => null);
+      const updatedUser = json?.data?.user;
+      if (updatedUser && typeof updatedUser.memberType === 'number') {
+        setMember((m) => (m ? { ...m, memberType: updatedUser.memberType } : m));
+      }
     } catch (err) {
       // revert on error
-      setMember((m) => (m ? { ...m, memberType: m.memberType } : m));
+      setMember((m) => (m ? { ...m, memberType: prevType } : m));
       console.error(err);
     }
   }
