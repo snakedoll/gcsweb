@@ -8,7 +8,7 @@ interface UserProfile {
   nickname?: string;
   role: string;
   profileImage?: string;
-  hasSellingPermission?: boolean;
+  isSeller?: boolean;
   createdAt: string;
 }
 

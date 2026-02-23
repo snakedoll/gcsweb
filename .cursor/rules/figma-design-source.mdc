@@ -1,0 +1,32 @@
+---
+description: GCS 웹 페이지 디자인 소스(Figma) 참조
+globs: app/**/*.tsx, components/**/*.tsx
+alwaysApply: false
+---
+
+# GCS 웹 디자인 소스 (Figma)
+
+페이지 구현·UI 작업 시 **디자인 기준**은 아래 Figma 파일입니다.
+
+- **fileKey**: `5p46ZXd9Jf7k3d99Rkrj2Z`
+- **Figma 파일**: [GCS Web - 4](https://www.figma.com/design/5p46ZXd9Jf7k3d99Rkrj2Z/GCS-Web--4)
+
+## 디자인 시스템 (우선 참조)
+
+색상, 타이포, 토큰, 컴포넌트 규칙은 **디자인 시스템** 노드를 기준으로 한다.
+
+- **링크**: [디자인 시스템 (node 0-1)](https://www.figma.com/design/5p46ZXd9Jf7k3d99Rkrj2Z/GCS-Web--4?node-id=0-1&p=f&m=dev)
+- **node-id**: `0:1` (API 호출 시)
+
+스타일·컴포넌트 구현 시 이 노드에서 변수/토큰 정의를 가져와 프로젝트(CSS 변수, Tailwind 등)에 맞춘다.
+
+## 페이지 디자인
+
+- **기본 node-id**: `3357:26648` (URL: `3357-26648` → API: `3357:26648`)
+- 새 페이지/화면은 해당 화면 노드를 찾아 레이아웃·구성에 맞춘다.
+
+## 작업 시 참고
+
+- **디자인 시스템** → 색, 폰트, 간격, 컴포넌트 스펙; **페이지** → 화면별 레이아웃·플로우.
+- Figma MCP: `get_design_context` / `get_variable_defs` 등으로 위 nodeId 사용.
+- 디자인과 코드 불일치 시 Figma(디자인 시스템 → 페이지 순)을 우선 참고해 수정한다.

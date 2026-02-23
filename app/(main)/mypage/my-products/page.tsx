@@ -168,7 +168,7 @@ export default function MyProductsPage() {
     );
   }
 
-  const hasPermission = profile?.hasSellingPermission === true;
+  const hasPermission = profile?.isSeller === true;
   const hasProducts = hasPermission && DUMMY_PRODUCTS.length > 0;
 
   return (

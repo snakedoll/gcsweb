@@ -39,8 +39,23 @@ export const newProductStep2PickupSchema = z.object({
   pickupLocation: z.string().min(1, '수령 장소를 입력해주세요.'),
 });
 
+/** Buy Now: 가격(필수), 옵션(선택) */
+const buyNowOptionValueSchema = z.object({
+  value: z.string(),
+  extraPrice: z.coerce.number().min(0, '0 이상 입력'),
+});
+const buyNowOptionSchema = z.object({
+  optionName: z.string(),
+  values: z.array(buyNowOptionValueSchema).default([]),
+});
+export const newProductStep2BuyNowSchema = z.object({
+  price: z.coerce.number().min(0, '가격을 입력해주세요.'),
+  options: z.array(buyNowOptionSchema).optional().default([]),
+});
+
 export type NewProductStep2DeliveryInput = z.infer<typeof newProductStep2DeliverySchema>;
 export type NewProductStep2PickupInput = z.infer<typeof newProductStep2PickupSchema>;
-export type NewProductStep2Input = NewProductStep2DeliveryInput | NewProductStep2PickupInput;
+export type NewProductStep2BuyNowInput = z.infer<typeof newProductStep2BuyNowSchema>;
+export type NewProductStep2Input = NewProductStep2DeliveryInput | NewProductStep2PickupInput | NewProductStep2BuyNowInput;
 
 export { PRODUCT_NAME_MAX_LENGTH };

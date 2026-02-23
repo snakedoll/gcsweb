@@ -4,6 +4,7 @@ import { NavBar } from '@/components/layout';
 import { useUser } from '@/hooks/useUser';
 import {
   newProductStep1Schema,
+  newProductStep2BuyNowSchema,
   newProductStep2DeliverySchema,
   newProductStep2PickupSchema,
   PRODUCT_NAME_MAX_LENGTH,
@@ -22,6 +23,7 @@ import RadioButton from '@/components/ui/button/RadioButton';
 import { useQuery } from '@tanstack/react-query';
 import type {
   NewProductStep1Input,
+  NewProductStep2BuyNowInput,
   NewProductStep2DeliveryInput,
   NewProductStep2PickupInput,
 } from '@/lib/validations/product';
@@ -297,6 +299,22 @@ export default function NewProductPage() {
     },
   });
 
+  type BuyNowOptionValue = { id: string; value: string; extraPrice: number };
+  type BuyNowOption = { id: string; optionName: string; values: BuyNowOptionValue[] };
+  const [buyNowOptions, setBuyNowOptions] = useState<BuyNowOption[]>([]);
+
+  const step2BuyNowForm = useForm<NewProductStep2BuyNowInput>({
+    resolver: zodResolver(newProductStep2BuyNowSchema),
+    defaultValues: { price: 0, options: [] },
+  });
+  const {
+    register: registerStep2BuyNow,
+    handleSubmit: handleSubmitStep2BuyNow,
+    setValue: setValueStep2BuyNow,
+    watch: watchStep2BuyNow,
+    formState: { errors: errorsStep2BuyNow },
+  } = step2BuyNowForm;
+
   const {
     register: registerStep2Delivery,
     handleSubmit: handleSubmitStep2Delivery,
@@ -352,11 +370,90 @@ export default function NewProductPage() {
     setCurrentStep(3);
   };
 
-  const onSubmitStep3BuyNow = () => {
+  const [fundStep3Options, setFundStep3Options] = useState<BuyNowOption[]>([]);
+  const step3FundForm = useForm<NewProductStep2BuyNowInput>({
+    resolver: zodResolver(newProductStep2BuyNowSchema),
+    defaultValues: { price: 0, options: [] },
+  });
+  const {
+    register: registerStep3Fund,
+    handleSubmit: handleSubmitStep3Fund,
+    formState: { errors: errorsStep3Fund },
+  } = step3FundForm;
+
+  const onSubmitStep3Fund = (data: NewProductStep2BuyNowInput) => {
+    const payload = { ...data, options: fundStep3Options };
+    // TODO: API 연동 (step1Data + step2 delivery/pickup + step3 price/options)
+    router.push('/mypage/my-products');
+  };
+
+  const nextIdFund = () => `f3-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const addFundStep3Option = () => {
+    setFundStep3Options((prev) => [...prev, { id: nextIdFund(), optionName: '', values: [{ id: nextIdFund(), value: '', extraPrice: 0 }] }]);
+  };
+  const removeFundStep3Option = (optionId: string) => {
+    setFundStep3Options((prev) => prev.filter((o) => o.id !== optionId));
+  };
+  const addFundStep3OptionValue = (optionId: string) => {
+    setFundStep3Options((prev) =>
+      prev.map((o) => (o.id === optionId ? { ...o, values: [...o.values, { id: nextIdFund(), value: '', extraPrice: 0 }] } : o))
+    );
+  };
+  const removeFundStep3OptionValue = (optionId: string, valueId: string) => {
+    setFundStep3Options((prev) =>
+      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+    );
+  };
+  const updateFundStep3OptionName = (optionId: string, optionName: string) => {
+    setFundStep3Options((prev) => prev.map((o) => (o.id === optionId ? { ...o, optionName } : o)));
+  };
+  const updateFundStep3OptionValue = (optionId: string, valueId: string, field: 'value' | 'extraPrice', val: string | number) => {
+    setFundStep3Options((prev) =>
+      prev.map((o) =>
+        o.id === optionId
+          ? { ...o, values: o.values.map((v) => (v.id === valueId ? { ...v, [field]: field === 'extraPrice' ? Number(val) || 0 : val } : v)) }
+          : o
+      )
+    );
+  };
+
+  const onSubmitStep2BuyNow = (data: NewProductStep2BuyNowInput) => {
+    const payload = { ...data, options: buyNowOptions };
+    // TODO: API 연동
     router.push('/mypage/my-products');
   };
 
   const onBackToStep1 = () => setCurrentStep(1);
+
+  const nextId = () => `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const addBuyNowOption = () => {
+    setBuyNowOptions((prev) => [...prev, { id: nextId(), optionName: '', values: [{ id: nextId(), value: '', extraPrice: 0 }] }]);
+  };
+  const removeBuyNowOption = (optionId: string) => {
+    setBuyNowOptions((prev) => prev.filter((o) => o.id !== optionId));
+  };
+  const addBuyNowOptionValue = (optionId: string) => {
+    setBuyNowOptions((prev) =>
+      prev.map((o) => (o.id === optionId ? { ...o, values: [...o.values, { id: nextId(), value: '', extraPrice: 0 }] } : o))
+    );
+  };
+  const removeBuyNowOptionValue = (optionId: string, valueId: string) => {
+    setBuyNowOptions((prev) =>
+      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+    );
+  };
+  const updateBuyNowOptionName = (optionId: string, optionName: string) => {
+    setBuyNowOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, optionName } : o)));
+  };
+  const updateBuyNowOptionValue = (optionId: string, valueId: string, field: 'value' | 'extraPrice', val: string | number) => {
+    setBuyNowOptions((prev) =>
+      prev.map((o) =>
+        o.id === optionId
+          ? { ...o, values: o.values.map((v) => (v.id === valueId ? { ...v, [field]: field === 'extraPrice' ? Number(val) || 0 : val } : v)) }
+          : o
+      )
+    );
+  };
 
   if (userLoading || !isAuthenticated) {
     return (
@@ -366,7 +463,7 @@ export default function NewProductPage() {
     );
   }
 
-  if (profile?.hasSellingPermission !== true) {
+  if (profile?.isSeller !== true) {
     router.replace('/mypage/my-products');
     return null;
   }
@@ -767,8 +864,116 @@ export default function NewProductPage() {
         )}
 
         {currentStep === 2 && isBuyNow && (
-          <div className="min-w-0 space-y-5">
-            <p className="typo-body-small text-neutral-10">등록 내용을 확인해주세요.</p>
+          <form onSubmit={handleSubmitStep2BuyNow(onSubmitStep2BuyNow)} className="min-w-0 space-y-5">
+            {/* 가격 */}
+            <section>
+              <label className="typo-body-small-bold text-neutral-10">
+                가격 <span className="text-red-5">*</span>
+              </label>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...registerStep2BuyNow('price')}
+                  className={cn(
+                    'h-10 w-[163px] rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6',
+                    errorsStep2BuyNow.price ? 'border-red-5' : 'border-neutral-5'
+                  )}
+                />
+                <span className="typo-body-xsmall text-neutral-7">원</span>
+              </div>
+              {errorsStep2BuyNow.price && (
+                <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2BuyNow.price.message}</p>
+              )}
+            </section>
+
+            {/* 옵션 */}
+            <section>
+              <label className="typo-body-small-bold text-neutral-10">옵션</label>
+              <p className="mt-1 typo-body-xsmall text-neutral-8">옵션 추가는 선택 사항입니다.</p>
+              {buyNowOptions.map((opt, idx) => (
+                <div
+                  key={opt.id}
+                  className="mt-3 rounded-lg border border-neutral-5 bg-neutral-1 p-3"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="typo-body-small-bold text-neutral-12">옵션 {idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeBuyNowOption(opt.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
+                      aria-label="옵션 삭제"
+                    >
+                      <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={20} height={20} />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
+                      <input
+                        type="text"
+                        placeholder="예) 프린팅"
+                        value={opt.optionName}
+                        onChange={(e) => updateBuyNowOptionName(opt.id, e.target.value)}
+                        className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between typo-body-xsmall text-neutral-9 mb-1">
+                        <span>옵션값</span>
+                        <span>추가 금액</span>
+                      </div>
+                      {opt.values.map((v) => (
+                        <div key={v.id} className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            placeholder="예) BLACK"
+                            value={v.value}
+                            onChange={(e) => updateBuyNowOptionValue(opt.id, v.id, 'value', e.target.value)}
+                            className="h-10 flex-1 min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
+                          />
+                          <div className="flex items-center gap-1 w-[100px]">
+                            <input
+                              type="number"
+                              min={0}
+                              value={v.extraPrice || ''}
+                              onChange={(e) => updateBuyNowOptionValue(opt.id, v.id, 'extraPrice', e.target.value)}
+                              className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-2 py-2 typo-body-xsmall text-neutral-12 text-right"
+                            />
+                            <span className="typo-body-xsmall text-neutral-7 shrink-0">원</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeBuyNowOptionValue(opt.id, v.id)}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
+                            aria-label="옵션값 삭제"
+                          >
+                            <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addBuyNowOptionValue(opt.id)}
+                        className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-5 bg-neutral-3 text-neutral-8 hover:bg-neutral-4"
+                        aria-label="옵션값 추가"
+                      >
+                        <Image src="/assets/icons/light/plus.svg" alt="" width={16} height={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addBuyNowOption}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
+              >
+                옵션 추가
+              </button>
+            </section>
+
             <div className="flex gap-2 pt-4">
               <button
                 type="button"
@@ -778,37 +983,41 @@ export default function NewProductPage() {
                 이전
               </button>
               <button
-                type="button"
-                onClick={onSubmitStep3BuyNow}
+                type="submit"
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
               >
-                등록요청
+                등록 요청
               </button>
             </div>
-          </div>
+            <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
+              등록 요청 시, 관리자의 승인을 거친 뒤 상품글이 업로드 됩니다.
+            </p>
+          </form>
         )}
 
         {currentStep === 2 && isFundDelivery && (
           <form onSubmit={handleSubmitStep2Delivery(onSubmitStep2Delivery)} className="min-w-0 space-y-5">
             <section>
-              <label className="typo-body-small-bold text-neutral-12">
-                목표 금액 <span className="text-orange-5">*</span>
+              <label className="typo-body-small-bold text-neutral-10">
+                목표 금액 <span className="text-red-5">*</span>
               </label>
-              <p className="mt-1 typo-body-xsmall text-neutral-7">
+              <p className="mt-1 typo-body-xsmall text-neutral-8">
                 목표 금액이 없다면 0원으로 입력해주세요.
               </p>
-              <div className="mt-1 flex items-center gap-2">
+              <div
+                className={cn(
+                  'mt-1 flex h-10 w-[163px] items-center rounded-lg border bg-neutral-1 px-3 py-2',
+                  errorsStep2Delivery.goalAmount ? 'border-red-5' : 'border-neutral-5 focus-within:border-orange-5'
+                )}
+              >
                 <input
                   type="number"
                   {...registerStep2Delivery('goalAmount')}
                   placeholder="0"
                   min={0}
-                  className={cn(
-                    'h-12 flex-1 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
-                    errorsStep2Delivery.goalAmount ? 'border-red-5' : 'border-neutral-5'
-                  )}
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
                 />
-                <span className="shrink-0 typo-body-small text-neutral-10">원</span>
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep2Delivery.goalAmount && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Delivery.goalAmount.message}</p>
@@ -979,24 +1188,26 @@ export default function NewProductPage() {
         {currentStep === 2 && isFundPickup && (
           <form onSubmit={handleSubmitStep2Pickup(onSubmitStep2Pickup)} className="min-w-0 space-y-5">
             <section>
-              <label className="typo-body-small-bold text-neutral-12">
-                목표 금액 <span className="text-orange-5">*</span>
+              <label className="typo-body-small-bold text-neutral-10">
+                목표 금액 <span className="text-red-5">*</span>
               </label>
-              <p className="mt-1 typo-body-xsmall text-neutral-7">
+              <p className="mt-1 typo-body-xsmall text-neutral-8">
                 목표 금액이 없다면 0원으로 입력해주세요.
               </p>
-              <div className="mt-1 flex items-center gap-2">
+              <div
+                className={cn(
+                  'mt-1 flex h-10 w-[163px] items-center rounded-lg border bg-neutral-1 px-3 py-2',
+                  errorsStep2Pickup.goalAmount ? 'border-red-5' : 'border-neutral-5 focus-within:border-orange-5'
+                )}
+              >
                 <input
                   type="number"
                   {...registerStep2Pickup('goalAmount')}
                   placeholder="0"
                   min={0}
-                  className={cn(
-                    'h-12 flex-1 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
-                    errorsStep2Pickup.goalAmount ? 'border-red-5' : 'border-neutral-5'
-                  )}
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
                 />
-                <span className="shrink-0 typo-body-small text-neutral-10">원</span>
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep2Pickup.goalAmount && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Pickup.goalAmount.message}</p>
@@ -1004,11 +1215,12 @@ export default function NewProductPage() {
             </section>
 
             <section>
-              <label className="typo-body-small-bold text-neutral-12">
-                수령 기간 <span className="text-orange-5">*</span>
+              <label className="typo-body-small-bold text-neutral-10">
+                예상 수령 기간 <span className="text-red-5">*</span>
               </label>
-              <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
-                <div className="min-w-0 flex-1">
+              <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-start gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="typo-body-xsmall text-neutral-8">기간 시작일</p>
                   <Controller
                     name="pickupStartDate"
                     control={controlStep2Pickup}
@@ -1030,7 +1242,7 @@ export default function NewProductPage() {
                         popperPlacement="bottom-start"
                         popperModifiers={[shift({ padding: 8 })]}
                         className={cn(
-                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          'h-10 w-full min-w-0 rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12',
                           errorsStep2Pickup.pickupStartDate ? 'border-red-5' : 'border-neutral-5'
                         )}
                         calendarClassName="gcs-datepicker-calendar"
@@ -1038,8 +1250,9 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
-                <div className="min-w-0 flex-1">
+                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">부터</span>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="typo-body-xsmall text-neutral-8">기간 종료일</p>
                   <Controller
                     name="pickupEndDate"
                     control={controlStep2Pickup}
@@ -1055,7 +1268,7 @@ export default function NewProductPage() {
                         popperPlacement="bottom-start"
                         popperModifiers={[shift({ padding: 8 })]}
                         className={cn(
-                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          'h-10 w-full min-w-0 rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12',
                           errorsStep2Pickup.pickupEndDate ? 'border-red-5' : 'border-neutral-5'
                         )}
                         calendarClassName="gcs-datepicker-calendar"
@@ -1063,7 +1276,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
+                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">까지</span>
               </div>
               {(errorsStep2Pickup.pickupStartDate || errorsStep2Pickup.pickupEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1073,14 +1286,17 @@ export default function NewProductPage() {
             </section>
 
             <section>
-              <label className="typo-body-small-bold text-neutral-12">
-                수령 장소 <span className="text-orange-5">*</span>
+              <label className="typo-body-small-bold text-neutral-10">
+                수령 장소 <span className="text-red-5">*</span>
               </label>
+              <p className="mt-1 typo-body-xsmall text-neutral-8">
+                미정인 경우, &quot;미정&quot;으로 입력해 주세요.
+              </p>
               <input
                 {...registerStep2Pickup('pickupLocation')}
                 placeholder="수령 장소를 입력해주세요"
                 className={cn(
-                  'mt-1 h-12 w-full rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
+                  'mt-1 h-10 w-full rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6',
                   errorsStep2Pickup.pickupLocation ? 'border-red-5' : 'border-neutral-5'
                 )}
               />
@@ -1093,7 +1309,7 @@ export default function NewProductPage() {
               <button
                 type="button"
                 onClick={onBackToStep1}
-                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+                className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
                 이전
               </button>
@@ -1104,32 +1320,139 @@ export default function NewProductPage() {
                 다음
               </button>
             </div>
-            <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
+            <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
               다음으로 넘어가도 현재의 내용은 저장됩니다.
             </p>
           </form>
         )}
 
         {currentStep === 3 && productType === 0 && (
-          <div className="space-y-5 pt-4">
-            <p className="typo-body-small text-neutral-10">3단계 (준비 중)</p>
-            <div className="flex gap-2">
+          <form onSubmit={handleSubmitStep3Fund(onSubmitStep3Fund)} className="min-w-0 space-y-5">
+            <section>
+              <label className="typo-body-small-bold text-neutral-10">
+                가격 <span className="text-red-5">*</span>
+              </label>
+              <div
+                className={cn(
+                  'mt-1 flex h-10 w-[163px] items-center rounded-lg border bg-neutral-1 px-3 py-2',
+                  errorsStep3Fund.price ? 'border-red-5' : 'border-neutral-5 focus-within:border-orange-5'
+                )}
+              >
+                <input
+                  type="number"
+                  {...registerStep3Fund('price')}
+                  placeholder="0"
+                  min={0}
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
+                />
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
+              </div>
+              {errorsStep3Fund.price && (
+                <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep3Fund.price.message}</p>
+              )}
+            </section>
+
+            <section>
+              <label className="typo-body-small-bold text-neutral-10">옵션</label>
+              <p className="mt-1 typo-body-xsmall text-neutral-8">옵션 추가는 선택 사항입니다.</p>
+              {fundStep3Options.map((opt, idx) => (
+                <div key={opt.id} className="mt-3 rounded-lg border border-neutral-5 bg-neutral-1 p-3">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="typo-body-small-bold text-neutral-12">옵션 {idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFundStep3Option(opt.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
+                      aria-label="옵션 삭제"
+                    >
+                      <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={20} height={20} />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
+                      <input
+                        type="text"
+                        placeholder="예) 프린팅"
+                        value={opt.optionName}
+                        onChange={(e) => updateFundStep3OptionName(opt.id, e.target.value)}
+                        className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
+                      />
+                    </div>
+                    <div>
+                      <div className="mb-1 flex justify-between typo-body-xsmall text-neutral-9">
+                        <span>옵션값</span>
+                        <span>추가 금액</span>
+                      </div>
+                      {opt.values.map((v) => (
+                        <div key={v.id} className="mt-1 flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="예) BLACK"
+                            value={v.value}
+                            onChange={(e) => updateFundStep3OptionValue(opt.id, v.id, 'value', e.target.value)}
+                            className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
+                          />
+                          <div className="flex w-[100px] items-center gap-1">
+                            <input
+                              type="number"
+                              min={0}
+                              value={v.extraPrice || ''}
+                              onChange={(e) => updateFundStep3OptionValue(opt.id, v.id, 'extraPrice', e.target.value)}
+                              className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-2 py-2 text-right typo-body-xsmall text-neutral-12"
+                            />
+                            <span className="shrink-0 typo-body-xsmall text-neutral-7">원</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFundStep3OptionValue(opt.id, v.id)}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
+                            aria-label="옵션값 삭제"
+                          >
+                            <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addFundStep3OptionValue(opt.id)}
+                        className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-5 bg-neutral-3 text-neutral-8 hover:bg-neutral-4"
+                        aria-label="옵션값 추가"
+                      >
+                        <Image src="/assets/icons/light/plus.svg" alt="" width={16} height={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addFundStep3Option}
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
+              >
+                옵션 추가
+              </button>
+            </section>
+
+            <div className="flex gap-2 pt-4">
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+                className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
                 이전
               </button>
               <button
-                type="button"
-                onClick={() => router.push('/mypage/my-products')}
+                type="submit"
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
               >
-                완료
+                등록 요청
               </button>
             </div>
-          </div>
+            <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
+              등록 요청 시, 관리자의 승인을 거친 뒤 상품글이 업로드 됩니다.
+            </p>
+          </form>
         )}
       </div>
     </div>

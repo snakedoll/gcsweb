@@ -23,7 +23,6 @@ export async function GET() {
       profileImage: true,
       memberType: true,
       isSeller: true,
-      hasSellingPermission: true,
       createdAt: true,
     },
   });
@@ -43,7 +42,7 @@ export async function GET() {
     phone: user.phone ?? undefined,
     profileImage: user.profileImage ?? undefined,
     role: Number(user.memberType) === 2 ? 'admin' : 'user',
-    hasSellingPermission: user.hasSellingPermission,
+    isSeller: user.isSeller,
     createdAt: user.createdAt.toISOString(),
   });
 }

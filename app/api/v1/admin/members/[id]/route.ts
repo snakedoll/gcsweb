@@ -22,7 +22,6 @@ export async function GET(
       profileImage: true,
       memberType: true,
       isSeller: true,
-      hasSellingPermission: true,
       createdAt: true,
     },
   });
