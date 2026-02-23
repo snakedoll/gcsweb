@@ -162,7 +162,7 @@ export default function NavBar({
         ) : isMypage ? (
           <>
             <Link
-              href={isLoggedIn ? '/mypage' : '/login'}
+              href={resolvedUserHref}
               aria-label={isLoggedIn ? '마이페이지' : '로그인'}
               className="inline-flex h-6 w-6 items-center justify-center"
               onClick={handleHeroIconClick}
@@ -177,7 +177,7 @@ export default function NavBar({
         ) : (
           <>
             <Link
-              href={isLoggedIn ? '/mypage' : '/login'}
+              href={resolvedUserHref}
               aria-label={isLoggedIn ? '마이페이지' : '로그인'}
               className="inline-flex h-6 w-6 items-center justify-center"
               onClick={handleHeroIconClick}
