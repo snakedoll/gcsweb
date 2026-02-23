@@ -3,11 +3,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { NavBar } from '@/components/layout';
 import { CheckboxButton, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import { cn } from '@/lib/utils';
@@ -16,6 +15,8 @@ type LoginUiState = 'default' | 'warning' | 'blocked';
 
 function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === 'success';
   const [loginUiState, setLoginUiState] = useState<LoginUiState>('default');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
@@ -114,6 +115,9 @@ function LoginContent() {
           <div className="space-y-6">
             <div className="space-y-5">
               <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>로그인</h1>
+              {resetSuccess && (
+                <p className="text-center typo-body-xsmall text-orange-5">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.</p>
+              )}
 
               <button
                 type="button"
