@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
 import Image from 'next/image';
 import { useState } from 'react';
 import { NavBar } from '@/components/layout';
+import { LogoSubtext, Subtitle } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { formatPhoneWithHyphen } from '@/lib/format-phone';
 
@@ -54,15 +55,43 @@ export default function RegisterPage() {
   const passwordValue = watch('password') ?? '';
   const confirmPasswordValue = watch('confirmPassword') ?? '';
   const emailValue = watch('email') ?? '';
+  const nameValue = watch('name') ?? '';
+  const phoneValue = watch('phone') ?? '';
 
+  const emailTrimmed = emailValue.trim();
+  const phoneDigits = normalizePhoneDigits(phoneValue);
+  const emailFormatValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed);
+
+  const passwordValid = passwordValue.length > 0 && isPasswordValid(passwordValue);
   const passwordInvalid = passwordValue.length > 0 && !isPasswordValid(passwordValue);
+
+  const confirmMismatch = confirmPasswordValue.length > 0 && confirmPasswordValue !== passwordValue;
   const confirmInvalid =
     confirmPasswordValue.length > 0 &&
     (confirmPasswordValue !== passwordValue || !isPasswordValid(passwordValue));
+  const confirmValid =
+    confirmPasswordValue.length > 0 &&
+    confirmPasswordValue === passwordValue &&
+    isPasswordValid(passwordValue);
+
+  const emailHasError = Boolean(emailDuplicateError);
+  const verifyCodeHasError = Boolean(verificationError);
+
+  const canSendEmail = emailFormatValid && !emailCheckLoading && !emailHasError;
+  const canVerifyCode = verificationCode.length === 6 && !verifyLoading && !verifyCodeHasError;
+  const canRegister =
+    !isSubmitting &&
+    verificationSuccess &&
+    nameValue.trim().length >= 2 &&
+    phoneDigits.length >= 9 &&
+    phoneDigits.length <= 20 &&
+    emailFormatValid &&
+    passwordValid &&
+    confirmValid;
 
   const handleEmailCheck = async () => {
-    const email = emailValue.trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const email = emailTrimmed;
+    if (!email || !emailFormatValid) {
       setEmailDuplicateError('올바른 이메일 형식이 아닙니다.');
       return;
     }
@@ -108,7 +137,7 @@ export default function RegisterPage() {
   };
 
   const handleVerifyCode = async () => {
-    const email = emailValue.trim();
+    const email = emailTrimmed;
     const code = verificationCode.trim();
     if (!email || !code) return;
 
@@ -124,6 +153,7 @@ export default function RegisterPage() {
 
       const data = await res.json().catch(() => null);
       if (!res.ok) {
+        setVerificationSuccess(false);
         setVerificationError(data?.message ?? '인증번호가 올바르지 않습니다.');
         return;
       }
@@ -132,6 +162,7 @@ export default function RegisterPage() {
       setValue('verificationCode', code, { shouldValidate: true });
       setVerificationError(null);
     } catch {
+      setVerificationSuccess(false);
       setVerificationError('인증번호 확인에 실패했습니다.');
     } finally {
       setVerifyLoading(false);
@@ -181,198 +212,263 @@ export default function RegisterPage() {
     <div className="w-full max-w-[375px]">
       <NavBar variant="home" />
 
-      <div className="flex flex-col items-center gap-3 pb-7 pt-7">
-        <Image src="/assets/logos/logo-gcs.svg" alt="GCS 로고" width={103} height={37} priority />
-        <p className={cn('typo-body-xsmall', 'text-orange-5')}>Graphic Communication Science</p>
+      <div className="flex flex-col items-center justify-center pb-7 pt-7">
+        <LogoSubtext />
       </div>
 
-      <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[10px]">
-        <div className="flex items-center border-b border-neutral-4 py-[10px]">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="inline-flex h-6 w-6 items-center justify-center"
-            aria-label="뒤로가기"
-          >
-            <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
-          </button>
-          <h1 className={cn('flex-1 text-center typo-heading-small text-neutral-10')}>회원가입</h1>
-          <div className="h-6 w-6" aria-hidden />
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-[25px] space-y-[30px]">
+      <div className="rounded-t-[12px] bg-white px-4 pb-[38px] pt-[38px]">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-[833px] flex-col">
           <input type="hidden" {...register('verificationCode')} />
 
-          {error && <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div>}
+          <div className="flex flex-1 flex-col justify-between">
+            <div className="space-y-[25px]">
+              <Subtitle title="회원가입" className="w-full" />
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="typo-body-small-bold text-neutral-10">이름</label>
-              <input
-                id="name"
-                type="text"
-                {...register('name')}
-                className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                placeholder="홍길동"
-              />
-              {errors.name && <p className="mt-1 typo-body-xsmall text-danger">{errors.name.message}</p>}
-            </div>
+              {error ? <div className="rounded-lg bg-danger/10 p-3 typo-body-xsmall text-danger">{error}</div> : null}
 
-            <div>
-              <label htmlFor="phone" className="typo-body-small-bold text-neutral-10">전화번호</label>
-              <input
-                id="phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="010-1234-5678"
-                className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                {...register('phone', {
-                  onChange: (e) => {
-                    const formatted = formatPhoneWithHyphen(e.target.value);
-                    if (formatted !== e.target.value) setValue('phone', formatted);
-                  },
-                })}
-              />
-              {errors.phone && <p className="mt-1 typo-body-xsmall text-danger">{errors.phone.message}</p>}
-            </div>
-          </div>
+              <div className="space-y-[30px]">
+                <div className="space-y-[6px]">
+                  <p className="typo-body-small-bold text-neutral-8">회원정보</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="typo-body-small-bold text-neutral-10">
+                        이름
+                      </label>
+                      <input
+                        id="name"
+                        type="text"
+                        {...register('name')}
+                        className="mt-1 h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-2 px-3 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5"
+                        placeholder="홍길동"
+                      />
+                      {errors.name ? <p className="mt-1 typo-body-xsmall text-danger">{errors.name.message}</p> : null}
+                    </div>
 
-          <div className="h-px w-full bg-neutral-4" />
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="typo-body-small-bold text-neutral-10">아이디 (이메일)</label>
-              <div className="mt-1 flex gap-[10px]">
-                <input
-                  id="email"
-                  type="email"
-                  {...register('email', {
-                    onChange: () => {
-                      setEmailDuplicateError(null);
-                      setVerificationSent(false);
-                      setVerificationSuccess(false);
-                      setVerificationError(null);
-                      setVerificationCode('');
-                      setValue('verificationCode', '', { shouldValidate: true });
-                    },
-                  })}
-                  className="h-12 flex-1 rounded-lg border border-neutral-5 bg-neutral-2 px-3 typo-body-small text-neutral-10 outline-none focus:border-orange-5"
-                  placeholder="example@gmail.com"
-                />
-                <button
-                  type="button"
-                  onClick={handleEmailCheck}
-                  disabled={emailCheckLoading}
-                  className="h-12 shrink-0 rounded-lg bg-neutral-10 px-4 typo-body-small-bold text-neutral-2 disabled:opacity-50"
-                >
-                  {emailCheckLoading ? '전송 중' : '전송'}
-                </button>
-              </div>
-              {verificationSent && <p className="mt-1 typo-body-xsmall text-orange-5">인증번호를 전송했습니다.</p>}
-              {emailDuplicateError && <p className="mt-1 typo-body-xsmall text-danger">{emailDuplicateError}</p>}
-              {errors.email && !emailDuplicateError && !verificationSent && (
-                <p className="mt-1 typo-body-xsmall text-danger">{errors.email.message}</p>
-              )}
-            </div>
-
-            {verificationSent && (
-              <div>
-                <label htmlFor="verificationCode" className="typo-body-small-bold text-neutral-10">인증번호</label>
-                <div className="mt-1 flex gap-[10px]">
-                  <div
-                    className={cn(
-                      'flex h-12 flex-1 items-center rounded-lg border bg-neutral-2 px-3',
-                      verificationError ? 'border-danger' : 'border-neutral-5'
-                    )}
-                  >
-                    <input
-                      id="verificationCode"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={verificationCode}
-                      onChange={(e) => {
-                        const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
-                        setVerificationCode(nextCode);
-                        setValue('verificationCode', nextCode, { shouldValidate: true });
-                        setVerificationError(null);
-                      }}
-                      className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                      placeholder="인증번호를 입력해주세요."
-                    />
-                    {verificationError && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
+                    <div>
+                      <label htmlFor="phone" className="typo-body-small-bold text-neutral-10">
+                        전화번호
+                      </label>
+                      <input
+                        id="phone"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        placeholder="010-1234-5678"
+                        className="mt-1 h-[45px] w-full rounded-lg border border-neutral-6 bg-neutral-2 px-3 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5"
+                        {...register('phone', {
+                          onChange: (e) => {
+                            const formatted = formatPhoneWithHyphen(e.target.value);
+                            if (formatted !== e.target.value) setValue('phone', formatted);
+                          },
+                        })}
+                      />
+                      {errors.phone ? <p className="mt-1 typo-body-xsmall text-danger">{errors.phone.message}</p> : null}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleVerifyCode}
-                    disabled={verifyLoading || verificationCode.length === 0}
-                    className="h-12 shrink-0 rounded-lg bg-neutral-10 px-4 typo-body-small-bold text-neutral-2 disabled:bg-neutral-5 disabled:text-neutral-7"
-                  >
-                    {verifyLoading ? '확인 중' : '확인'}
-                  </button>
                 </div>
-                {verificationError && <p className="mt-1 typo-body-xsmall text-danger">{verificationError}</p>}
-                {verificationSuccess && <p className="mt-1 typo-body-xsmall text-orange-5">인증에 성공했습니다.</p>}
-              </div>
-            )}
 
-            <div>
-              <label htmlFor="password" className="typo-body-small-bold text-neutral-10">비밀번호</label>
-              <div
-                className={cn(
-                  'mt-1 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
-                  passwordInvalid ? 'border-danger' : 'border-neutral-5'
-                )}
-              >
-                <input
-                  id="password"
-                  type="password"
-                  {...register('password')}
-                  className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                  placeholder="비밀번호를 입력해주세요."
-                />
-                {passwordInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
+                <div className="h-px w-full bg-neutral-4" />
+
+                <div className="space-y-[6px]">
+                  <p className="typo-body-small-bold text-neutral-8">ID/PW</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label
+                        htmlFor="email"
+                        className={cn('typo-body-small-bold', emailHasError ? 'text-danger' : 'text-neutral-10')}
+                      >
+                        아이디 (이메일)
+                      </label>
+                      <div className="relative mt-1 flex items-start gap-[10px]">
+                        <input
+                          id="email"
+                          type="email"
+                          {...register('email', {
+                            onChange: () => {
+                              setEmailDuplicateError(null);
+                              setVerificationSent(false);
+                              setVerificationSuccess(false);
+                              setVerificationError(null);
+                              setVerificationCode('');
+                              setValue('verificationCode', '', { shouldValidate: true });
+                            },
+                          })}
+                          className={cn(
+                            'h-[45px] flex-1 rounded-lg border bg-neutral-2 px-3 pr-10 typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7 focus:border-orange-5',
+                            emailHasError ? 'border-danger' : 'border-neutral-6'
+                          )}
+                          placeholder="example@gmail.com"
+                        />
+                        {emailHasError ? (
+                          <div className="pointer-events-none absolute right-[92px] top-[12px]">
+                            <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                          </div>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={handleEmailCheck}
+                          disabled={!canSendEmail}
+                          className={cn(
+                            'mt-[28px] h-10 w-[70px] shrink-0 rounded-lg typo-body-small-bold text-neutral-2',
+                            canSendEmail ? 'bg-neutral-10' : 'bg-neutral-6'
+                          )}
+                        >
+                          {emailCheckLoading ? '전송 중' : '전송'}
+                        </button>
+                      </div>
+                      {verificationSent ? <p className="mt-1 typo-body-xsmall text-orange-5">인증번호를 전송했습니다.</p> : null}
+                      {emailDuplicateError ? <p className="mt-1 typo-body-xsmall text-danger">{emailDuplicateError}</p> : null}
+                      {errors.email && !emailDuplicateError && !verificationSent ? (
+                        <p className="mt-1 typo-body-xsmall text-danger">{errors.email.message}</p>
+                      ) : null}
+                    </div>
+
+                    {verificationSent ? (
+                      <div>
+                        <label
+                          htmlFor="verificationCode"
+                          className={cn('typo-body-small-bold', verificationError ? 'text-danger' : 'text-neutral-10')}
+                        >
+                          인증번호
+                        </label>
+                        <div className="mt-1 flex items-start gap-[10px]">
+                          <div
+                            className={cn(
+                              'flex h-[45px] flex-1 items-center rounded-lg border bg-neutral-2 px-3',
+                              verificationError
+                                ? 'border-danger'
+                                : verificationSuccess
+                                  ? 'border-neutral-6'
+                                  : 'border-neutral-5'
+                            )}
+                          >
+                            <input
+                              id="verificationCode"
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={verificationCode}
+                              onChange={(e) => {
+                                const nextCode = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                setVerificationCode(nextCode);
+                                setValue('verificationCode', nextCode, { shouldValidate: true });
+                                setVerificationError(null);
+                                setVerificationSuccess(false);
+                              }}
+                              className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
+                              placeholder="인증번호를 입력해주세요."
+                            />
+                            {verificationError ? (
+                              <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                            ) : null}
+                            {verificationSuccess && !verificationError ? (
+                              <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleVerifyCode}
+                            disabled={!canVerifyCode}
+                            className={cn(
+                              'mt-[28px] h-10 w-[70px] shrink-0 rounded-lg typo-body-small-bold text-neutral-2',
+                              canVerifyCode ? 'bg-neutral-10' : 'bg-neutral-6'
+                            )}
+                          >
+                            {verifyLoading ? '확인 중' : '확인'}
+                          </button>
+                        </div>
+                        {verificationError ? <p className="mt-1 typo-body-xsmall text-danger">{verificationError}</p> : null}
+                        {verificationSuccess ? (
+                          <p className="mt-1 typo-body-xsmall text-orange-5">인증에 성공했습니다.</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div>
+                      <label
+                        htmlFor="password"
+                        className={cn('typo-body-small-bold', passwordInvalid ? 'text-danger' : 'text-neutral-10')}
+                      >
+                        비밀번호
+                      </label>
+                      <div
+                        className={cn(
+                          'mt-1 flex h-[45px] items-center rounded-lg border bg-neutral-2 px-3',
+                          passwordInvalid ? 'border-danger' : passwordValid ? 'border-neutral-6' : 'border-neutral-5'
+                        )}
+                      >
+                        <input
+                          id="password"
+                          type="password"
+                          {...register('password')}
+                          className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
+                          placeholder="비밀번호를 입력해주세요."
+                        />
+                        {passwordInvalid ? (
+                          <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                        ) : null}
+                        {passwordValid && !passwordInvalid ? (
+                          <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
+                        ) : null}
+                      </div>
+                      {passwordInvalid ? <p className="mt-1 typo-body-xsmall text-danger">{PASSWORD_HINT}</p> : null}
+                      {errors.password && !passwordInvalid ? (
+                        <p className="mt-1 typo-body-xsmall text-danger">{errors.password.message}</p>
+                      ) : null}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="confirmPassword"
+                        className={cn('typo-body-small-bold', confirmInvalid ? 'text-danger' : 'text-neutral-10')}
+                      >
+                        비밀번호 확인
+                      </label>
+                      <div
+                        className={cn(
+                          'mt-1 flex h-[45px] items-center rounded-lg border bg-neutral-2 px-3',
+                          confirmInvalid ? 'border-danger' : confirmValid ? 'border-neutral-6' : 'border-neutral-5'
+                        )}
+                      >
+                        <input
+                          id="confirmPassword"
+                          type="password"
+                          {...register('confirmPassword')}
+                          className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 outline-none placeholder:text-neutral-7"
+                          placeholder="비밀번호를 다시 입력해주세요."
+                        />
+                        {confirmInvalid ? (
+                          <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
+                        ) : null}
+                        {confirmValid && !confirmInvalid ? (
+                          <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />
+                        ) : null}
+                      </div>
+                      {confirmInvalid ? (
+                        <p className="mt-1 typo-body-xsmall text-danger">
+                          {confirmMismatch ? '비밀번호가 일치하지 않습니다.' : PASSWORD_HINT}
+                        </p>
+                      ) : null}
+                      {errors.confirmPassword && !confirmInvalid ? (
+                        <p className="mt-1 typo-body-xsmall text-danger">{errors.confirmPassword.message}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className={cn('mt-1 typo-body-xsmall', passwordInvalid ? 'text-danger' : 'text-neutral-7')}>
-                {PASSWORD_HINT}
-              </p>
-              {errors.password && <p className="mt-1 typo-body-xsmall text-danger">{errors.password.message}</p>}
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="typo-body-small-bold text-neutral-10">비밀번호 확인</label>
-              <div
-                className={cn(
-                  'mt-1 flex h-12 items-center rounded-lg border bg-neutral-2 px-3',
-                  confirmInvalid ? 'border-danger' : 'border-neutral-5'
-                )}
-              >
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  {...register('confirmPassword')}
-                  className="flex-1 bg-transparent typo-body-small text-neutral-10 outline-none"
-                  placeholder="비밀번호를 입력해주세요."
-                />
-                {confirmInvalid && <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />}
-              </div>
-              <p className={cn('mt-1 typo-body-xsmall', confirmInvalid ? 'text-danger' : 'text-neutral-7')}>
-                {PASSWORD_HINT}
-              </p>
-              {errors.confirmPassword && (
-                <p className="mt-1 typo-body-xsmall text-danger">{errors.confirmPassword.message}</p>
+            <button
+              type="submit"
+              disabled={!canRegister}
+              className={cn(
+                'h-[55px] w-full rounded-lg typo-body-small-bold text-neutral-2',
+                canRegister ? 'bg-orange-5' : 'bg-orange-3'
               )}
-            </div>
+            >
+              {isSubmitting ? '가입 중...' : '회원가입'}
+            </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting || !verificationSuccess}
-            className="h-[55px] w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:bg-orange-3"
-          >
-            {isSubmitting ? '가입 중...' : '회원가입'}
-          </button>
         </form>
       </div>
     </div>
