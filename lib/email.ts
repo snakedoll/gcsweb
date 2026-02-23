@@ -15,11 +15,11 @@ function getBrevoConfig() {
   const apiKey = process.env.BREVO_API_KEY;
   const defaultFrom =
     process.env.BREVO_FROM_EMAIL ||
-    // Backward-compat for a common typo seen in env setups
     process.env.BREVO_FROM_EMAL ||
     process.env.EMAIL_FROM;
+  const defaultName = process.env.BREVO_FROM_NAME;
 
-  return { apiKey, defaultFrom };
+  return { apiKey, defaultFrom, defaultName };
 }
 
 interface SendEmailOptions {
@@ -31,7 +31,7 @@ interface SendEmailOptions {
 
 export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
   try {
-    const { apiKey, defaultFrom } = getBrevoConfig();
+    const { apiKey, defaultFrom, defaultName } = getBrevoConfig();
     if (!apiKey) {
       console.warn('BREVO_API_KEY is not set. Email functionality will not work.');
       throw new Error('BREVO_API_KEY is not set');
@@ -39,7 +39,7 @@ export async function sendEmail({ to, subject, html, from }: SendEmailOptions) {
 
     const fromValue = from || defaultFrom || 'noreply@example.com';
     const sender = parseSender(fromValue);
-    const senderWithName = { name: sender.name || 'GCS', email: sender.email };
+    const senderWithName = { name: sender.name || defaultName || 'GCS', email: sender.email };
 
     const toList = (Array.isArray(to) ? to : [to]).map((email) => ({ email }));
 

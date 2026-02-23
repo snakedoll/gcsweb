@@ -183,7 +183,11 @@ export default function RegisterPage() {
 
       if (!sendRes.ok) {
         const sendData = await sendRes.json().catch(() => null);
-        setEmailDuplicateError(sendData?.message ?? '인증번호 전송에 실패했습니다.');
+        const msg =
+          sendData?.code === 'TOO_MANY_REQUESTS' && typeof sendData?.retryAfterSeconds === 'number'
+            ? `${sendData.retryAfterSeconds}초 후 다시 시도해주세요.`
+            : sendData?.message ?? '인증번호 전송에 실패했습니다.';
+        setEmailDuplicateError(msg);
         return;
       }
 

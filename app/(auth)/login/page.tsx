@@ -26,7 +26,7 @@ function LoginContent() {
     register,
     handleSubmit,
     watch,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -37,8 +37,6 @@ function LoginContent() {
 
   const emailValue = watch('email');
   const passwordValue = watch('password');
-  const hasCredentials = emailValue.trim().length > 0 && passwordValue.trim().length > 0;
-
   const isWarningState = loginUiState === 'warning';
   const isBlockedState = loginUiState === 'blocked';
 
@@ -88,6 +86,8 @@ function LoginContent() {
   const getFieldState = (field: 'email' | 'password', hasValue: boolean) => {
     if (isWarningState) return 'warning' as const;
     if (isBlockedState) return 'blocked' as const;
+    if (field === 'email' && errors.email) return 'warning' as const;
+    if (field === 'password' && errors.password) return 'warning' as const;
     if (focusedField === field) return 'focus' as const;
     if (hasValue) return 'filled' as const;
     return 'default' as const;
@@ -157,13 +157,15 @@ function LoginContent() {
                   ) : undefined
                 }
                 caption={
-                  isWarningState
-                    ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
-                    : isBlockedState
-                      ? '잠시 후 다시 시도해주세요.'
-                      : undefined
+                  errors.email?.message
+                    ? errors.email.message
+                    : isWarningState
+                      ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
+                      : isBlockedState
+                        ? '잠시 후 다시 시도해주세요.'
+                        : undefined
                 }
-                captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
+                captionClassName={cn('typo-body-xsmall', isWarningState || errors.email ? 'text-danger' : 'text-orange-5')}
               />
 
               <TextField
@@ -183,7 +185,7 @@ function LoginContent() {
                   disabled: isBlockedState,
                 }}
                 rightSlot={
-                  isWarningState ? (
+                  isWarningState || errors.password ? (
                     <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
                   ) : (
                     <button
@@ -202,13 +204,15 @@ function LoginContent() {
                   )
                 }
                 caption={
-                  isWarningState
-                    ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
-                    : isBlockedState
-                      ? '잠시 후 다시 시도해주세요.'
-                      : undefined
+                  errors.password?.message
+                    ? errors.password.message
+                    : isWarningState
+                      ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
+                      : isBlockedState
+                        ? '잠시 후 다시 시도해주세요.'
+                        : undefined
                 }
-                captionClassName={cn('typo-body-xsmall', isWarningState ? 'text-danger' : 'text-orange-5')}
+                captionClassName={cn('typo-body-xsmall', isWarningState || errors.password ? 'text-danger' : 'text-orange-5')}
               />
             </div>
 
@@ -219,10 +223,10 @@ function LoginContent() {
             <div className="flex w-full flex-col items-center gap-3">
               <button
                 type="submit"
-                disabled={isSubmitting || !hasCredentials || isBlockedState}
+                disabled={isSubmitting || isBlockedState}
                 className={[
                   cn('h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold'),
-                  hasCredentials && !isBlockedState ? 'bg-orange-5' : 'bg-orange-3',
+                  !isBlockedState ? 'bg-orange-5' : 'bg-orange-3',
                 ].join(' ')}
               >
                 {isSubmitting ? '로그인 중...' : '이메일로 로그인'}

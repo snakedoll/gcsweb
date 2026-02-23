@@ -110,7 +110,11 @@ export default function ForgotPasswordPage() {
         if (data?.code === 'EMAIL_NOT_FOUND') {
           setEmailError(EMAIL_NOT_FOUND_MESSAGE);
         } else if (data?.code === 'TOO_MANY_REQUESTS') {
-          setEmailError(TOO_MANY_REQUESTS_MESSAGE);
+          const msg =
+            typeof data?.retryAfterSeconds === 'number'
+              ? `${data.retryAfterSeconds}초 후 다시 시도해주세요.`
+              : TOO_MANY_REQUESTS_MESSAGE;
+          setEmailError(msg);
         } else {
           setEmailError(SEND_FAILED_MESSAGE);
           console.error('Forgot password verification send failed', data);

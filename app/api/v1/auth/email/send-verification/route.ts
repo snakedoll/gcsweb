@@ -5,17 +5,23 @@ import { emailTemplates, sendEmail } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
+const RESEND_COOLDOWN_MS = 60_000;
+
 type ErrorPayload = {
   status: 'error';
   code: string;
   message: string;
+  retryAfterSeconds?: number;
 };
 
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json<ErrorPayload>(
-    { status: 'error', code, message },
-    { status }
-  );
+function jsonError(status: number, code: string, message: string, extra?: { retryAfterSeconds?: number }) {
+  const body: ErrorPayload = { status: 'error', code, message };
+  if (extra?.retryAfterSeconds != null) body.retryAfterSeconds = extra.retryAfterSeconds;
+  const res = NextResponse.json<ErrorPayload>(body, { status });
+  if (status === 429 && extra?.retryAfterSeconds != null) {
+    res.headers.set('Retry-After', String(Math.ceil(extra.retryAfterSeconds)));
+  }
+  return res;
 }
 
 function isEmail(value: unknown): value is string {
@@ -67,8 +73,12 @@ export async function POST(request: Request) {
       select: { createdAt: true },
     });
 
-    if (recent && Date.now() - recent.createdAt.getTime() < 60_000) {
-      return jsonError(429, 'TOO_MANY_REQUESTS', '잠시 후 다시 시도해주세요.');
+    if (recent) {
+      const elapsed = Date.now() - recent.createdAt.getTime();
+      if (elapsed < RESEND_COOLDOWN_MS) {
+        const retryAfterSeconds = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
+        return jsonError(429, 'TOO_MANY_REQUESTS', '잠시 후 다시 시도해주세요.', { retryAfterSeconds });
+      }
     }
 
     const code = generate6DigitCode();
@@ -86,12 +96,14 @@ export async function POST(request: Request) {
     });
 
     try {
-      await sendEmail({
+      const sendResult = await sendEmail({
         to: email,
         subject: '[GCS] 이메일 인증번호 안내',
         html: emailTemplates.verificationCode(code),
       });
-    } catch {
+      console.info('[send-verification] Brevo accepted:', { to: email, messageId: (sendResult as { messageId?: string })?.messageId });
+    } catch (err) {
+      console.error('[send-verification] sendEmail failed:', err);
       await prisma.verificationToken.deleteMany({ where: { identifier } });
       return jsonError(500, 'EMAIL_SEND_FAILED', '이메일 전송에 실패했습니다.');
     }
