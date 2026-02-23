@@ -15,7 +15,13 @@ function jsonError(status: number, code: string, message: string) {
 }
 
 function isStrongPassword(value: unknown): value is string {
-  return typeof value === 'string' && value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
+  return (
+    typeof value === 'string' &&
+    value.length >= 8 &&
+    /[A-Za-z]/.test(value) &&
+    /\d/.test(value) &&
+    /^[A-Za-z\d]+$/.test(value)
+  );
 }
 
 export async function POST(request: Request) {

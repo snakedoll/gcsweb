@@ -361,7 +361,7 @@ export default function RegisterPage() {
                       status={canSendEmail ? 'default' : 'disabled'}
                       onClick={handleEmailCheck}
                       disabled={!canSendEmail}
-                      className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0"
+                      className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0 typo-body-small"
                     >
                       {emailCheckLoading ? '전송 중' : '전송'}
                     </Button>
@@ -414,7 +414,7 @@ export default function RegisterPage() {
                           status={canVerifyCode ? 'default' : 'disabled'}
                           onClick={handleVerifyCode}
                           disabled={!canVerifyCode}
-                          className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0"
+                          className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0 typo-body-small"
                         >
                           {verifyLoading ? '확인 중' : '확인'}
                         </Button>
