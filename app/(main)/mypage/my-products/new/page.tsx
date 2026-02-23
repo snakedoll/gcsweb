@@ -2,18 +2,29 @@
 
 import { NavBar } from '@/components/layout';
 import { useUser } from '@/hooks/useUser';
-import { newProductStep1Schema, PRODUCT_NAME_MAX_LENGTH } from '@/lib/validations/product';
+import {
+  newProductStep1Schema,
+  newProductStep2DeliverySchema,
+  newProductStep2PickupSchema,
+  PRODUCT_NAME_MAX_LENGTH,
+} from '@/lib/validations/product';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { shift } from '@floating-ui/react-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useForm, Controller } from 'react-hook-form';
+import RadioButton from '@/components/ui/button/RadioButton';
 import { useQuery } from '@tanstack/react-query';
-import type { NewProductStep1Input } from '@/lib/validations/product';
+import type {
+  NewProductStep1Input,
+  NewProductStep2DeliveryInput,
+  NewProductStep2PickupInput,
+} from '@/lib/validations/product';
 import { ko } from 'date-fns/locale';
 
 interface TeamItem {
@@ -148,8 +159,8 @@ function TeamDropdown({
 }
 
 /** 정사각형 단계 표시: 완료=주황+흰 체크, 현재=Figma 5020-2903(연한 배경+주황 테두리), 비활성=회색 */
-function StepIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
-  const totalSteps = 3;
+function StepIndicator({ currentStep, totalSteps = 3 }: { currentStep: number; totalSteps?: number }) {
+  const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
   return (
     <div
       className="mb-6 flex justify-center gap-2"
@@ -159,7 +170,7 @@ function StepIndicator({ currentStep }: { currentStep: 1 | 2 | 3 }) {
       aria-valuemax={totalSteps}
       aria-label={`등록 단계 ${currentStep} of ${totalSteps}`}
     >
-      {[1, 2, 3].map((step) => {
+      {steps.map((step) => {
         const isCompleted = step < currentStep;
         const isCurrent = step === currentStep;
         return (
@@ -257,10 +268,95 @@ export default function NewProductPage() {
     if (!userLoading && !isAuthenticated) router.replace('/login');
   }, [userLoading, isAuthenticated, router]);
 
-  const onSubmit = async (_data: NewProductStep1Input) => {
-    // TODO: step2 또는 API 연동
+  const [step1Data, setStep1Data] = useState<NewProductStep1Input | null>(null);
+
+  const productType = step1Data?.type ?? 0;
+  const receiveMethod = step1Data?.receiveMethod ?? 0;
+  const isBuyNow = productType === 1;
+  const isPartnerUp = productType === 2;
+  const isFundDelivery = productType === 0 && receiveMethod === 0;
+  const isFundPickup = productType === 0 && receiveMethod === 1;
+
+  const step2DeliveryForm = useForm<NewProductStep2DeliveryInput>({
+    resolver: zodResolver(newProductStep2DeliverySchema),
+    defaultValues: {
+      goalAmount: 0,
+      productionStartDate: '',
+      productionEndDate: '',
+      deliveryStartDate: '',
+      deliveryEndDate: '',
+    },
+  });
+  const step2PickupForm = useForm<NewProductStep2PickupInput>({
+    resolver: zodResolver(newProductStep2PickupSchema),
+    defaultValues: {
+      goalAmount: 0,
+      pickupStartDate: '',
+      pickupEndDate: '',
+      pickupLocation: '',
+    },
+  });
+
+  const {
+    register: registerStep2Delivery,
+    handleSubmit: handleSubmitStep2Delivery,
+    control: controlStep2Delivery,
+    setValue: setValueStep2Delivery,
+    watch: watchStep2Delivery,
+    formState: { errors: errorsStep2Delivery },
+  } = step2DeliveryForm;
+  const {
+    register: registerStep2Pickup,
+    handleSubmit: handleSubmitStep2Pickup,
+    control: controlStep2Pickup,
+    setValue: setValueStep2Pickup,
+    watch: watchStep2Pickup,
+    formState: { errors: errorsStep2Pickup },
+  } = step2PickupForm;
+
+  const productionStartStr = watchStep2Delivery('productionStartDate');
+  const productionEndStr = watchStep2Delivery('productionEndDate');
+  const deliveryStartStr = watchStep2Delivery('deliveryStartDate');
+  const deliveryEndStr = watchStep2Delivery('deliveryEndDate');
+  const productionStartDate = productionStartStr ? parseOrNull(productionStartStr) : null;
+  const productionEndDate = productionEndStr ? parseOrNull(productionEndStr) : null;
+  const deliveryStartDate = deliveryStartStr ? parseOrNull(deliveryStartStr) : null;
+  const deliveryEndDate = deliveryEndStr ? parseOrNull(deliveryEndStr) : null;
+
+  const pickupStartStr = watchStep2Pickup('pickupStartDate');
+  const pickupEndStr = watchStep2Pickup('pickupEndDate');
+  const pickupStartDate = pickupStartStr ? parseOrNull(pickupStartStr) : null;
+  const pickupEndDate = pickupEndStr ? parseOrNull(pickupEndStr) : null;
+
+  const productTypeWatch = watch('type');
+  useEffect(() => {
+    if (productTypeWatch === 1) setValue('receiveMethod', 1);
+    if (productTypeWatch === 2) setValue('receiveMethod', 0);
+  }, [productTypeWatch, setValue]);
+
+  const onSubmitStep1 = (data: NewProductStep1Input) => {
+    setStep1Data(data);
+    if (data.type === 1) setCurrentStep(2);
+    else if (data.type === 0) setCurrentStep(2);
+    else if (data.type === 2) {
+      // Partner Up: 등록요청
+      router.push('/mypage/my-products');
+    }
+  };
+
+  const onSubmitStep2Delivery = (_data: NewProductStep2DeliveryInput) => {
+    setCurrentStep(3);
+  };
+
+  const onSubmitStep2Pickup = (_data: NewProductStep2PickupInput) => {
+    setCurrentStep(3);
+  };
+
+  const onSubmitStep3BuyNow = () => {
     router.push('/mypage/my-products');
   };
+
+  const onBackToStep1 = () => setCurrentStep(1);
 
   if (userLoading || !isAuthenticated) {
     return (
@@ -280,9 +376,13 @@ export default function NewProductPage() {
       <NavBar variant="title-back" title="새 상품 등록" />
 
       <div className="mx-auto w-full min-w-0 max-w-[375px] flex-1 px-4 pb-8 pt-4">
-        <StepIndicator currentStep={currentStep} />
+        <StepIndicator
+          currentStep={currentStep}
+          totalSteps={(step1Data?.type ?? productTypeWatch) === 2 ? 1 : (step1Data?.type ?? productTypeWatch) === 1 ? 2 : 3}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-5">
+        {currentStep === 1 && (
+        <form onSubmit={handleSubmit(onSubmitStep1)} className="min-w-0 space-y-5">
           {/* 판매팀 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
@@ -352,35 +452,121 @@ export default function NewProductPage() {
             <label className="typo-body-small-bold text-neutral-12">
               상품 유형 <span className="text-orange-5">*</span>
             </label>
-            <div className="mt-2 flex gap-4">
-              {[
-                { value: 0, label: 'Fund' },
-                { value: 1, label: 'Buy Now' },
-                { value: 2, label: 'Partner Up' },
-              ].map((opt) => (
-                <label key={opt.value} className="flex cursor-pointer items-center gap-2">
-                  <input type="radio" value={opt.value} {...register('type')} className="h-4 w-4" />
-                  <span className="typo-body-small text-neutral-10">{opt.label}</span>
-                </label>
-              ))}
-            </div>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
+                  {[
+                    { value: 0, label: 'Fund' },
+                    { value: 1, label: 'Buy Now' },
+                    { value: 2, label: 'Partner Up' },
+                  ].map((opt, i) => (
+                    <div
+                      key={opt.value}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => field.onChange(opt.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && field.onChange(opt.value)}
+                      className={cn(
+                        'flex cursor-pointer items-center px-4 py-3',
+                        i > 0 && 'border-t border-neutral-4'
+                      )}
+                    >
+                      <RadioButton
+                        checked={field.value === opt.value}
+                        onChange={() => field.onChange(opt.value)}
+                        label={opt.label}
+                        value={opt.value}
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            />
           </section>
 
-          {/* 수령 방식 */}
+          {/* 수령 방식: Fund=선택, Buy Now=현장수령 고정, Partner Up=비활성화 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
               수령 방식 <span className="text-orange-5">*</span>
             </label>
-            <div className="mt-2 flex gap-4">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input type="radio" value={0} {...register('receiveMethod')} className="h-4 w-4" />
-                <span className="typo-body-small text-neutral-10">택배 배송</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2">
-                <input type="radio" value={1} {...register('receiveMethod')} className="h-4 w-4" />
-                <span className="typo-body-small text-neutral-10">현장 수령</span>
-              </label>
-            </div>
+            {productTypeWatch === 2 ? (
+              <>
+                <p className="mt-1 typo-body-xsmall text-neutral-7">
+                  Partner Up은 수령 방식 선택이 불가능 합니다.
+                </p>
+                <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-3">
+                  {[
+                    { value: 0, label: '택배 배송' },
+                    { value: 1, label: '현장 수령' },
+                  ].map((opt, i) => (
+                    <div
+                      key={opt.value}
+                      className={cn(
+                        'flex items-center px-4 py-3 opacity-60',
+                        i > 0 && 'border-t border-neutral-4'
+                      )}
+                    >
+                      <RadioButton
+                        checked={false}
+                        label={opt.label}
+                        disabled
+                        value={opt.value}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : productTypeWatch === 1 ? (
+              <>
+                <p className="mt-1 typo-body-xsmall text-neutral-7">
+                  Buy Now는 현장 수령만 가능합니다.
+                </p>
+                <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
+                  <div className="flex items-center px-4 py-3 opacity-60">
+                    <RadioButton checked={false} label="택배 배송" disabled value={0} />
+                  </div>
+                  <div className="pointer-events-none flex items-center border-t border-neutral-4 px-4 py-3">
+                    <RadioButton checked label="현장 수령" value={1} className="w-full" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Controller
+                name="receiveMethod"
+                control={control}
+                render={({ field }) => (
+                  <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
+                    {[
+                      { value: 0, label: '택배 배송' },
+                      { value: 1, label: '현장 수령' },
+                    ].map((opt, i) => (
+                      <div
+                        key={opt.value}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => field.onChange(opt.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && field.onChange(opt.value)}
+                        className={cn(
+                          'flex cursor-pointer items-center px-4 py-3',
+                          i > 0 && 'border-t border-neutral-4'
+                        )}
+                      >
+                        <RadioButton
+                          checked={field.value === opt.value}
+                          onChange={() => field.onChange(opt.value)}
+                          label={opt.label}
+                          value={opt.value}
+                          className="w-full"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+            )}
           </section>
 
           {/* 예상 판매 기간 */}
@@ -408,6 +594,8 @@ export default function NewProductPage() {
                       locale={ko}
                       dateFormat="yyyy-MM-dd"
                       placeholderText="YYYY-MM-DD"
+                      popperPlacement="bottom-start"
+                      popperModifiers={[shift({ padding: 8 })]}
                       className={cn(
                         'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
                         errors.salesStartDate ? 'border-red-5' : 'border-neutral-5'
@@ -431,6 +619,8 @@ export default function NewProductPage() {
                       locale={ko}
                       dateFormat="yyyy-MM-dd"
                       placeholderText="YYYY-MM-DD"
+                      popperPlacement="bottom-start"
+                      popperModifiers={[shift({ padding: 8 })]}
                       className={cn(
                         'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
                         errors.salesEndDate ? 'border-red-5' : 'border-neutral-5'
@@ -567,13 +757,380 @@ export default function NewProductPage() {
               disabled={isSubmitting || nameOverLimit}
               className="h-12 w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
             >
-              다음
+              {productTypeWatch === 2 ? '등록요청' : '다음'}
             </button>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
               다음으로 넘어가도 현재의 내용은 저장됩니다.
             </p>
           </div>
         </form>
+        )}
+
+        {currentStep === 2 && isBuyNow && (
+          <div className="min-w-0 space-y-5">
+            <p className="typo-body-small text-neutral-10">등록 내용을 확인해주세요.</p>
+            <div className="flex gap-2 pt-4">
+              <button
+                type="button"
+                onClick={onBackToStep1}
+                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+              >
+                이전
+              </button>
+              <button
+                type="button"
+                onClick={onSubmitStep3BuyNow}
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
+              >
+                등록요청
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 2 && isFundDelivery && (
+          <form onSubmit={handleSubmitStep2Delivery(onSubmitStep2Delivery)} className="min-w-0 space-y-5">
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                목표 금액 <span className="text-orange-5">*</span>
+              </label>
+              <p className="mt-1 typo-body-xsmall text-neutral-7">
+                목표 금액이 없다면 0원으로 입력해주세요.
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  {...registerStep2Delivery('goalAmount')}
+                  placeholder="0"
+                  min={0}
+                  className={cn(
+                    'h-12 flex-1 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
+                    errorsStep2Delivery.goalAmount ? 'border-red-5' : 'border-neutral-5'
+                  )}
+                />
+                <span className="shrink-0 typo-body-small text-neutral-10">원</span>
+              </div>
+              {errorsStep2Delivery.goalAmount && (
+                <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Delivery.goalAmount.message}</p>
+              )}
+            </section>
+
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                예상 제작 기간 <span className="text-orange-5">*</span>
+              </label>
+              <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="productionStartDate"
+                    control={controlStep2Delivery}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={productionStartDate}
+                        onChange={(date: Date | null) => {
+                          const value = date ? format(date, 'yyyy-MM-dd') : '';
+                          field.onChange(value);
+                          if (productionEndDate && date && productionEndDate < date) {
+                            setValueStep2Delivery('productionEndDate', value);
+                          }
+                        }}
+                        onBlur={field.onBlur}
+                        minDate={today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Delivery.productionStartDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="productionEndDate"
+                    control={controlStep2Delivery}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={productionEndDate}
+                        onChange={(date: Date | null) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        onBlur={field.onBlur}
+                        minDate={productionStartDate ?? today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Delivery.productionEndDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
+              </div>
+              {(errorsStep2Delivery.productionStartDate || errorsStep2Delivery.productionEndDate) && (
+                <p className="mt-1 typo-body-xsmall text-red-5">
+                  {errorsStep2Delivery.productionStartDate?.message ??
+                    errorsStep2Delivery.productionEndDate?.message}
+                </p>
+              )}
+            </section>
+
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                예상 배송 기간 <span className="text-orange-5">*</span>
+              </label>
+              <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="deliveryStartDate"
+                    control={controlStep2Delivery}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={deliveryStartDate}
+                        onChange={(date: Date | null) => {
+                          const value = date ? format(date, 'yyyy-MM-dd') : '';
+                          field.onChange(value);
+                          if (deliveryEndDate && date && deliveryEndDate < date) {
+                            setValueStep2Delivery('deliveryEndDate', value);
+                          }
+                        }}
+                        onBlur={field.onBlur}
+                        minDate={productionEndDate ?? today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Delivery.deliveryStartDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="deliveryEndDate"
+                    control={controlStep2Delivery}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={deliveryEndDate}
+                        onChange={(date: Date | null) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        onBlur={field.onBlur}
+                        minDate={deliveryStartDate ?? productionEndDate ?? today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Delivery.deliveryEndDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
+              </div>
+              {(errorsStep2Delivery.deliveryStartDate || errorsStep2Delivery.deliveryEndDate) && (
+                <p className="mt-1 typo-body-xsmall text-red-5">
+                  {errorsStep2Delivery.deliveryStartDate?.message ??
+                    errorsStep2Delivery.deliveryEndDate?.message}
+                </p>
+              )}
+            </section>
+
+            <div className="flex gap-2 pt-4">
+              <button
+                type="button"
+                onClick={onBackToStep1}
+                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+              >
+                이전
+              </button>
+              <button
+                type="submit"
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
+              >
+                다음
+              </button>
+            </div>
+            <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
+              다음으로 넘어가도 현재의 내용은 저장됩니다.
+            </p>
+          </form>
+        )}
+
+        {currentStep === 2 && isFundPickup && (
+          <form onSubmit={handleSubmitStep2Pickup(onSubmitStep2Pickup)} className="min-w-0 space-y-5">
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                목표 금액 <span className="text-orange-5">*</span>
+              </label>
+              <p className="mt-1 typo-body-xsmall text-neutral-7">
+                목표 금액이 없다면 0원으로 입력해주세요.
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="number"
+                  {...registerStep2Pickup('goalAmount')}
+                  placeholder="0"
+                  min={0}
+                  className={cn(
+                    'h-12 flex-1 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
+                    errorsStep2Pickup.goalAmount ? 'border-red-5' : 'border-neutral-5'
+                  )}
+                />
+                <span className="shrink-0 typo-body-small text-neutral-10">원</span>
+              </div>
+              {errorsStep2Pickup.goalAmount && (
+                <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Pickup.goalAmount.message}</p>
+              )}
+            </section>
+
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                수령 기간 <span className="text-orange-5">*</span>
+              </label>
+              <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="pickupStartDate"
+                    control={controlStep2Pickup}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={pickupStartDate}
+                        onChange={(date: Date | null) => {
+                          const value = date ? format(date, 'yyyy-MM-dd') : '';
+                          field.onChange(value);
+                          if (pickupEndDate && date && pickupEndDate < date) {
+                            setValueStep2Pickup('pickupEndDate', value);
+                          }
+                        }}
+                        onBlur={field.onBlur}
+                        minDate={today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Pickup.pickupStartDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
+                <div className="min-w-0 flex-1">
+                  <Controller
+                    name="pickupEndDate"
+                    control={controlStep2Pickup}
+                    render={({ field }) => (
+                      <DatePicker
+                        selected={pickupEndDate}
+                        onChange={(date: Date | null) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                        onBlur={field.onBlur}
+                        minDate={pickupStartDate ?? today}
+                        locale={ko}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="YYYY-MM-DD"
+                        popperPlacement="bottom-start"
+                        popperModifiers={[shift({ padding: 8 })]}
+                        className={cn(
+                          'h-12 w-full min-w-0 rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12',
+                          errorsStep2Pickup.pickupEndDate ? 'border-red-5' : 'border-neutral-5'
+                        )}
+                        calendarClassName="gcs-datepicker-calendar"
+                      />
+                    )}
+                  />
+                </div>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
+              </div>
+              {(errorsStep2Pickup.pickupStartDate || errorsStep2Pickup.pickupEndDate) && (
+                <p className="mt-1 typo-body-xsmall text-red-5">
+                  {errorsStep2Pickup.pickupStartDate?.message ?? errorsStep2Pickup.pickupEndDate?.message}
+                </p>
+              )}
+            </section>
+
+            <section>
+              <label className="typo-body-small-bold text-neutral-12">
+                수령 장소 <span className="text-orange-5">*</span>
+              </label>
+              <input
+                {...registerStep2Pickup('pickupLocation')}
+                placeholder="수령 장소를 입력해주세요"
+                className={cn(
+                  'mt-1 h-12 w-full rounded-lg border bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6',
+                  errorsStep2Pickup.pickupLocation ? 'border-red-5' : 'border-neutral-5'
+                )}
+              />
+              {errorsStep2Pickup.pickupLocation && (
+                <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Pickup.pickupLocation.message}</p>
+              )}
+            </section>
+
+            <div className="flex gap-2 pt-4">
+              <button
+                type="button"
+                onClick={onBackToStep1}
+                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+              >
+                이전
+              </button>
+              <button
+                type="submit"
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
+              >
+                다음
+              </button>
+            </div>
+            <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
+              다음으로 넘어가도 현재의 내용은 저장됩니다.
+            </p>
+          </form>
+        )}
+
+        {currentStep === 3 && productType === 0 && (
+          <div className="space-y-5 pt-4">
+            <p className="typo-body-small text-neutral-10">3단계 (준비 중)</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
+              >
+                이전
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/mypage/my-products')}
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
+              >
+                완료
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

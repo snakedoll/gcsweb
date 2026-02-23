@@ -72,16 +72,36 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 <label className="typo-body-small-bold text-neutral-10 flex items-center gap-1">
                   팀 구분
                 </label>
-                <div className="mt-3 space-y-2">
-                  <div className={`rounded-lg ${teamType === 0 ? 'bg-orange-1' : ''} p-3`}>
-                    <label className="flex items-center gap-3">
-                      <RadioButton checked={teamType === 0} onChange={() => setTeamType(0)} label="일반팀" />
-                    </label>
+                <div className="mt-3 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setTeamType(0)}
+                    onKeyDown={(e) => e.key === 'Enter' && setTeamType(0)}
+                    className="flex cursor-pointer items-center px-4 py-3"
+                  >
+                    <RadioButton
+                      checked={teamType === 0}
+                      onChange={() => setTeamType(0)}
+                      label="일반팀"
+                      value={0}
+                      className="w-full"
+                    />
                   </div>
-                  <div className={`rounded-lg ${teamType === 1 ? 'bg-orange-1' : ''} p-3`}>
-                    <label className="flex items-center gap-3">
-                      <RadioButton checked={teamType === 1} onChange={() => setTeamType(1)} label="판매팀" />
-                    </label>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setTeamType(1)}
+                    onKeyDown={(e) => e.key === 'Enter' && setTeamType(1)}
+                    className="flex cursor-pointer items-center border-t border-neutral-4 px-4 py-3"
+                  >
+                    <RadioButton
+                      checked={teamType === 1}
+                      onChange={() => setTeamType(1)}
+                      label="판매팀"
+                      value={1}
+                      className="w-full"
+                    />
                   </div>
                 </div>
               </div>
