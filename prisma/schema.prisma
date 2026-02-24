@@ -98,6 +98,7 @@ model Product {
   price               Int
   goalAmount          Int?
   currentAmount       Int       @default(0)
+  reservedAmount      Int       @default(0) // 빌링키 결제 모듈 예약 금액 (펀드)
   salesStartDate      DateTime?
   salesEndDate        DateTime?
   productionStartDate DateTime?

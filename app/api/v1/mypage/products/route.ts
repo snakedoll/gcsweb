@@ -3,6 +3,72 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
+/** 내가 속한 팀(팀장 또는 팀원)의 상품 목록 */
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const myTeams = await prisma.team.findMany({
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { teamMember: { has: session.user.id } },
+        ],
+      },
+      select: { id: true },
+    });
+    const teamIds = myTeams.map((t) => t.id);
+    if (teamIds.length === 0) {
+      return NextResponse.json({ status: 'success', data: { products: [] } });
+    }
+
+    const products = await prisma.product.findMany({
+      where: { teamId: { in: teamIds } },
+      include: {
+        images: { take: 1, orderBy: { createdAt: 'asc' } },
+        team: { select: { teamName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const list = products.map((p) => {
+      const thumb = p.images[0]?.thumbnailImgUrl ?? null;
+      const goal = p.goalAmount ?? 0;
+      const current = p.currentAmount ?? 0;
+      const progressPercent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+      const isFund = p.type === 0;
+      return {
+        id: p.id,
+        type: p.type,
+        name: p.name,
+        description: p.description ?? '',
+        teamName: p.team.teamName,
+        likeCount: p.likeCount,
+        salesStartDate: p.salesStartDate?.toISOString().slice(0, 10) ?? null,
+        salesEndDate: p.salesEndDate?.toISOString().slice(0, 10) ?? null,
+        goalAmount: goal,
+        currentAmount: current,
+        progressPercent,
+        thumbnailImgUrl: thumb,
+      };
+    });
+
+    return NextResponse.json({ status: 'success', data: { products: list } });
+  } catch (error) {
+    console.error('My products list error:', error);
+    return NextResponse.json(
+      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 500 }
+    );
+  }
+}
+
 function parseDate(str: string | undefined): Date | undefined {
   if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return undefined;
   const d = new Date(str + 'T00:00:00');
