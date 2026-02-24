@@ -7,6 +7,8 @@ interface ArchiveCard1Props {
   subtitle?: string;
   imageSrc?: string;
   imageAlt?: string;
+  cardAriaLabel?: string;
+  onCardClick?: () => void;
   onPrevClick?: () => void;
   onNextClick?: () => void;
 }
@@ -52,14 +54,30 @@ export default function ArchiveCard1({
   subtitle = '\uC720\uB791',
   imageSrc,
   imageAlt,
+  cardAriaLabel,
+  onCardClick,
   onPrevClick,
   onNextClick,
 }: ArchiveCard1Props) {
+  const CardContentWrapper = onCardClick ? 'button' : 'div';
+
   return (
     <div className={cn('flex items-center justify-between bg-white px-4 py-7', className)}>
       <ArrowButton direction="left" onClick={onPrevClick} />
 
-      <div className="flex w-[269px] flex-col items-start gap-4">
+      <CardContentWrapper
+        {...(onCardClick
+          ? {
+              type: 'button' as const,
+              onClick: onCardClick,
+              'aria-label': cardAriaLabel ?? `${title} 상세 보기`,
+            }
+          : {})}
+        className={cn(
+          'flex w-[269px] flex-col items-start gap-4',
+          onCardClick && 'text-left'
+        )}
+      >
         <div className="relative aspect-[1080/1350] w-full overflow-hidden rounded-lg shadow-[0_0_5px_rgba(0,0,0,0.2)]">
           {imageSrc ? (
             <img
@@ -76,7 +94,7 @@ export default function ArchiveCard1({
           <div className="h-px w-full bg-neutral-5" />
           <ArchiveCardName title={title} subtitle={subtitle} className="w-full" />
         </div>
-      </div>
+      </CardContentWrapper>
 
       <ArrowButton direction="right" onClick={onNextClick} />
     </div>
