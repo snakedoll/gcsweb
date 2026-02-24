@@ -32,9 +32,18 @@ export default function ProfileAvatar({
 
   return (
     <div className={cn('relative inline-block h-[79px] w-[47px] overflow-visible', className)}>
-      <div className={cn('h-[47px] w-[47px] overflow-hidden rounded-full', variant !== 'default' && 'ring-2 ring-orange-5 ring-offset-0')}>
+      <div
+        className={cn(
+          'h-[47px] w-[47px] overflow-hidden rounded-full',
+          variant !== 'default' && 'ring-2 ring-orange-5 ring-offset-0'
+        )}
+      >
         {imageSrc ? (
-          <img src={imageSrc} alt={imageAlt ?? `${name} 프로필`} className="h-full w-full object-cover" />
+          <img
+            src={imageSrc}
+            alt={imageAlt ?? `${name} 프로필 이미지`}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <PlaceholderAvatar />
         )}
@@ -47,7 +56,9 @@ export default function ProfileAvatar({
             variant === 'major' ? 'left-[-43px]' : 'left-[-1px]'
           )}
         >
-          <span className="whitespace-nowrap text-[11px] leading-[1.5] text-neutral-10">{badgeText}</span>
+          <span className="whitespace-nowrap text-[11px] leading-[1.5] text-neutral-10">
+            {badgeText}
+          </span>
         </div>
       ) : null}
     </div>

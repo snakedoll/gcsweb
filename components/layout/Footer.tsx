@@ -41,14 +41,14 @@ export default function Footer({ showAdminButton = false }: FooterProps) {
           <Link href="/terms/privacy" className="text-[8px] leading-[1.5] text-neutral-10 underline">
             개인정보처리방침
           </Link>
-          {showAdminButton && (
+          {showAdminButton ? (
             <Link
               href="/admin"
               className="mt-2 inline-flex h-8 w-[90px] items-center justify-center rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 transition-colors hover:bg-orange-6"
             >
               admin
             </Link>
-          )}
+          ) : null}
         </div>
       </div>
     </footer>

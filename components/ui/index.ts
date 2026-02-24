@@ -28,6 +28,9 @@ export { default as Listedcard } from './admin/project/Listedcard';
 export { default as ArchiveProjectCard } from './archive/ArchiveProjectCard';
 
 // Archive / Project
+export { default as ArchiveCard1 } from './archive/project/ArchiveCard1';
+export { default as ArchiveCard2 } from './archive/project/ArchiveCard2';
+export { default as ArchiveCardName } from './archive/project/ArchiveCardName';
 export { default as DashboardHeaderTitle } from './archive/project/DashboardHeaderTitle';
 export { default as ProfileAvatar } from './archive/project/ProfileAvatar';
 export { default as SectionHeadline } from './archive/project/SectionHeadline';

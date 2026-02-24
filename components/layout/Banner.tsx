@@ -29,7 +29,12 @@ function ShopIllustration() {
       <div className="absolute left-[24px] top-[2px] h-[5px] w-[5px] rounded-full bg-orange-5" />
       <div className="absolute right-[24px] top-[2px] h-[5px] w-[5px] rounded-full bg-orange-5" />
       <svg className="absolute left-[24px] top-0" width="84" height="30" viewBox="0 0 84 30" fill="none">
-        <path d="M5 25V18C5 8.611 12.611 1 22 1h40c9.389 0 17 7.611 17 17v7" stroke="#F46D25" strokeWidth="2" strokeLinecap="round" />
+        <path
+          d="M5 25V18C5 8.611 12.611 1 22 1h40c9.389 0 17 7.611 17 17v7"
+          stroke="#F46D25"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
       </svg>
     </div>
   );
@@ -40,9 +45,16 @@ export default function Banner({ className, variant = 'archive' }: BannerProps) 
 
   return (
     <section className={cn('h-[113px] w-full bg-orange-5 px-[11px] pt-5', className)}>
-      <div className={cn('flex h-[93px] w-full items-center rounded-t-[9px] bg-neutral-2', isArchive ? 'justify-between px-[27px]' : 'justify-between pl-[17px] pr-[23px]')}>
+      <div
+        className={cn(
+          'flex h-[93px] w-full items-center rounded-t-[9px] bg-neutral-2',
+          isArchive ? 'justify-between px-[27px]' : 'justify-between pl-[17px] pr-[23px]'
+        )}
+      >
         <div className={cn('text-orange-5', isArchive ? 'text-center' : 'pt-[2px] text-left')}>
-          <p className="typo-heading-large leading-[1.5] text-orange-5">{isArchive ? 'Archive' : 'Shop'}</p>
+          <p className="typo-heading-large leading-[1.5] text-orange-5">
+            {isArchive ? 'Archive' : 'Shop'}
+          </p>
           <p className={cn('mt-[-2px] text-[11px] leading-[1.5]', isArchive ? 'text-orange-4' : 'text-orange-5')}>
             {isArchive
               ? 'GCS의 활동과 기록을 만나보세요.'
