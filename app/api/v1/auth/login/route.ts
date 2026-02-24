@@ -1,34 +1,146 @@
-import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { compare } from 'bcryptjs';
 import { encode } from 'next-auth/jwt';
-import { randomBytes } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { loginSchema } from '@/lib/validations/auth';
 
 export const runtime = 'nodejs';
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 5 * 60 * 1000;
+const ATTEMPT_COOKIE_NAME = 'gcs_login_attempt';
+
+type AttemptCookieState = {
+  count: number;
+  lockedUntil: number | null;
+};
+
 function mapMemberTypeToRole(memberType: number) {
   return memberType === 2 ? 'admin' : 'user';
 }
 
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json(
+function getDefaultAttemptState(): AttemptCookieState {
+  return { count: 0, lockedUntil: null };
+}
+
+function normalizeAttemptState(value: unknown): AttemptCookieState {
+  if (!value || typeof value !== 'object') return getDefaultAttemptState();
+
+  const maybe = value as { count?: unknown; lockedUntil?: unknown };
+  const count =
+    typeof maybe.count === 'number' && Number.isFinite(maybe.count) && maybe.count > 0
+      ? Math.min(Math.floor(maybe.count), MAX_FAILED_ATTEMPTS)
+      : 0;
+  const lockedUntil =
+    typeof maybe.lockedUntil === 'number' && Number.isFinite(maybe.lockedUntil) && maybe.lockedUntil > 0
+      ? Math.floor(maybe.lockedUntil)
+      : null;
+
+  return { count, lockedUntil };
+}
+
+function readAttemptState(request: NextRequest): AttemptCookieState {
+  const raw = request.cookies.get(ATTEMPT_COOKIE_NAME)?.value;
+  if (!raw) return getDefaultAttemptState();
+
+  try {
+    return normalizeAttemptState(JSON.parse(raw));
+  } catch {
+    return getDefaultAttemptState();
+  }
+}
+
+function setAttemptStateCookie(response: NextResponse, state: AttemptCookieState) {
+  if (state.count <= 0 && !state.lockedUntil) {
+    response.cookies.delete(ATTEMPT_COOKIE_NAME);
+    return;
+  }
+
+  response.cookies.set({
+    name: ATTEMPT_COOKIE_NAME,
+    value: JSON.stringify(state),
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60,
+  });
+}
+
+function getLockedUntilFromState(state: AttemptCookieState) {
+  if (!state.lockedUntil) return null;
+  const date = new Date(state.lockedUntil);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function buildErrorResponse(
+  status: number,
+  code: 'AUTH_FAILED' | 'ACCOUNT_LOCKED' | 'SERVER_ERROR',
+  message: string,
+  attemptState: AttemptCookieState
+) {
+  const lockedUntil = getLockedUntilFromState(attemptState);
+  const response = NextResponse.json(
     {
       status: 'error',
       code,
       message,
+      meta: {
+        failedAttempts: Math.min(attemptState.count, MAX_FAILED_ATTEMPTS),
+        maxAttempts: MAX_FAILED_ATTEMPTS,
+        lockDurationMinutes: LOCK_DURATION_MS / 60000,
+        lockedUntil: lockedUntil ? lockedUntil.toISOString() : null,
+      },
     },
     { status }
   );
+
+  setAttemptStateCookie(response, attemptState);
+  return response;
 }
 
-export async function POST(request: Request) {
+function registerFailedAttempt(current: AttemptCookieState, nowMs: number): AttemptCookieState {
+  const nextCount = Math.min((current.count ?? 0) + 1, MAX_FAILED_ATTEMPTS);
+  const shouldLock = nextCount >= MAX_FAILED_ATTEMPTS;
+
+  return {
+    count: nextCount,
+    lockedUntil: shouldLock ? nowMs + LOCK_DURATION_MS : null,
+  };
+}
+
+export async function POST(request: NextRequest) {
   try {
+    const nowMs = Date.now();
+    const now = new Date(nowMs);
+    const cookieAttemptState = readAttemptState(request);
+
+    if (cookieAttemptState.lockedUntil && cookieAttemptState.lockedUntil > nowMs) {
+      return buildErrorResponse(
+        403,
+        'ACCOUNT_LOCKED',
+        '아이디 또는 비밀번호가 일치하지 않습니다.',
+        {
+          count: MAX_FAILED_ATTEMPTS,
+          lockedUntil: cookieAttemptState.lockedUntil,
+        }
+      );
+    }
+
     const body = await request.json().catch(() => null);
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
-      return jsonError(400, 'INVALID_INPUT', '이메일 형식이 잘못되었거나 필수 값이 누락됨');
+      const nextAttemptState = registerFailedAttempt(cookieAttemptState, nowMs);
+      const isLocked = Boolean(nextAttemptState.lockedUntil && nextAttemptState.lockedUntil > nowMs);
+
+      return buildErrorResponse(
+        isLocked ? 403 : 401,
+        isLocked ? 'ACCOUNT_LOCKED' : 'AUTH_FAILED',
+        '아이디 또는 비밀번호가 일치하지 않습니다.',
+        nextAttemptState
+      );
     }
 
     const { email, password } = parsed.data;
@@ -48,34 +160,52 @@ export async function POST(request: Request) {
 
     // Always return AUTH_FAILED for non-existent users
     if (!user || !user.password) {
-      return jsonError(401, 'AUTH_FAILED', '아이디 또는 비밀번호를 확인해주세요.');
+      const nextAttemptState = registerFailedAttempt(cookieAttemptState, nowMs);
+      const isLocked = Boolean(nextAttemptState.lockedUntil && nextAttemptState.lockedUntil > nowMs);
+
+      return buildErrorResponse(
+        isLocked ? 403 : 401,
+        isLocked ? 'ACCOUNT_LOCKED' : 'AUTH_FAILED',
+        '아이디 또는 비밀번호가 일치하지 않습니다.',
+        nextAttemptState
+      );
     }
 
-    const now = new Date();
     if (user.lockedUntil && user.lockedUntil > now) {
-      return jsonError(403, 'ACCOUNT_LOCKED', '비밀번호 5회 오류 등으로 인한 계정 잠김');
+      return buildErrorResponse(403, 'ACCOUNT_LOCKED', '아이디 또는 비밀번호가 일치하지 않습니다.', {
+        count: MAX_FAILED_ATTEMPTS,
+        lockedUntil: user.lockedUntil.getTime(),
+      });
     }
 
     const ok = await compare(password, user.password);
 
     if (!ok) {
-      const nextAttempts = (user.failedLoginAttempts ?? 0) + 1;
-      const shouldLock = nextAttempts >= 5;
-      const lockedUntil = shouldLock ? new Date(Date.now() + 30 * 60 * 1000) : null; // 30m
+      const nextUserAttempts = Math.min((user.failedLoginAttempts ?? 0) + 1, MAX_FAILED_ATTEMPTS);
+      const shouldLock = nextUserAttempts >= MAX_FAILED_ATTEMPTS;
+      const userLockedUntil = shouldLock ? new Date(nowMs + LOCK_DURATION_MS) : null;
 
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          failedLoginAttempts: nextAttempts,
-          lockedUntil,
+          failedLoginAttempts: nextUserAttempts,
+          lockedUntil: userLockedUntil,
         },
       });
 
-      if (shouldLock) {
-        return jsonError(403, 'ACCOUNT_LOCKED', '비밀번호 5회 오류 등으로 인한 계정 잠김');
-      }
+      const nextAttemptState = registerFailedAttempt(cookieAttemptState, nowMs);
+      const effectiveLockedUntil = userLockedUntil?.getTime() ?? nextAttemptState.lockedUntil;
+      const isLocked = Boolean(effectiveLockedUntil && effectiveLockedUntil > nowMs);
 
-      return jsonError(401, 'AUTH_FAILED', '아이디 또는 비밀번호를 확인해주세요.');
+      return buildErrorResponse(
+        isLocked ? 403 : 401,
+        isLocked ? 'ACCOUNT_LOCKED' : 'AUTH_FAILED',
+        '아이디 또는 비밀번호가 일치하지 않습니다.',
+        {
+          count: Math.max(nextAttemptState.count, nextUserAttempts),
+          lockedUntil: effectiveLockedUntil ?? null,
+        }
+      );
     }
 
     // Successful login: reset lock state
@@ -89,7 +219,7 @@ export async function POST(request: Request) {
 
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) {
-      return jsonError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+      return buildErrorResponse(500, 'SERVER_ERROR', '서버 내부 로직 오류', getDefaultAttemptState());
     }
 
     // Access token (1 hour) - NextAuth JWT encoding for API compatibility
@@ -123,7 +253,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         status: 'success',
         data: {
@@ -134,12 +264,20 @@ export async function POST(request: Request) {
             email: user.email,
           },
         },
+        meta: {
+          failedAttempts: 0,
+          maxAttempts: MAX_FAILED_ATTEMPTS,
+          lockDurationMinutes: LOCK_DURATION_MS / 60000,
+          lockedUntil: null,
+        },
       },
       { status: 200 }
     );
+
+    setAttemptStateCookie(response, getDefaultAttemptState());
+    return response;
   } catch (e) {
     console.error('v1 login error:', e);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+    return buildErrorResponse(500, 'SERVER_ERROR', '서버 내부 로직 오류', getDefaultAttemptState());
   }
 }
-
