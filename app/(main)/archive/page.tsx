@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner, Footer, NavBar } from '@/components/layout';
 import { ArchiveCard1, DashboardHeaderTitle, Dropdown, Tab } from '@/components/ui';
-import { cn } from '@/lib/utils';
 
 type ArchiveFilterOption = {
   yearId?: string;
@@ -227,17 +226,17 @@ export default function ArchivePage() {
                         <DashboardHeaderTitle year={section.year} category={section.category} />
                       </div>
 
-                      <div className={cn(section.projects.length > 1 ? '' : '[&_button[aria-label]]:opacity-30')}>
-                        <ArchiveCard1
-                          title={project.title}
-                          subtitle={project.teamName}
-                          imageSrc={project.thumbnailUrl}
-                          onCardClick={() => router.push(`/archive/projects/${project.projectId}`)}
-                          cardAriaLabel={`${project.title} 상세 페이지로 이동`}
-                          onPrevClick={() => rotateSection(section, -1)}
-                          onNextClick={() => rotateSection(section, 1)}
-                        />
-                      </div>
+                      <ArchiveCard1
+                        title={project.title}
+                        subtitle={project.teamName}
+                        imageSrc={project.thumbnailUrl}
+                        onCardClick={() => router.push(`/archive/projects/${project.projectId}`)}
+                        cardAriaLabel={`${project.title} 상세 페이지로 이동`}
+                        onPrevClick={() => rotateSection(section, -1)}
+                        onNextClick={() => rotateSection(section, 1)}
+                        disablePrev={section.projects.length <= 1}
+                        disableNext={section.projects.length <= 1}
+                      />
                     </section>
                   );
                 })}

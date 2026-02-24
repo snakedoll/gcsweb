@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import ArchiveCardName from './ArchiveCardName';
 
@@ -11,14 +12,18 @@ interface ArchiveCard1Props {
   onCardClick?: () => void;
   onPrevClick?: () => void;
   onNextClick?: () => void;
+  disablePrev?: boolean;
+  disableNext?: boolean;
 }
 
 function ArrowButton({
   direction,
   onClick,
+  disabled,
 }: {
   direction: 'left' | 'right';
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   const isLeft = direction === 'left';
 
@@ -26,24 +31,23 @@ function ArrowButton({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={isLeft ? '\uC774\uC804 \uCE74\uB4DC' : '\uB2E4\uC74C \uCE74\uB4DC'}
+      data-role="archive-card-arrow"
       className="flex h-6 w-6 items-center justify-center text-orange-4 transition hover:text-orange-5 disabled:opacity-40"
     >
-      <svg
-        viewBox="0 0 24 24"
-        className={cn('h-5 w-5', !isLeft && 'rotate-180')}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <Image
+        src={
+          isLeft
+            ? '/assets/icons/arrow/filled/Iconex/Filled/Left 2.svg'
+            : '/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg'
+        }
+        alt=""
+        width={24}
+        height={24}
+        className="h-6 w-6"
         aria-hidden
-      >
-        <path
-          d="M14.5 6.5L9 12l5.5 5.5"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      />
     </button>
   );
 }
@@ -58,12 +62,14 @@ export default function ArchiveCard1({
   onCardClick,
   onPrevClick,
   onNextClick,
+  disablePrev = false,
+  disableNext = false,
 }: ArchiveCard1Props) {
   const CardContentWrapper = onCardClick ? 'button' : 'div';
 
   return (
     <div className={cn('flex items-center justify-between bg-white px-4 py-7', className)}>
-      <ArrowButton direction="left" onClick={onPrevClick} />
+      <ArrowButton direction="left" onClick={onPrevClick} disabled={disablePrev} />
 
       <CardContentWrapper
         {...(onCardClick
@@ -96,7 +102,7 @@ export default function ArchiveCard1({
         </div>
       </CardContentWrapper>
 
-      <ArrowButton direction="right" onClick={onNextClick} />
+      <ArrowButton direction="right" onClick={onNextClick} disabled={disableNext} />
     </div>
   );
 }

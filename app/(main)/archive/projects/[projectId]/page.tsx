@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Footer, NavBar } from '@/components/layout';
 import { ArchiveCard2, ProfileAvatar } from '@/components/ui';
@@ -78,21 +79,18 @@ function SideArrowButton({
       aria-label={isLeft ? '이전 프로젝트' : '다음 프로젝트'}
       className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-5 bg-white text-orange-4 disabled:opacity-30"
     >
-      <svg
-        viewBox="0 0 24 24"
-        className={`h-5 w-5 ${isLeft ? '' : 'rotate-180'}`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <Image
+        src={
+          isLeft
+            ? '/assets/icons/arrow/filled/Iconex/Filled/Left 2.svg'
+            : '/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg'
+        }
+        alt=""
+        width={24}
+        height={24}
+        className="h-6 w-6"
         aria-hidden
-      >
-        <path
-          d="M14.5 6.5L9 12l5.5 5.5"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      />
     </button>
   );
 }

@@ -13,9 +13,9 @@ export default function DashboardHeaderTitle({
 }: DashboardHeaderTitleProps) {
   return (
     <div className={cn('flex items-center gap-[7px]', className)} data-name="dashboard_headertitle">
-      <span className="text-center text-[15px] leading-[1.5] text-neutral-8">{year}</span>
-      <span aria-hidden className="h-[11.5px] w-px bg-neutral-8/60" />
-      <span className="text-center text-[15px] leading-[1.5] text-neutral-8">{category}</span>
+      <span className="shrink-0 text-center text-[15px] leading-[1.5] text-neutral-8">{year}</span>
+      <span aria-hidden className="shrink-0 h-[11.5px] w-px bg-neutral-8" />
+      <span className="shrink-0 text-center text-[15px] leading-[1.5] text-neutral-8">{category}</span>
     </div>
   );
 }

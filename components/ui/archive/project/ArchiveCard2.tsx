@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import ArchiveCardName from './ArchiveCardName';
 import DashboardHeaderTitle from './DashboardHeaderTitle';
@@ -39,37 +40,28 @@ function IconButton({
 
 function ShareIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M12 4v9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path
-        d="M8.75 7.25L12 4l3.25 3.25"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6.5 10.5V18a1 1 0 001 1h9a1 1 0 001-1v-7.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Image
+      src="/assets/icons/light/logout.svg"
+      alt=""
+      width={15}
+      height={18.5}
+      className="h-[18.5px] w-[15px] opacity-70"
+      aria-hidden
+    />
   );
 }
 
 function BookmarkIcon({ selected }: { selected: boolean }) {
   if (selected) {
     return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 text-orange-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <svg viewBox="0 0 24 24" className="h-[18px] w-[14px] text-orange-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
         <path d="M8 4.75A1.75 1.75 0 0 1 9.75 3h4.5A1.75 1.75 0 0 1 16 4.75V20l-4-2.6L8 20V4.75Z" />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[14px]" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <path
         d="M8 4.75A1.75 1.75 0 0 1 9.75 3h4.5A1.75 1.75 0 0 1 16 4.75V20l-4-2.6L8 20V4.75Z"
         stroke="currentColor"
@@ -109,11 +101,11 @@ export default function ArchiveCard2({
 
         <ArchiveCardName title={title} subtitle={subtitle} />
 
-        <div className="space-y-[9px]">
-          <div className="h-px w-full bg-neutral-5" />
-          <div className="flex items-center justify-between">
-            <DashboardHeaderTitle year={year} category={category} />
-            <div className="flex items-center gap-[6px]">
+        <div className="relative w-full pt-[9px]">
+          <div className="absolute left-px top-0 h-px w-[296px] bg-neutral-5" />
+          <div className="flex items-start justify-between">
+            <DashboardHeaderTitle year={year} category={category} className="pt-0" />
+            <div className="mt-px flex items-center gap-[5px]">
               <IconButton label="\uACF5\uC720" onClick={onShareClick}>
                 <ShareIcon />
               </IconButton>
