@@ -406,7 +406,7 @@ export default function AdminTeamCreatePage() {
                     {/* 이미지 아이콘 - Figma 설계 */}
                     <div className="w-8 h-8">
                       <Image
-                        src="/assets/icons/filled/Iconex/Filled/Image.svg"
+                        src="/assets/icons/filled/Filled/Image.svg"
                         alt="통장 사본 아이콘"
                         width={32}
                         height={32}
@@ -705,14 +705,14 @@ export default function AdminTeamCreatePage() {
                           <div className="ml-4 mt-1">
                             {leaderId === member.id ? (
                               <Image
-                                src="http://localhost:3845/assets/c7ba311a28712c18910b68566da1264af8e2acd6.svg"
+                                src="\assets\icons\filled\Filled\Plus.svg"
                                 alt="selected"
                                 width={24}
                                 height={24}
                               />
                             ) : (
                               <Image
-                                src="http://localhost:3845/assets/cccab0fded6198009335d639fa7656370c63e78a.svg"
+                                src="\assets\icons\filled\Filled\Minus.svg"
                                 alt="unselected"
                                 width={24}
                                 height={24}
