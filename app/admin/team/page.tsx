@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NavBar } from "@/components/layout";
-import SearchBar from "@/components/ui/SearchBar";
+import SearchBar from "@/components/ui/common/SearchBar";
 import Image from "next/image";
 import { formatPhoneWithHyphen } from "@/lib/format-phone";
 

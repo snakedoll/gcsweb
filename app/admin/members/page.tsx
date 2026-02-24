@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NavBar } from "@/components/layout";
-import SearchBar from "@/components/ui/SearchBar";
+import SearchBar from "@/components/ui/common/SearchBar";
 import { formatPhoneWithHyphen } from "@/lib/format-phone";
 import { cn } from "@/lib/utils";
 

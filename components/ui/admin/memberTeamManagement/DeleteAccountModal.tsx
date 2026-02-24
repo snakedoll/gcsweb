@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import WarningAlert from '@/components/ui/WarningAlert';
+import WarningAlert from '@/components/ui/common/WarningAlert';
 
 const CONFIRM_TEXT = '삭제하겠습니다';
 

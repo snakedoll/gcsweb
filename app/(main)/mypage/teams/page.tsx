@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import TeamCard from "@/components/admin/TeamCard";
-import TeamModal from "@/components/admin/TeamModal";
+import TeamCard from "@/components/ui/admin/memberTeamManagement/TeamCard";
+import TeamModal from "@/components/ui/admin/memberTeamManagement/TeamModal";
 
 export default function TeamPage() {
   const [teams, setTeams] = useState<any[]>([]);

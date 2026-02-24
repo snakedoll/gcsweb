@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
-import UISearchBar from '@/components/ui/SearchBar';
+import UISearchBar from '@/components/ui/common/SearchBar';
 import FloatingButton from '@/components/ui/button/FloatingButton';
-import ToastMessage from '@/components/ui/ToastMessage';
-import { FilterArea, Listedcard } from '@/components/ui/project';
+import ToastMessage from '@/components/ui/common/ToastMessage';
+import { FilterArea, Listedcard } from '@/components/ui/admin/project';
 import { cn } from '@/lib/utils';
 
 type FilterState = {

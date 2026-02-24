@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { NavBar } from "@/components/layout";
-import TextField from "@/components/ui/TextField";
+import TextField from "@/components/ui/common/TextField";
 import Button from "@/components/ui/button/Button";
 import RadioButton from "@/components/ui/button/RadioButton";
 import { useSession } from "next-auth/react";

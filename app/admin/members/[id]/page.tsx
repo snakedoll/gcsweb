@@ -5,9 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { NavBar } from '@/components/layout';
-import DeleteAccountModal from '@/components/admin/DeleteAccountModal';
-import ToastMessage from '@/components/ui/ToastMessage';
-import MemberProfileCard from '@/components/admin/MemberProfileCard';
+import DeleteAccountModal from '@/components/ui/admin/memberTeamManagement/DeleteAccountModal';
+import ToastMessage from '@/components/ui/common/ToastMessage';
+import MemberProfileCard from '@/components/ui/admin/memberTeamManagement/MemberProfileCard';
 import { formatPhoneWithHyphen } from '@/lib/format-phone';
 import { cn } from '@/lib/utils';
 
