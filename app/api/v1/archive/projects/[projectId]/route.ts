@@ -49,11 +49,84 @@ export async function GET(
         categoryId: true,
         thumbnailUrl: true,
         detailUrl: true,
-        team: { select: { teamName: true } },
+        team: {
+          select: {
+            teamName: true,
+            userId: true,
+            representativeName: true,
+            representativeNickname: true,
+            teamMember: true,
+            teamMemberNickname: true,
+          },
+        },
         projectYear: { select: { year: true } },
         category: { select: { category: true } },
       },
     });
+
+    const rawMemberIds: string[] = Array.isArray(project.team?.teamMember)
+      ? project.team.teamMember.filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0)
+      : [];
+    const leaderId = typeof project.team?.userId === 'string' ? project.team.userId : '';
+    const uniqueUserIds = Array.from(new Set([leaderId, ...rawMemberIds].filter(Boolean)));
+
+    const teamUsers = uniqueUserIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: uniqueUserIds } },
+          select: {
+            id: true,
+            name: true,
+            nickname: true,
+            major: true,
+            profileImage: true,
+          },
+        })
+      : [];
+    const usersById = new Map(teamUsers.map((user) => [user.id, user]));
+
+    const members: Array<{
+      userId: string | null;
+      role: '대표' | '팀원';
+      name: string | null;
+      nickname: string | null;
+      major: string | null;
+      profileImage: string | null;
+      isRepresentative: boolean;
+    }> = [];
+
+    if (leaderId) {
+      const leader = usersById.get(leaderId);
+      members.push({
+        userId: leaderId,
+        role: '대표',
+        name: leader?.name ?? project.team?.representativeName ?? null,
+        nickname: leader?.nickname ?? project.team?.representativeNickname ?? null,
+        major: leader?.major ?? null,
+        profileImage: leader?.profileImage ?? null,
+        isRepresentative: true,
+      });
+    }
+
+    for (let i = 0; i < rawMemberIds.length; i += 1) {
+      const memberId = rawMemberIds[i];
+      if (!memberId || memberId === leaderId) continue;
+
+      const user = usersById.get(memberId);
+      const fallbackNickname =
+        Array.isArray(project.team?.teamMemberNickname) && typeof project.team.teamMemberNickname[i] === 'string'
+          ? project.team.teamMemberNickname[i]
+          : null;
+
+      members.push({
+        userId: memberId,
+        role: '팀원',
+        name: user?.name ?? fallbackNickname,
+        nickname: user?.nickname ?? fallbackNickname,
+        major: user?.major ?? null,
+        profileImage: user?.profileImage ?? null,
+        isRepresentative: false,
+      });
+    }
 
     let isScrap = false;
     try {
@@ -100,6 +173,7 @@ export async function GET(
           detailUrl: project.detailUrl,
           projectUrl,
           isScrap,
+          members,
         },
       },
     });
