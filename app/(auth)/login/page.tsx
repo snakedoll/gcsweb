@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { CheckboxButton, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
 import { type LoginInput } from '@/lib/validations/auth';
@@ -64,11 +64,9 @@ function LoginContent() {
     return () => window.clearInterval(timer);
   }, [isBlockedState, lockedUntilMs]);
 
-  const warningCaption = useMemo(() => {
-    const safeMax = maxAttempts > 0 ? maxAttempts : MAX_FAILED_ATTEMPTS;
-    const safeCount = Math.min(Math.max(failedAttempts, 1), safeMax);
-    return `아이디 또는 비밀번호가 일치하지 않습니다. (${safeCount}/${safeMax})`;
-  }, [failedAttempts, maxAttempts]);
+  const safeMaxAttempts = maxAttempts > 0 ? maxAttempts : MAX_FAILED_ATTEMPTS;
+  const safeFailedAttempts = Math.min(Math.max(failedAttempts, 1), safeMaxAttempts);
+  const warningCaption = `아이디 또는 비밀번호가 일치하지 않습니다. (${safeFailedAttempts}/${safeMaxAttempts})`;
 
   const blockedCaption = '5분 뒤 다시 시도해주세요.';
 

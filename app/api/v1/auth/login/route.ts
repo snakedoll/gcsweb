@@ -114,7 +114,11 @@ export async function POST(request: NextRequest) {
   try {
     const nowMs = Date.now();
     const now = new Date(nowMs);
-    const cookieAttemptState = readAttemptState(request);
+    const rawCookieAttemptState = readAttemptState(request);
+    const cookieAttemptState =
+      rawCookieAttemptState.lockedUntil && rawCookieAttemptState.lockedUntil <= nowMs
+        ? getDefaultAttemptState()
+        : rawCookieAttemptState;
 
     if (cookieAttemptState.lockedUntil && cookieAttemptState.lockedUntil > nowMs) {
       return buildErrorResponse(
@@ -176,6 +180,18 @@ export async function POST(request: NextRequest) {
         count: MAX_FAILED_ATTEMPTS,
         lockedUntil: user.lockedUntil.getTime(),
       });
+    }
+
+    if (user.lockedUntil && user.lockedUntil <= now) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+        },
+      });
+      user.failedLoginAttempts = 0;
+      user.lockedUntil = null;
     }
 
     const ok = await compare(password, user.password);
