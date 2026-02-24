@@ -229,7 +229,7 @@ export default function ArchiveProjectDetailPage({
                           variant="default"
                           name={member.nickname ?? member.name ?? '팀원'}
                           major={member.major ?? undefined}
-                          imageSrc={member.profileImage ?? undefined}
+                          imageSrc="/profile_image.png"
                         />
                       ))
                     ) : (

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import ArchiveCardName from './ArchiveCardName';
 
@@ -26,6 +25,9 @@ function ArrowButton({
   disabled?: boolean;
 }) {
   const isLeft = direction === 'left';
+  const iconPath = isLeft
+    ? '/assets/icons/arrow/filled/Iconex/Filled/Left 2.svg'
+    : '/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg';
 
   return (
     <button
@@ -34,19 +36,24 @@ function ArrowButton({
       disabled={disabled}
       aria-label={isLeft ? '\uC774\uC804 \uCE74\uB4DC' : '\uB2E4\uC74C \uCE74\uB4DC'}
       data-role="archive-card-arrow"
-      className="flex h-6 w-6 items-center justify-center text-orange-4 transition hover:text-orange-5 disabled:opacity-40"
+      className={cn(
+        'flex h-6 w-6 items-center justify-center transition disabled:opacity-40',
+        disabled ? 'text-neutral-6' : 'text-orange-3'
+      )}
     >
-      <Image
-        src={
-          isLeft
-            ? '/assets/icons/arrow/filled/Iconex/Filled/Left 2.svg'
-            : '/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg'
-        }
-        alt=""
-        width={24}
-        height={24}
-        className="h-6 w-6"
+      <span
         aria-hidden
+        className="block h-6 w-6 bg-current"
+        style={{
+          WebkitMaskImage: `url("${iconPath}")`,
+          maskImage: `url("${iconPath}")`,
+          WebkitMaskRepeat: 'no-repeat',
+          maskRepeat: 'no-repeat',
+          WebkitMaskPosition: 'center',
+          maskPosition: 'center',
+          WebkitMaskSize: '24px 24px',
+          maskSize: '24px 24px',
+        }}
       />
     </button>
   );

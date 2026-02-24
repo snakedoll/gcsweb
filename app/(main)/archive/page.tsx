@@ -160,14 +160,15 @@ export default function ArchivePage() {
     return match?.category;
   }, [categories, selectedCategoryId]);
 
-  const rotateSection = (section: ArchiveSection, direction: -1 | 1) => {
+  const moveSection = (section: ArchiveSection, direction: -1 | 1) => {
     const key = `${section.yearId}::${section.categoryId}`;
     const total = section.projects.length;
     if (total <= 1) return;
 
     setSectionIndices((prev) => {
       const current = prev[key] ?? 0;
-      const nextIndex = (current + direction + total) % total;
+      const nextIndex = Math.min(Math.max(current + direction, 0), total - 1);
+      if (nextIndex === current) return prev;
       return { ...prev, [key]: nextIndex };
     });
   };
@@ -232,10 +233,12 @@ export default function ArchivePage() {
                         imageSrc={project.thumbnailUrl}
                         onCardClick={() => router.push(`/archive/projects/${project.projectId}`)}
                         cardAriaLabel={`${project.title} 상세 페이지로 이동`}
-                        onPrevClick={() => rotateSection(section, -1)}
-                        onNextClick={() => rotateSection(section, 1)}
-                        disablePrev={section.projects.length <= 1}
-                        disableNext={section.projects.length <= 1}
+                        onPrevClick={() => moveSection(section, -1)}
+                        onNextClick={() => moveSection(section, 1)}
+                        disablePrev={section.projects.length <= 1 || currentIndex <= 0}
+                        disableNext={
+                          section.projects.length <= 1 || currentIndex >= section.projects.length - 1
+                        }
                       />
                     </section>
                   );
