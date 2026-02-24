@@ -4,31 +4,39 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckboxButton, LoginSupportLinks, LogoSubtext, TextField } from '@/components/ui';
-import { loginSchema, type LoginInput } from '@/lib/validations/auth';
+import { type LoginInput } from '@/lib/validations/auth';
 import { cn } from '@/lib/utils';
 
 type LoginUiState = 'default' | 'warning' | 'blocked';
+
+type LoginErrorResponse = {
+  code?: string;
+  meta?: {
+    failedAttempts?: number;
+    maxAttempts?: number;
+    lockedUntil?: string | null;
+  };
+};
+
+const MAX_FAILED_ATTEMPTS = 5;
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get('reset') === 'success';
+
   const [loginUiState, setLoginUiState] = useState<LoginUiState>('default');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [maxAttempts, setMaxAttempts] = useState(MAX_FAILED_ATTEMPTS);
+  const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting, errors },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
+  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<LoginInput>({
     defaultValues: {
       email: '',
       password: '',
@@ -39,6 +47,30 @@ function LoginContent() {
   const passwordValue = watch('password');
   const isWarningState = loginUiState === 'warning';
   const isBlockedState = loginUiState === 'blocked';
+
+  useEffect(() => {
+    if (!isBlockedState || !lockedUntilMs) return;
+
+    const tick = () => {
+      if (Date.now() >= lockedUntilMs) {
+        setLoginUiState('default');
+        setFailedAttempts(0);
+        setLockedUntilMs(null);
+      }
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [isBlockedState, lockedUntilMs]);
+
+  const warningCaption = useMemo(() => {
+    const safeMax = maxAttempts > 0 ? maxAttempts : MAX_FAILED_ATTEMPTS;
+    const safeCount = Math.min(Math.max(failedAttempts, 1), safeMax);
+    return `아이디 또는 비밀번호가 일치하지 않습니다. (${safeCount}/${safeMax})`;
+  }, [failedAttempts, maxAttempts]);
+
+  const blockedCaption = '5분 뒤 다시 시도해주세요.';
 
   const onSubmit = async (data: LoginInput) => {
     if (isBlockedState) return;
@@ -51,10 +83,17 @@ function LoginContent() {
       body: JSON.stringify(data),
     });
 
-    const loginResult = await loginResponse.json().catch(() => null);
+    const loginResult = (await loginResponse.json().catch(() => null)) as LoginErrorResponse | null;
 
     if (!loginResponse.ok) {
-      const code = loginResult?.code as string | undefined;
+      const code = loginResult?.code;
+      const nextFailedAttempts = loginResult?.meta?.failedAttempts;
+      const nextMaxAttempts = loginResult?.meta?.maxAttempts;
+      const lockedUntil = loginResult?.meta?.lockedUntil ? new Date(loginResult.meta.lockedUntil).getTime() : null;
+
+      if (typeof nextFailedAttempts === 'number') setFailedAttempts(nextFailedAttempts);
+      if (typeof nextMaxAttempts === 'number' && nextMaxAttempts > 0) setMaxAttempts(nextMaxAttempts);
+      if (lockedUntil && Number.isFinite(lockedUntil)) setLockedUntilMs(lockedUntil);
 
       if (code === 'ACCOUNT_LOCKED') {
         setLoginUiState('blocked');
@@ -79,15 +118,21 @@ function LoginContent() {
       return;
     }
 
+    setFailedAttempts(0);
+    setLockedUntilMs(null);
     router.push('/');
     router.refresh();
+  };
+
+  const resetWarningState = () => {
+    if (loginUiState === 'warning') {
+      setLoginUiState('default');
+    }
   };
 
   const getFieldState = (field: 'email' | 'password', hasValue: boolean) => {
     if (isWarningState) return 'warning' as const;
     if (isBlockedState) return 'blocked' as const;
-    if (field === 'email' && errors.email) return 'warning' as const;
-    if (field === 'password' && errors.password) return 'warning' as const;
     if (focusedField === field) return 'focus' as const;
     if (hasValue) return 'filled' as const;
     return 'default' as const;
@@ -111,13 +156,15 @@ function LoginContent() {
       </div>
 
       <div className="rounded-t-[12px] bg-white px-4 pb-7 pt-[38px]">
-        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-[570px] flex-col justify-between">
+        <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex min-h-[570px] flex-col justify-between">
           <div className="space-y-6">
             <div className="space-y-5">
               <h1 className={cn('text-center text-neutral-10 typo-heading-small')}>로그인</h1>
-              {resetSuccess && (
-                <p className="text-center typo-body-xsmall text-orange-5">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.</p>
-              )}
+              {resetSuccess ? (
+                <p className="text-center typo-body-xsmall text-orange-5">
+                  비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.
+                </p>
+              ) : null}
 
               <button
                 type="button"
@@ -144,28 +191,14 @@ function LoginContent() {
                 inputProps={{
                   ...register('email', {
                     onBlur: () => setFocusedField(null),
-                    onChange: () => {
-                      if (loginUiState === 'warning') setLoginUiState('default');
-                    },
+                    onChange: () => resetWarningState(),
                   }),
                   onFocus: () => setFocusedField('email'),
                   disabled: isBlockedState,
                 }}
-                rightSlot={
-                  isWarningState ? (
-                    <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                  ) : undefined
-                }
-                caption={
-                  errors.email?.message
-                    ? errors.email.message
-                    : isWarningState
-                      ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
-                      : isBlockedState
-                        ? '잠시 후 다시 시도해주세요.'
-                        : undefined
-                }
-                captionClassName={cn('typo-body-xsmall', isWarningState || errors.email ? 'text-danger' : 'text-orange-5')}
+                rightSlot={isWarningState ? <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} /> : undefined}
+                caption={isWarningState ? warningCaption : isBlockedState ? blockedCaption : undefined}
+                captionClassName={cn('typo-body-xsmall', isBlockedState ? 'text-orange-5' : 'text-danger')}
               />
 
               <TextField
@@ -177,15 +210,13 @@ function LoginContent() {
                 inputProps={{
                   ...register('password', {
                     onBlur: () => setFocusedField(null),
-                    onChange: () => {
-                      if (loginUiState === 'warning') setLoginUiState('default');
-                    },
+                    onChange: () => resetWarningState(),
                   }),
                   onFocus: () => setFocusedField('password'),
                   disabled: isBlockedState,
                 }}
                 rightSlot={
-                  isWarningState || errors.password ? (
+                  isWarningState ? (
                     <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
                   ) : (
                     <button
@@ -203,16 +234,8 @@ function LoginContent() {
                     </button>
                   )
                 }
-                caption={
-                  errors.password?.message
-                    ? errors.password.message
-                    : isWarningState
-                      ? '아이디 또는 비밀번호가 일치하지 않습니다. (/5)'
-                      : isBlockedState
-                        ? '잠시 후 다시 시도해주세요.'
-                        : undefined
-                }
-                captionClassName={cn('typo-body-xsmall', isWarningState || errors.password ? 'text-danger' : 'text-orange-5')}
+                caption={isWarningState ? warningCaption : isBlockedState ? blockedCaption : undefined}
+                captionClassName={cn('typo-body-xsmall', isBlockedState ? 'text-orange-5' : 'text-danger')}
               />
             </div>
 
