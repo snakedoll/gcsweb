@@ -101,7 +101,12 @@ model Product {
   salesStartDate      DateTime?
   salesEndDate        DateTime?
   productionStartDate DateTime?
+  productionEndDate   DateTime?  // Fund 택배: 제작 종료일
   deliveryStartDate   DateTime?
+  deliveryEndDate     DateTime?  // Fund 택배: 배송 종료일
+  pickupStartDate     DateTime?  // Fund 현장 수령: 수령 시작일
+  pickupEndDate       DateTime?  // Fund 현장 수령: 수령 종료일
+  pickupLocation      String?   // Fund 현장 수령: 수령 장소
   receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
   isPublic            Boolean   @default(false)
   likeCount           Int       @default(0)

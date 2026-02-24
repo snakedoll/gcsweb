@@ -34,6 +34,21 @@ interface TeamItem {
   teamName: string;
 }
 
+async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL'): Promise<string> {
+  const form = new FormData();
+  form.append('image', file);
+  form.append('usage', usage);
+  const res = await fetch('/api/v1/images', { method: 'POST', body: form });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error((j as { message?: string }).message || '이미지 업로드에 실패했습니다.');
+  }
+  const data = (await res.json()) as { data?: { imageUrl?: string } };
+  const url = data.data?.imageUrl;
+  if (!url) throw new Error('이미지 URL을 받지 못했습니다.');
+  return url;
+}
+
 function ThumbnailPreview({ file }: { file: File }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
@@ -381,10 +396,52 @@ export default function NewProductPage() {
     formState: { errors: errorsStep3Fund },
   } = step3FundForm;
 
-  const onSubmitStep3Fund = (data: NewProductStep2BuyNowInput) => {
-    const payload = { ...data, options: fundStep3Options };
-    // TODO: API 연동 (step1Data + step2 delivery/pickup + step3 price/options)
-    router.push('/mypage/my-products');
+  const onSubmitStep3Fund = async (data: NewProductStep2BuyNowInput) => {
+    if (!step1Data || !thumbnailFile || detailFiles.length === 0) {
+      alert('필수 항목(팀/상품정보, 썸네일, 상세 이미지 1장 이상)을 확인해주세요.');
+      return;
+    }
+    const step2Data = isFundDelivery ? step2DeliveryForm.getValues() : step2PickupForm.getValues();
+    setSubmittingRegistration(true);
+    setRegistrationError(null);
+    try {
+      const thumbnailImgUrl = await uploadProductImage(thumbnailFile, 'PRODUCT_THUMBNAIL');
+      const detailImgUrls = await Promise.all(detailFiles.map((f) => uploadProductImage(f, 'PRODUCT_DETAIL')));
+      const optionsPayload = fundStep3Options
+        .filter((o) => o.optionName.trim())
+        .map((o) => ({ optionName: o.optionName.trim(), values: o.values.map((v) => ({ value: v.value.trim(), extraPrice: v.extraPrice })) }));
+      const body = {
+        ...step1Data,
+        goalAmount: step2Data.goalAmount,
+        ...(isFundDelivery
+          ? {
+              productionStartDate: (step2Data as NewProductStep2DeliveryInput).productionStartDate,
+              productionEndDate: (step2Data as NewProductStep2DeliveryInput).productionEndDate,
+              deliveryStartDate: (step2Data as NewProductStep2DeliveryInput).deliveryStartDate,
+              deliveryEndDate: (step2Data as NewProductStep2DeliveryInput).deliveryEndDate,
+            }
+          : {
+              pickupStartDate: (step2Data as NewProductStep2PickupInput).pickupStartDate,
+              pickupEndDate: (step2Data as NewProductStep2PickupInput).pickupEndDate,
+              pickupLocation: (step2Data as NewProductStep2PickupInput).pickupLocation,
+            }),
+        price: data.price,
+        options: optionsPayload,
+        thumbnailImgUrl,
+        detailImgUrls,
+      };
+      const res = await fetch('/api/v1/mypage/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
+      if (!res.ok) {
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
+        return;
+      }
+      router.push('/mypage/my-products');
+    } catch (e) {
+      setRegistrationError(e instanceof Error ? e.message : '등록 요청 중 오류가 발생했습니다.');
+    } finally {
+      setSubmittingRegistration(false);
+    }
   };
 
   const nextIdFund = () => `f3-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -417,10 +474,43 @@ export default function NewProductPage() {
     );
   };
 
-  const onSubmitStep2BuyNow = (data: NewProductStep2BuyNowInput) => {
-    const payload = { ...data, options: buyNowOptions };
-    // TODO: API 연동
-    router.push('/mypage/my-products');
+  const [isSubmittingRegistration, setSubmittingRegistration] = useState(false);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [showRegistrationConfirmModal, setShowRegistrationConfirmModal] = useState(false);
+  const [pendingRegistrationType, setPendingRegistrationType] = useState<'buyNow' | 'fund' | null>(null);
+
+  const onSubmitStep2BuyNow = async (data: NewProductStep2BuyNowInput) => {
+    if (!step1Data || !thumbnailFile || detailFiles.length === 0) {
+      alert('필수 항목(팀/상품정보, 썸네일, 상세 이미지 1장 이상)을 확인해주세요.');
+      return;
+    }
+    setSubmittingRegistration(true);
+    setRegistrationError(null);
+    try {
+      const thumbnailImgUrl = await uploadProductImage(thumbnailFile, 'PRODUCT_THUMBNAIL');
+      const detailImgUrls = await Promise.all(detailFiles.map((f) => uploadProductImage(f, 'PRODUCT_DETAIL')));
+      const optionsPayload = buyNowOptions
+        .filter((o) => o.optionName.trim())
+        .map((o) => ({ optionName: o.optionName.trim(), values: o.values.map((v) => ({ value: v.value.trim(), extraPrice: v.extraPrice })) }));
+      const body = {
+        ...step1Data,
+        price: data.price,
+        options: optionsPayload,
+        thumbnailImgUrl,
+        detailImgUrls,
+      };
+      const res = await fetch('/api/v1/mypage/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
+      if (!res.ok) {
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
+        return;
+      }
+      router.push('/mypage/my-products');
+    } catch (e) {
+      setRegistrationError(e instanceof Error ? e.message : '등록 요청 중 오류가 발생했습니다.');
+    } finally {
+      setSubmittingRegistration(false);
+    }
   };
 
   const onBackToStep1 = () => setCurrentStep(1);
@@ -983,12 +1073,22 @@ export default function NewProductPage() {
                 이전
               </button>
               <button
-                type="submit"
-                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
+                type="button"
+                disabled={isSubmittingRegistration}
+                onClick={() =>
+                  step2BuyNowForm.handleSubmit(() => {
+                    setPendingRegistrationType('buyNow');
+                    setShowRegistrationConfirmModal(true);
+                  })()
+                }
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
-                등록 요청
+                {isSubmittingRegistration ? '등록 중...' : '등록 요청'}
               </button>
             </div>
+            {registrationError && (
+              <p className="mt-2 text-center typo-body-xsmall text-red-5">{registrationError}</p>
+            )}
             <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
               등록 요청 시, 관리자의 승인을 거친 뒤 상품글이 업로드 됩니다.
             </p>
@@ -1443,16 +1543,76 @@ export default function NewProductPage() {
                 이전
               </button>
               <button
-                type="submit"
-                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
+                type="button"
+                disabled={isSubmittingRegistration}
+                onClick={() =>
+                  step3FundForm.handleSubmit(() => {
+                    setPendingRegistrationType('fund');
+                    setShowRegistrationConfirmModal(true);
+                  })()
+                }
+                className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
-                등록 요청
+                {isSubmittingRegistration ? '등록 중...' : '등록 요청'}
               </button>
             </div>
+            {registrationError && (
+              <p className="mt-2 text-center typo-body-xsmall text-red-5">{registrationError}</p>
+            )}
             <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
               등록 요청 시, 관리자의 승인을 거친 뒤 상품글이 업로드 됩니다.
             </p>
           </form>
+        )}
+
+        {/* 등록 요청 확인 모달 */}
+        {showRegistrationConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <button
+              type="button"
+              aria-label="배경 닫기"
+              className="absolute inset-0 bg-neutral-12 opacity-70"
+              onClick={() => {
+                setShowRegistrationConfirmModal(false);
+                setPendingRegistrationType(null);
+              }}
+            />
+            <div className="relative z-10 w-full max-w-[287px] rounded-xl bg-neutral-1 px-7 pb-6 pt-10 shadow-lg">
+              <p className="text-center text-[15px] font-bold leading-[1.5] text-neutral-12">
+                관리자에게 상품글 등록을 요청하시겠습니까?
+              </p>
+              <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
+                관리자 승인 후 상품이 게시됩니다.
+              </p>
+              <div className="mt-8 flex gap-[14px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRegistrationConfirmModal(false);
+                    setPendingRegistrationType(null);
+                  }}
+                  className="flex-1 rounded-lg border border-neutral-5 bg-neutral-2 py-3 typo-body-small-bold text-neutral-10"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pendingRegistrationType === 'buyNow') {
+                      onSubmitStep2BuyNow(step2BuyNowForm.getValues());
+                    } else if (pendingRegistrationType === 'fund') {
+                      onSubmitStep3Fund(step3FundForm.getValues());
+                    }
+                    setShowRegistrationConfirmModal(false);
+                    setPendingRegistrationType(null);
+                  }}
+                  className="flex-1 rounded-lg bg-orange-5 py-3 typo-body-small-bold text-neutral-2"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
