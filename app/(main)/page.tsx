@@ -1,12 +1,13 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useUser } from '@/hooks/useUser';
 import { Footer, NavBar, TabBar } from '@/components/layout';
 
 export default function HomePage() {
-  const { data: session, status } = useSession();
-  const role = session?.user?.role;
-  const isAdmin = status === 'authenticated' && role === 'admin';
+  const { session, profile, isAuthenticated } = useUser();
+  const isAdmin =
+    isAuthenticated &&
+    (session?.user?.role === 'admin' || profile?.role === 'admin');
 
   return (
     <>

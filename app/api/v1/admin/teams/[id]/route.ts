@@ -35,6 +35,7 @@ export async function GET(
         teamMember: true,
         teamMemberNickname: true,
         accountUrl: true,
+        isSalesTeam: true,
         totalSales: true,
         createdAt: true,
       },
@@ -80,7 +81,7 @@ export async function GET(
       }
     }
 
-    const teamType = team.accountUrl ? 1 : 0;
+    const teamType = team.isSalesTeam ? 1 : 0;
 
     const data = {
       id: team.id,
@@ -203,6 +204,7 @@ export async function PATCH(
     }
 
     if (teamType !== undefined) {
+      data.isSalesTeam = teamType === 1;
       if (teamType === 0 && accountUrl === undefined) {
         data.accountUrl = '';
       }
@@ -216,7 +218,7 @@ export async function PATCH(
     const responseTeam = {
       id: updated.id,
       teamName: updated.teamName,
-      teamType: teamType !== undefined ? teamType : (updated.accountUrl ? 1 : 0),
+      teamType: teamType !== undefined ? teamType : (updated.isSalesTeam ? 1 : 0),
       leaderId: finalLeaderId,
       memberIds: finalMemberIds,
       accountUrl: updated.accountUrl || null,

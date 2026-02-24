@@ -69,6 +69,7 @@ model Team {
   teamMember            String[]
   teamMemberNickname    String[]
   accountUrl            String
+  isSalesTeam           Boolean   @default(false) // true: 판매팀, false: 일반팀
   totalSales            Int?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

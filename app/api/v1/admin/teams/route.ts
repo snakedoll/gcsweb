@@ -43,6 +43,7 @@ export async function GET(request: Request) {
         teamMember: true,
         teamMemberNickname: true,
         accountUrl: true,
+        isSalesTeam: true,
       },
     });
 
@@ -82,8 +83,8 @@ export async function GET(request: Request) {
         }
       }
 
-      // teamType: 0 = general, 1 = seller (accountUrl가 있으면 판매팀)
-      const teamType = t.accountUrl ? 1 : 0;
+      // teamType: 0 = 일반팀, 1 = 판매팀 (isSalesTeam 기준, 없으면 accountUrl로 보정)
+      const teamType = t.isSalesTeam ? 1 : 0;
 
       result.push({
         id: t.id,
@@ -178,6 +179,8 @@ export async function POST(request: Request) {
     // accountUrl stored as empty string for non-seller (schema requires string)
     const storedAccountUrl = accountUrl && typeof accountUrl === 'string' ? accountUrl : '';
 
+    const isSalesTeam = teamType === 1;
+
     const created = await prisma.team.create({
       data: {
         userId: ownerId,
@@ -187,6 +190,7 @@ export async function POST(request: Request) {
         teamMember: uniqueMemberIds,
         teamMemberNickname: memberNicknames,
         accountUrl: storedAccountUrl,
+        isSalesTeam,
       },
     });
 

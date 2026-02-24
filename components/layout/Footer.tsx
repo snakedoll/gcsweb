@@ -44,7 +44,7 @@ export default function Footer({ showAdminButton = false }: FooterProps) {
           {showAdminButton ? (
             <Link
               href="/admin"
-              className="mt-2 inline-flex h-8 w-[90px] items-center justify-center rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 transition-colors hover:bg-orange-6"
+              className="mt-2 flex h-[32px] w-1/5 min-w-0 items-center justify-center rounded-lg bg-orange-5 text-[15px] font-bold leading-[1.5] text-neutral-2 transition-colors hover:bg-orange-6"
             >
               admin
             </Link>
