@@ -29,18 +29,7 @@ function PlusIcon({ disabled = false }: { disabled?: boolean }) {
   );
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M3.66275 13.2135L9.82377 19.7065C11.0068 20.9532 12.9932 20.9532 14.1762 19.7065L20.3372 13.2135C22.5542 10.877 22.5543 7.08882 20.3373 4.75235C18.1203 2.41588 14.5258 2.41588 12.3088 4.75235C12.1409 4.92925 11.8591 4.92925 11.6912 4.75235C9.47421 2.41588 5.87975 2.41588 3.66275 4.75235C1.44575 7.08883 1.44575 10.877 3.66275 13.2135Z"
-        fill={filled ? '#F6874C' : 'none'}
-        stroke={filled ? '#F6874C' : '#DDDCDB'}
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
-}
+// (좋아요 UI 제거) HeartIcon removed from this file
 
 function BackIcon() {
   return <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />;
@@ -63,8 +52,8 @@ function CheckIcon({ checked, disabled }: { checked: boolean; disabled?: boolean
   );
 }
 
-function ChevronDownIcon() {
-  return <Image src="/assets/icons/additional/Additional/Down-filled.svg" alt="" width={16} height={16} />;
+function ChevronDownIcon({ size = 16 }: { size?: number }) {
+  return <Image src="/assets/icons/additional/Additional/Down-filled.svg" alt="" width={size} height={size} />;
 }
 
 function CloseIcon() {
@@ -145,7 +134,6 @@ function CartItemCard({
   onQtyChange,
   onRemove,
   onChangeOptions,
-  onLike,
   disabled = false,
 }: {
   item: CartItem;
@@ -154,7 +142,6 @@ function CartItemCard({
   onQtyChange: (qty: number) => void;
   onRemove: () => void;
   onChangeOptions: (option1: string, option2: string) => void;
-  onLike: () => void;
   disabled?: boolean;
 }) {
   const [open1, setOpen1] = useState(false);
@@ -184,7 +171,7 @@ function CartItemCard({
           <div className="flex gap-2.5 items-start w-full">
             {/* Card/liked – Figma: 품절 시 opacity-40 */}
               <div className={`flex flex-1 gap-4 items-start ${isSoldOut ? 'opacity-40' : ''}`}>
-              <div className="flex-shrink-0 w-20 h-20 rounded-[4px] bg-[#f1f1f1] flex items-center justify-center relative">
+              <div className="flex-shrink-0 w-16 h-20 rounded-[4px] bg-[#f1f1f1] flex items-center justify-center relative">
                 {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover rounded-[4px]" />
                 ) : (
@@ -194,13 +181,7 @@ function CartItemCard({
                     <path d="M3 15L8 10L12 14L15 11L21 17" stroke="#c7c5c4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
-                <button
-                  onClick={onLike}
-                  className="absolute bottom-0.5 right-0.5 w-6 h-6 flex items-center justify-center cursor-pointer"
-                  aria-label="좋아요"
-                >
-                  <HeartIcon filled={item.liked} />
-                </button>
+                {/* 좋아요 버튼 제거 */}
               </div>
 
               <div className="flex flex-1 flex-col min-w-0">
@@ -223,8 +204,8 @@ function CartItemCard({
             {/* 옵션 1 */}
             <div className="relative">
               <button
-                onClick={() => !isSoldOut && setOpen1(!open1)}
-                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${
+                onClick={() => setOpen1(!open1)}
+                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isSoldOut ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
                   item.option1 ? 'border-[#c7c5c4] text-[#3f3835]' : 'border-[#dddcdb] text-[#999694]'
                 }`}
                 style={{ backgroundColor: fieldBg }}
@@ -232,16 +213,19 @@ function CartItemCard({
                 <span>{item.option1 || '옵션 1'}</span>
                 <ChevronDownIcon />
               </button>
-              {open1 && !isSoldOut && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dddcdb] rounded-[4px] z-10">
+              {open1 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dddcdb] rounded-[4px] z-50">
                   {options1.map((opt) => (
                     <button
                       key={opt}
                       onClick={() => {
-                        onChangeOptions(opt, item.option2);
+                        if (!isSoldOut) {
+                          onChangeOptions(opt, item.option2);
+                        }
                         setOpen1(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-[13px] text-[#2f2824] hover:bg-[#f1f1f1] tracking-[-0.26px]"
+                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isSoldOut ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
+                      disabled={isSoldOut}
                     >
                       {opt}
                     </button>
@@ -253,8 +237,8 @@ function CartItemCard({
             {/* 옵션 2 */}
             <div className="relative">
               <button
-                onClick={() => !isSoldOut && setOpen2(!open2)}
-                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${
+                onClick={() => setOpen2(!open2)}
+                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isSoldOut ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
                   item.option2 ? 'border-[#c7c5c4] text-[#3f3835]' : 'border-[#dddcdb] text-[#999694]'
                 }`}
                 style={{ backgroundColor: fieldBg }}
@@ -262,16 +246,19 @@ function CartItemCard({
                 <span>{item.option2 || '옵션 2'}</span>
                 <ChevronDownIcon />
               </button>
-              {open2 && !isSoldOut && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dddcdb] rounded-[4px] z-10">
+              {open2 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dddcdb] rounded-[4px] z-50">
                   {options2.map((opt) => (
                     <button
                       key={opt}
                       onClick={() => {
-                        onChangeOptions(item.option1, opt);
+                        if (!isSoldOut) {
+                          onChangeOptions(item.option1, opt);
+                        }
                         setOpen2(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-[13px] text-[#2f2824] hover:bg-[#f1f1f1] tracking-[-0.26px]"
+                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isSoldOut ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
+                      disabled={isSoldOut}
                     >
                       {opt}
                     </button>
@@ -326,6 +313,7 @@ export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
   const [pageLoading, setPageLoading] = useState(true);
+  const [showSoldOut, setShowSoldOut] = useState(true);
 
   // API: 장바구니 목록 조회
   useEffect(() => {
@@ -468,11 +456,7 @@ export default function CartPage() {
     deleteSelectedItems();
   }
 
-  function toggleLike(id: number) {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, liked: !i.liked } : i))
-    );
-  }
+  
 
   if (isLoading || pageLoading) {
     return (
@@ -497,16 +481,14 @@ export default function CartPage() {
           </div>
 
           {/* ── 전체선택 + 선택삭제 탭 ────────────────── */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#f1f1f1] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#e6e6e6]">
             <button
               onClick={toggleAll}
               className="flex items-center gap-2 h-7 cursor-pointer"
               aria-label={allActiveChecked ? '전체 해제' : '전체 선택'}
             >
               <CheckIcon checked={allActiveChecked} />
-              <span
-                className={`text-[13px] leading-[1.5] tracking-[-0.26px] ${allActiveChecked ? 'text-[#3f3835]' : 'text-[#999694]'}`}
-              >
+              <span className={`text-[13px] leading-[1.5] tracking-[-0.26px] ${allActiveChecked ? 'text-[#3f3835]' : 'text-[#999694]'}`}>
                 전체선택
               </span>
             </button>
@@ -514,9 +496,10 @@ export default function CartPage() {
             {hasSelected && (
               <button
                 onClick={deleteSelected}
-                className="text-[15px] font-bold leading-[1.5] text-[#3f3835] cursor-pointer"
+                className="flex items-center gap-2 text-[15px] font-bold leading-[1.5] text-[#3f3835] cursor-pointer"
+                aria-label="선택삭제"
               >
-                선택삭제
+                <Image src="/assets/icons/additional/Iconex/Trash can.svg" alt="선택삭제" width={20} height={20} />
               </button>
             )}
           </div>
@@ -538,7 +521,6 @@ export default function CartPage() {
                       onQtyChange={(qty) => setQty(item.id, qty)}
                       onRemove={() => removeItem(item.id)}
                       onChangeOptions={(opt1, opt2) => changeOptions(item.id, opt1, opt2)}
-                      onLike={() => toggleLike(item.id)}
                       disabled={false}
                     />
                     {idx < activeItems.length - 1 && (
@@ -558,43 +540,58 @@ export default function CartPage() {
           {/* 품절된 상품 */}
           {soldOutItems.length > 0 && (
             <div className="flex flex-col gap-6">
-              <p className="text-[19px] font-bold leading-[1.5] text-black">품절된 상품</p>
-              <div className="flex flex-col gap-5">
-                {soldOutItems.map((item, idx) => (
-                  <div key={item.id}>
-                    <CartItemCard
-                      item={item}
-                      checked={false}
-                      onCheck={() => {}}
-                      onQtyChange={() => {}}
-                      onRemove={() => removeItem(item.id)}
-                      onChangeOptions={() => {}}
-                      onLike={() => toggleLike(item.id)}
-                      disabled={true}
-                    />
-                    {idx < soldOutItems.length - 1 && (
-                      <div className="h-px bg-[#f1f1f1] mt-5" />
-                    )}
-                  </div>
-                ))}
-              </div>
+              <button
+                onClick={() => setShowSoldOut(!showSoldOut)}
+                className="flex items-center gap-2 cursor-pointer hover:opacity-70"
+                aria-expanded={showSoldOut}
+                aria-controls="soldout-list"
+              >
+                <p className="text-[19px] font-bold leading-[1.5] text-black">품절된 상품</p>
+                <div className={`transform transition-transform duration-300 ${showSoldOut ? 'rotate-0' : '-rotate-90'}`}>
+                  <ChevronDownIcon size={20} />
+                </div>
+              </button>
+              {showSoldOut && (
+                <div id="soldout-list" className="flex flex-col gap-5">
+                  {soldOutItems.map((item, idx) => (
+                    <div key={item.id}>
+                      <CartItemCard
+                        item={item}
+                        checked={false}
+                        onCheck={() => {}}
+                        onQtyChange={() => {}}
+                        onRemove={() => removeItem(item.id)}
+                        onChangeOptions={() => {}}
+                        disabled={true}
+                      />
+                      {idx < soldOutItems.length - 1 && (
+                        <div className="h-px bg-[#f1f1f1] mt-5" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {/* 빈 카트 메시지 */}
           {items.length === 0 && (
             <div className="flex flex-col flex-1 items-center justify-center py-20">
-              <p className="text-[15px] text-[#999694] leading-[1.5]">장바구니가 비어 있습니다.</p>
+              <p className="text-[15px] text-[#999694] leading-[1.5]">장바구니가 비어 있습니다</p>
             </div>
           )}
 
-          {/* 구매하기 버튼 (하단 시트 없을 때) */}
-          {!hasSelected && items.length > 0 && (
+          {/* 주문하기 버튼 (하단 시트 없을 때) */}
+          {items.length > 0 && (
             <button
-              className="w-full bg-[#3f3835] text-[#fdfdfd] text-[15px] font-bold leading-[1.5] py-4 rounded-lg flex items-center justify-center cursor-pointer"
-              onClick={() => alert('구매할 상품을 선택해주세요.')}
+              className={`w-full text-[15px] font-bold leading-[1.5] py-4 rounded-lg flex items-center justify-center ${hasSelected ? 'bg-[#3f3835] text-[#fdfdfd] cursor-pointer' : 'bg-[#DDDCDB] text-[#999694] cursor-not-allowed'}`}
+              disabled={!hasSelected}
+              onClick={() => {
+                if (!hasSelected) return;
+                alert('선택한 상품으로 주문 진행(샘플)');
+              }}
             >
-              구매하기
+              {'주문하기'}
             </button>
           )}
         </div>
@@ -620,7 +617,7 @@ export default function CartPage() {
               </div>
               <div className="px-5">
                 <button className="w-full bg-[#3f3835] text-[#fdfdfd] text-[15px] font-bold leading-[1.5] p-4 rounded-lg flex items-center justify-center cursor-pointer gap-1">
-                  {totalCount}개 구매하기
+                  {totalCount}개 주문하기
                 </button>
               </div>
             </div>

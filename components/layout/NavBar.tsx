@@ -59,11 +59,11 @@ export default function NavBar({
     }
   };
 
-  const barClass = 'mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-between px-4 py-[10px] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]';
+  const barClass = 'mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-between px-4 py-[10px]';
 
   if (variantProp === 'home') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <Link href={homeHref} aria-label="홈" className="inline-flex h-6 w-6 items-center justify-center">
@@ -76,7 +76,7 @@ export default function NavBar({
 
   if (variantProp === 'back') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button type="button" aria-label="뒤로가기" onClick={handleBack} className="inline-flex h-6 w-3 items-center justify-center">
@@ -89,7 +89,7 @@ export default function NavBar({
 
   if (variantProp === 'title-back') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button type="button" aria-label="뒤로가기" onClick={handleBack} className="inline-flex h-6 w-3 items-center justify-center">
@@ -104,9 +104,9 @@ export default function NavBar({
 
   if (variantProp === 'title') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
-        <div className="mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-center px-4 py-[10px] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
+        <div className="mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-center px-4 py-[10px]">
           <p className="typo-heading-xxsmall text-neutral-12">{title}</p>
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function NavBar({
 
   if (variantProp === 'logo-back') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button type="button" aria-label="뒤로가기" onClick={handleBack} className="inline-flex h-6 w-3 items-center justify-center">
@@ -130,7 +130,7 @@ export default function NavBar({
 
   if (variantProp === 'title-back-trash') {
     return (
-      <div className="w-full border-b border-neutral-4 bg-neutral-3">
+      <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button type="button" aria-label="뒤로가기" onClick={handleBack} className="inline-flex h-6 w-3 items-center justify-center">

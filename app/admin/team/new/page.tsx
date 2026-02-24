@@ -11,6 +11,18 @@ import Image from "next/image";
 
 type UserItem = { id: string; name: string; phone: string; major: string };
 
+function formatPhone(phone?: string) {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+
 // Figma 아이콘 URL
 const CROWN_ICON = "/assets/icons/additional/tabler_crown.svg";
 const PLUS_ICON = "/assets/icons/additional/Plus.svg";
@@ -63,6 +75,7 @@ export default function AdminTeamCreatePage() {
   const [memberIds, setMemberIds] = useState<string[]>(meId ? [meId] : []);
   const [leaderId, setLeaderId] = useState<string | null>(meId ?? null);
   const [loading, setLoading] = useState(false);
+  const [iconColor, setIconColor] = useState<string>("#FF7A00");
 
   const addMember = () => {
     const trimmedId = memberInputValue.trim();
@@ -149,13 +162,13 @@ export default function AdminTeamCreatePage() {
         accountUrl = path.startsWith("http") ? path : `${window.location.origin}${path}`;
       }
 
-      const payload = {
+      const payload: any = {
         teamType,
         teamName: teamName.trim(),
         leaderId: leaderId ?? memberIds[0],
         memberIds,
-        accountUrl,
       };
+      if (accountUrl) payload.accountUrl = accountUrl;
 
       const res = await fetch("/api/v1/admin/teams", {
         method: "POST",
@@ -209,36 +222,33 @@ export default function AdminTeamCreatePage() {
                   <span className="typo-body-xsmall-bold text-danger">*</span>
                 </label>
 
-                <div className="mt-3 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
+                <div className="mt-3 space-y-2">
                   <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setTeamType(0)}
-                    onKeyDown={(e) => e.key === "Enter" && setTeamType(0)}
-                    className="flex cursor-pointer items-center px-4 py-3"
+                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                      teamType === 0 ? "bg-orange-1" : ""
+                    }`}
                   >
-                    <RadioButton
-                      checked={teamType === 0}
-                      onChange={() => setTeamType(0)}
-                      label="일반팀"
-                      value={0}
-                      className="w-full"
-                    />
+                    <label className="flex items-center gap-3">
+                      <RadioButton
+                        checked={teamType === 0}
+                        onChange={() => setTeamType(0)}
+                        label="일반팀"
+                      />
+                    </label>
                   </div>
+
                   <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setTeamType(1)}
-                    onKeyDown={(e) => e.key === "Enter" && setTeamType(1)}
-                    className="flex cursor-pointer items-center border-t border-neutral-4 px-4 py-3"
+                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                      teamType === 1 ? "bg-orange-1" : ""
+                    }`}
                   >
-                    <RadioButton
-                      checked={teamType === 1}
-                      onChange={() => setTeamType(1)}
-                      label="판매팀"
-                      value={1}
-                      className="w-full"
-                    />
+                    <label className="flex items-center gap-3">
+                      <RadioButton
+                        checked={teamType === 1}
+                        onChange={() => setTeamType(1)}
+                        label="판매팀"
+                      />
+                    </label>
                   </div>
                 </div>
               </div>
@@ -252,6 +262,7 @@ export default function AdminTeamCreatePage() {
                   inputProps={{
                     value: teamName,
                     onChange: (e) => setTeamName(e.target.value),
+                    className: "text-[#2F2824]",
                   }}
                 />
               </div>
@@ -296,11 +307,14 @@ export default function AdminTeamCreatePage() {
               {/* 팀장 정보 카드 */}
               {leaderId && (
                 <div className="rounded-lg bg-neutral-3 p-4 mt-3 border border-neutral-4">
-                  <p className="typo-body-small-bold text-neutral-12">
+                  <p className="typo-body-small-bold text-[#3F3835]">
                     {usersList.find(m => m.id === leaderId)?.name ?? leaderId}
                   </p>
-                  <p className="typo-body-xsmall text-neutral-9 mt-1">
-                    {usersList.find(m => m.id === leaderId)?.major ?? ""}
+                  <p className="typo-body-xsmall text-[#5A5451] mt-1">
+                    {(() => {
+                      const m = usersList.find((m) => m.id === leaderId);
+                      return (m && m.major && m.major.trim() ? m.major : '학과가 없습니다');
+                    })()}
                   </p>
                 </div>
               )}
@@ -339,34 +353,39 @@ export default function AdminTeamCreatePage() {
               {/* 팀원 리스트 */}
               {memberIds.filter(id => id !== leaderId).length > 0 && (
                 <div className="border border-neutral-4 rounded-lg overflow-hidden">
-                  {memberIds.filter(id => id !== leaderId).map((id, idx, arr) => {
-                    const member = usersList.find(m => m.id === id);
-                    const isLast = idx === arr.length - 1;
-                    return (
-                      <div key={id}>
-                        <div
-                          className="flex items-start justify-between bg-neutral-3 p-4"
-                        >
-                          <div className="flex-1">
-                            <p className="typo-body-small-bold text-neutral-12">
-                              {member?.name ?? id}
-                            </p>
-                            <p className="typo-body-xsmall text-neutral-9 mt-1">
-                              {member?.major ?? ""}
-                            </p>
+                  {/* 최대 6명까지만 보이고 내부에서 스크롤되도록 max-height와 overflow 설정 */}
+                  <div className="max-h-[384px] overflow-y-auto">
+                    {memberIds.filter(id => id !== leaderId).map((id, idx, arr) => {
+                      const member = usersList.find(m => m.id === id);
+                      const isLast = idx === arr.length - 1;
+                      return (
+                        <div key={id}>
+                          <div className="relative bg-neutral-3 p-4">
+                            <div className="flex-1">
+                              <p className="typo-body-small-bold text-[#3F3835]">
+                                {member?.name ?? id}
+                              </p>
+                              <p className="typo-body-xsmall text-[#5A5451] mt-1">
+                                {member && member.major && member.major.trim() ? member.major : '테스트학과'}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => removeMember(id)}
+                              className="absolute top-3 right-3"
+                              aria-label="팀원 삭제"
+                            >
+                              <div className="w-5 h-5">
+                                <Image src="/assets/icons/additional/Close.svg" alt="삭제" width={20} height={20} />
+                              </div>
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeMember(id)}
-                            className="text-danger text-base leading-none ml-3 flex-shrink-0"
-                          >
-                            ✕
-                          </button>
+                          {!isLast && <div className="h-px bg-neutral-4" />}
                         </div>
-                        {!isLast && <div className="h-px bg-neutral-4" />}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -456,8 +475,7 @@ export default function AdminTeamCreatePage() {
             </Button>
           </div>
         </form>
-                    fileInputRef.current?.click();
-                    setShowImageModal(false);
+
         {showImageModal && (
           <div className="fixed inset-0 flex items-end justify-center z-50">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowImageModal(false)} />
@@ -598,8 +616,8 @@ export default function AdminTeamCreatePage() {
                         className="w-full flex items-center justify-between rounded-lg p-4 bg-neutral-2 border border-neutral-4"
                       >
                         <div className="flex-1 text-left">
-                          <p className="typo-body-small-bold text-neutral-12">{member.name}</p>
-                          <p className="typo-body-xsmall text-neutral-9 mt-1">{member.major}</p>
+                          <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
+                          <p className="typo-body-xsmall text-[#5A5451] mt-1">{member.phone ? formatPhone(member.phone) : (member && member.major && member.major.trim() ? member.major : '학과가 없습니다')}</p>
                         </div>
                         {memberIds.includes(member.id) ? (
                           <div className="flex ml-4 items-center justify-center h-8 w-8 rounded bg-orange-5">
@@ -699,24 +717,28 @@ export default function AdminTeamCreatePage() {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="typo-body-small-bold text-neutral-12">{member.name}</p>
-                            <p className="typo-body-xsmall text-neutral-9 mt-2">{member.major}</p>
+                            <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
+                            <p className="typo-body-xsmall text-[#5A5451] mt-1">{member.phone ? formatPhone(member.phone) : (member && member.major && member.major.trim() ? member.major : '학과가 없습니다')}</p>
                           </div>
-                          <div className="ml-4 mt-1">
+                          <div className="ml-4 flex items-center">
                             {leaderId === member.id ? (
-                              <Image
-                                src="\assets\icons\filled\Filled\Plus.svg"
-                                alt="selected"
-                                width={24}
-                                height={24}
-                              />
+                              <div className="flex items-center justify-center h-8 w-8">
+                                <Image
+                                  src="/assets/icons/additional/Vector.svg"
+                                  alt="selected"
+                                  width={20}
+                                  height={20}
+                                />
+                              </div>
                             ) : (
-                              <Image
-                                src="\assets\icons\filled\Filled\Minus.svg"
-                                alt="unselected"
-                                width={24}
-                                height={24}
-                              />
+                              <div className="flex items-center justify-center h-8 w-8">
+                                <Image
+                                  src="/assets/icons/additional/fluent_radio-button-24-regular.svg"
+                                  alt="unselected"
+                                  width={20}
+                                  height={20}
+                                />
+                              </div>
                             )}
                           </div>
                         </div>

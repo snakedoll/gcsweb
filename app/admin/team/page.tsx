@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { NavBar } from "@/components/layout";
 import SearchBar from "@/components/ui/SearchBar";
 import Image from "next/image";
+import { formatPhoneWithHyphen } from "@/lib/format-phone";
 
 interface Team {
   id: string;
@@ -169,10 +170,15 @@ export default function AdminTeamListPage() {
             <button
               type="button"
               onClick={() => router.push('/admin/team/new')}
-              className="rounded-lg bg-neutral-10 px-4 py-2 typo-body-small-bold text-neutral-2 flex items-center gap-1"
+              className="rounded-lg bg-neutral-10 px-4 py-2 typo-body-small-bold text-neutral-2 flex items-center gap-2"
             >
               새 팀 추가
-              <span>+</span>
+              <Image
+                src="/assets/icons/additional/Plus2.svg"
+                alt="추가"
+                width={18}
+                height={18}
+              />
             </button>
           </div>
 
@@ -208,10 +214,13 @@ export default function AdminTeamListPage() {
               teams.map((team) => (
                 <div
                   key={team.id}
-                  className="rounded-lg border border-neutral-4 bg-neutral-2 overflow-hidden"
+                  className="rounded-xl border border-neutral-5 bg-neutral-2 overflow-hidden"
                 >
                   {/* Team Header */}
-                  <div className="p-4 flex items-start justify-between cursor-pointer border-b border-neutral-4 hover:bg-neutral-4 transition-colors" onClick={() => toggleTeam(team.id)}>
+                  <div
+                    className="p-4 flex items-start justify-between cursor-pointer border-b border-neutral-5 transition-colors"
+                    onClick={() => toggleTeam(team.id)}
+                  >
                     <div className="flex-1">
                       <h3 className="typo-body-small-bold text-neutral-10">
                         {team.teamName}
@@ -229,7 +238,7 @@ export default function AdminTeamListPage() {
                       className="flex items-center justify-center shrink-0"
                     >
                       <Image
-                        src="/assets/icons/filled/Iconex/Filled/Edit 2.svg"
+                        src="/assets/icons/filled/Filled/Edit 2.svg"
                         alt="편집"
                         width={24}
                         height={24}
@@ -244,7 +253,7 @@ export default function AdminTeamListPage() {
                       <div className="flex flex-col">
                         {team.members.map((member, idx) => (
                           <div key={idx}>
-                            {idx > 0 && <div className="h-px bg-neutral-4" />}
+                            {idx > 0 && <div className="h-px bg-neutral-5" />}
                             <div className="p-4 flex items-center gap-3">
                               <span
                                 className={`typo-body-xsmall px-2 py-0.5 rounded whitespace-nowrap ${
@@ -261,7 +270,7 @@ export default function AdminTeamListPage() {
                                 </p>
                               </div>
                               <p className="typo-body-xsmall text-neutral-7">
-                                {member.phone}
+                                {member.phone ? formatPhoneWithHyphen(member.phone) : ''}
                               </p>
                             </div>
                           </div>
