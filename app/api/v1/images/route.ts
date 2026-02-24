@@ -21,7 +21,7 @@ const MIME_TO_EXTS: Record<string, string[]> = {
   'image/webp': ['.webp'],
 };
 
-// NOTE: PROFILE 정책은 명세가 미확정이라 기존 동작(10MB, JPEG/PNG/WEBP) 기준으로 두었습니다.
+// NOTE: PROFILE 정책은 명세가 미확정이라 기존 동작(10MB, JPEG/PNG/WEBP) 기준으로 유지합니다.
 const USAGE_POLICIES: Record<string, UsagePolicy> = {
   PROFILE: {
     pathPrefix: 'profile',
@@ -41,7 +41,6 @@ const USAGE_POLICIES: Record<string, UsagePolicy> = {
     allowedMimes: ['image/jpeg', 'image/png'],
     requiresAdmin: true,
   },
-  // Existing admin team flow uploads a bank-account copy via /api/v1/images.
   BANK_ACCOUNT: {
     pathPrefix: 'team/account',
     maxBytes: 50 * MB,
@@ -92,22 +91,34 @@ function inferCanonicalExt(mimeType: string) {
 function validateFile(file: File, policy: UsagePolicy) {
   const size = Number(file.size ?? 0);
   if (!size) {
-    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '파일이 비어있거나 지원하지 않는 이미지 형식입니다.') };
+    return {
+      ok: false as const,
+      response: errorResponse(400, 'INVALID_FILE', '파일이 비어있거나 지원하지 않는 이미지 형식입니다.'),
+    };
   }
 
   const mimeType = String(file.type ?? '').toLowerCase();
   if (!mimeType || !policy.allowedMimes.includes(mimeType)) {
-    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.') };
+    return {
+      ok: false as const,
+      response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.'),
+    };
   }
 
   const ext = path.extname(file.name || '').toLowerCase();
-  const allowedExts = new Set(policy.allowedMimes.flatMap((m) => MIME_TO_EXTS[m] ?? []));
+  const allowedExts = new Set(policy.allowedMimes.flatMap((mime) => MIME_TO_EXTS[mime] ?? []));
   if (!ext || !allowedExts.has(ext)) {
-    return { ok: false as const, response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.') };
+    return {
+      ok: false as const,
+      response: errorResponse(400, 'INVALID_FILE', '지원하지 않는 이미지 형식입니다.'),
+    };
   }
 
   if (size > policy.maxBytes) {
-    return { ok: false as const, response: errorResponse(413, 'FILE_TOO_LARGE', '파일 크기가 허용 용량을 초과했습니다.') };
+    return {
+      ok: false as const,
+      response: errorResponse(413, 'FILE_TOO_LARGE', '파일 크기가 허용 용량을 초과했습니다.'),
+    };
   }
 
   return { ok: true as const, size, mimeType, ext };
@@ -155,18 +166,15 @@ export async function POST(request: Request) {
       return validated.response;
     }
 
-    const originalExt = validated.ext;
-    const finalExt = originalExt || inferCanonicalExt(validated.mimeType);
-    const datePrefix = yyyymmdd();
-    const fileName = `${datePrefix}_${randomId()}_${sanitizeBaseName(file.name)}${finalExt}`;
+    const finalExt = validated.ext || inferCanonicalExt(validated.mimeType);
+    const fileName = `${yyyymmdd()}_${randomId()}_${sanitizeBaseName(file.name)}${finalExt}`;
 
     const uploadsRoot = path.join(process.cwd(), 'public', 'uploads');
     const usageDir = path.join(uploadsRoot, ...policy.pathPrefix.split('/'));
     fs.mkdirSync(usageDir, { recursive: true });
 
     const outputPath = path.join(usageDir, fileName);
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(await file.arrayBuffer());
 
     try {
       await fs.promises.writeFile(outputPath, buffer);

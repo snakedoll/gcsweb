@@ -24,9 +24,6 @@ export { default as FilterArea } from './admin/project/FilterArea';
 export { default as Like } from './admin/project/Like';
 export { default as Listedcard } from './admin/project/Listedcard';
 
-// Archive
-export { default as ArchiveProjectCard } from './archive/ArchiveProjectCard';
-
 // Archive / Project
 export { default as ArchiveCard1 } from './archive/project/ArchiveCard1';
 export { default as ArchiveCard2 } from './archive/project/ArchiveCard2';
