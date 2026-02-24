@@ -1,6 +1,5 @@
 'use client';
 
-import { NavBar } from '@/components/layout';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -9,7 +8,6 @@ export default function MypageOrdersPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <NavBar />
       <div className="mx-auto w-full max-w-[375px] flex-1 px-4 pb-8 pt-6">
         <div className="mb-6 flex items-center justify-between">
           <button
