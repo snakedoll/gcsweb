@@ -139,19 +139,57 @@ export default function MypagePage() {
     fetchCounts();
   }, [isAuthenticated, isLoading]);
 
-  // attach listeners to hidden inputs to capture selected file and show preview modal
+  // Handle file selection directly (no preview modal)
   useEffect(() => {
     const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.profile-image-input'));
     if (inputs.length === 0) return;
 
-    const handler = (e: Event) => {
+    const handler = async (e: Event) => {
       const target = e.target as HTMLInputElement;
       const file = target.files?.[0] ?? null;
       if (!file) return;
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setShowPreview(true);
+
+      // Start upload immediately
+      try {
+        const resizedBlob = await resizeImageFile(file, 1024);
+        const formData = new FormData();
+        formData.append('image', new File([resizedBlob], file.name, { type: file.type }));
+
+        const uploadRes = await fetch('/api/v1/images?usage=PROFILE', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const json = await uploadRes.json().catch(() => ({}));
+          alert(json?.message || '이미지 업로드에 실패했습니다.');
+          return;
+        }
+
+        const uploadJson = await uploadRes.json();
+        const imageUrl = uploadJson?.data?.imageUrl;
+        if (!imageUrl) {
+          alert('업로드한 이미지 URL을 받아오지 못했습니다.');
+          return;
+        }
+
+        const res = await fetch('/api/v1/mypage/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileImageUrl: imageUrl }),
+        });
+
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          alert(json?.message || '프로필 이미지 업데이트에 실패했습니다.');
+          return;
+        }
+
+        router.refresh(); // Soft refresh to show new image without losing session
+      } catch (err) {
+        console.error(err);
+        alert('업로드 중 오류가 발생했습니다.');
+      }
     };
 
     for (const input of inputs) input.addEventListener('change', handler);
@@ -178,7 +216,7 @@ export default function MypagePage() {
         <section className="mb-5">
           <div className="flex items-center gap-6 px-2">
             <div className="relative h-[100px] w-[100px]">
-              <div className="h-[100px] w-[100px] overflow-hidden rounded-full bg-neutral-4">
+              <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full bg-neutral-4">
                 {profile?.profileImage ? (
                   <NextImage src={profile.profileImage} alt="프로필" fill className="object-cover" sizes="100px" />
                 ) : (
@@ -211,20 +249,7 @@ export default function MypagePage() {
                 type="button"
                 aria-label="프로필 이미지 변경"
                 onClick={() => setShowImagePicker(true)}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  display: 'flex',
-                  width: '100px',
-                  height: '100px',
-                  padding: '71.333px 4.666px 4.667px 71.334px',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  borderRadius: '1665px',
-                  border: '4px solid var(--neutral-3)',
-                  background: "url(/assets/images/profile_image.png) lightgray 50% / contain no-repeat"
-                }}
+                className="absolute inset-0 w-full h-full rounded-full border-none"
               >
                 <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-4 border-neutral-3 bg-neutral-12">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
@@ -310,88 +335,6 @@ export default function MypagePage() {
         </div>
       </main>
       <Footer showAdminButton={profile?.role === 'admin'} />
-
-      {/* Preview modal when file is selected */}
-      {showPreview && selectedFile && previewUrl && (
-        <PreviewModal
-          file={selectedFile}
-          url={previewUrl}
-          onCancel={() => {
-            setShowPreview(false);
-            setSelectedFile(null);
-            setPreviewUrl(null);
-            Array.from(document.querySelectorAll<HTMLInputElement>('.profile-image-input')).forEach((i) => i.value = '');
-          }}
-          onConfirm={() => {
-            setShowPreview(false);
-            setSelectedFile(null);
-            setPreviewUrl(null);
-            Array.from(document.querySelectorAll<HTMLInputElement>('.profile-image-input')).forEach((i) => i.value = '');
-            router.refresh();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function PreviewModal({ file, url, onCancel, onConfirm }: { file: File; url: string; onCancel: () => void; onConfirm: () => void }) {
-  const [loading, setLoading] = useState(false);
-
-  const handleUpload = async () => {
-    try {
-      setLoading(true);
-      const resized = await resizeImageFile(file, 1024);
-      const blob = resized;
-      const form = new FormData();
-      form.append('image', new File([blob], file.name, { type: file.type }));
-
-      const uploadRes = await fetch('/api/v1/images?usage=PROFILE', { method: 'POST', body: form });
-      if (!uploadRes.ok) {
-        const json = await uploadRes.json().catch(() => ({}));
-        alert(json?.message || '이미지 업로드에 실패했습니다.');
-        return;
-      }
-      const uploadJson = await uploadRes.json();
-      const imageUrl = uploadJson?.data?.imageUrl;
-      if (!imageUrl) {
-        alert('업로드한 이미지 URL을 받아오지 못했습니다.');
-        return;
-      }
-
-      const res = await fetch('/api/v1/mypage/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileImageUrl: imageUrl }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        alert(json?.message || '프로필 이미지 업데이트에 실패했습니다.');
-        return;
-      }
-
-      onConfirm();
-    } catch (err) {
-      console.error(err);
-      alert('업로드 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
-      <div className="bg-white p-4 rounded-lg z-70 max-w-sm w-full">
-        <div className="mb-3">미리보기</div>
-        <div className="w-full h-64 overflow-hidden rounded bg-neutral-4 mb-3">
-          <NextImage src={url} alt="preview" width={600} height={256} className="w-full h-full object-contain" />
-        </div>
-        <div className="flex justify-end gap-2">
-          <button className="px-4 py-2 border rounded" onClick={onCancel} disabled={loading}>취소</button>
-          <button className="px-4 py-2 bg-primary-600 text-white rounded" onClick={handleUpload} disabled={loading}>{loading ? '업로드 중...' : '업로드'}</button>
-        </div>
-      </div>
     </div>
   );
 }
