@@ -214,80 +214,77 @@ export default function AdminTeamListPage() {
               teams.map((team) => (
                 <div
                   key={team.id}
-                  className="rounded-xl border border-neutral-5 bg-neutral-2 overflow-hidden"
+                  className="border border-[#F1F1F1] rounded-lg overflow-hidden w-full flex flex-col shrink-0"
                 >
-                  {/* Team Header */}
-                  <div
-                    className="p-4 flex items-start justify-between cursor-pointer border-b border-neutral-5 transition-colors"
-                    onClick={() => toggleTeam(team.id)}
-                  >
-                    <div className="flex-1">
-                      <h3 className="typo-body-small-bold text-neutral-10">
-                        {team.teamName}
-                      </h3>
-                      <p className="typo-body-xsmall text-neutral-7 mt-1">
-                        {team.teamType === 1 ? "판매팀" : "일반팀"}
-                      </p>
+                  <div className="bg-neutral-2 p-4 w-full border-b border-[#F1F1F1]">
+                    <div className="flex items-start justify-between w-full">
+                      <div className="flex flex-col gap-1 items-start justify-center">
+                        <p className="typo-body-small-bold text-neutral-10">
+                          {team.teamName}
+                        </p>
+                        <p className="typo-body-xsmall text-neutral-7">
+                          {team.teamType === 1 ? "판매팀" : "일반팀"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/team/${team.id}/edit`);
+                        }}
+                        className="relative size-[24px] shrink-0"
+                      >
+                        <div className="absolute inset-0 p-[2.5px]">
+                          <Image
+                            src="/assets/icons/filled/Filled/Edit 2.svg"
+                            alt="편집"
+                            width={19}
+                            height={19}
+                            className="w-full h-full"
+                            style={{ filter: 'brightness(0) saturate(100%) invert(23%) sepia(4%) saturate(1255%) hue-rotate(7deg)' }}
+                          />
+                        </div>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/admin/team/${team.id}/edit`);
-                      }}
-                      className="flex items-center justify-center shrink-0"
-                    >
-                      <Image
-                        src="/assets/icons/filled/Filled/Edit 2.svg"
-                        alt="편집"
-                        width={24}
-                        height={24}
-                        style={{ filter: 'brightness(0) saturate(100%) invert(23%) sepia(4%) saturate(1255%) hue-rotate(7deg)' }}
-                      />
-                    </button>
                   </div>
 
-                  {/* Team Members (Expandable) */}
-                  {expandedTeams.has(team.id) && (
-                    <>
-                      <div className="flex flex-col">
-                        {team.members.map((member, idx) => (
-                          <div key={idx}>
-                            {idx > 0 && <div className="h-px bg-neutral-5" />}
-                            <div className="p-4 flex items-center gap-3">
-                              <span
-                                className={`typo-body-xsmall px-2 py-0.5 rounded whitespace-nowrap ${
-                                  member.role === "대표"
-                                    ? "bg-orange-3 text-orange-7"
-                                    : "bg-neutral-4 text-neutral-9"
-                                }`}
-                              >
-                                {member.role}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <p className="typo-body-xsmall-bold text-neutral-9">
-                                  {member.name}
-                                </p>
-                              </div>
-                              <p className="typo-body-xsmall text-neutral-7">
-                                {member.phone ? formatPhoneWithHyphen(member.phone) : ''}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Seller Team Download Link */}
-                      {team.teamType === 1 && (
-                        <div className="p-4 border-t border-neutral-4">
-                          <a
-                            href={team.accountUrl || "#"}
-                            className="typo-body-xsmall-bold text-neutral-9 underline"
-                          >
-                            통장 사본 보기
-                          </a>
+                  <div className="bg-neutral-2 py-3 flex flex-col w-full shrink-0">
+                    {team.members.map((member, idx) => (
+                      <div key={idx} className="px-4 py-2 flex items-center gap-3 w-full h-10">
+                        <span
+                          className={`flex items-center justify-center px-2 py-0.5 rounded-lg typo-body-xsmall tracking-tight shrink-0 ${
+                            member.role === "대표"
+                              ? "bg-orange-3 text-orange-7"
+                              : "bg-neutral-4 text-neutral-10"
+                          }`}
+                        >
+                          {member.role}
+                        </span>
+                        <div className="flex flex-1 items-center justify-between min-w-0">
+                          <p className="typo-body-xsmall-bold text-neutral-9">
+                            {member.name}
+                          </p>
+                          <p className="typo-body-xsmall text-neutral-7">
+                            {member.phone ? formatPhoneWithHyphen(member.phone) : ''}
+                          </p>
                         </div>
-                      )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {team.teamType === 1 && (
+                    <>
+                      <div className="bg-neutral-2 p-4 flex items-center gap-1 w-full shrink-0 border-t border-[#F1F1F1]">
+                        <a
+                          href={team.accountUrl || "#"}
+                          download="통장사본"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="typo-body-xsmall-bold text-neutral-9 underline"
+                        >
+                          통장 사본 다운로드
+                        </a>
+                      </div>
                     </>
                   )}
                 </div>

@@ -9,6 +9,18 @@ import RadioButton from "@/components/ui/button/RadioButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 
+function formatPhone(phone?: string) {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+
 // local icons
 const CROWN_ICON = "/assets/icons/additional/tabler_crown.svg";
 const PLUS_ICON = "/assets/icons/additional/Plus.svg";
@@ -45,6 +57,8 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
   const [leaderId, setLeaderId] = useState<string | null>(sampleMembers[0].id);
   const [loading, setLoading] = useState(false);
 
+  const [allMembersCache, setAllMembersCache] = useState<any[]>([]);
+
   React.useEffect(() => {
     let mounted = true;
     (async () => {
@@ -54,11 +68,27 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
         if (!mounted) return;
         if (json?.status === 'success' && json.data) {
           const d = json.data;
-          // API returns teamType and accountUrl
           if (typeof d.teamType === 'number') setTeamType(d.teamType);
           if (typeof d.teamName === 'string') setTeamName(d.teamName);
           if (d.accountUrl) setAccountImageUrl(d.accountUrl);
-          // members in this endpoint are name/phone only; we don't set memberIds/leaderId here
+          
+          if (Array.isArray(d.members)) {
+            // Load backend members into our cache to replace the fixed mock
+            const formattedMembers = d.members.map((m: any) => ({
+              id: m.id || m.name,
+              name: m.name,
+              phone: m.phone || '',
+              role: m.role
+            }));
+            
+            // Re-populate our list & cache
+            setAllMembersCache(formattedMembers);
+            setMemberIds(formattedMembers.map((m: any) => m.id));
+            
+            // Set leader if any role is '대표'
+            const leader = formattedMembers.find((m: any) => m.role === '대표');
+            if (leader) setLeaderId(leader.id);
+          }
         }
       } catch (e) {
         // ignore
@@ -66,7 +96,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
     })();
     return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [params.id]);
 
   const removeMember = (id: string) => {
     setMemberIds((s) => s.filter((x) => x !== id));
@@ -112,7 +142,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
       if (accountUrl) payload.accountUrl = accountUrl;
 
       const res = await fetch(`/api/v1/admin/teams/${params.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -161,11 +191,11 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 </label>
                 <div className="mt-3 space-y-2">
                   <div
-                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
                       teamType === 0 ? "bg-orange-1" : ""
                     }`}
                   >
-                    <label className="flex items-center gap-3">
+                    <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
                         checked={teamType === 0}
                         onChange={() => setTeamType(0)}
@@ -175,11 +205,11 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   </div>
 
                   <div
-                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
                       teamType === 1 ? "bg-orange-1" : ""
                     }`}
                   >
-                    <label className="flex items-center gap-3">
+                    <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
                         checked={teamType === 1}
                         onChange={() => setTeamType(1)}
@@ -209,10 +239,10 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
               </button>
 
               {/* leader preview */}
-              {leaderId && sampleMembers.find(m => m.id === leaderId) && (
+              {leaderId && allMembersCache.find(m => m.id === leaderId) && (
                 <div className="rounded-lg bg-neutral-3 p-4 mt-3 border border-neutral-4">
-                  <p className="typo-body-small-bold text-[#3F3835]">{sampleMembers.find(m => m.id === leaderId)?.name}</p>
-                  <p className="typo-body-xsmall text-[#5A5451] mt-1">{sampleMembers.find(m => m.id === leaderId)?.major}</p>
+                  <p className="typo-body-small-bold text-[#3F3835]">{allMembersCache.find(m => m.id === leaderId)?.name}</p>
+                  <p className="typo-body-xsmall text-[#5A5451] mt-1">{(() => { const l = allMembersCache.find(m => m.id === leaderId); return l?.phone ? formatPhone(l.phone) : '-'; })()}</p>
                 </div>
               )}
 
@@ -230,14 +260,14 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   {/* 최대 6명까지만 보이게 max-height 설정 (약 6 * 64px = 384px) 및 내부 스크롤 */}
                   <div className="max-h-[384px] overflow-y-auto">
                     {memberIds.filter(id => id !== leaderId).map((id, idx, arr) => {
-                      const member = sampleMembers.find(m => m.id === id);
+                      const member = allMembersCache.find(m => m.id === id);
                       const isLast = idx === arr.length - 1;
                       return (
                         <div key={id}>
                           <div className="relative bg-neutral-3 p-4">
                             <div className="flex-1">
                               <p className="typo-body-small-bold text-[#3F3835]">{member?.name}</p>
-                              <p className="typo-body-xsmall text-[#5A5451] mt-1">{member?.major}</p>
+                              <p className="typo-body-xsmall text-[#5A5451] mt-1">{member?.phone ? formatPhone(member.phone) : '-'}</p>
                             </div>
 
                             <button
@@ -322,28 +352,36 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 <div className="mb-8 flex h-12 items-center justify-between rounded-lg border border-neutral-5 bg-neutral-2 pl-4 pr-3">
                   <input value={memberInputValue} onChange={(e) => setMemberInputValue(e.target.value)} className="flex-1 bg-transparent" placeholder="이름, 전공, 학번으로 검색..." />
                 </div>
-                <div className="mb-28 space-y-3">
-                  {sampleMembers.filter(m => (m.name + m.major).includes(memberInputValue)).map(m => (
-                    <button key={m.id} type="button" onClick={() => { setMemberIds(s => s.includes(m.id) ? s.filter(x => x !== m.id) : [...s, m.id]); }} className="w-full flex items-center justify-between rounded-lg p-4 bg-neutral-2 border border-neutral-4">
-                      <div className="flex-1 text-left">
-                        <p className="typo-body-small-bold text-neutral-12">{m.name}</p>
-                        <p className="typo-body-xsmall text-neutral-9 mt-1">{m.major}</p>
-                      </div>
-                      {memberIds.includes(m.id) ? (
-                        <div className="flex ml-4 items-center justify-center h-8 w-8 rounded bg-orange-5">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M6 12h12M12 6v12" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
+                <div className="flex h-[36px] items-center mb-4">
+                  <p className="typo-body-small text-neutral-10">전체 {allMembersCache.length}명</p>
+                </div>
+                <div className="mb-28 border border-neutral-4 rounded-[16px] overflow-hidden bg-neutral-2">
+                  {(() => {
+                    const filteredList = allMembersCache.filter(m => (m.name + m.major).includes(memberInputValue));
+                    return filteredList.map((m, idx) => (
+                    <div key={m.id}>
+                      <button type="button" onClick={() => { setMemberIds(s => s.includes(m.id) ? s.filter(x => x !== m.id) : [...s, m.id]); }} className="w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors hover:bg-neutral-3">
+                        <div className="flex-1 text-left flex flex-col gap-2">
+                          <p className="typo-body-small-bold text-[#3F3835]">{m.name}</p>
+                          <p className="typo-body-xsmall text-[#5A5451]">{m.phone ? formatPhone(m.phone) : '-'}</p>
                         </div>
-                      ) : (
-                        <div className="flex ml-4 items-center justify-center h-8 w-8 rounded bg-neutral-6">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M6 12h12" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                          </svg>
+                        <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
+                          {memberIds.includes(m.id) ? (
+                            <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
+                              <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          ) : (
+                            <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
+                              <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          )}
                         </div>
-                      )}
-                    </button>
-                  ))}
+                      </button>
+                      {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
+                    </div>
+                  ))})()}
                 </div>
               </div>
               <div className="p-4"><Button type="button" color="black" size="l" onClick={() => setShowMemberModal(false)}>저장하기</Button></div>
@@ -426,17 +464,17 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 </div>
 
                 {/* Member Count */}
-                <p className="typo-body-small text-neutral-12 mb-8">전체 {sampleMembers.length}명</p>
+                <p className="typo-body-small text-neutral-12 mb-8">전체 {allMembersCache.length}명</p>
 
                 {/* Member List */}
                 <div className="mb-28 overflow-hidden rounded-2xl border border-neutral-4">
-                  {sampleMembers.map((m, idx) => (
+                  {allMembersCache.map((m, idx) => (
                     <div key={m.id}>
                       <button type="button" onClick={() => setLeaderId(m.id)} className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3">
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 flex flex-col gap-1">
                             <p className="typo-body-small-bold text-neutral-12">{m.name}</p>
-                            <p className="typo-body-xsmall text-neutral-9 mt-2">{m.major}</p>
+                            <p className="typo-body-xsmall text-neutral-9">{m.phone ? formatPhone(m.phone) : '-'}</p>
                           </div>
                           <div className="ml-4 mt-1">
                             {leaderId === m.id ? (
@@ -457,7 +495,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                           </div>
                         </div>
                       </button>
-                      {idx < sampleMembers.length - 1 && <div className="h-px bg-neutral-4" />}
+                      {idx < allMembersCache.length - 1 && <div className="h-px bg-neutral-4" />}
                     </div>
                   ))}
                 </div>

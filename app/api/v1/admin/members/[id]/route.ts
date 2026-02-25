@@ -22,6 +22,9 @@ export async function GET(
       profileImage: true,
       memberType: true,
       isSeller: true,
+      nickname: true,
+      studentId: true,
+      major: true,
       createdAt: true,
     },
   });
@@ -37,6 +40,10 @@ export async function GET(
     phone: user.phone ?? '',
     profileImage: user.profileImage ?? undefined,
     memberType: user.memberType,
+    isSeller: user.isSeller,
+    nickname: user.nickname ?? undefined,
+    studentId: user.studentId ?? undefined,
+    major: user.major ?? undefined,
     createdAt: user.createdAt.toISOString(),
   });
 }

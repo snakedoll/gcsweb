@@ -66,9 +66,9 @@ export async function GET(request: Request) {
       if (t.userId) {
         const leaderUser = usersById.get(t.userId);
         if (leaderUser) {
-          members.push({ role: '대표', name: leaderUser.name, phone: leaderUser.phone ?? null });
+          members.push({ role: '대표', id: leaderUser.id, name: leaderUser.name, phone: leaderUser.phone ?? null });
         } else {
-          members.push({ role: '대표', name: t.representativeName ?? t.representativeNickname ?? null, phone: null });
+          members.push({ role: '대표', id: t.userId, name: t.representativeName ?? t.representativeNickname ?? null, phone: null });
         }
       }
 
@@ -78,8 +78,11 @@ export async function GET(request: Request) {
           const id = memberIds[i];
           if (!id || id === t.userId) continue; // skip leader duplicate
           const u = usersById.get(id);
-          if (u) members.push({ role: '팀원', name: u.name, phone: u.phone ?? null });
-          else members.push({ role: '팀원', name: (t.teamMemberNickname && t.teamMemberNickname[i]) ?? null, phone: null });
+          const fallbackName = Array.isArray(t.teamMemberNickname) && t.teamMemberNickname.length > i 
+            ? t.teamMemberNickname[i] 
+            : null;
+          if (u) members.push({ role: '팀원', id: u.id, name: u.name, phone: u.phone ?? null });
+          else members.push({ role: '팀원', id: id, name: fallbackName, phone: null });
         }
       }
 
@@ -193,6 +196,15 @@ export async function POST(request: Request) {
         isSalesTeam,
       },
     });
+
+    // 만약 판매팀(teamType === 1)이라면 포함된 모든 유저의 판매 권한을 즉시 열어줍니다.
+    if (isSalesTeam) {
+      const allTeamMemberIds = Array.from(new Set([...uniqueMemberIds, ownerId]));
+      await prisma.user.updateMany({
+        where: { id: { in: allTeamMemberIds } },
+        data: { isSeller: true },
+      });
+    }
 
     const responseTeam: any = {
       id: created.id,

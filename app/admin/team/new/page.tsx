@@ -224,11 +224,11 @@ export default function AdminTeamCreatePage() {
 
                 <div className="mt-3 space-y-2">
                   <div
-                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
                       teamType === 0 ? "bg-orange-1" : ""
                     }`}
                   >
-                    <label className="flex items-center gap-3">
+                    <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
                         checked={teamType === 0}
                         onChange={() => setTeamType(0)}
@@ -238,11 +238,11 @@ export default function AdminTeamCreatePage() {
                   </div>
 
                   <div
-                    className={`w-[311px] flex flex-col items-start gap-2.5 rounded py-1 px-2 ${
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
                       teamType === 1 ? "bg-orange-1" : ""
                     }`}
                   >
-                    <label className="flex items-center gap-3">
+                    <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
                         checked={teamType === 1}
                         onChange={() => setTeamType(1)}
@@ -313,7 +313,7 @@ export default function AdminTeamCreatePage() {
                   <p className="typo-body-xsmall text-[#5A5451] mt-1">
                     {(() => {
                       const m = usersList.find((m) => m.id === leaderId);
-                      return (m && m.major && m.major.trim() ? m.major : '학과가 없습니다');
+                      return m?.phone ? formatPhone(m.phone) : '-';
                     })()}
                   </p>
                 </div>
@@ -366,7 +366,7 @@ export default function AdminTeamCreatePage() {
                                 {member?.name ?? id}
                               </p>
                               <p className="typo-body-xsmall text-[#5A5451] mt-1">
-                                {member && member.major && member.major.trim() ? member.major : '테스트학과'}
+                                {member?.phone ? formatPhone(member.phone) : '-'}
                               </p>
                             </div>
 
@@ -591,50 +591,53 @@ export default function AdminTeamCreatePage() {
                 </div>
 
                 {/* Member Count */}
-                <p className="typo-body-small text-neutral-12 mb-8">전체 {usersList.length}명</p>
+                <div className="flex h-[36px] items-center mb-4">
+                  <p className="typo-body-small text-neutral-10">전체 {usersList.length}명</p>
+                </div>
 
                 {/* Member List */}
-                <div className="mb-28 space-y-3">
+                <div className="mb-28 border border-neutral-4 rounded-[16px] overflow-hidden bg-neutral-2">
                   {usersLoading ? (
-                    <p className="typo-body-xsmall text-neutral-9">로딩 중...</p>
-                  ) : (
-                  usersList
-                    .filter((m) =>
-                      m.name.includes(memberInputValue) ||
-                      (m.phone && m.phone.includes(memberInputValue)) ||
-                      m.major.includes(memberInputValue)
-                    )
-                    .map((member) => (
-                      <button
-                        key={member.id}
-                        type="button"
-                        onClick={() => {
-                          setMemberIds((s) =>
-                            s.includes(member.id) ? s.filter((x) => x !== member.id) : [...s, member.id]
-                          );
-                        }}
-                        className="w-full flex items-center justify-between rounded-lg p-4 bg-neutral-2 border border-neutral-4"
-                      >
-                        <div className="flex-1 text-left">
-                          <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
-                          <p className="typo-body-xsmall text-[#5A5451] mt-1">{member.phone ? formatPhone(member.phone) : (member && member.major && member.major.trim() ? member.major : '학과가 없습니다')}</p>
-                        </div>
-                        {memberIds.includes(member.id) ? (
-                          <div className="flex ml-4 items-center justify-center h-8 w-8 rounded bg-orange-5">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M6 12h12M12 6v12" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
+                    <p className="typo-body-xsmall text-neutral-9 p-4">로딩 중...</p>
+                  ) : (() => {
+                      const filteredList = usersList.filter((m) =>
+                        m.name.includes(memberInputValue) ||
+                        (m.phone && m.phone.includes(memberInputValue)) ||
+                        m.major.includes(memberInputValue)
+                      );
+                      return filteredList.map((member, idx) => (
+                      <div key={member.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMemberIds((s) =>
+                              s.includes(member.id) ? s.filter((x) => x !== member.id) : [...s, member.id]
+                            );
+                          }}
+                          className="w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors hover:bg-neutral-3"
+                        >
+                          <div className="flex-1 text-left flex flex-col gap-2">
+                            <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
+                            <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
                           </div>
-                        ) : (
-                          <div className="flex ml-4 items-center justify-center h-8 w-8 rounded bg-neutral-6">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M6 12h12" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
+                          <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
+                            {memberIds.includes(member.id) ? (
+                              <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
+                                <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            ) : (
+                              <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
+                                <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            )}
                           </div>
-                        )}
-                      </button>
-                    ))
-                  )}
+                        </button>
+                        {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -716,9 +719,9 @@ export default function AdminTeamCreatePage() {
                         className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3"
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 flex flex-col gap-1">
                             <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
-                            <p className="typo-body-xsmall text-[#5A5451] mt-1">{member.phone ? formatPhone(member.phone) : (member && member.major && member.major.trim() ? member.major : '학과가 없습니다')}</p>
+                            <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
                           </div>
                           <div className="ml-4 flex items-center">
                             {leaderId === member.id ? (

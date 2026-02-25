@@ -64,9 +64,9 @@ export async function GET(
     if (team.userId) {
       const leaderUser = usersById.get(team.userId);
       if (leaderUser) {
-        members.push({ role: '대표', name: leaderUser.name, phone: leaderUser.phone ?? null });
+        members.push({ role: '대표', id: leaderUser.id, name: leaderUser.name, phone: leaderUser.phone ?? null });
       } else {
-        members.push({ role: '대표', name: team.representativeName ?? team.representativeNickname ?? null, phone: null });
+        members.push({ role: '대표', id: team.userId, name: team.representativeName ?? team.representativeNickname ?? null, phone: null });
       }
     }
 
@@ -76,8 +76,11 @@ export async function GET(
         const id = memberIds[i];
         if (!id || id === team.userId) continue; // skip leader duplicate
         const u = usersById.get(id);
-        if (u) members.push({ role: '팀원', name: u.name, phone: u.phone ?? null });
-        else members.push({ role: '팀원', name: (team.teamMemberNickname && team.teamMemberNickname[i]) ?? null, phone: null });
+        const fallbackName = Array.isArray(team.teamMemberNickname) && team.teamMemberNickname.length > i 
+          ? team.teamMemberNickname[i] 
+          : null;
+        if (u) members.push({ role: '팀원', id: u.id, name: u.name, phone: u.phone ?? null });
+        else members.push({ role: '팀원', id: id, name: fallbackName, phone: null });
       }
     }
 
@@ -214,6 +217,15 @@ export async function PATCH(
 
     const finalMemberIds = uniqueMemberIds ?? updated.teamMember ?? [];
     const finalLeaderId = leaderId !== undefined ? (leaderId ?? null) : updated.userId;
+
+    const isNowSalesTeam = teamType !== undefined ? teamType === 1 : updated.isSalesTeam;
+    if (isNowSalesTeam) {
+       const allTeamMemberIds = Array.from(new Set([...finalMemberIds, finalLeaderId].filter(Boolean) as string[]));
+       await prisma.user.updateMany({
+         where: { id: { in: allTeamMemberIds } },
+         data: { isSeller: true },
+       });
+    }
 
     const responseTeam = {
       id: updated.id,
