@@ -36,7 +36,7 @@ function LoginContent() {
   const [maxAttempts, setMaxAttempts] = useState(MAX_FAILED_ATTEMPTS);
   const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
 
-  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<LoginInput>({
+  const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<LoginInput>({
     defaultValues: {
       email: '',
       password: '',
@@ -56,13 +56,20 @@ function LoginContent() {
         setLoginUiState('default');
         setFailedAttempts(0);
         setLockedUntilMs(null);
+        setShowPassword(false);
+        setFocusedField(null);
+        setRememberEmail(false);
+        reset({
+          email: '',
+          password: '',
+        });
       }
     };
 
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [isBlockedState, lockedUntilMs]);
+  }, [isBlockedState, lockedUntilMs, reset]);
 
   const safeMaxAttempts = maxAttempts > 0 ? maxAttempts : MAX_FAILED_ATTEMPTS;
   const safeFailedAttempts = Math.min(Math.max(failedAttempts, 1), safeMaxAttempts);
