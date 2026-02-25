@@ -399,26 +399,13 @@ export default function AdminTeamCreatePage() {
               </h2>
               <div className="rounded-lg bg-neutral-2 p-4 border border-neutral-4">
                 {accountImageUrl ? (
-                  <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full">
+                  <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full cursor-pointer" onClick={() => setShowImageModal(true)}>
                     <Image
                       src={accountImageUrl}
                       alt="통장 사본"
                       fill
                       className="object-cover"
                     />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAccountImage(null);
-                        setAccountImageUrl("");
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = "";
-                        }
-                      }}
-                      className="absolute top-2 right-2 bg-danger text-white px-3 py-1 rounded text-xs"
-                    >
-                      제거
-                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4 py-8">

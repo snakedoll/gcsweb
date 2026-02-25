@@ -288,49 +288,37 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   </div>
                 </div>
               )}
-
-            {/* 정산계좌 섹션 (판매팀만) */}
-            {teamType === 1 && (
-              <div>
-                <h2 className="typo-heading-xsmall text-neutral-12 mb-3">정산계좌</h2>
-                <div className="rounded-lg bg-neutral-2 p-4 border border-neutral-4">
-                  {accountImageUrl ? (
-                    <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full">
-                      <Image src={accountImageUrl} alt="통장 사본" fill className="object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAccountImage(null);
-                          setAccountImageUrl("");
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = "";
-                          }
-                        }}
-                        className="absolute top-2 right-2 bg-danger text-white px-3 py-1 rounded text-xs"
-                      >
-                        제거
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                      <div className="w-8 h-8">
-                        <Image src="/assets/icons/filled/Filled/Image.svg" alt="통장 사본 아이콘" width={32} height={32} className="object-contain" />
-                      </div>
-
-                      <div className="text-center space-y-1">
-                        <p className="typo-body-small text-neutral-8">통장 사본 이미지를 선택해주세요.</p>
-                        <p className="typo-body-xsmall text-neutral-7">50MB 이하의 JPEG, PNG 포맷</p>
-                      </div>
-
-                      <button type="button" onClick={() => setShowImageModal(true)} className="bg-orange-5 hover:bg-orange-6 typo-body-small-bold text-neutral-2 px-4 py-2 rounded-lg transition-colors">사진 업로드</button>
-                      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAccountImageChange} className="hidden" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             </div>
           </div>
+
+          {/* 정산계좌 섹션 (판매팀만) */}
+          {teamType === 1 && (
+            <div>
+              <h2 className="typo-heading-xsmall text-neutral-12 mb-3">정산계좌</h2>
+              <div className="rounded-lg bg-neutral-2 p-4 border border-neutral-4">
+                {accountImageUrl ? (
+                  <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full cursor-pointer" onClick={() => setShowImageModal(true)}>
+                    <Image src={accountImageUrl} alt="통장 사본" fill className="object-cover" />
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAccountImageChange} className="hidden" />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <div className="w-8 h-8">
+                      <Image src="/assets/icons/filled/Filled/Image.svg" alt="통장 사본 아이콘" width={32} height={32} className="object-contain" />
+                    </div>
+
+                    <div className="text-center space-y-1">
+                      <p className="typo-body-small text-neutral-8">통장 사본 이미지를 선택해주세요.</p>
+                      <p className="typo-body-xsmall text-neutral-7">50MB 이하의 JPEG, PNG 포맷</p>
+                    </div>
+
+                    <button type="button" onClick={() => setShowImageModal(true)} className="bg-orange-5 hover:bg-orange-6 typo-body-small-bold text-neutral-2 px-4 py-2 rounded-lg transition-colors">사진 업로드</button>
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handleAccountImageChange} className="hidden" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="pt-4 pb-4">
             <Button type="submit" color="orange" size="l" status={loading ? 'disabled' : 'default'} disabled={loading}>{loading ? '수정 중...' : '수정하기'}</Button>
