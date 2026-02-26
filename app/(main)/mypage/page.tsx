@@ -194,7 +194,7 @@ export default function MypagePage() {
     return () => {
       for (const input of inputs) input.removeEventListener('change', handler);
     };
-  }, []);
+  }, [router]);
 
   if (isLoading || !isAuthenticated) {
     return (

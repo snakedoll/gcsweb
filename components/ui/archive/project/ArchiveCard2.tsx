@@ -89,10 +89,13 @@ export default function ArchiveCard2({
       <div className="space-y-[11px]">
         <div className="relative h-[375px] w-[300px] overflow-hidden rounded-lg shadow-[0_0_5px_rgba(0,0,0,0.2)]">
           {imageSrc ? (
-            <img
+            <Image
               src={imageSrc}
               alt={imageAlt ?? `${title} \uD3EC\uC2A4\uD130`}
-              className="h-full w-full object-cover"
+              fill
+              unoptimized
+              sizes="300px"
+              className="object-cover"
             />
           ) : (
             <div className="h-full w-full bg-[#F1EEE9]" />

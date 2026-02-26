@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 import Tag from '@/components/ui/common/Tag';
@@ -104,8 +105,8 @@ function ProductInfoBlock({
       onClick={onClick}
       className={cn('flex w-full items-center justify-between text-left', onClick ? 'cursor-pointer' : 'cursor-default')}
     >
-      <div className="h-[125px] w-[102px] overflow-hidden rounded">
-        <img src={imageSrc} alt="" className="size-full object-cover" />
+      <div className="relative h-[125px] w-[102px] overflow-hidden rounded">
+        <Image src={imageSrc} alt="" fill unoptimized sizes="102px" className="object-cover" />
       </div>
 
       <div className="w-[205px] pl-3">
@@ -160,8 +161,8 @@ function ProjectPostInfo({
       onClick={onClick}
       className={cn('flex w-full items-center gap-4 text-left', onClick ? 'cursor-pointer' : 'cursor-default')}
     >
-      <div className="h-[125px] w-[102px] overflow-hidden rounded">
-        <img src={imageSrc} alt="" className="size-full object-cover" />
+      <div className="relative h-[125px] w-[102px] overflow-hidden rounded">
+        <Image src={imageSrc} alt="" fill unoptimized sizes="102px" className="object-cover" />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
@@ -209,8 +210,8 @@ function CompactListRow({
       onClick={onClick}
       className={cn('flex w-[375px] items-start gap-[15px] text-left', onClick ? 'cursor-pointer' : 'cursor-default')}
     >
-      <div className="h-[150px] w-[120px] overflow-hidden rounded-[5px]">
-        <img src={imageSrc} alt="" className="size-full object-cover" />
+      <div className="relative h-[150px] w-[120px] overflow-hidden rounded-[5px]">
+        <Image src={imageSrc} alt="" fill unoptimized sizes="120px" className="object-cover" />
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-3">

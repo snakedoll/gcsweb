@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -182,7 +183,7 @@ export async function GET(request: Request) {
         teamId: project.teamId,
         teamName: project.team?.teamName ?? '',
         title: project.title,
-        thumbnailUrl: project.thumbnailUrl,
+        thumbnailUrl: normalizeImageUrl(project.thumbnailUrl) ?? '',
         isScrap: scrapProjectIds.has(project.id),
         createdAt: project.createdAt,
       });

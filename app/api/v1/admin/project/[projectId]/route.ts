@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -69,8 +70,8 @@ export async function GET(
           year: String(project.projectYear?.year ?? ''),
           categoryId: project.categoryId,
           category: project.category?.category ?? '',
-          thumbnailUrl: project.thumbnailUrl,
-          detailUrl: project.detailUrl,
+          thumbnailUrl: normalizeImageUrl(project.thumbnailUrl),
+          detailUrl: normalizeImageUrl(project.detailUrl),
           isPublic: project.isPublic,
         },
       },

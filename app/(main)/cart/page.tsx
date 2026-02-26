@@ -173,7 +173,14 @@ function CartItemCard({
               <div className={`flex flex-1 gap-4 items-start ${isSoldOut ? 'opacity-40' : ''}`}>
               <div className="flex-shrink-0 w-16 h-20 rounded-[4px] bg-[#f1f1f1] flex items-center justify-center relative">
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover rounded-[4px]" />
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.productName}
+                    fill
+                    unoptimized
+                    sizes="64px"
+                    className="object-cover rounded-[4px]"
+                  />
                 ) : (
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="3" width="18" height="18" rx="2" stroke="#c7c5c4" strokeWidth="1.5" />

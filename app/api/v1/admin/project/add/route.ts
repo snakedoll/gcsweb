@@ -2,6 +2,7 @@
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 type ProjectAddBody = {
   title?: string;
@@ -25,6 +26,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isValidUrlString(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
+  if (value.trim().startsWith('/uploads/')) return true;
   try {
     new URL(value);
     return true;
@@ -75,8 +77,8 @@ export async function POST(request: Request) {
 
     const safeTitle = title.trim();
     const safeTeamId = teamId.trim();
-    const safeThumbnailUrl = thumbnailUrl.trim();
-    const safeDetailUrl = detailUrl.trim();
+    const safeThumbnailUrl = normalizeImageUrl(thumbnailUrl.trim()) ?? thumbnailUrl.trim();
+    const safeDetailUrl = normalizeImageUrl(detailUrl.trim()) ?? detailUrl.trim();
     const safeIsPublic = isPublic;
     const safeYearId = isNonEmptyString(yearId) ? yearId.trim() : '';
     const safeCategoryId = isNonEmptyString(categoryId) ? categoryId.trim() : '';
@@ -165,8 +167,8 @@ export async function POST(request: Request) {
           teamId: created.teamId,
           yearId: created.yearId,
           categoryId: created.categoryId,
-          thumbnailUrl: created.thumbnailUrl,
-          detailUrl: created.detailUrl,
+          thumbnailUrl: normalizeImageUrl(created.thumbnailUrl),
+          detailUrl: normalizeImageUrl(created.detailUrl),
           isPublic: created.isPublic,
           isHome: created.isHome,
           likeCount: created.likeCount,

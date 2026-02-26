@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { normalizeImageUrl } from '@/lib/image-url';
 import { jsonError, parseOptionalProductType, requireAdmin } from '../_utils';
 
 export async function GET(request: Request) {
@@ -74,7 +75,7 @@ export async function GET(request: Request) {
           type: p.type,
           name: p.name,
           description: p.description ?? '',
-          thumbnailUrl: p.images?.[0]?.thumbnailImgUrl ?? '',
+          thumbnailUrl: normalizeImageUrl(p.images?.[0]?.thumbnailImgUrl ?? '') ?? '',
           isHome: Boolean(p.isHome),
           isPublic: Boolean(p.isPublic),
           salesStartDate: p.salesStartDate,
@@ -90,4 +91,3 @@ export async function GET(request: Request) {
     return jsonError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
   }
 }
-

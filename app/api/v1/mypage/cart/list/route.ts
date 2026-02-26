@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function mapStatus(product: any) {
   // If product has explicit stock or status, determine sold out
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
             productId: p?.id ?? null,
             teamName: p?.team?.teamName ?? null,
             productName: p?.name ?? null,
-            thumbnailUrl: (p?.images && p.images[0]?.thumbnailImgUrl) ?? null,
+            thumbnailUrl: normalizeImageUrl((p?.images && p.images[0]?.thumbnailImgUrl) ?? null),
             options,
             price: r.price ?? r.unitPrice ?? null,
             quantity: r.quantity ?? 1,
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
           productId: r.product?.id ?? null,
           teamName: r.product?.team?.teamName ?? null,
           productName: r.product?.name ?? null,
-          thumbnailUrl: r.product?.thumbnailImgUrl ?? null,
+          thumbnailUrl: normalizeImageUrl(r.product?.thumbnailImgUrl ?? null),
           options: r.optionData ?? [],
           price: r.price ?? null,
           quantity: r.quantity ?? 1,

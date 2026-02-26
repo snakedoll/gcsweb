@@ -240,9 +240,12 @@ export default function ArchiveProjectDetailPage({
 
                 <div className="w-full overflow-hidden">
                   {project.detailUrl ? (
-                    <img
+                    <Image
                       src={project.detailUrl}
                       alt={`${project.title} 상세 이미지`}
+                      width={1200}
+                      height={1200}
+                      unoptimized
                       className="h-auto w-full object-cover"
                     />
                   ) : (

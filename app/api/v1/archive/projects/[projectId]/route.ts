@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -102,7 +103,7 @@ export async function GET(
         name: leader?.name ?? project.team?.representativeName ?? null,
         nickname: leader?.nickname ?? project.team?.representativeNickname ?? null,
         major: leader?.major ?? null,
-        profileImage: leader?.profileImage ?? null,
+        profileImage: normalizeImageUrl(leader?.profileImage ?? null),
         isRepresentative: true,
       });
     }
@@ -123,7 +124,7 @@ export async function GET(
         name: user?.name ?? fallbackNickname,
         nickname: user?.nickname ?? fallbackNickname,
         major: user?.major ?? null,
-        profileImage: user?.profileImage ?? null,
+        profileImage: normalizeImageUrl(user?.profileImage ?? null),
         isRepresentative: false,
       });
     }
@@ -169,8 +170,8 @@ export async function GET(
           year: Number(project.projectYear?.year ?? 0),
           categoryId: project.categoryId,
           category: project.category?.category ?? '',
-          thumbnailUrl: project.thumbnailUrl,
-          detailUrl: project.detailUrl,
+          thumbnailUrl: normalizeImageUrl(project.thumbnailUrl),
+          detailUrl: normalizeImageUrl(project.detailUrl),
           projectUrl,
           isScrap,
           members,

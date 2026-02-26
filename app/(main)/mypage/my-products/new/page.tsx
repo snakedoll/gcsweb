@@ -57,7 +57,11 @@ function ThumbnailPreview({ file }: { file: File }) {
     return () => URL.revokeObjectURL(url);
   }, [file]);
   if (!src) return <span className="typo-body-xsmall text-neutral-6">...</span>;
-  return <img src={src} alt="" className="h-full w-full object-cover" />;
+  return (
+    <span className="relative block h-full w-full">
+      <Image src={src} alt="" fill unoptimized sizes="200px" className="object-cover" />
+    </span>
+  );
 }
 
 function DetailPreview({ file }: { file: File }) {
@@ -68,7 +72,11 @@ function DetailPreview({ file }: { file: File }) {
     return () => URL.revokeObjectURL(url);
   }, [file]);
   if (!src) return <span className="typo-body-xsmall text-neutral-6">...</span>;
-  return <img src={src} alt="" className="h-full w-full object-cover" />;
+  return (
+    <span className="relative block h-full w-full">
+      <Image src={src} alt="" fill unoptimized sizes="400px" className="object-cover" />
+    </span>
+  );
 }
 
 async function fetchTeams(): Promise<TeamItem[]> {

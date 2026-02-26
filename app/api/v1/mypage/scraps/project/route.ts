@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 export async function GET(request: Request) {
   try {
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
             id: p.id,
             teamName: null,
             title: p.title,
-            thumbnailUrl: p.thumbnailUrl ?? null,
+            thumbnailUrl: normalizeImageUrl(p.thumbnailUrl ?? null),
             keywords: [],
           }));
       }

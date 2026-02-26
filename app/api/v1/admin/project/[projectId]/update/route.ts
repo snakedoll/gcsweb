@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 type ProjectUpdateBody = {
   projectId?: string;
@@ -26,6 +27,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isValidUrlString(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
+  if (value.trim().startsWith('/uploads/')) return true;
   try {
     new URL(value);
     return true;
@@ -102,8 +104,8 @@ export async function PATCH(
     const safeYearId = isNonEmptyString(yearId) ? yearId.trim() : '';
     const safeCategoryId = isNonEmptyString(categoryId) ? categoryId.trim() : '';
     const safeCategoryName = isNonEmptyString(category) ? category.trim() : '';
-    const safeThumbnailUrl = thumbnailUrl.trim();
-    const safeDetailUrl = detailUrl.trim();
+    const safeThumbnailUrl = normalizeImageUrl(thumbnailUrl.trim()) ?? thumbnailUrl.trim();
+    const safeDetailUrl = normalizeImageUrl(detailUrl.trim()) ?? detailUrl.trim();
     const safeIsPublic = isPublic;
     const parsedYear = parseYearValue(year);
 
@@ -207,8 +209,8 @@ export async function PATCH(
           teamId: updated.teamId,
           yearId: updated.yearId,
           categoryId: updated.categoryId,
-          thumbnailUrl: updated.thumbnailUrl,
-          detailUrl: updated.detailUrl,
+          thumbnailUrl: normalizeImageUrl(updated.thumbnailUrl),
+          detailUrl: normalizeImageUrl(updated.detailUrl),
           isPublic: updated.isPublic,
           isHome: updated.isHome,
           likeCount: updated.likeCount,

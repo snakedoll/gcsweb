@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 type ProfileVariant = 'default' | 'major' | 'general';
@@ -39,10 +40,13 @@ export default function ProfileAvatar({
         )}
       >
         {imageSrc ? (
-          <img
+          <Image
             src={imageSrc}
             alt={imageAlt ?? `${name} 프로필 이미지`}
-            className="h-full w-full object-cover"
+            fill
+            unoptimized
+            sizes="47px"
+            className="object-cover"
           />
         ) : (
           <PlaceholderAvatar />

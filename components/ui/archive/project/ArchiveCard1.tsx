@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import ArchiveCardName from './ArchiveCardName';
 
@@ -93,10 +94,13 @@ export default function ArchiveCard1({
       >
         <div className="relative aspect-[1080/1350] w-full overflow-hidden rounded-lg shadow-[0_0_5px_rgba(0,0,0,0.2)]">
           {imageSrc ? (
-            <img
+            <Image
               src={imageSrc}
               alt={imageAlt ?? `${title} \uD3EC\uC2A4\uD130`}
-              className="h-full w-full object-cover"
+              fill
+              unoptimized
+              sizes="269px"
+              className="object-cover"
             />
           ) : (
             <div className="h-full w-full bg-[#F1EEE9]" />

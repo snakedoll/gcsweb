@@ -2,6 +2,8 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { normalizeImageUrl } from '@/lib/image-url';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 /** 내가 속한 팀(팀장 또는 팀원)의 상품 목록 */
 export async function GET() {
@@ -55,7 +57,7 @@ export async function GET() {
         goalAmount: goal,
         currentAmount: current,
         progressPercent,
-        thumbnailImgUrl: thumb,
+        thumbnailImgUrl: normalizeImageUrl(thumb),
       };
     });
 
@@ -170,7 +172,19 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const detailUrls = Array.isArray(detailImgUrls) ? detailImgUrls.filter((u): u is string => typeof u === 'string' && u.trim().length > 0) : [];
+    const normalizedThumbnailImgUrl = normalizeImageUrl(thumbnailImgUrl.trim());
+    const detailUrls = Array.isArray(detailImgUrls)
+      ? detailImgUrls
+          .map((u) => normalizeImageUrl(typeof u === 'string' ? u : null))
+          .filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      : [];
+    const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
+    if (!normalizedThumbnailImgUrl) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_INPUT', message: '유효한 썸네일 이미지 URL이 필요합니다.' },
+        { status: 400 }
+      );
+    }
     if (detailUrls.length === 0) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1장 이상 필요합니다.' },
@@ -226,10 +240,10 @@ export async function POST(request: Request) {
       await tx.productImage.create({
         data: {
           productId: createdProduct.id,
-          thumbnailImgUrl: thumbnailImgUrl.trim(),
+          thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
           // ProductImage.noticeImgUrl is non-null in schema, keep empty until admin approval.
-          noticeImgUrl: typeof noticeImgUrl === 'string' ? noticeImgUrl.trim() : '',
+          noticeImgUrl: normalizedNoticeImgUrl ?? '',
         },
       });
 
@@ -280,10 +294,10 @@ export async function POST(request: Request) {
       await tx.productUpdateRequestImage.create({
         data: {
           productUpdateRequestId: requestRow.id,
-          thumbnailImgUrl: thumbnailImgUrl.trim(),
+          thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
           // Policy: register request can have null notice image before admin review.
-          noticeImgUrl: typeof noticeImgUrl === 'string' && noticeImgUrl.trim() ? noticeImgUrl.trim() : null,
+          noticeImgUrl: normalizedNoticeImgUrl ?? null,
         },
       });
 

@@ -1,5 +1,6 @@
 ﻿import { cn } from '@/lib/utils';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
+import Image from 'next/image';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 
 type ListedcardVariant = string;
@@ -76,8 +77,8 @@ export default function Listedcard({
           onClick={onContentClick}
           className={cn('flex w-full items-center gap-4 text-left', onContentClick ? 'cursor-pointer' : 'cursor-default')}
         >
-          <div className="h-[125px] w-[102px] overflow-hidden rounded">
-            <img src={imageSrc} alt="프로젝트 썸네일" className="size-full object-cover" />
+          <div className="relative h-[125px] w-[102px] overflow-hidden rounded">
+            <Image src={imageSrc} alt="프로젝트 썸네일" fill unoptimized sizes="102px" className="object-cover" />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-[7px]">

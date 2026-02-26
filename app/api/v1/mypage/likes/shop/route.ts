@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function mapStatus(status: number) {
   // Normalize to API spec strings
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
           id: p.id,
           teamName: p.team?.teamName ?? null,
           name: p.name,
-          thumbnailUrl: (p.images && p.images[0]?.thumbnailImgUrl) ?? null,
+          thumbnailUrl: normalizeImageUrl((p.images && p.images[0]?.thumbnailImgUrl) ?? null),
           status: mapStatus(p.status ?? 0),
           type: p.type ?? 0,
           fundingStatus: p.status === 0 ? '진행예정' : p.status === 1 ? '진행중' : '진행완료',
