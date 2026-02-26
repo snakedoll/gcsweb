@@ -84,7 +84,7 @@ export default function AdminPage() {
           <AdminMenuSection
             title="판매 관리"
             items={[
-              { label: '상품글 관리', href: '#' },
+              { label: '상품글 관리', href: '/admin/product' },
               { label: '주문 관리', href: '#' },
               { label: '재고 관리 | Buy now', href: '#' },
               { label: '정산 관리', href: '#' },
