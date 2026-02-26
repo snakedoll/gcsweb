@@ -211,34 +211,102 @@ export async function POST(request: Request) {
       viewCount: 0,
     };
 
-    const product = await prisma.product.create({
-      data: productData,
-    });
-
     const optionList = Array.isArray(options) ? options : [];
-    for (const opt of optionList) {
-      const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
-      if (!optionName) continue;
-      const optionRow = await prisma.productOption.create({
-        data: { productId: product.id, optionName },
-      });
-      const values = Array.isArray(opt.values) ? opt.values : [];
-      for (const v of values) {
-        const value = typeof v?.value === 'string' ? v.value.trim() : '';
-        const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
-        await prisma.productOptionValue.create({
-          data: { optionId: optionRow.id, value, additionalPrice },
-        });
-      }
-    }
 
-    await prisma.productImage.create({
-      data: {
-        productId: product.id,
-        thumbnailImgUrl: thumbnailImgUrl.trim(),
-        detailImgUrl: detailUrls,
-        noticeImgUrl: typeof noticeImgUrl === 'string' ? noticeImgUrl.trim() : '',
-      },
+    const product = await prisma.$transaction(async (tx) => {
+      const createdProduct = await tx.product.create({
+        data: {
+          ...productData,
+          isAdminApproved: false,
+          isPublic: false,
+          isHome: false,
+        },
+      });
+
+      await tx.productImage.create({
+        data: {
+          productId: createdProduct.id,
+          thumbnailImgUrl: thumbnailImgUrl.trim(),
+          detailImgUrl: detailUrls,
+          // ProductImage.noticeImgUrl is non-null in schema, keep empty until admin approval.
+          noticeImgUrl: typeof noticeImgUrl === 'string' ? noticeImgUrl.trim() : '',
+        },
+      });
+
+      for (const opt of optionList) {
+        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
+        if (!optionName) continue;
+
+        const optionRow = await tx.productOption.create({
+          data: { productId: createdProduct.id, optionName },
+        });
+
+        const values = Array.isArray(opt.values) ? opt.values : [];
+        for (const v of values) {
+          const value = typeof v?.value === 'string' ? v.value.trim() : '';
+          if (!value) continue;
+          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
+          await tx.productOptionValue.create({
+            data: { optionId: optionRow.id, value, additionalPrice },
+          });
+        }
+      }
+
+      const requestRow = await tx.productUpdateRequest.create({
+        data: {
+          productId: createdProduct.id,
+          requestedByUserId: session.user.id,
+          teamId,
+          requestType: 0,
+          name: name.trim(),
+          description: typeof description === 'string' ? description.trim() : '',
+          type,
+          status: 0,
+          price: priceNum,
+          goalAmount: typeof goalAmount === 'number' && goalAmount >= 0 ? goalAmount : null,
+          salesStartDate: salesStart,
+          salesEndDate: salesEnd,
+          productionStartDate: parseDate(productionStartDate) ?? undefined,
+          productionEndDate: parseDate(productionEndDate) ?? undefined,
+          deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
+          deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+          pickupStartDate: parseDate(pickupStartDate) ?? undefined,
+          pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+          pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
+          receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
+        },
+      });
+
+      await tx.productUpdateRequestImage.create({
+        data: {
+          productUpdateRequestId: requestRow.id,
+          thumbnailImgUrl: thumbnailImgUrl.trim(),
+          detailImgUrl: detailUrls,
+          // Policy: register request can have null notice image before admin review.
+          noticeImgUrl: typeof noticeImgUrl === 'string' && noticeImgUrl.trim() ? noticeImgUrl.trim() : null,
+        },
+      });
+
+      for (const opt of optionList) {
+        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
+        if (!optionName) continue;
+
+        const reqOption = await tx.productUpdateRequestOption.create({
+          data: { productUpdateRequestId: requestRow.id, optionName },
+        });
+
+        const values = Array.isArray(opt.values) ? opt.values : [];
+        for (const v of values) {
+          const value = typeof v?.value === 'string' ? v.value.trim() : '';
+          if (!value) continue;
+          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
+          await tx.productUpdateRequestOptionValue.create({
+            data: { optionId: reqOption.id, value, additionalPrice },
+          });
+        }
+      }
+
+      return createdProduct;
     });
 
     return NextResponse.json({
