@@ -23,6 +23,7 @@ export async function GET() {
       profileImage: true,
       memberType: true,
       isSeller: true,
+      notificationCount: true,
       createdAt: true,
     },
   });
@@ -44,6 +45,7 @@ export async function GET() {
     role: Number(user.memberType) === 2 ? 'admin' : 'user',
     memberType: user.memberType,
     isSeller: user.isSeller,
+    notificationCount: user.notificationCount,
     createdAt: user.createdAt.toISOString(),
   });
 }

@@ -10,6 +10,7 @@ interface UserProfile {
   profileImage?: string;
   isSeller?: boolean;
   memberType?: number;
+  notificationCount?: number;
   createdAt: string;
 }
 

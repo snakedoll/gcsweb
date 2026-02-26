@@ -3,6 +3,7 @@
 import { Footer, NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 /* ───────────────────────────── 타입 ───────────────────────────── */
 interface Notification {
@@ -83,11 +84,21 @@ function groupNotifications(notifications: Notification[]): NotificationGroup[] 
 }
 
 /* ────────────────────────── 알림 카드 ───────────────────────────── */
-function NoticeCard({ notification }: { notification: Notification }) {
+function NoticeCard({ notification, onRead }: { notification: Notification; onRead?: () => void }) {
   const timeLabel = formatRelativeTime(notification.createdAt);
 
   return (
-    <div className="flex flex-col gap-2 w-full pr-5">
+    <div 
+      className="flex flex-col gap-2 w-full pr-5 cursor-pointer"
+      onClick={() => {
+        if (!notification.isRead && onRead) {
+          onRead();
+        }
+        if (notification.linkUrl) {
+          window.location.href = notification.linkUrl;
+        }
+      }}
+    >
       <div className="flex flex-col gap-1 w-full">
         {/* 제목 + 미읽음 dot */}
         <div className="flex items-start gap-1">
@@ -99,7 +110,7 @@ function NoticeCard({ notification }: { notification: Notification }) {
           )}
         </div>
         {/* 내용 */}
-        <p className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#6c6764] font-semibold whitespace-pre-wrap w-full">
+        <p className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#6c6764] whitespace-pre-wrap w-full">
           {notification.content || '알림 내용이 없습니다.'}
         </p>
       </div>
@@ -116,6 +127,7 @@ const PAGE_SIZE = 20;
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [page, setPage] = useState(1);
@@ -151,6 +163,33 @@ export default function NotificationsPage() {
     await fetchNotifications(nextPage, true);
   };
 
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      // Optimitically update UI
+      setNotifications(prev => 
+        prev.map(notif => notif.id === id ? { ...notif, isRead: true } : notif)
+      );
+
+      // Call API
+      const res = await fetch('/api/v1/mypage/notifications/read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!res.ok) {
+        // Revert if failed (optional, keeping it simple for now)
+        console.error('Failed to mark as read');
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const groups = groupNotifications(notifications);
 
   return (
@@ -180,7 +219,10 @@ export default function NotificationsPage() {
                 <div className="flex flex-col gap-3">
                   {group.items.map((item, idx) => (
                     <div key={item.id} className="flex flex-col gap-3">
-                      <NoticeCard notification={item} />
+                      <NoticeCard 
+                        notification={item} 
+                        onRead={() => handleMarkAsRead(item.id)}
+                      />
                       {idx < group.items.length - 1 && (
                         <div className="h-px w-full bg-[#f1f1f1]" />
                       )}

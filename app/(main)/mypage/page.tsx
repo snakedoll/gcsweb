@@ -103,11 +103,9 @@ export default function MypagePage() {
 
     const fetchCounts = async () => {
       try {
-        // 알림 개수
-        const notiRes = await fetch('/api/v1/mypage/notifications?page=1&size=1');
-        if (notiRes.ok) {
-          const notiJson = await notiRes.json();
-          setNotificationCount(notiJson?.data?.notifications?.length ?? 0);
+        // 알림 개수는 프로필 데이터(User Model)를 통해 가져옵니다.
+        if (profile?.notificationCount !== undefined) {
+          setNotificationCount(profile.notificationCount);
         }
       } catch (err) {
         console.error('Failed to fetch notification count:', err);
@@ -137,7 +135,7 @@ export default function MypagePage() {
     };
 
     fetchCounts();
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, profile?.notificationCount]);
 
   // Handle file selection directly (no preview modal)
   useEffect(() => {
