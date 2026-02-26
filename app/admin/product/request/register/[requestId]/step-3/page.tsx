@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
@@ -13,7 +13,7 @@ type Step3Preset =
   | 'two-options'
   | 'required-missing'
   | 'upload-complete';
-type ModalPreset = 'none' | 'reject' | 'approve-private' | 'approve-public';
+type ModalPreset = 'none' | 'reject' | 'approve-private' | 'approve-public' | 'exit';
 
 type ApiOptionValue = { id?: string; value: string; additionalPrice: number };
 type ApiOption = { id?: string; name: string; values: ApiOptionValue[] };
@@ -47,7 +47,7 @@ type RequestDetail = {
 type UiOptionRow = {
   id: string;
   value: string;
-  extraPrice: string; // formatted string with commas
+  extraPrice: string;
 };
 
 type UiOptionCard = {
@@ -87,12 +87,12 @@ function PlusPillIcon() {
   );
 }
 
-function formatWon(value: number) {
-  return Number(value || 0).toLocaleString('ko-KR');
-}
-
 function digitsOnly(input: string) {
   return input.replace(/[^\d]/g, '');
+}
+
+function formatWon(value: number) {
+  return Number(value || 0).toLocaleString('ko-KR');
 }
 
 function formatNumberInput(input: string) {
@@ -101,9 +101,9 @@ function formatNumberInput(input: string) {
   return Number(digits).toLocaleString('ko-KR');
 }
 
-function createRow(seed = ''): UiOptionRow {
+function createRow(): UiOptionRow {
   return {
-    id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${seed}`,
+    id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     value: '',
     extraPrice: '0',
   };
@@ -118,12 +118,11 @@ function createOptionCard(): UiOptionCard {
 }
 
 function optionCardsFromApi(options: ApiOption[]): UiOptionCard[] {
-  if (!options.length) return [];
-  return options.map((opt, idx) => ({
-    id: opt.id ?? `opt-${idx + 1}`,
+  return (options ?? []).map((opt, index) => ({
+    id: opt.id ?? `opt-${index + 1}`,
     name: opt.name ?? '',
-    rows: (opt.values ?? []).map((v, vIdx) => ({
-      id: v.id ?? `row-${idx + 1}-${vIdx + 1}`,
+    rows: (opt.values ?? []).map((v, vIndex) => ({
+      id: v.id ?? `row-${index + 1}-${vIndex + 1}`,
       value: v.value ?? '',
       extraPrice: formatWon(v.additionalPrice ?? 0),
     })),
@@ -175,13 +174,7 @@ function buildPresetData(preset: Step3Preset) {
   };
 }
 
-function PriceEditor({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function PriceEditor({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   const hasValue = value.trim().length > 0;
 
   return (
@@ -203,13 +196,7 @@ function PriceEditor({
   );
 }
 
-function OptionNameField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function OptionNameField({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   const filled = value.trim().length > 0;
   return (
     <div className="flex w-full flex-col gap-1">
@@ -247,12 +234,14 @@ function OptionVariationField({
 }) {
   const valueFilled = row.value.trim().length > 0;
   const extraFilled = digitsOnly(row.extraPrice).length > 0;
+
   return (
     <div className="flex w-full flex-col gap-1">
       <div className="flex items-center justify-between typo-body-xsmall text-neutral-9">
         <span>옵션값</span>
         <span>추가 금액</span>
       </div>
+
       <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 py-2 pl-[10px] pr-[5px]">
         <div className="flex w-[260px] items-center justify-between">
           <input
@@ -264,7 +253,9 @@ function OptionVariationField({
               valueFilled ? 'text-neutral-12' : 'text-neutral-7'
             )}
           />
+
           <span className="h-5 w-px bg-neutral-5" aria-hidden />
+
           <span className="flex w-[111px] items-center border-b border-neutral-5">
             <input
               value={row.extraPrice}
@@ -280,7 +271,12 @@ function OptionVariationField({
           </span>
         </div>
 
-        <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" aria-label="옵션값 삭제" onClick={onRemove}>
+        <button
+          type="button"
+          className="ml-auto inline-flex h-5 w-5 items-center justify-center"
+          aria-label="옵션값 삭제"
+          onClick={onRemove}
+        >
           <CloseIcon size={17} />
         </button>
       </div>
@@ -313,7 +309,12 @@ function OptionCard({
         <div className="flex w-full flex-col gap-[14px]">
           <div className="flex w-full items-center justify-between">
             <p className="typo-heading-xxsmall text-black">{`옵션 ${index + 1}`}</p>
-            <button type="button" className="inline-flex h-5 w-5 items-center justify-center" aria-label="옵션 삭제" onClick={onRemoveCard}>
+            <button
+              type="button"
+              className="inline-flex h-5 w-5 items-center justify-center"
+              aria-label="옵션 삭제"
+              onClick={onRemoveCard}
+            >
               <CloseIcon />
             </button>
           </div>
@@ -332,7 +333,12 @@ function OptionCard({
           </div>
         </div>
 
-        <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="옵션값 추가" onClick={onAddRow}>
+        <button
+          type="button"
+          className="inline-flex h-6 w-6 items-center justify-center"
+          aria-label="옵션값 추가"
+          onClick={onAddRow}
+        >
           <PlusPillIcon />
         </button>
       </div>
@@ -398,39 +404,74 @@ function ConfirmModal({
   );
 }
 
+function ExitConfirmModal({
+  onContinue,
+  onLeave,
+}: {
+  onContinue: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-30 bg-black/30" />
+      <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
+        <div className="w-full max-w-[343px] rounded-xl bg-white px-7 pb-[23px] pt-10">
+          <div className="flex flex-col gap-[30px]">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="typo-body-small-bold text-neutral-12">작성을 취소하시겠습니까?</p>
+              <p className="typo-body-xsmall text-neutral-10">지금까지 작성한 글은 저장되지 않습니다.</p>
+            </div>
+            <div className="flex w-full gap-[14px]">
+              <button
+                type="button"
+                onClick={onContinue}
+                className="flex flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2 px-4 py-3"
+              >
+                <span className="typo-body-small-bold text-neutral-10">이어서 작성</span>
+              </button>
+              <button
+                type="button"
+                onClick={onLeave}
+                className="flex flex-1 items-center justify-center rounded-lg bg-orange-5 px-4 py-3"
+              >
+                <span className="typo-body-small-bold text-neutral-2">나가기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function normalizeOptionPayload(optionCards: UiOptionCard[]) {
   const parsed: Array<{ name: string; values: Array<{ value: string; additionalPrice: number }> }> = [];
 
   for (const option of optionCards) {
-    const trimmedName = option.name.trim();
-
-    const rows = option.rows.map((row) => ({
-      valueRaw: row.value.trim(),
+    const optionName = option.name.trim();
+    const normalizedRows = option.rows.map((row) => ({
+      value: row.value.trim(),
       extraDigits: digitsOnly(row.extraPrice),
     }));
 
-    const hasAnyRowInput = rows.some((row) => row.valueRaw.length > 0 || row.extraDigits.length > 0);
-    const hasAnyInput = trimmedName.length > 0 || hasAnyRowInput;
+    const hasAnyRowInput = normalizedRows.some((row) => row.value || row.extraDigits);
+    const hasAnyInput = optionName || hasAnyRowInput;
 
     if (!hasAnyInput) continue;
-    if (!trimmedName) {
-      return { ok: false as const, message: '옵션명은 비워둘 수 없습니다.' };
-    }
+    if (!optionName) return { ok: false as const, message: '옵션명은 비워둘 수 없습니다.' };
 
-    const normalizedValues: Array<{ value: string; additionalPrice: number }> = [];
-    for (const row of rows) {
-      const hasRowInput = row.valueRaw.length > 0 || row.extraDigits.length > 0;
+    const values: Array<{ value: string; additionalPrice: number }> = [];
+    for (const row of normalizedRows) {
+      const hasRowInput = row.value || row.extraDigits;
       if (!hasRowInput) continue;
-      if (!row.valueRaw) {
-        return { ok: false as const, message: '옵션값은 비워둘 수 없습니다.' };
-      }
-      normalizedValues.push({
-        value: row.valueRaw,
+      if (!row.value) return { ok: false as const, message: '옵션값은 비워둘 수 없습니다.' };
+      values.push({
+        value: row.value,
         additionalPrice: row.extraDigits ? Number(row.extraDigits) : 0,
       });
     }
 
-    parsed.push({ name: trimmedName, values: normalizedValues });
+    parsed.push({ name: optionName, values });
   }
 
   return { ok: true as const, value: parsed };
@@ -458,6 +499,8 @@ export default function AdminRegisterRequestStep3Page() {
   const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [modalType, setModalType] = useState<'approve' | 'reject' | null>(null);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [baselineSnapshot, setBaselineSnapshot] = useState('');
 
   useEffect(() => {
     if (!usePreset) return;
@@ -474,6 +517,8 @@ export default function AdminRegisterRequestStep3Page() {
           ? 'approve'
           : null
     );
+    setShowExitModal(modalQuery === 'exit');
+    setBaselineSnapshot(JSON.stringify({ priceInput: data.priceText, optionCards: data.options }));
     setDetailError(null);
     setDetailLoading(false);
   }, [usePreset, preset, modalQuery]);
@@ -487,17 +532,20 @@ export default function AdminRegisterRequestStep3Page() {
         setDetailLoading(true);
         const res = await fetch(`/api/v1/admin/product/request/register/${requestId}`, { cache: 'no-store' });
         const json = await res.json().catch(() => ({}));
-
         if (!res.ok || json?.status !== 'success' || !json?.data?.request) {
           throw new Error(json?.message ?? '등록 요청 상세를 불러오지 못했습니다.');
         }
         if (cancelled) return;
 
         const req = json.data.request as RequestDetail;
+        const nextPriceInput = formatWon(Number(req.price ?? 0));
+        const nextOptions = optionCardsFromApi(req.options ?? []);
+
         setRequestDetail(req);
-        setPriceInput(formatWon(Number(req.price ?? 0)));
-        setOptionCards(optionCardsFromApi(req.options ?? []));
+        setPriceInput(nextPriceInput);
+        setOptionCards(nextOptions);
         setNoticeImgUrl(req.noticeImgUrl ?? null);
+        setBaselineSnapshot(JSON.stringify({ priceInput: nextPriceInput, optionCards: nextOptions }));
         setDetailError(null);
       } catch (error: any) {
         console.error(error);
@@ -512,11 +560,41 @@ export default function AdminRegisterRequestStep3Page() {
     };
   }, [requestId, usePreset]);
 
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ priceInput, optionCards }),
+    [priceInput, optionCards]
+  );
+  const hasUnsavedChanges = Boolean(baselineSnapshot) && currentSnapshot !== baselineSnapshot;
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const showSmallOptionAddButton = optionCards.length >= 2;
   const registerEnabled = Boolean(noticeImgUrl);
 
   const updateOptionCard = (optionId: string, updater: (prev: UiOptionCard) => UiOptionCard) => {
     setOptionCards((prev) => prev.map((card) => (card.id === optionId ? updater(card) : card)));
+  };
+
+  const leaveStep3 = () => {
+    router.push(`/admin/product/request/register/${requestId}/step-2`);
+  };
+
+  const handleBackAttempt = () => {
+    if (submitting) return;
+    if (hasUnsavedChanges) {
+      setShowExitModal(true);
+      return;
+    }
+    leaveStep3();
   };
 
   const handleRejectConfirm = async () => {
@@ -531,8 +609,7 @@ export default function AdminRegisterRequestStep3Page() {
       if (!res.ok || json?.status !== 'success') {
         throw new Error(json?.message ?? '거부 처리에 실패했습니다.');
       }
-      alert('등록 요청을 거부했습니다.');
-      router.push('/admin/product/request/register');
+      router.push('/admin/product/request/register?toast=reject');
     } catch (error: any) {
       console.error(error);
       alert(error?.message ?? '거부 처리에 실패했습니다.');
@@ -596,8 +673,7 @@ export default function AdminRegisterRequestStep3Page() {
         throw new Error(json?.message ?? '등록 승인에 실패했습니다.');
       }
 
-      alert('상품글 등록 요청을 승인했습니다.');
-      router.push('/admin/product');
+      router.push(`/admin/product/request/register?toast=${isPublic ? 'approve-public' : 'approve-private'}`);
     } catch (error: any) {
       console.error(error);
       alert(error?.message ?? '등록 승인에 실패했습니다.');
@@ -611,7 +687,7 @@ export default function AdminRegisterRequestStep3Page() {
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={handleBackAttempt} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -652,9 +728,7 @@ export default function AdminRegisterRequestStep3Page() {
                       option={option}
                       index={index}
                       onChangeName={(next) => updateOptionCard(option.id, (prev) => ({ ...prev, name: next }))}
-                      onRemoveCard={() =>
-                        setOptionCards((prev) => prev.filter((card) => card.id !== option.id))
-                      }
+                      onRemoveCard={() => setOptionCards((prev) => prev.filter((card) => card.id !== option.id))}
                       onAddRow={() =>
                         updateOptionCard(option.id, (prev) => ({ ...prev, rows: [...prev.rows, createRow()] }))
                       }
@@ -700,7 +774,7 @@ export default function AdminRegisterRequestStep3Page() {
             <div className="flex w-full items-start gap-[10px]">
               <button
                 type="button"
-                onClick={() => router.push(`/admin/product/request/register/${requestId}/step-2`)}
+                onClick={handleBackAttempt}
                 className="flex h-[52px] w-[38px] items-center justify-center rounded-lg bg-[#E9DED2] text-neutral-12"
                 aria-label="이전"
                 disabled={submitting}
@@ -750,6 +824,10 @@ export default function AdminRegisterRequestStep3Page() {
           onConfirm={modalType === 'reject' ? handleRejectConfirm : handleApproveConfirm}
           submitting={submitting}
         />
+      ) : null}
+
+      {showExitModal ? (
+        <ExitConfirmModal onContinue={() => setShowExitModal(false)} onLeave={leaveStep3} />
       ) : null}
     </div>
   );

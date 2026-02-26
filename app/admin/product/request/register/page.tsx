@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import ProductTabBar from '@/components/ui/admin/product/TabBar';
 import FundPercent from '@/components/ui/admin/product/FundPercent';
@@ -39,6 +39,8 @@ type RegisterRequestListResponse = {
     requests?: RegisterRequestItem[];
   };
 };
+
+type ToastKind = 'approve-public' | 'approve-private' | 'reject';
 
 const TAB_OPTIONS: Array<{ key: TabKey; label: string; type: ProductType | null }> = [
   { key: 'all', label: '전체', type: null },
@@ -113,6 +115,35 @@ function InfoBanner({ count }: { count: number }) {
         <p className="typo-body-xsmall text-neutral-7">
           <span className="text-orange-5">{count} </span>건의 등록 요청이 있습니다.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ToastInfoIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="#FDFDFD" />
+      <path d="M12 10.5V16.2" stroke="#F6874C" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="7.6" r="1.05" fill="#F6874C" />
+    </svg>
+  );
+}
+
+function getToastMessage(kind: ToastKind) {
+  if (kind === 'approve-public') return '상품글이 공개 등록 되었습니다.';
+  if (kind === 'approve-private') return '상품글이 비공개 등록 되었습니다.';
+  return '상품글 등록 요청이 거부 되었습니다.';
+}
+
+function TopToast({ kind, visible }: { kind: ToastKind; visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <div className="pointer-events-none absolute left-4 right-4 top-[34px] z-30">
+      <div className="flex h-12 items-center gap-3 rounded-lg bg-orange-5 px-3">
+        <ToastInfoIcon />
+        <p className="typo-body-small text-neutral-2">{getToastMessage(kind)}</p>
       </div>
     </div>
   );
@@ -206,10 +237,40 @@ function RequestProductCard({
 
 export default function AdminProductRegisterRequestPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [requests, setRequests] = useState<RegisterRequestItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toastKind, setToastKind] = useState<ToastKind | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    const toast = searchParams.get('toast');
+    const nextKind =
+      toast === 'approve-public' || toast === 'approve-private' || toast === 'reject'
+        ? (toast as ToastKind)
+        : null;
+
+    if (!nextKind) {
+      setToastKind(null);
+      setToastVisible(false);
+      return;
+    }
+
+    setToastKind(nextKind);
+    setToastVisible(true);
+
+    const hideTimer = window.setTimeout(() => setToastVisible(false), 1800);
+    const clearQueryTimer = window.setTimeout(() => {
+      router.replace('/admin/product/request/register');
+    }, 1900);
+
+    return () => {
+      window.clearTimeout(hideTimer);
+      window.clearTimeout(clearQueryTimer);
+    };
+  }, [router, searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +312,8 @@ export default function AdminProductRegisterRequestPage() {
 
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
-      <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
+      <div className="relative mx-auto w-full max-w-[375px] bg-neutral-3">
+        {toastKind ? <TopToast kind={toastKind} visible={toastVisible} /> : null}
         <NavBar variant="title-back" title="등록 요청" />
 
         <main className="pb-8 pt-[19px]">
