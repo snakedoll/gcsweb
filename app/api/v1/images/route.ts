@@ -196,7 +196,6 @@ export async function POST(request: Request) {
     }
 
     const relativeUrl = `/uploads/${policy.pathPrefix}/${fileName}`.replace(/\\/g, '/');
-    const publicUrl = new URL(relativeUrl, request.url).toString();
 
     try {
       const repo = prisma as any;
@@ -205,7 +204,7 @@ export async function POST(request: Request) {
           usage,
           fileSize: validated.size,
           mimeType: validated.mimeType,
-          imageUrl: publicUrl,
+          imageUrl: relativeUrl,
         },
       });
     } catch (dbError) {
@@ -216,7 +215,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       status: 'success',
-      data: { imageUrl: publicUrl },
+      data: { imageUrl: relativeUrl },
     });
   } catch (error) {
     console.error('Image upload API error:', error);

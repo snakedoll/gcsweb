@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 type Body = {
   profileImageUrl?: string | null;
@@ -47,7 +48,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (typeof profileImageUrl === 'string') {
+    if (typeof profileImageUrl === 'string' && !profileImageUrl.trim().startsWith('/uploads/')) {
       // 간단한 URL 형식 검사
       try {
         // eslint-disable-next-line no-new
@@ -64,10 +65,13 @@ export async function PATCH(request: Request) {
       }
     }
 
+    const normalizedProfileImageUrl =
+      typeof profileImageUrl === 'string' ? normalizeImageUrl(profileImageUrl) : profileImageUrl;
+
     const updated = await prisma.user.update({
       where: { email: session.user.email },
       data: {
-        profileImage: profileImageUrl ?? null,
+        profileImage: normalizedProfileImageUrl ?? null,
       },
       select: { id: true, profileImage: true },
     });
@@ -76,7 +80,7 @@ export async function PATCH(request: Request) {
       status: 'success',
       data: {
         id: updated.id,
-        profileImageUrl: updated.profileImage ?? null,
+        profileImageUrl: normalizeImageUrl(updated.profileImage ?? null),
       },
     });
   } catch (error: any) {

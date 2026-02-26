@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 export async function GET(
   request: Request,
@@ -90,7 +91,7 @@ export async function GET(
       id: team.id,
       teamName: team.teamName,
       teamType,
-      accountUrl: team.accountUrl ?? null,
+      accountUrl: normalizeImageUrl(team.accountUrl ?? null),
       totalSales: team.totalSales ?? null,
       createdAt: team.createdAt,
       members,
@@ -184,7 +185,9 @@ export async function PATCH(
 
     // If accountUrl provided and non-null, validate URL format
     if (accountUrl !== undefined && accountUrl !== null) {
-      try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
+      if (!accountUrl.trim().startsWith('/uploads/')) {
+        try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
+      }
     }
 
     // Prepare update payload
@@ -203,7 +206,7 @@ export async function PATCH(
     }
 
     if (accountUrl !== undefined) {
-      data.accountUrl = accountUrl || '';
+      data.accountUrl = accountUrl ? (normalizeImageUrl(accountUrl) ?? accountUrl) : '';
     }
 
     if (teamType !== undefined) {
@@ -233,7 +236,7 @@ export async function PATCH(
       teamType: teamType !== undefined ? teamType : (updated.isSalesTeam ? 1 : 0),
       leaderId: finalLeaderId,
       memberIds: finalMemberIds,
-      accountUrl: updated.accountUrl || null,
+      accountUrl: normalizeImageUrl(updated.accountUrl || null),
       memberCount: finalMemberIds.length,
     };
 

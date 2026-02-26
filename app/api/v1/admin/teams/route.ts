@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 export async function GET(request: Request) {
   try {
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
         id: t.id,
         teamName: t.teamName,
         teamType,
-        accountUrl: t.accountUrl ?? null,
+        accountUrl: normalizeImageUrl(t.accountUrl ?? null),
         members,
       });
     }
@@ -147,7 +148,9 @@ export async function POST(request: Request) {
       if (!accountUrl || typeof accountUrl !== 'string') {
         return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: '판매팀 등록에는 accountUrl이 필요합니다.' }, { status: 400 });
       }
-      try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
+      if (!accountUrl.trim().startsWith('/uploads/')) {
+        try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
+      }
     }
 
     // Validate members exist
@@ -180,7 +183,9 @@ export async function POST(request: Request) {
     const memberNicknames = uniqueMemberIds.map((id) => membersById.get(id)?.nickname ?? null);
 
     // accountUrl stored as empty string for non-seller (schema requires string)
-    const storedAccountUrl = accountUrl && typeof accountUrl === 'string' ? accountUrl : '';
+    const storedAccountUrl = accountUrl && typeof accountUrl === 'string'
+      ? (normalizeImageUrl(accountUrl) ?? accountUrl)
+      : '';
 
     const isSalesTeam = teamType === 1;
 
