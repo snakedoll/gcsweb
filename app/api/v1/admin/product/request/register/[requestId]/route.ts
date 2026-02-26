@@ -22,6 +22,119 @@ function trimStringArray(input: unknown): string[] | null {
   return values.length === input.length && values.length > 0 ? values : null;
 }
 
+export async function GET(
+  _request: Request,
+  { params }: { params: { requestId: string } }
+) {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+
+    const requestId = isNonEmptyString(params?.requestId) ? params.requestId.trim() : '';
+    if (!requestId) {
+      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+    }
+
+    const repo = prisma as any;
+    const row = await repo.productUpdateRequest.findFirst({
+      where: { id: requestId, requestType: 0 },
+      select: {
+        id: true,
+        productId: true,
+        teamId: true,
+        name: true,
+        description: true,
+        type: true,
+        receiveMethod: true,
+        price: true,
+        goalAmount: true,
+        salesStartDate: true,
+        salesEndDate: true,
+        productionStartDate: true,
+        productionEndDate: true,
+        deliveryStartDate: true,
+        deliveryEndDate: true,
+        pickupStartDate: true,
+        pickupEndDate: true,
+        pickupLocation: true,
+        team: { select: { id: true, teamName: true } },
+        images: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            thumbnailImgUrl: true,
+            detailImgUrl: true,
+            noticeImgUrl: true,
+          },
+        },
+        options: {
+          orderBy: { optionName: 'asc' },
+          select: {
+            id: true,
+            optionName: true,
+            values: {
+              orderBy: { value: 'asc' },
+              select: {
+                id: true,
+                value: true,
+                additionalPrice: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!row) {
+      return jsonError(404, 'REGISTER_REQUEST_NOT_FOUND', '유효하지 않은 등록 요청이거나 이미 처리된 요청입니다.');
+    }
+
+    const image = row.images?.[0] ?? null;
+
+    return NextResponse.json({
+      status: 'success',
+      data: {
+        request: {
+          requestId: row.id,
+          productId: row.productId,
+          teamId: row.teamId,
+          teamName: row.team?.teamName ?? '',
+          name: row.name,
+          description: row.description ?? '',
+          type: row.type,
+          receiveMethod: row.receiveMethod,
+          price: row.price,
+          goalAmount: row.goalAmount,
+          salesStartDate: row.salesStartDate,
+          salesEndDate: row.salesEndDate,
+          productionStartDate: row.productionStartDate,
+          productionEndDate: row.productionEndDate,
+          deliveryStartDate: row.deliveryStartDate,
+          deliveryEndDate: row.deliveryEndDate,
+          pickupStartDate: row.pickupStartDate,
+          pickupEndDate: row.pickupEndDate,
+          pickupLocation: row.pickupLocation,
+          thumbnailUrl: image?.thumbnailImgUrl ?? '',
+          detailImageUrls: Array.isArray(image?.detailImgUrl) ? image?.detailImgUrl : [],
+          noticeImgUrl: image?.noticeImgUrl ?? null,
+          options: (row.options ?? []).map((option: any) => ({
+            id: option.id,
+            name: option.optionName,
+            values: (option.values ?? []).map((value: any) => ({
+              id: value.id,
+              value: value.value,
+              additionalPrice: value.additionalPrice,
+            })),
+          })),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Admin register request detail error:', error);
+    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { requestId: string } }
@@ -370,4 +483,3 @@ export async function PATCH(
     return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }
 }
-

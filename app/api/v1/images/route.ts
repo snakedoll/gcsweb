@@ -59,6 +59,12 @@ const USAGE_POLICIES: Record<string, UsagePolicy> = {
     allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
     requiresAdmin: false,
   },
+  PRODUCT_NOTICE: {
+    pathPrefix: 'product/notice',
+    maxBytes: 10 * MB,
+    allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+    requiresAdmin: false,
+  },
 };
 
 function errorResponse(status: number, code: string, message: string) {

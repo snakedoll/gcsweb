@@ -1,11 +1,13 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import SearchselectDropdown from '@/components/ui/common/SearchselectDropdown';
 import TextField from '@/components/ui/common/TextField';
+import { cn } from '@/lib/utils';
 
 type ProductType = 0 | 1 | 2;
 
@@ -32,7 +34,6 @@ type TeamDropdownVariant = 'Default' | 'searching' | 'empty';
 const TEAM_NAME_MAX = 17;
 const PRODUCT_NAME_MAX = 13;
 const PRODUCT_DESC_MAX = 17;
-
 const TEAM_OPTIONS = ['염사모', 'MUA', 'HUSH', '그린무브', '커피지구단'];
 
 function ChevronDownIcon() {
@@ -49,8 +50,112 @@ function ChevronDownIcon() {
   );
 }
 
+function ThumbCloseIcon() {
+  return (
+    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/35">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+        <path d="M3 3L9 9M9 3L3 9" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+function EmptyImageTileIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
+      <rect x="3.3" y="3.3" width="25.4" height="25.4" rx="5" stroke="#2F2824" strokeWidth="2" />
+      <path d="M5.5 22.8L12.5 15.8L16.8 20L20.1 16.7L26.5 23" stroke="#2F2824" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="10.6" cy="10.6" r="2" fill="#2F2824" />
+    </svg>
+  );
+}
+
 function limitCaption(length: number, max: number) {
   return `${length}/${max}`;
+}
+
+async function uploadNoticeImage(file: File) {
+  const form = new FormData();
+  form.append('image', file);
+
+  const res = await fetch('/api/v1/images?usage=PRODUCT_NOTICE', {
+    method: 'POST',
+    body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok || json?.status !== 'success' || !json?.data?.imageUrl) {
+    throw new Error(json?.message ?? '상품 정보 고시 이미지 업로드에 실패했습니다.');
+  }
+
+  return String(json.data.imageUrl);
+}
+
+function NoticeImageField({
+  previewUrl,
+  uploadedUrl,
+  uploading,
+  onPickClick,
+  onRemove,
+}: {
+  previewUrl: string | null;
+  uploadedUrl: string | null;
+  uploading: boolean;
+  onPickClick: () => void;
+  onRemove: () => void;
+}) {
+  const imageSrc = previewUrl ?? uploadedUrl;
+  const hasImage = Boolean(imageSrc);
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <p className="typo-body-small-bold text-neutral-10">상품 정보 고시 이미지</p>
+          <span className="typo-body-xsmall-bold text-danger">*</span>
+        </div>
+        <p className="text-[11px] leading-[1.5] text-neutral-8">상품 정보 이미지는 최대 1장까지 업로드 가능합니다.</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onPickClick}
+        disabled={uploading}
+        className="flex h-[45px] w-full items-center justify-between rounded-lg border border-neutral-5 bg-neutral-2 px-3"
+      >
+        <span className="typo-body-xsmall text-neutral-7">Placeholder</span>
+        <span className="typo-body-xsmall text-neutral-8">{uploading ? '업로드 중...' : ''}</span>
+      </button>
+
+      <div className="h-[100px] w-full">
+        {hasImage ? (
+          <div className="relative h-[100px] w-[82px] overflow-hidden rounded-lg">
+            <Image src={imageSrc!} alt="상품 정보 고시 이미지" fill unoptimized className="object-cover" />
+            <button
+              type="button"
+              onClick={onRemove}
+              className="absolute right-1 top-1 inline-flex"
+              aria-label="상품 정보 고시 이미지 삭제"
+              disabled={uploading}
+            >
+              <ThumbCloseIcon />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onPickClick}
+            disabled={uploading}
+            className="flex h-[100px] w-[82px] flex-col items-center justify-center rounded-lg border border-neutral-4 bg-neutral-2"
+            aria-label="상품 정보 고시 이미지 업로드"
+          >
+            <EmptyImageTileIcon />
+            <span className="mt-px text-[10px] leading-[1.5] text-neutral-6">0/1</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function AdminRegisterRequestStep1PartialPage() {
@@ -69,7 +174,12 @@ export default function AdminRegisterRequestStep1PartialPage() {
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [focusedField, setFocusedField] = useState<'team' | 'name' | 'description' | null>(null);
 
+  const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
+  const [noticePreviewUrl, setNoticePreviewUrl] = useState<string | null>(null);
+  const [noticeUploading, setNoticeUploading] = useState(false);
+
   const teamFieldWrapRef = useRef<HTMLDivElement | null>(null);
+  const noticeFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,13 +195,16 @@ export default function AdminRegisterRequestStep1PartialPage() {
 
         const item = (json.data?.requests ?? []).find((row) => row.requestId === requestId);
 
-        if (!cancelled) {
-          if (item) {
-            setTeamName(item.teamName ?? '');
-            setProductName(item.name ?? '');
-            setProductDescription(item.description ?? '');
-          }
-          setLoadError(item ? null : '등록 요청 정보를 찾을 수 없습니다.');
+        if (cancelled) return;
+
+        if (item) {
+          setTeamName(item.teamName ?? '');
+          setProductName(item.name ?? '');
+          setProductDescription(item.description ?? '');
+          setTeamQuery(item.teamName ?? '');
+          setLoadError(null);
+        } else {
+          setLoadError('등록 요청 정보를 찾을 수 없습니다.');
         }
       } catch (error: any) {
         console.error(error);
@@ -118,6 +231,12 @@ export default function AdminRegisterRequestStep1PartialPage() {
     window.addEventListener('mousedown', onPointerDown);
     return () => window.removeEventListener('mousedown', onPointerDown);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (noticePreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(noticePreviewUrl);
+    };
+  }, [noticePreviewUrl]);
 
   const teamError = teamName.length > TEAM_NAME_MAX;
   const nameError = productName.length > PRODUCT_NAME_MAX;
@@ -157,6 +276,32 @@ export default function AdminRegisterRequestStep1PartialPage() {
         ? 'filled'
         : 'default';
 
+  const onChangeNoticeFile = async (file: File | null) => {
+    if (!file) return;
+
+    try {
+      setNoticeUploading(true);
+
+      const objectUrl = URL.createObjectURL(file);
+      setNoticePreviewUrl((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
+
+      const uploadedUrl = await uploadNoticeImage(file);
+      setNoticeImgUrl(uploadedUrl);
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message ?? '상품 정보 고시 이미지 업로드에 실패했습니다.');
+      setNoticePreviewUrl((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+    } finally {
+      setNoticeUploading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
@@ -193,9 +338,6 @@ export default function AdminRegisterRequestStep1PartialPage() {
                       onFocus: () => {
                         setFocusedField('team');
                         setTeamDropdownOpen(true);
-                      },
-                      onBlur: () => {
-                        // blur close는 바깥 클릭 핸들러에서 처리. 항목 클릭 시 blur가 먼저 발생해도 선택 가능하도록 유지
                       },
                       onChange: (e) => {
                         const nextValue = e.target.value;
@@ -258,6 +400,32 @@ export default function AdminRegisterRequestStep1PartialPage() {
                   }}
                   caption={limitCaption(productDescription.length, PRODUCT_DESC_MAX)}
                   captionClassName={cn('text-right', descriptionError ? 'text-danger' : 'text-neutral-8')}
+                />
+
+                <NoticeImageField
+                  previewUrl={noticePreviewUrl}
+                  uploadedUrl={noticeImgUrl}
+                  uploading={noticeUploading}
+                  onPickClick={() => noticeFileInputRef.current?.click()}
+                  onRemove={() => {
+                    setNoticeImgUrl(null);
+                    setNoticePreviewUrl((prev) => {
+                      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+                      return null;
+                    });
+                  }}
+                />
+
+                <input
+                  ref={noticeFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    void onChangeNoticeFile(file);
+                    e.currentTarget.value = '';
+                  }}
                 />
               </div>
             )}

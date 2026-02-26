@@ -392,7 +392,7 @@ export default function AdminRegisterRequestStep2Page() {
         {!showKeyboard ? (
           <BottomActions
             onPrev={() => router.back()}
-            onNext={() => router.push(`/admin/product/request/register/${requestId}`)}
+            onNext={() => router.push(`/admin/product/request/register/${requestId}/step-3`)}
           />
         ) : null}
       </div>
