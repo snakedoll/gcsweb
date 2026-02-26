@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { NavBar } from '@/components/layout';
 import SearchBar from '@/components/ui/common/SearchBar';
 import ProductListedCard from '@/components/ui/admin/product/ProductListedCard';
@@ -87,9 +88,9 @@ function RequestSummaryBox({
   return (
     <div className="flex h-[35px] w-[109px] shrink-0 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-3 px-[10px] py-[7px]">
       <div className="flex items-center gap-2 typo-body-xsmall text-neutral-9">
-        <span>
+        <Link href="/admin/product/request/register" className="inline-flex items-center">
           등록 <span className="text-orange-5">{registerCount}</span>
-        </span>
+        </Link>
         <span aria-hidden className="h-[14px] w-px bg-neutral-6" />
         <span>
           수정 <span className="text-orange-5">{updateCount}</span>
