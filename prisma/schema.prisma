@@ -87,7 +87,7 @@ model Team {
 }
 
 // ============================================
-// Product - 상품
+// Product - 상품 (관리자 승인 완료된 운영본)
 // ============================================
 
 model Product {
@@ -122,7 +122,7 @@ model Product {
   // Relations
   team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
   options    ProductOption[]
-  images     ProductImage[]
+  images     ProductImage[]   @relation("ProductImages")
   variants   ProductVariant[]
   orderItems OrderItem[]
   reviews    Review[]
@@ -198,10 +198,15 @@ model ProductImage {
   detailImgUrl    String[]
   noticeImgUrl    String
   createdAt       DateTime  @default(now())
+
+  // Relations
+  product Product @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 // ============================================
-// ProductUpdateRequest - 상품 등록/수정 요청 (관리자 승인용)
+// ProductUpdateRequest - 상품 등록/수정 요청 (판매자가 보낸 요청본)
 // ============================================
 
 model ProductUpdateRequest {
@@ -210,15 +215,12 @@ model ProductUpdateRequest {
   requestedByUserId   String
   teamId              String
   requestType         Int      @default(0) // 0: register, 1: update
-  requestStatus       Int      @default(0) // 0: pending, 1: approved, 2: rejected
   name                String
   description         String
   type                Int      @default(0) // 0: fund, 1: buy now, 2: partner
   status              Int      @default(0) // 0: pending, 1: active, 2: completed
   price               Int
   goalAmount          Int?     // Fund: 목표 금액
-  currentAmount       Int      @default(0)
-  reservedAmount      Int      @default(0)
   salesStartDate      DateTime
   salesEndDate        DateTime
   productionStartDate DateTime? // Fund 택배: 제작 시작일
@@ -229,14 +231,7 @@ model ProductUpdateRequest {
   pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
   pickupLocation      String?   // Fund 현장 수령: 수령 장소
   receiveMethod       Int      @default(0) // 0: delivery, 1: pickup
-  isPublic            Boolean  @default(false) // 승인 시 Product.isPublic 반영 후보값
-  likeCount           Int      @default(0) // 요청 목록 카드 표시에 사용 (snapshot)
-  requestMessage      String?  // 판매자 메모/요청 사유
-  rejectionReason     String?  // 관리자 거부 사유
-  reviewedByAdminId   String?  // 관리자 리뷰어 userId (선택)
   requestedAt         DateTime @default(now())
-  reviewedAt          DateTime?
-  createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   // Relations
@@ -248,7 +243,7 @@ model ProductUpdateRequest {
   @@index([productId])
   @@index([requestedByUserId])
   @@index([teamId])
-  @@index([requestType, requestStatus])
+  @@index([requestType])
   @@index([requestedAt])
 }
 

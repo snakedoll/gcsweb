@@ -106,6 +106,7 @@ export async function POST(request: Request) {
       options,
       thumbnailImgUrl,
       detailImgUrls,
+      noticeImgUrl,
     } = body as {
       teamId?: string;
       name?: string;
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
       options?: { optionName: string; values: { value: string; extraPrice: number }[] }[];
       thumbnailImgUrl?: string;
       detailImgUrls?: string[];
+      noticeImgUrl?: string;
     };
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
@@ -188,7 +190,7 @@ export async function POST(request: Request) {
     const productData = {
       teamId,
       name: name.trim(),
-      description: typeof description === 'string' ? description.trim() : null,
+      description: typeof description === 'string' ? description.trim() : '',
       type,
       status: 0,
       price: priceNum,
@@ -235,6 +237,7 @@ export async function POST(request: Request) {
         productId: product.id,
         thumbnailImgUrl: thumbnailImgUrl.trim(),
         detailImgUrl: detailUrls,
+        noticeImgUrl: typeof noticeImgUrl === 'string' ? noticeImgUrl.trim() : '',
       },
     });
 
