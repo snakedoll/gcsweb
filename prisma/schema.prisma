@@ -20,35 +20,35 @@ enum SignupMethod {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  password          String?
-  nickname          String    @unique
-  name              String
-  phone             String?
-  memberType        Int       @default(0) // 0: general, 1: major, 2: admin
-  isSeller          Boolean   @default(false)
-  studentId         String?
-  major             String?
-  profileImage      String?
-  isVerified        Boolean   @default(false)
-  signupMethod      SignupMethod @default(EMAIL)
-  isRepresentative  Boolean   @default(false)
-  failedLoginAttempts Int     @default(0)
-  lockedUntil       DateTime?
-  likeCount         Int       @default(0)
-  notificationCount Int       @default(0)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                  String       @id @default(cuid())
+  email               String       @unique
+  password            String?
+  nickname            String       @unique
+  name                String
+  phone               String?
+  memberType          Int          @default(0) // 0: general, 1: major, 2: admin
+  isSeller            Boolean      @default(false)
+  studentId           String?
+  major               String?
+  profileImage        String?
+  isVerified          Boolean      @default(false)
+  signupMethod        SignupMethod @default(EMAIL)
+  isRepresentative    Boolean      @default(false)
+  failedLoginAttempts Int          @default(0)
+  lockedUntil         DateTime?
+  likeCount           Int          @default(0)
+  notificationCount   Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   // Relations
-  teams       Team[]
-  orders      Order[]
-  reviews     Review[]
-  posts       Post[]
-  inquiries   Inquiry[]
-  likes       Like[]
-  scraps      Scrap[]
+  teams         Team[]
+  orders        Order[]
+  reviews       Review[]
+  posts         Post[]
+  inquiries     Inquiry[]
+  likes         Like[]
+  scraps        Scrap[]
   notifications Notification[]
 
   @@index([email])
@@ -61,21 +61,21 @@ model User {
 // ============================================
 
 model Team {
-  id                    String    @id @default(cuid())
-  userId                String
-  teamName              String    @unique
-  representativeName    String
+  id                     String   @id @default(cuid())
+  userId                 String
+  teamName               String   @unique
+  representativeName     String
   representativeNickname String
-  teamMember            String[]
-  teamMemberNickname    String[]
-  accountUrl            String
-  isSalesTeam           Boolean   @default(false) // true: 판매팀, false: 일반팀
-  totalSales            Int?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  teamMember             String[]
+  teamMemberNickname     String[]
+  accountUrl             String
+  isSalesTeam            Boolean  @default(false) // true: 판매팀, false: 일반팀
+  totalSales             Int?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   // Relations
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects    Project[]
   products    Product[]
   settlements Settlement[]
@@ -102,12 +102,12 @@ model Product {
   salesStartDate      DateTime?
   salesEndDate        DateTime?
   productionStartDate DateTime?
-  productionEndDate   DateTime?  // Fund 택배: 제작 종료일
+  productionEndDate   DateTime? // Fund 택배: 제작 종료일
   deliveryStartDate   DateTime?
-  deliveryEndDate     DateTime?  // Fund 택배: 배송 종료일
-  pickupStartDate     DateTime?  // Fund 현장 수령: 수령 시작일
-  pickupEndDate       DateTime?  // Fund 현장 수령: 수령 종료일
-  pickupLocation      String?   // Fund 현장 수령: 수령 장소
+  deliveryEndDate     DateTime? // Fund 택배: 배송 종료일
+  pickupStartDate     DateTime? // Fund 현장 수령: 수령 시작일
+  pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
+  pickupLocation      String? // Fund 현장 수령: 수령 장소
   receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
   isPublic            Boolean   @default(false)
   likeCount           Int       @default(0)
@@ -116,14 +116,14 @@ model Product {
   updatedAt           DateTime  @updatedAt
 
   // Relations
-  team            Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  options         ProductOption[]
-  images          ProductImage[]
-  variants        ProductVariant[]
-  orderItems      OrderItem[]
-  reviews         Review[]
-  likes           Like[]
-  scraps          Scrap[]
+  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  options    ProductOption[]
+  images     ProductImage[]
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+  reviews    Review[]
+  likes      Like[]
+  scraps     Scrap[]
 
   @@index([teamId])
   @@index([type])
@@ -136,13 +136,13 @@ model Product {
 // ============================================
 
 model ProductOption {
-  id         String               @id @default(cuid())
+  id         String @id @default(cuid())
   productId  String
   optionName String
 
   // Relations
-  product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
-  values     ProductOptionValue[]
+  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values  ProductOptionValue[]
 
   @@index([productId])
 }
@@ -152,13 +152,13 @@ model ProductOption {
 // ============================================
 
 model ProductOptionValue {
-  id              String        @id @default(cuid())
+  id              String @id @default(cuid())
   optionId        String
   value           String
-  additionalPrice Int           @default(0)
+  additionalPrice Int    @default(0)
 
   // Relations
-  option          ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  option ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@index([optionId])
 }
@@ -168,16 +168,16 @@ model ProductOptionValue {
 // ============================================
 
 model ProductVariant {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   productId   String
   variantName String?
   price       Int
   stock       Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
@@ -187,14 +187,14 @@ model ProductVariant {
 // ============================================
 
 model ProductImage {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   productId       String
   thumbnailImgUrl String
   detailImgUrl    String[]
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime @default(now())
 
   // Relations
-  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
@@ -204,23 +204,23 @@ model ProductImage {
 // ============================================
 
 model Order {
-  id              String      @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String
-  status          Int         @default(0) // 0: pending, 1: approved, 2: processing, 3: delivered, 4: confirmed
+  status          Int      @default(0) // 0: pending, 1: approved, 2: processing, 3: delivered, 4: confirmed
   totalAmount     Int
-  orderDate       DateTime    @default(now())
+  orderDate       DateTime @default(now())
   shippingAddress String
   shippingName    String
   shippingPhone   String
   shippingEmail   String?
   memo            String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items           OrderItem[]
-  inquiries       Inquiry[]
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     OrderItem[]
+  inquiries Inquiry[]
 
   @@index([userId])
   @@index([status])
@@ -232,17 +232,17 @@ model Order {
 // ============================================
 
 model OrderItem {
-  id          String    @id @default(cuid())
-  orderId     String
-  productId   String
-  quantity    Int
-  price       Int
-  optionData  Json?
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  price      Int
+  optionData Json?
+  createdAt  DateTime @default(now())
 
   // Relations
-  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product   @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -253,22 +253,26 @@ model OrderItem {
 // ============================================
 
 model Scrap {
-  id         String   @id @default(cuid())
-  userId     String
-  projectId  String?  
-  productId  String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  productId String?
+  postId    String?
+  createdAt DateTime @default(now())
 
   // Relations
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, projectId])
+  @@unique([userId, productId])
+  @@unique([userId, postId])
   @@index([userId])
   @@index([projectId])
   @@index([productId])
-  @@unique([userId, projectId])
-  @@unique([userId, productId])
+  @@index([postId])
 }
 
 // ============================================
@@ -276,19 +280,19 @@ model Scrap {
 // ============================================
 
 model Review {
-  id          String        @id @default(cuid())
-  userId      String
-  productId   String
-  orderId     String?
-  rating      Int
-  content     String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  orderId   String?
+  rating    Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  images      ReviewImage[]
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images  ReviewImage[]
 
   @@index([userId])
   @@index([productId])
@@ -300,13 +304,13 @@ model Review {
 // ============================================
 
 model ReviewImage {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   reviewId  String
   url       String[]
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  review    Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@index([reviewId])
 }
@@ -330,23 +334,24 @@ model Image {
 }
 
 model Post {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   userId       String
-  category     Int       @default(0) // 0: board, 1: lounge
+  category     Int      @default(0) // 0: board, 1: lounge
   title        String
   subTitle     String?
   content      String
   thumbnailUrl String?
   images       String[]
-  likeCount    Int       @default(0)
-  viewCount    Int       @default(0)
-  isPublic     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  likeCount    Int      @default(0)
+  viewCount    Int      @default(0)
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  likes        Like[]
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes  Like[]
+  scraps Scrap[]
 
   @@index([userId])
   @@index([category])
@@ -368,7 +373,7 @@ model Category {
 // ============================================
 
 model ProjectCategory {
-  id       String    @id @default(cuid()) @map("categoryId")
+  id       String @id @default(cuid()) @map("categoryId")
   category String
 
   // Relations
@@ -382,8 +387,8 @@ model ProjectCategory {
 // ============================================
 
 model ProjectYear {
-  id       String    @id @default(cuid()) @map("yearId")
-  year     Int
+  id   String @id @default(cuid()) @map("yearId")
+  year Int
 
   // Relations
   projects Project[]
@@ -446,7 +451,7 @@ model News {
   updatedAt       DateTime  @updatedAt
 
   // Relations
-  likes           Like[]
+  likes Like[]
 
   @@index([isHeadline])
   @@index([isPublic])
@@ -457,16 +462,16 @@ model News {
 // ============================================
 
 model Inquiry {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
   orderId   String?
   content   String
-  status    Int       @default(0) // 0: pending, 1: completed
-  createdAt DateTime  @default(now())
+  status    Int      @default(0) // 0: pending, 1: completed
+  createdAt DateTime @default(now())
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order     Order?    @relation(fields: [orderId], references: [id])
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id])
 
   @@index([userId])
   @@index([orderId])
@@ -495,7 +500,7 @@ model Settlement {
   updatedAt           DateTime  @updatedAt
 
   // Relations
-  team                Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([status])
@@ -507,20 +512,20 @@ model Settlement {
 // ============================================
 
 model Like {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
   productId String?
   postId    String?
   projectId String?
   newsId    String?
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  news      News?     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  news    News?    @relation(fields: [newsId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@unique([userId, postId])
@@ -559,7 +564,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
