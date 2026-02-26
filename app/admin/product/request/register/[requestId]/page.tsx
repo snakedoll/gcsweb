@@ -1,31 +1,36 @@
 'use client';
 
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
+import ProductImage from '@/components/ui/admin/product/Image';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import SearchselectDropdown from '@/components/ui/common/SearchselectDropdown';
 import TextField from '@/components/ui/common/TextField';
 import { cn } from '@/lib/utils';
 
-type ProductType = 0 | 1 | 2;
-
-type RegisterRequestItem = {
-  requestId: string;
-  teamId: string;
-  teamName: string;
-  type: ProductType;
-  name: string;
-  description: string;
-};
-
-type RegisterRequestListResponse = {
+type RegisterRequestDetailResponse = {
   status: 'success' | 'error';
   message?: string;
   data?: {
-    requests?: RegisterRequestItem[];
+    request?: {
+      requestId: string;
+      teamName: string;
+      name: string;
+      description: string;
+      thumbnailUrl?: string;
+      detailImageUrls?: string[];
+      noticeImgUrl?: string | null;
+    };
   };
+};
+
+type LocalImageItem = {
+  id: string;
+  uploadedUrl: string | null;
+  previewUrl: string | null;
+  uploading: boolean;
 };
 
 type FormFieldState = 'default' | 'focus' | 'filled' | 'error';
@@ -74,11 +79,11 @@ function limitCaption(length: number, max: number) {
   return `${length}/${max}`;
 }
 
-async function uploadNoticeImage(file: File) {
+async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'PRODUCT_NOTICE') {
   const form = new FormData();
   form.append('image', file);
 
-  const res = await fetch('/api/v1/images?usage=PRODUCT_NOTICE', {
+  const res = await fetch(`/api/v1/images?usage=${usage}`, {
     method: 'POST',
     body: form,
   });
@@ -89,6 +94,10 @@ async function uploadNoticeImage(file: File) {
   }
 
   return String(json.data.imageUrl);
+}
+
+async function uploadNoticeImage(file: File) {
+  return uploadProductImage(file, 'PRODUCT_NOTICE');
 }
 
 function NoticeImageField({
@@ -130,7 +139,7 @@ function NoticeImageField({
       <div className="h-[100px] w-full">
         {hasImage ? (
           <div className="relative h-[100px] w-[82px] overflow-hidden rounded-lg">
-            <Image src={imageSrc!} alt="상품 정보 고시 이미지" fill unoptimized className="object-cover" />
+            <NextImage src={imageSrc!} alt="상품 정보 고시 이미지" fill unoptimized className="object-cover" />
             <button
               type="button"
               onClick={onRemove}
@@ -153,6 +162,70 @@ function NoticeImageField({
             <span className="mt-px text-[10px] leading-[1.5] text-neutral-6">0/1</span>
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ImageUploadField({
+  label,
+  helper,
+  maxCount,
+  single,
+  tiles,
+  uploading,
+  onPickClick,
+  onRemoveAt,
+}: {
+  label: string;
+  helper: string;
+  maxCount: number;
+  single: boolean;
+  tiles: Array<{ src: string | null }>;
+  uploading: boolean;
+  onPickClick: () => void;
+  onRemoveAt: (index: number) => void;
+}) {
+  const visibleTiles = tiles.filter((tile) => Boolean(tile.src));
+  const countText = `${visibleTiles.length}/${maxCount}`;
+  const canAdd = !single && visibleTiles.length < maxCount && !uploading;
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <p className="typo-body-small-bold text-neutral-10">{label}</p>
+          <span className="typo-body-xsmall-bold text-danger">*</span>
+        </div>
+        <p className="text-[11px] leading-[1.5] text-neutral-8">{helper}</p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onPickClick}
+        disabled={uploading}
+        className="flex h-[45px] w-full items-center justify-between rounded-lg border border-neutral-5 bg-neutral-2 px-3"
+      >
+        <span className="typo-body-xsmall text-neutral-7">Placeholder</span>
+        <span className="typo-body-xsmall text-neutral-8">{uploading ? '업로드 중..' : ''}</span>
+      </button>
+
+      <div className="flex min-h-[100px] w-full gap-[5px] overflow-x-auto">
+        {visibleTiles.length === 0 ? (
+          <ProductImage property1="empty" countText={countText} onClick={onPickClick} disabled={uploading} />
+        ) : (
+          visibleTiles.map((tile, index) => (
+            <ProductImage
+              key={`${tile.src}-${index}`}
+              property1="Default"
+              src={tile.src}
+              alt={label}
+              onRemove={() => onRemoveAt(index)}
+              disabled={uploading}
+            />
+          ))
+        )}
+        {canAdd ? <ProductImage property1="add" onClick={onPickClick} disabled={uploading} /> : null}
       </div>
     </div>
   );
@@ -213,6 +286,10 @@ export default function AdminRegisterRequestStep1PartialPage() {
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [focusedField, setFocusedField] = useState<'team' | 'name' | 'description' | null>(null);
 
+  const [thumbnailImgUrl, setThumbnailImgUrl] = useState<string | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+  const [detailImages, setDetailImages] = useState<LocalImageItem[]>([]);
   const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
   const [noticePreviewUrl, setNoticePreviewUrl] = useState<string | null>(null);
   const [noticeUploading, setNoticeUploading] = useState(false);
@@ -220,6 +297,8 @@ export default function AdminRegisterRequestStep1PartialPage() {
   const [baselineSnapshot, setBaselineSnapshot] = useState('');
 
   const teamFieldWrapRef = useRef<HTMLDivElement | null>(null);
+  const thumbnailFileInputRef = useRef<HTMLInputElement | null>(null);
+  const detailFileInputRef = useRef<HTMLInputElement | null>(null);
   const noticeFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -227,14 +306,14 @@ export default function AdminRegisterRequestStep1PartialPage() {
 
     (async () => {
       try {
-        const res = await fetch('/api/v1/admin/product/request/register/list', { cache: 'no-store' });
-        const json = (await res.json().catch(() => ({}))) as RegisterRequestListResponse;
+        const res = await fetch(`/api/v1/admin/product/request/register/${requestId}`, { cache: 'no-store' });
+        const json = (await res.json().catch(() => ({}))) as RegisterRequestDetailResponse;
 
         if (!res.ok || json.status !== 'success') {
           throw new Error(json.message ?? '등록 요청 정보를 불러오지 못했습니다.');
         }
 
-        const item = (json.data?.requests ?? []).find((row) => row.requestId === requestId);
+        const item = json.data?.request;
         if (cancelled) return;
 
         if (!item) {
@@ -246,12 +325,26 @@ export default function AdminRegisterRequestStep1PartialPage() {
         setProductName(item.name ?? '');
         setProductDescription(item.description ?? '');
         setTeamQuery(item.teamName ?? '');
+        setThumbnailImgUrl(item.thumbnailUrl ?? null);
+        setThumbnailPreviewUrl(null);
+        setDetailImages(
+          (item.detailImageUrls ?? []).map((url, index) => ({
+            id: `server-${index}`,
+            uploadedUrl: url,
+            previewUrl: null,
+            uploading: false,
+          }))
+        );
+        setNoticeImgUrl(item.noticeImgUrl ?? null);
+        setNoticePreviewUrl(null);
         setBaselineSnapshot(
           JSON.stringify({
             teamName: item.teamName ?? '',
             productName: item.name ?? '',
             productDescription: item.description ?? '',
-            noticeImgUrl: null,
+            thumbnailImgUrl: item.thumbnailUrl ?? null,
+            detailImageUrls: item.detailImageUrls ?? [],
+            noticeImgUrl: item.noticeImgUrl ?? null,
           })
         );
         setLoadError(null);
@@ -283,9 +376,13 @@ export default function AdminRegisterRequestStep1PartialPage() {
 
   useEffect(() => {
     return () => {
+      if (thumbnailPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(thumbnailPreviewUrl);
+      detailImages.forEach((item) => {
+        if (item.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(item.previewUrl);
+      });
       if (noticePreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(noticePreviewUrl);
     };
-  }, [noticePreviewUrl]);
+  }, [thumbnailPreviewUrl, detailImages, noticePreviewUrl]);
 
   const currentSnapshot = useMemo(
     () =>
@@ -293,9 +390,11 @@ export default function AdminRegisterRequestStep1PartialPage() {
         teamName,
         productName,
         productDescription,
+        thumbnailImgUrl,
+        detailImageUrls: detailImages.map((item) => item.uploadedUrl).filter(Boolean),
         noticeImgUrl,
       }),
-    [teamName, productName, productDescription, noticeImgUrl]
+    [teamName, productName, productDescription, thumbnailImgUrl, detailImages, noticeImgUrl]
   );
   const hasUnsavedChanges = Boolean(baselineSnapshot) && currentSnapshot !== baselineSnapshot;
 
@@ -347,6 +446,59 @@ export default function AdminRegisterRequestStep1PartialPage() {
         ? 'filled'
         : 'default';
 
+  const isAnyImageUploading =
+    thumbnailUploading || noticeUploading || detailImages.some((item) => Boolean(item.uploading));
+
+  const onChangeThumbnailFile = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setThumbnailUploading(true);
+      const objectUrl = URL.createObjectURL(file);
+      setThumbnailPreviewUrl((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
+      const uploadedUrl = await uploadProductImage(file, 'PRODUCT_THUMBNAIL');
+      setThumbnailImgUrl(uploadedUrl);
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message ?? '썸네일 이미지 업로드에 실패했습니다.');
+      setThumbnailPreviewUrl((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setThumbnailImgUrl(null);
+    } finally {
+      setThumbnailUploading(false);
+    }
+  };
+
+  const onChangeDetailFiles = async (files: FileList | null) => {
+    const picked = Array.from(files ?? []).slice(0, Math.max(0, 10 - detailImages.length));
+    if (picked.length === 0) return;
+
+    for (const file of picked) {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const objectUrl = URL.createObjectURL(file);
+      setDetailImages((prev) => [...prev, { id, uploadedUrl: null, previewUrl: objectUrl, uploading: true }]);
+
+      try {
+        const uploadedUrl = await uploadProductImage(file, 'PRODUCT_DETAIL');
+        setDetailImages((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, uploadedUrl, uploading: false } : item))
+        );
+      } catch (error: any) {
+        console.error(error);
+        alert(error?.message ?? '상세페이지 이미지 업로드에 실패했습니다.');
+        setDetailImages((prev) => {
+          const target = prev.find((item) => item.id === id);
+          if (target?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(target.previewUrl);
+          return prev.filter((item) => item.id !== id);
+        });
+      }
+    }
+  };
+
   const onChangeNoticeFile = async (file: File | null) => {
     if (!file) return;
 
@@ -377,7 +529,7 @@ export default function AdminRegisterRequestStep1PartialPage() {
   };
 
   const handleBackAttempt = () => {
-    if (noticeUploading) return;
+    if (isAnyImageUploading) return;
     if (hasUnsavedChanges) {
       setShowExitModal(true);
       return;
@@ -485,6 +637,41 @@ export default function AdminRegisterRequestStep1PartialPage() {
                   captionClassName={cn('text-right', descriptionError ? 'text-danger' : 'text-neutral-8')}
                 />
 
+                <ImageUploadField
+                  label="썸네일 이미지"
+                  helper="썸네일 이미지는 최대 1장까지 업로드 가능합니다."
+                  maxCount={1}
+                  single
+                  tiles={[{ src: thumbnailPreviewUrl ?? thumbnailImgUrl }]}
+                  uploading={thumbnailUploading}
+                  onPickClick={() => thumbnailFileInputRef.current?.click()}
+                  onRemoveAt={() => {
+                    setThumbnailImgUrl(null);
+                    setThumbnailPreviewUrl((prev) => {
+                      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+                      return null;
+                    });
+                  }}
+                />
+
+                <ImageUploadField
+                  label="상세페이지 이미지"
+                  helper="여러 장인 경우, 화면에 노출될 순서대로 업로드해 주세요."
+                  maxCount={10}
+                  single={false}
+                  tiles={detailImages.map((item) => ({ src: item.previewUrl ?? item.uploadedUrl }))}
+                  uploading={detailImages.some((item) => item.uploading)}
+                  onPickClick={() => detailFileInputRef.current?.click()}
+                  onRemoveAt={(index) => {
+                    setDetailImages((prev) => {
+                      const next = [...prev];
+                      const [removed] = next.splice(index, 1);
+                      if (removed?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(removed.previewUrl);
+                      return next;
+                    });
+                  }}
+                />
+
                 <NoticeImageField
                   previewUrl={noticePreviewUrl}
                   uploadedUrl={noticeImgUrl}
@@ -496,6 +683,30 @@ export default function AdminRegisterRequestStep1PartialPage() {
                       if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
                       return null;
                     });
+                  }}
+                />
+
+                <input
+                  ref={thumbnailFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    void onChangeThumbnailFile(file);
+                    e.currentTarget.value = '';
+                  }}
+                />
+
+                <input
+                  ref={detailFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void onChangeDetailFiles(e.currentTarget.files);
+                    e.currentTarget.value = '';
                   }}
                 />
 

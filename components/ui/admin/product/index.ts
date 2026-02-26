@@ -3,6 +3,7 @@ export { default as Daterangepicker } from './Daterangepicker';
 export { default as DaterangepickerVariation } from './DaterangepickerVariation';
 export { default as FundPercent } from './FundPercent';
 export { default as FundingstatusSection } from './FundingstatusSection';
+export { default as Image } from './Image';
 export { default as OptionName } from './OptionName';
 export { default as OptionVariation } from './OptionVariation';
 export { default as PriceInput } from './PriceInput';
