@@ -55,28 +55,30 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const mappedRequests = requests.map((r: any) => ({
+      requestId: r.id,
+      productId: r.productId,
+      teamId: r.teamId,
+      teamName: r.team?.teamName ?? '',
+      type: r.type,
+      name: r.name,
+      description: r.description ?? '',
+      thumbnailUrl: normalizeImageUrl(r.images?.[0]?.thumbnailImgUrl ?? '') ?? '',
+      salesStartDate: r.salesStartDate,
+      salesEndDate: r.salesEndDate,
+      currentAmount: r.type === 0 ? (r.product?.currentAmount ?? 0) : null,
+      goalAmount: r.type === 0 ? (r.goalAmount ?? null) : null,
+      likeCount: r.product?.likeCount ?? 0,
+      requestedAt: r.requestedAt,
+    }));
+
     return NextResponse.json({
       status: 'success',
       data: {
         summary: {
           totalRegisterRequestCount,
         },
-        requests: requests.map((r: any) => ({
-          requestId: r.id,
-          productId: r.productId,
-          teamId: r.teamId,
-          teamName: r.team?.teamName ?? '',
-          type: r.type,
-          name: r.name,
-          description: r.description ?? '',
-          thumbnailUrl: normalizeImageUrl(r.images?.[0]?.thumbnailImgUrl ?? '') ?? '',
-          salesStartDate: r.salesStartDate,
-          salesEndDate: r.salesEndDate,
-          currentAmount: r.type === 0 ? (r.product?.currentAmount ?? 0) : null,
-          goalAmount: r.type === 0 ? (r.goalAmount ?? null) : null,
-          likeCount: r.product?.likeCount ?? 0,
-          requestedAt: r.requestedAt,
-        })),
+        requests: mappedRequests,
       },
     });
   } catch (error) {
