@@ -207,7 +207,11 @@ export default function MypagePage() {
   }
 
   const displayName = profile?.name ?? profile?.nickname ?? profile?.email ?? '사용자';
-  const roleLabel = profile?.role === 'admin' ? '관리자' : '일반 회원';
+  const roleLabel = profile?.memberType === 2 || profile?.role === 'admin' 
+    ? '관리자' 
+    : profile?.memberType === 1 
+      ? '전공 회원' 
+      : '일반 회원';
 
   return (
     <div className="flex min-h-screen w-full flex-col">

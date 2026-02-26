@@ -9,6 +9,7 @@ interface UserProfile {
   role: string;
   profileImage?: string;
   isSeller?: boolean;
+  memberType?: number;
   createdAt: string;
 }
 

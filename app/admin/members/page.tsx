@@ -20,8 +20,14 @@ interface Member {
 
 function getRoleLabel(role: MemberRole): string {
   if (role === "admin") return "관리자";
-  if (role === "major") return "전공";
-  return "일반";
+  if (role === "major") return "전공 회원";
+  return "일반 회원";
+}
+
+function getRoleColors(role: MemberRole): string {
+  if (role === "admin") return "bg-neutral-10 text-neutral-2";
+  if (role === "major") return "bg-[#fac0a1] text-[#cf5d1f]";
+  return "bg-[#e9ded2] text-neutral-9";
 }
 
 const SAMPLE_MEMBERS: Member[] = [
@@ -124,9 +130,7 @@ export default function AdminMembersPage() {
                           <span
                             className={cn(
                               "rounded px-2 py-0.5 typo-body-xsmall",
-                              member.role === "admin"
-                                ? "bg-orange-5 text-neutral-2"
-                                : "bg-neutral-6 text-neutral-9"
+                              getRoleColors(member.role)
                             )}
                           >
                             {getRoleLabel(member.role)}
