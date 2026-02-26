@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
-import { normalizeImageUrl } from '@/lib/image-url';
 
 /** 내가 속한 팀(팀장 또는 팀원)의 상품 목록 */
 export async function GET() {
