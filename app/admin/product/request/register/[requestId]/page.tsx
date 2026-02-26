@@ -158,6 +158,46 @@ function NoticeImageField({
   );
 }
 
+function ExitConfirmModal({
+  onContinue,
+  onLeave,
+}: {
+  onContinue: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-30 bg-black/30" />
+      <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
+        <div className="w-full max-w-[343px] rounded-xl bg-white px-7 pb-[23px] pt-10">
+          <div className="flex flex-col gap-[30px]">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <p className="typo-body-small-bold text-neutral-12">작성을 취소하시겠습니까?</p>
+              <p className="typo-body-xsmall text-neutral-10">지금까지 작성한 글은 저장되지 않습니다.</p>
+            </div>
+            <div className="flex w-full gap-[14px]">
+              <button
+                type="button"
+                onClick={onContinue}
+                className="flex flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2 px-4 py-3"
+              >
+                <span className="typo-body-small-bold text-neutral-10">이어서 작성</span>
+              </button>
+              <button
+                type="button"
+                onClick={onLeave}
+                className="flex flex-1 items-center justify-center rounded-lg bg-orange-5 px-4 py-3"
+              >
+                <span className="typo-body-small-bold text-neutral-2">나가기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function AdminRegisterRequestStep1PartialPage() {
   const router = useRouter();
   const params = useParams<{ requestId: string }>();
@@ -169,7 +209,6 @@ export default function AdminRegisterRequestStep1PartialPage() {
   const [teamName, setTeamName] = useState('');
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
-
   const [teamQuery, setTeamQuery] = useState('');
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
   const [focusedField, setFocusedField] = useState<'team' | 'name' | 'description' | null>(null);
@@ -177,6 +216,8 @@ export default function AdminRegisterRequestStep1PartialPage() {
   const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
   const [noticePreviewUrl, setNoticePreviewUrl] = useState<string | null>(null);
   const [noticeUploading, setNoticeUploading] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [baselineSnapshot, setBaselineSnapshot] = useState('');
 
   const teamFieldWrapRef = useRef<HTMLDivElement | null>(null);
   const noticeFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -194,18 +235,26 @@ export default function AdminRegisterRequestStep1PartialPage() {
         }
 
         const item = (json.data?.requests ?? []).find((row) => row.requestId === requestId);
-
         if (cancelled) return;
 
-        if (item) {
-          setTeamName(item.teamName ?? '');
-          setProductName(item.name ?? '');
-          setProductDescription(item.description ?? '');
-          setTeamQuery(item.teamName ?? '');
-          setLoadError(null);
-        } else {
+        if (!item) {
           setLoadError('등록 요청 정보를 찾을 수 없습니다.');
+          return;
         }
+
+        setTeamName(item.teamName ?? '');
+        setProductName(item.name ?? '');
+        setProductDescription(item.description ?? '');
+        setTeamQuery(item.teamName ?? '');
+        setBaselineSnapshot(
+          JSON.stringify({
+            teamName: item.teamName ?? '',
+            productName: item.name ?? '',
+            productDescription: item.description ?? '',
+            noticeImgUrl: null,
+          })
+        );
+        setLoadError(null);
       } catch (error: any) {
         console.error(error);
         if (!cancelled) setLoadError(error?.message ?? '등록 요청 정보를 불러오지 못했습니다.');
@@ -237,6 +286,28 @@ export default function AdminRegisterRequestStep1PartialPage() {
       if (noticePreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(noticePreviewUrl);
     };
   }, [noticePreviewUrl]);
+
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        teamName,
+        productName,
+        productDescription,
+        noticeImgUrl,
+      }),
+    [teamName, productName, productDescription, noticeImgUrl]
+  );
+  const hasUnsavedChanges = Boolean(baselineSnapshot) && currentSnapshot !== baselineSnapshot;
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const teamError = teamName.length > TEAM_NAME_MAX;
   const nameError = productName.length > PRODUCT_NAME_MAX;
@@ -281,7 +352,6 @@ export default function AdminRegisterRequestStep1PartialPage() {
 
     try {
       setNoticeUploading(true);
-
       const objectUrl = URL.createObjectURL(file);
       setNoticePreviewUrl((prev) => {
         if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
@@ -302,11 +372,24 @@ export default function AdminRegisterRequestStep1PartialPage() {
     }
   };
 
+  const leaveToRegisterList = () => {
+    router.push('/admin/product/request/register');
+  };
+
+  const handleBackAttempt = () => {
+    if (noticeUploading) return;
+    if (hasUnsavedChanges) {
+      setShowExitModal(true);
+      return;
+    }
+    leaveToRegisterList();
+  };
+
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={handleBackAttempt} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -442,6 +525,10 @@ export default function AdminRegisterRequestStep1PartialPage() {
           </button>
         </div>
       </div>
+
+      {showExitModal ? (
+        <ExitConfirmModal onContinue={() => setShowExitModal(false)} onLeave={leaveToRegisterList} />
+      ) : null}
     </div>
   );
 }

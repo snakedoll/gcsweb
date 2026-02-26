@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
@@ -13,7 +13,7 @@ type Step3Preset =
   | 'two-options'
   | 'required-missing'
   | 'upload-complete';
-type ModalPreset = 'none' | 'reject' | 'approve-private' | 'approve-public' | 'exit';
+type ModalPreset = 'none' | 'reject' | 'approve-private' | 'approve-public';
 
 type ApiOptionValue = { id?: string; value: string; additionalPrice: number };
 type ApiOption = { id?: string; name: string; values: ApiOptionValue[] };
@@ -404,46 +404,6 @@ function ConfirmModal({
   );
 }
 
-function ExitConfirmModal({
-  onContinue,
-  onLeave,
-}: {
-  onContinue: () => void;
-  onLeave: () => void;
-}) {
-  return (
-    <>
-      <div className="fixed inset-0 z-30 bg-black/30" />
-      <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
-        <div className="w-full max-w-[343px] rounded-xl bg-white px-7 pb-[23px] pt-10">
-          <div className="flex flex-col gap-[30px]">
-            <div className="flex flex-col items-center gap-1 text-center">
-              <p className="typo-body-small-bold text-neutral-12">작성을 취소하시겠습니까?</p>
-              <p className="typo-body-xsmall text-neutral-10">지금까지 작성한 글은 저장되지 않습니다.</p>
-            </div>
-            <div className="flex w-full gap-[14px]">
-              <button
-                type="button"
-                onClick={onContinue}
-                className="flex flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2 px-4 py-3"
-              >
-                <span className="typo-body-small-bold text-neutral-10">이어서 작성</span>
-              </button>
-              <button
-                type="button"
-                onClick={onLeave}
-                className="flex flex-1 items-center justify-center rounded-lg bg-orange-5 px-4 py-3"
-              >
-                <span className="typo-body-small-bold text-neutral-2">나가기</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
 function normalizeOptionPayload(optionCards: UiOptionCard[]) {
   const parsed: Array<{ name: string; values: Array<{ value: string; additionalPrice: number }> }> = [];
 
@@ -499,8 +459,6 @@ export default function AdminRegisterRequestStep3Page() {
   const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [modalType, setModalType] = useState<'approve' | 'reject' | null>(null);
-  const [showExitModal, setShowExitModal] = useState(false);
-  const [baselineSnapshot, setBaselineSnapshot] = useState('');
 
   useEffect(() => {
     if (!usePreset) return;
@@ -517,8 +475,6 @@ export default function AdminRegisterRequestStep3Page() {
           ? 'approve'
           : null
     );
-    setShowExitModal(modalQuery === 'exit');
-    setBaselineSnapshot(JSON.stringify({ priceInput: data.priceText, optionCards: data.options }));
     setDetailError(null);
     setDetailLoading(false);
   }, [usePreset, preset, modalQuery]);
@@ -545,7 +501,6 @@ export default function AdminRegisterRequestStep3Page() {
         setPriceInput(nextPriceInput);
         setOptionCards(nextOptions);
         setNoticeImgUrl(req.noticeImgUrl ?? null);
-        setBaselineSnapshot(JSON.stringify({ priceInput: nextPriceInput, optionCards: nextOptions }));
         setDetailError(null);
       } catch (error: any) {
         console.error(error);
@@ -560,41 +515,11 @@ export default function AdminRegisterRequestStep3Page() {
     };
   }, [requestId, usePreset]);
 
-  const currentSnapshot = useMemo(
-    () => JSON.stringify({ priceInput, optionCards }),
-    [priceInput, optionCards]
-  );
-  const hasUnsavedChanges = Boolean(baselineSnapshot) && currentSnapshot !== baselineSnapshot;
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedChanges) return;
-      event.preventDefault();
-      event.returnValue = '';
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
   const showSmallOptionAddButton = optionCards.length >= 2;
   const registerEnabled = Boolean(noticeImgUrl);
 
   const updateOptionCard = (optionId: string, updater: (prev: UiOptionCard) => UiOptionCard) => {
     setOptionCards((prev) => prev.map((card) => (card.id === optionId ? updater(card) : card)));
-  };
-
-  const leaveStep3 = () => {
-    router.push(`/admin/product/request/register/${requestId}/step-2`);
-  };
-
-  const handleBackAttempt = () => {
-    if (submitting) return;
-    if (hasUnsavedChanges) {
-      setShowExitModal(true);
-      return;
-    }
-    leaveStep3();
   };
 
   const handleRejectConfirm = async () => {
@@ -687,7 +612,7 @@ export default function AdminRegisterRequestStep3Page() {
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" onBack={handleBackAttempt} />
+          <NavBar variant="title-back" title="새 상품 등록" />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -774,7 +699,7 @@ export default function AdminRegisterRequestStep3Page() {
             <div className="flex w-full items-start gap-[10px]">
               <button
                 type="button"
-                onClick={handleBackAttempt}
+                onClick={() => router.push(`/admin/product/request/register/${requestId}/step-2`)}
                 className="flex h-[52px] w-[38px] items-center justify-center rounded-lg bg-[#E9DED2] text-neutral-12"
                 aria-label="이전"
                 disabled={submitting}
@@ -824,10 +749,6 @@ export default function AdminRegisterRequestStep3Page() {
           onConfirm={modalType === 'reject' ? handleRejectConfirm : handleApproveConfirm}
           submitting={submitting}
         />
-      ) : null}
-
-      {showExitModal ? (
-        <ExitConfirmModal onContinue={() => setShowExitModal(false)} onLeave={leaveStep3} />
       ) : null}
     </div>
   );
