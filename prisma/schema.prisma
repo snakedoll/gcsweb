@@ -150,6 +150,7 @@ model ProductOption {
   values  ProductOptionValue[]
 
   @@index([productId])
+  @@unique([productId, optionName])
 }
 
 // ============================================
@@ -166,6 +167,7 @@ model ProductOptionValue {
   option ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@index([optionId])
+  @@unique([optionId, value])
 }
 
 // ============================================
@@ -239,6 +241,7 @@ model ProductUpdateRequest {
   requestedBy User                       @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
   team        Team                       @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images      ProductUpdateRequestImage[]
+  options     ProductUpdateRequestOption[]
 
   @@index([productId])
   @@index([requestedByUserId])
@@ -264,6 +267,40 @@ model ProductUpdateRequestImage {
   productUpdateRequest ProductUpdateRequest @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
 
   @@index([productUpdateRequestId])
+}
+
+// ============================================
+// ProductUpdateRequestOption - 상품 요청 옵션
+// ============================================
+
+model ProductUpdateRequestOption {
+  id                     String @id @default(cuid())
+  productUpdateRequestId String
+  optionName             String
+
+  // Relations
+  productUpdateRequest ProductUpdateRequest      @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
+  values               ProductUpdateRequestOptionValue[]
+
+  @@index([productUpdateRequestId])
+  @@unique([productUpdateRequestId, optionName])
+}
+
+// ============================================
+// ProductUpdateRequestOptionValue - 상품 요청 옵션 값
+// ============================================
+
+model ProductUpdateRequestOptionValue {
+  id              String @id @default(cuid())
+  optionId        String
+  value           String
+  additionalPrice Int    @default(0)
+
+  // Relations
+  option ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@index([optionId])
+  @@unique([optionId, value])
 }
 
 // ============================================
