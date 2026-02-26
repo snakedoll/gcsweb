@@ -44,10 +44,25 @@ export async function GET(request: Request) {
 
     // 안전하게 Like -> Product 조인 조회 (Product 가 존재할 때만)
     const repo: any = prisma as any;
+    let totalCount = 0;
     let products: any[] = [];
     try {
       if (repo.like && typeof repo.like.findMany === 'function') {
         const whereLike: any = { userId: user.id };
+
+        // count total matching items
+        // we can't easily filter by type on count without joining, but if typeFilter is set we can fetch products to check.
+        // for simplicity, just count likes. This is an approximation if you filter by type!
+        
+        let allLikes = await repo.like.findMany({
+          where: whereLike,
+          include: { product: { select: { type: true } } }
+        });
+        
+        if (typeFilter !== undefined) {
+          allLikes = allLikes.filter((l: any) => l.product && l.product.type === typeFilter);
+        }
+        totalCount = allLikes.length;
 
         // include product and nested relations
         const rows = await repo.like.findMany({
@@ -81,6 +96,7 @@ export async function GET(request: Request) {
           thumbnailUrl: (p.images && p.images[0]?.thumbnailImgUrl) ?? null,
           status: mapStatus(p.status ?? 0),
           type: p.type ?? 0,
+          fundingStatus: p.status === 0 ? '진행예정' : p.status === 1 ? '진행중' : '진행완료',
         }));
       }
     } catch (e) {
@@ -91,7 +107,7 @@ export async function GET(request: Request) {
     const hasNext = products.length > size;
     if (hasNext) products = products.slice(0, size);
 
-    return NextResponse.json({ status: 'success', data: { hasNext, products } });
+    return NextResponse.json({ status: 'success', data: { hasNext, products, totalCount } });
   } catch (error: any) {
     console.error('Likes shop list error:', error);
     return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });

@@ -116,7 +116,7 @@ export default function MypagePage() {
         const likesRes = await fetch('/api/v1/mypage/likes/shop?page=1&size=1');
         if (likesRes.ok) {
           const likesJson = await likesRes.json();
-          setLikesCount(likesJson?.data?.products?.length ?? 0);
+          setLikesCount(likesJson?.data?.totalCount ?? 0);
         }
       } catch (err) {
         console.error('Failed to fetch likes count:', err);
@@ -127,7 +127,7 @@ export default function MypagePage() {
         const scrapsRes = await fetch('/api/v1/mypage/scraps/project?page=1&size=1');
         if (scrapsRes.ok) {
           const scrapsJson = await scrapsRes.json();
-          setScrapsCount(scrapsJson?.data?.projects?.length ?? 0);
+          setScrapsCount(scrapsJson?.data?.totalCount ?? 0);
         }
       } catch (err) {
         console.error('Failed to fetch scraps count:', err);

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 /* ─────────────────────────────── 타입 ──────────────────────────────── */
-type ProductType = 0 | 1 | 2; // 0=BuyNow, 1=Fund, 2=PartnerUp
+type ProductType = 0 | 1 | 2; // 0=Fund, 1=BuyNow, 2=PartnerUp
 type ActiveTab = ProductType | null; // null = 전체
 type FundingStatus = '진행예정' | '진행중' | '진행완료';
 
@@ -24,8 +24,8 @@ interface LikedProduct {
 /* ────────────────────────── 탭 정의 ─────────────────────────────────── */
 const TABS: { label: string; type: ActiveTab }[] = [
   { label: '전체',      type: null },
-  { label: 'Fund',      type: 1 },
-  { label: 'Buy Now',   type: 0 },
+  { label: 'Fund',      type: 0 },
+  { label: 'Buy Now',   type: 1 },
   { label: 'Partner Up', type: 2 },
 ];
 
@@ -51,10 +51,10 @@ function ProductCard({ product }: { product: LikedProduct }) {
       {/* 썸네일: 고정 너비 + 4:5 비율 (Figma: 120×150 scale) */}
       <div
         className="relative shrink-0 rounded-[5.333px] overflow-hidden bg-[#dddcdb]"
-        style={{ width: 70, height: 87 }}
+        style={{ width: 100, height: 125 }}
       >
         {product.thumbnailUrl ? (
-          <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" sizes="70px" />
+          <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" sizes="100px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

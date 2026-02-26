@@ -27,9 +27,14 @@ export async function GET(request: Request) {
 
     const repo: any = prisma as any;
     let projects: any[] = [];
+    let totalCount = 0;
     try {
       // Scrap 모델이 존재하면 사용, 없으면 빈 배열 반환
       if (repo.scrap && typeof repo.scrap.findMany === 'function') {
+        totalCount = await repo.scrap.count({
+          where: { userId: user.id, projectId: { not: null } }
+        });
+
         const rows = await repo.scrap.findMany({
           where: { userId: user.id, projectId: { not: null } },
           orderBy: { createdAt: 'desc' },
@@ -65,7 +70,7 @@ export async function GET(request: Request) {
     const hasNext = projects.length > size;
     if (hasNext) projects = projects.slice(0, size);
 
-    return NextResponse.json({ status: 'success', data: { hasNext, projects } });
+    return NextResponse.json({ status: 'success', data: { hasNext, projects, totalCount } });
   } catch (error: any) {
     console.error('Scraps project list error:', error);
     return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });
