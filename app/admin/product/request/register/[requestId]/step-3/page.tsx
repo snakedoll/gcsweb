@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
-import PriceInput from '@/components/ui/admin/product/PriceInput';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 import { cn } from '@/lib/utils';
@@ -48,15 +47,12 @@ type RequestDetail = {
 type UiOptionRow = {
   id: string;
   value: string;
-  extraPrice: string;
-  filled: boolean;
+  extraPrice: string; // formatted string with commas
 };
 
 type UiOptionCard = {
   id: string;
-  title: string;
   name: string;
-  nameFilled: boolean;
   rows: UiOptionRow[];
 };
 
@@ -95,54 +91,70 @@ function formatWon(value: number) {
   return Number(value || 0).toLocaleString('ko-KR');
 }
 
+function digitsOnly(input: string) {
+  return input.replace(/[^\d]/g, '');
+}
+
+function formatNumberInput(input: string) {
+  const digits = digitsOnly(input);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+}
+
+function createRow(seed = ''): UiOptionRow {
+  return {
+    id: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}${seed}`,
+    value: '',
+    extraPrice: '0',
+  };
+}
+
+function createOptionCard(): UiOptionCard {
+  return {
+    id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name: '',
+    rows: [createRow()],
+  };
+}
+
 function optionCardsFromApi(options: ApiOption[]): UiOptionCard[] {
+  if (!options.length) return [];
   return options.map((opt, idx) => ({
     id: opt.id ?? `opt-${idx + 1}`,
-    title: `옵션 ${idx + 1}`,
-    name: opt.name || '예) 옵션명',
-    nameFilled: Boolean(opt.name),
+    name: opt.name ?? '',
     rows: (opt.values ?? []).map((v, vIdx) => ({
       id: v.id ?? `row-${idx + 1}-${vIdx + 1}`,
-      value: v.value || '예) BLACK',
+      value: v.value ?? '',
       extraPrice: formatWon(v.additionalPrice ?? 0),
-      filled: Boolean(v.value),
     })),
   }));
 }
 
 function buildPresetData(preset: Step3Preset) {
   const rows: UiOptionRow[] = [
-    { id: 'r1', value: 'BLACK', extraPrice: '19,800', filled: true },
-    { id: 'r2', value: 'WHITE', extraPrice: '19,800', filled: true },
-    { id: 'r3', value: 'MINT', extraPrice: '19,800', filled: true },
+    { id: 'r1', value: 'BLACK', extraPrice: '19,800' },
+    { id: 'r2', value: 'WHITE', extraPrice: '19,800' },
+    { id: 'r3', value: 'MINT', extraPrice: '19,800' },
   ];
 
   if (preset === 'empty') {
-    return { price: 0, options: [] as UiOptionCard[], noticeImgUrl: null as string | null };
+    return { priceText: '', options: [] as UiOptionCard[], noticeImgUrl: null as string | null };
   }
 
   if (preset === 'one-option-default') {
     return {
-      price: 19800,
-      options: [
-        {
-          id: 'o1',
-          title: '옵션 1',
-          name: '예) 옵션명',
-          nameFilled: false,
-          rows: [{ id: 'r1', value: '예) BLACK', extraPrice: '0', filled: false }],
-        },
-      ],
+      priceText: '19,800',
+      options: [{ id: 'o1', name: '', rows: [{ id: 'r1', value: '', extraPrice: '0' }] }],
       noticeImgUrl: null as string | null,
     };
   }
 
   if (preset === 'two-options') {
     return {
-      price: 19800,
+      priceText: '19,800',
       options: [
-        { id: 'o1', title: '옵션 1', name: '색상', nameFilled: true, rows },
-        { id: 'o2', title: '옵션 2', name: '예) 옵션명', nameFilled: false, rows: [] },
+        { id: 'o1', name: '색상', rows },
+        { id: 'o2', name: '', rows: [] },
       ],
       noticeImgUrl: '/uploads/product/notice/mock.jpg',
     };
@@ -150,20 +162,55 @@ function buildPresetData(preset: Step3Preset) {
 
   if (preset === 'required-missing') {
     return {
-      price: 19800,
-      options: [{ id: 'o1', title: '옵션 1', name: '색상', nameFilled: true, rows }],
+      priceText: '19,800',
+      options: [{ id: 'o1', name: '색상', rows }],
       noticeImgUrl: null as string | null,
     };
   }
 
   return {
-    price: 19800,
-    options: [{ id: 'o1', title: '옵션 1', name: '색상', nameFilled: true, rows }],
+    priceText: '19,800',
+    options: [{ id: 'o1', name: '색상', rows }],
     noticeImgUrl: '/uploads/product/notice/mock.jpg',
   };
 }
 
-function OptionNameField({ value, filled }: { value: string; filled: boolean }) {
+function PriceEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const hasValue = value.trim().length > 0;
+
+  return (
+    <div className="flex h-10 w-[163px] items-center rounded-lg border border-neutral-6 bg-neutral-2 px-[13px] py-[10px]">
+      <div className="flex h-5 w-[137px] items-center border-b border-neutral-5">
+        <input
+          value={value}
+          onChange={(e) => onChange(formatNumberInput(e.target.value))}
+          inputMode="numeric"
+          placeholder="0"
+          className={cn(
+            'w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
+            hasValue ? 'text-black' : 'text-neutral-7'
+          )}
+        />
+        <span className="ml-auto w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
+      </div>
+    </div>
+  );
+}
+
+function OptionNameField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const filled = value.trim().length > 0;
   return (
     <div className="flex w-full flex-col gap-1">
       <p className="typo-body-xsmall text-neutral-9">옵션명</p>
@@ -173,36 +220,67 @@ function OptionNameField({ value, filled }: { value: string; filled: boolean }) 
           filled ? 'border-neutral-6' : 'border-neutral-5'
         )}
       >
-        <span className={cn('typo-body-xsmall', filled ? 'text-neutral-12' : 'text-neutral-7')}>{value}</span>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="예) 옵션명"
+          className={cn(
+            'w-full bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
+            filled ? 'text-neutral-12' : 'text-neutral-7'
+          )}
+        />
       </div>
     </div>
   );
 }
 
-function OptionVariationField({ row }: { row: UiOptionRow }) {
+function OptionVariationField({
+  row,
+  onChangeValue,
+  onChangeExtraPrice,
+  onRemove,
+}: {
+  row: UiOptionRow;
+  onChangeValue: (next: string) => void;
+  onChangeExtraPrice: (next: string) => void;
+  onRemove: () => void;
+}) {
+  const valueFilled = row.value.trim().length > 0;
+  const extraFilled = digitsOnly(row.extraPrice).length > 0;
   return (
     <div className="flex w-full flex-col gap-1">
       <div className="flex items-center justify-between typo-body-xsmall text-neutral-9">
         <span>옵션값</span>
         <span>추가 금액</span>
       </div>
-      <div
-        className={cn(
-          'flex h-10 items-center rounded-lg border bg-neutral-2 py-2 pl-[10px] pr-[5px]',
-          row.filled ? 'border-neutral-6' : 'border-neutral-5'
-        )}
-      >
+      <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 py-2 pl-[10px] pr-[5px]">
         <div className="flex w-[260px] items-center justify-between">
-          <span className={cn('w-[111px] typo-body-xsmall', row.filled ? 'text-neutral-12' : 'text-neutral-7')}>
-            {row.value}
-          </span>
+          <input
+            value={row.value}
+            onChange={(e) => onChangeValue(e.target.value)}
+            placeholder="예) BLACK"
+            className={cn(
+              'w-[111px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
+              valueFilled ? 'text-neutral-12' : 'text-neutral-7'
+            )}
+          />
           <span className="h-5 w-px bg-neutral-5" aria-hidden />
-          <span className="flex w-[111px] items-center border-b border-neutral-5 typo-body-xsmall">
-            <span className={cn('w-[101px]', row.filled ? 'text-neutral-12' : 'text-neutral-7')}>{row.extraPrice}</span>
-            <span className="w-[10px] text-right text-neutral-7">원</span>
+          <span className="flex w-[111px] items-center border-b border-neutral-5">
+            <input
+              value={row.extraPrice}
+              onChange={(e) => onChangeExtraPrice(formatNumberInput(e.target.value))}
+              inputMode="numeric"
+              placeholder="0"
+              className={cn(
+                'w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
+                extraFilled ? 'text-neutral-12' : 'text-neutral-7'
+              )}
+            />
+            <span className="w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
           </span>
         </div>
-        <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" aria-label="옵션값 삭제">
+
+        <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" aria-label="옵션값 삭제" onClick={onRemove}>
           <CloseIcon size={17} />
         </button>
       </div>
@@ -210,27 +288,51 @@ function OptionVariationField({ row }: { row: UiOptionRow }) {
   );
 }
 
-function OptionCard({ option }: { option: UiOptionCard }) {
+function OptionCard({
+  option,
+  index,
+  onChangeName,
+  onRemoveCard,
+  onAddRow,
+  onChangeRowValue,
+  onChangeRowExtraPrice,
+  onRemoveRow,
+}: {
+  option: UiOptionCard;
+  index: number;
+  onChangeName: (next: string) => void;
+  onRemoveCard: () => void;
+  onAddRow: () => void;
+  onChangeRowValue: (rowId: string, next: string) => void;
+  onChangeRowExtraPrice: (rowId: string, next: string) => void;
+  onRemoveRow: (rowId: string) => void;
+}) {
   return (
     <div className="w-full rounded-lg bg-neutral-1 px-[15px] py-[11px]">
       <div className="flex w-full flex-col items-center gap-[14px]">
         <div className="flex w-full flex-col gap-[14px]">
           <div className="flex w-full items-center justify-between">
-            <p className="typo-heading-xxsmall text-black">{option.title}</p>
-            <button type="button" className="inline-flex h-5 w-5 items-center justify-center" aria-label="옵션 삭제">
+            <p className="typo-heading-xxsmall text-black">{`옵션 ${index + 1}`}</p>
+            <button type="button" className="inline-flex h-5 w-5 items-center justify-center" aria-label="옵션 삭제" onClick={onRemoveCard}>
               <CloseIcon />
             </button>
           </div>
 
           <div className="flex w-full flex-col gap-3">
-            <OptionNameField value={option.name} filled={option.nameFilled} />
+            <OptionNameField value={option.name} onChange={onChangeName} />
             {option.rows.map((row) => (
-              <OptionVariationField key={row.id} row={row} />
+              <OptionVariationField
+                key={row.id}
+                row={row}
+                onChangeValue={(next) => onChangeRowValue(row.id, next)}
+                onChangeExtraPrice={(next) => onChangeRowExtraPrice(row.id, next)}
+                onRemove={() => onRemoveRow(row.id)}
+              />
             ))}
           </div>
         </div>
 
-        <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="옵션값 추가">
+        <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="옵션값 추가" onClick={onAddRow}>
           <PlusPillIcon />
         </button>
       </div>
@@ -296,6 +398,44 @@ function ConfirmModal({
   );
 }
 
+function normalizeOptionPayload(optionCards: UiOptionCard[]) {
+  const parsed: Array<{ name: string; values: Array<{ value: string; additionalPrice: number }> }> = [];
+
+  for (const option of optionCards) {
+    const trimmedName = option.name.trim();
+
+    const rows = option.rows.map((row) => ({
+      valueRaw: row.value.trim(),
+      extraDigits: digitsOnly(row.extraPrice),
+    }));
+
+    const hasAnyRowInput = rows.some((row) => row.valueRaw.length > 0 || row.extraDigits.length > 0);
+    const hasAnyInput = trimmedName.length > 0 || hasAnyRowInput;
+
+    if (!hasAnyInput) continue;
+    if (!trimmedName) {
+      return { ok: false as const, message: '옵션명은 비워둘 수 없습니다.' };
+    }
+
+    const normalizedValues: Array<{ value: string; additionalPrice: number }> = [];
+    for (const row of rows) {
+      const hasRowInput = row.valueRaw.length > 0 || row.extraDigits.length > 0;
+      if (!hasRowInput) continue;
+      if (!row.valueRaw) {
+        return { ok: false as const, message: '옵션값은 비워둘 수 없습니다.' };
+      }
+      normalizedValues.push({
+        value: row.valueRaw,
+        additionalPrice: row.extraDigits ? Number(row.extraDigits) : 0,
+      });
+    }
+
+    parsed.push({ name: trimmedName, values: normalizedValues });
+  }
+
+  return { ok: true as const, value: parsed };
+}
+
 export default function AdminRegisterRequestStep3Page() {
   const router = useRouter();
   const params = useParams<{ requestId: string }>();
@@ -304,15 +444,7 @@ export default function AdminRegisterRequestStep3Page() {
 
   const viewQuery = searchParams.get('view');
   const modalQuery = (searchParams.get('modal') as ModalPreset | null) ?? 'none';
-
-  const presetViews: Step3Preset[] = [
-    'empty',
-    'one-option-default',
-    'two-options',
-    'required-missing',
-    'upload-complete',
-  ];
-
+  const presetViews: Step3Preset[] = ['empty', 'one-option-default', 'two-options', 'required-missing', 'upload-complete'];
   const usePreset = presetViews.includes(viewQuery as Step3Preset);
   const preset = usePreset ? (viewQuery as Step3Preset) : 'empty';
 
@@ -321,7 +453,7 @@ export default function AdminRegisterRequestStep3Page() {
   const [submitting, setSubmitting] = useState(false);
 
   const [requestDetail, setRequestDetail] = useState<RequestDetail | null>(null);
-  const [priceRaw, setPriceRaw] = useState(0);
+  const [priceInput, setPriceInput] = useState('');
   const [optionCards, setOptionCards] = useState<UiOptionCard[]>([]);
   const [noticeImgUrl, setNoticeImgUrl] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
@@ -331,7 +463,7 @@ export default function AdminRegisterRequestStep3Page() {
     if (!usePreset) return;
 
     const data = buildPresetData(preset);
-    setPriceRaw(data.price);
+    setPriceInput(data.priceText);
     setOptionCards(data.options);
     setNoticeImgUrl(data.noticeImgUrl);
     setIsPublic(modalQuery === 'approve-public');
@@ -359,12 +491,11 @@ export default function AdminRegisterRequestStep3Page() {
         if (!res.ok || json?.status !== 'success' || !json?.data?.request) {
           throw new Error(json?.message ?? '등록 요청 상세를 불러오지 못했습니다.');
         }
-
         if (cancelled) return;
 
         const req = json.data.request as RequestDetail;
         setRequestDetail(req);
-        setPriceRaw(Number(req.price ?? 0));
+        setPriceInput(formatWon(Number(req.price ?? 0)));
         setOptionCards(optionCardsFromApi(req.options ?? []));
         setNoticeImgUrl(req.noticeImgUrl ?? null);
         setDetailError(null);
@@ -381,9 +512,12 @@ export default function AdminRegisterRequestStep3Page() {
     };
   }, [requestId, usePreset]);
 
-  const priceDisplay = useMemo(() => formatWon(priceRaw), [priceRaw]);
   const showSmallOptionAddButton = optionCards.length >= 2;
   const registerEnabled = Boolean(noticeImgUrl);
+
+  const updateOptionCard = (optionId: string, updater: (prev: UiOptionCard) => UiOptionCard) => {
+    setOptionCards((prev) => prev.map((card) => (card.id === optionId ? updater(card) : card)));
+  };
 
   const handleRejectConfirm = async () => {
     try {
@@ -411,6 +545,19 @@ export default function AdminRegisterRequestStep3Page() {
   const handleApproveConfirm = async () => {
     if (!requestDetail || !noticeImgUrl) return;
 
+    const priceDigits = digitsOnly(priceInput);
+    const price = priceDigits ? Number(priceDigits) : 0;
+    if (!Number.isInteger(price) || price < 0) {
+      alert('가격 형식을 확인해주세요.');
+      return;
+    }
+
+    const normalizedOptions = normalizeOptionPayload(optionCards);
+    if (!normalizedOptions.ok) {
+      alert(normalizedOptions.message);
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -434,14 +581,8 @@ export default function AdminRegisterRequestStep3Page() {
         pickupStartDate: requestDetail.pickupStartDate,
         pickupEndDate: requestDetail.pickupEndDate,
         pickupLocation: requestDetail.pickupLocation,
-        price: requestDetail.price,
-        options: (requestDetail.options ?? []).map((opt) => ({
-          name: opt.name,
-          values: (opt.values ?? []).map((v) => ({
-            value: v.value,
-            additionalPrice: v.additionalPrice,
-          })),
-        })),
+        price,
+        options: normalizedOptions.value,
         isPublic,
       };
 
@@ -451,7 +592,6 @@ export default function AdminRegisterRequestStep3Page() {
         body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
-
       if (!res.ok || json?.status !== 'success') {
         throw new Error(json?.message ?? '등록 승인에 실패했습니다.');
       }
@@ -497,7 +637,7 @@ export default function AdminRegisterRequestStep3Page() {
                     <p className="typo-body-small-bold text-neutral-10">가격</p>
                     <span className="typo-body-xsmall-bold text-danger">*</span>
                   </div>
-                  <PriceInput property1={priceRaw ? 'filled' : 'Default'} value={priceDisplay} suffix="원" />
+                  <PriceEditor value={priceInput} onChange={setPriceInput} />
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -506,12 +646,42 @@ export default function AdminRegisterRequestStep3Page() {
                     <p className="text-[11px] leading-[1.5] text-neutral-8">옵션 추가는 선택 사항입니다.</p>
                   </div>
 
-                  {optionCards.map((option) => (
-                    <OptionCard key={option.id} option={option} />
+                  {optionCards.map((option, index) => (
+                    <OptionCard
+                      key={option.id}
+                      option={option}
+                      index={index}
+                      onChangeName={(next) => updateOptionCard(option.id, (prev) => ({ ...prev, name: next }))}
+                      onRemoveCard={() =>
+                        setOptionCards((prev) => prev.filter((card) => card.id !== option.id))
+                      }
+                      onAddRow={() =>
+                        updateOptionCard(option.id, (prev) => ({ ...prev, rows: [...prev.rows, createRow()] }))
+                      }
+                      onChangeRowValue={(rowId, next) =>
+                        updateOptionCard(option.id, (prev) => ({
+                          ...prev,
+                          rows: prev.rows.map((row) => (row.id === rowId ? { ...row, value: next } : row)),
+                        }))
+                      }
+                      onChangeRowExtraPrice={(rowId, next) =>
+                        updateOptionCard(option.id, (prev) => ({
+                          ...prev,
+                          rows: prev.rows.map((row) => (row.id === rowId ? { ...row, extraPrice: next || '0' } : row)),
+                        }))
+                      }
+                      onRemoveRow={(rowId) =>
+                        updateOptionCard(option.id, (prev) => ({
+                          ...prev,
+                          rows: prev.rows.filter((row) => row.id !== rowId),
+                        }))
+                      }
+                    />
                   ))}
 
                   <button
                     type="button"
+                    onClick={() => setOptionCards((prev) => [...prev, createOptionCard()])}
                     className={cn(
                       'flex w-full items-center justify-center rounded-lg bg-[#E9DED2] text-neutral-10',
                       showSmallOptionAddButton ? 'h-10 typo-body-xsmall-bold' : 'p-4 typo-body-small-bold'
