@@ -66,7 +66,7 @@ export async function GET(request: Request) {
           where: { userId: user.id, productId: { in: productIds } },
           select: { productId: true },
         });
-        likeSet = new Set(likes.map((l) => l.productId));
+        likeSet = new Set(likes.map((l) => l.productId as string));
       } catch (_) { /* ignore */ }
     }
 
