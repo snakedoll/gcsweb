@@ -70,61 +70,12 @@ interface CartItem {
   quantity: number;
   price: number;
   imageUrl: string;
-  soldOut: boolean;
+  status: 'AVAILABLE' | 'SOLD_OUT' | 'SALES_ENDED';
   liked: boolean;
+  type?: number;
+  receiveMethod?: number;
 }
 
-/* ── 더미 데이터 ──────────────────────────────────────────── */
-const DUMMY_ITEMS: CartItem[] = [
-  {
-    id: 1,
-    teamName: 'MUA',
-    productName: '염소 후드집업',
-    option1: '',
-    option2: '',
-    quantity: 1,
-    price: 4500,
-    imageUrl: '',
-    soldOut: false,
-    liked: false,
-  },
-  {
-    id: 2,
-    teamName: 'MUA',
-    productName: '염소 후드집업',
-    option1: '',
-    option2: '',
-    quantity: 1,
-    price: 4500,
-    imageUrl: '',
-    soldOut: false,
-    liked: false,
-  },
-  {
-    id: 3,
-    teamName: 'MUA',
-    productName: '염소 후드집업',
-    option1: '',
-    option2: '',
-    quantity: 1,
-    price: 4500,
-    imageUrl: '',
-    soldOut: true,
-    liked: false,
-  },
-  {
-    id: 4,
-    teamName: 'MUA',
-    productName: '염소 후드집업',
-    option1: '',
-    option2: '',
-    quantity: 1,
-    price: 4500,
-    imageUrl: '',
-    soldOut: true,
-    liked: false,
-  },
-];
 
 /* ── 상품 카드 컴포넌트 ───────────────────────────────────── */
 function CartItemCard({
@@ -150,35 +101,38 @@ function CartItemCard({
   const options1 = ['블랙 / M', '블랙 / L', '화이트 / M', '화이트 / L'];
   const options2 = ['긴 기장', '짧은 기장'];
 
-  const isSoldOut = item.soldOut;
+  const isSoldOut = item.status === 'SOLD_OUT';
+  const isSalesEnded = item.status === 'SALES_ENDED';
+  const isDisabled = isSoldOut || isSalesEnded || disabled;
+  
   /* Figma: 품절 시 드롭다운/수량필드 bg #f1f1f1, 수량 텍스트 #c7c5c4 */
-  const fieldBg = isSoldOut ? '#f1f1f1' : '#fdfdfd';
-  const qtyTextColor = isSoldOut ? '#c7c5c4' : '#3f3835';
+  const fieldBg = isDisabled ? '#f1f1f1' : '#fdfdfd';
+  const qtyTextColor = isDisabled ? '#c7c5c4' : '#3f3835';
 
   return (
     <div className="flex gap-3 items-start w-full">
       {/* 체크박스 – 품절 opacity 밖 */}
       <button
         onClick={onCheck}
-        disabled={disabled}
-        className={`flex-shrink-0 h-7 flex items-center ${!disabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+        disabled={isDisabled}
+        className={`flex-shrink-0 h-7 flex items-center ${!isDisabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}
       >
-        <CheckIcon checked={checked} disabled={disabled} />
+        <CheckIcon checked={checked} disabled={isDisabled} />
       </button>
 
       <div className="flex flex-col flex-1 gap-4 min-w-0">
         <div className="flex flex-col gap-3">
           <div className="flex gap-2.5 items-start w-full">
             {/* Card/liked – Figma: 품절 시 opacity-40 */}
-              <div className={`flex flex-1 gap-4 items-start ${isSoldOut ? 'opacity-40' : ''}`}>
-              <div className="flex-shrink-0 w-16 h-20 rounded-[4px] bg-[#f1f1f1] flex items-center justify-center relative">
+              <div className={`flex flex-1 gap-4 items-start ${isDisabled ? 'opacity-40' : ''}`}>
+              <div className="flex-shrink-0 w-[80px] h-[100px] rounded-[4px] bg-[#f1f1f1] flex items-center justify-center relative">
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
                     alt={item.productName}
                     fill
                     unoptimized
-                    sizes="64px"
+                    sizes="80px"
                     className="object-cover rounded-[4px]"
                   />
                 ) : (
@@ -194,6 +148,24 @@ function CartItemCard({
               <div className="flex flex-1 flex-col min-w-0">
                 <span className="text-[#6c6764] text-[15px] leading-[1.5]">{item.teamName}</span>
                 <span className="text-[#2f2824] text-[15px] leading-[1.5] break-words">{item.productName}</span>
+                
+                {/* 태그 (타입, 수령방법) */}
+                <div className="flex gap-2 mt-2">
+                  {item.type !== undefined && (
+                    <div className="px-3 py-1 bg-[#fbcbab] rounded-[8px] flex justify-center items-center">
+                      <span className="text-[#e2691f] text-[14px] font-medium leading-[20px] tracking-[-0.28px]">
+                        {item.type === 0 ? 'Fund' : item.type === 1 ? 'BuyNow' : 'Partner'}
+                      </span>
+                    </div>
+                  )}
+                  {item.receiveMethod !== undefined && (
+                    <div className="px-3 py-1 bg-[#fbcbab] rounded-[8px] flex justify-center items-center">
+                      <span className="text-[#e2691f] text-[14px] font-medium leading-[20px] tracking-[-0.28px]">
+                        {item.receiveMethod === 0 ? '택배배송' : '현장수령'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -212,7 +184,7 @@ function CartItemCard({
             <div className="relative">
               <button
                 onClick={() => setOpen1(!open1)}
-                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isSoldOut ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
+                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isDisabled ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
                   item.option1 ? 'border-[#c7c5c4] text-[#3f3835]' : 'border-[#dddcdb] text-[#999694]'
                 }`}
                 style={{ backgroundColor: fieldBg }}
@@ -226,13 +198,13 @@ function CartItemCard({
                     <button
                       key={opt}
                       onClick={() => {
-                        if (!isSoldOut) {
+                        if (!isDisabled) {
                           onChangeOptions(opt, item.option2);
                         }
                         setOpen1(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isSoldOut ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
-                      disabled={isSoldOut}
+                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isDisabled ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
+                      disabled={isDisabled}
                     >
                       {opt}
                     </button>
@@ -245,7 +217,7 @@ function CartItemCard({
             <div className="relative">
               <button
                 onClick={() => setOpen2(!open2)}
-                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isSoldOut ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
+                className={`w-full flex items-center justify-between px-3 py-2 border rounded-[4px] text-[13px] tracking-[-0.26px] ${isDisabled ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
                   item.option2 ? 'border-[#c7c5c4] text-[#3f3835]' : 'border-[#dddcdb] text-[#999694]'
                 }`}
                 style={{ backgroundColor: fieldBg }}
@@ -259,13 +231,13 @@ function CartItemCard({
                     <button
                       key={opt}
                       onClick={() => {
-                        if (!isSoldOut) {
+                        if (!isDisabled) {
                           onChangeOptions(item.option1, opt);
                         }
                         setOpen2(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isSoldOut ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
-                      disabled={isSoldOut}
+                      className={`w-full text-left px-3 py-2 text-[13px] tracking-[-0.26px] ${!isDisabled ? 'text-[#2f2824] hover:bg-[#f1f1f1]' : 'text-[#999694]'}`}
+                      disabled={isDisabled}
                     >
                       {opt}
                     </button>
@@ -279,11 +251,11 @@ function CartItemCard({
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => !isSoldOut && onQtyChange(Math.max(1, item.quantity - 1))}
-              disabled={item.quantity <= 1 || isSoldOut}
-              className={`flex-shrink-0 flex items-center justify-center w-6 h-6 ${item.quantity <= 1 || isSoldOut ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+              onClick={() => !isDisabled && onQtyChange(Math.max(1, item.quantity - 1))}
+              disabled={item.quantity <= 1 || isDisabled}
+              className={`flex-shrink-0 flex items-center justify-center w-6 h-6 ${item.quantity <= 1 || isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              <MinusIcon disabled={item.quantity <= 1 || isSoldOut} />
+              <MinusIcon disabled={item.quantity <= 1 || isDisabled} />
             </button>
             <div
               className="flex items-center justify-center border border-[#dddcdb] rounded-lg px-2 py-1 min-w-[32px] text-[13px] tracking-[-0.26px]"
@@ -292,16 +264,16 @@ function CartItemCard({
               {item.quantity}
             </div>
             <button
-              onClick={() => !isSoldOut && onQtyChange(item.quantity + 1)}
-              disabled={isSoldOut}
-              className={`flex-shrink-0 flex items-center justify-center w-6 h-6 ${isSoldOut ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+              onClick={() => !isDisabled && onQtyChange(item.quantity + 1)}
+              disabled={isDisabled}
+              className={`flex-shrink-0 flex items-center justify-center w-6 h-6 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              <PlusIcon disabled={isSoldOut} />
+              <PlusIcon disabled={isDisabled} />
             </button>
           </div>
 
           {/* 가격 – Figma: 품절 시 opacity-40 */}
-          <span className={`text-[17px] font-bold text-[#3f3835] ${isSoldOut ? 'opacity-40' : ''}`}>
+          <span className={`text-[17px] font-bold text-[#3f3835] ${isDisabled ? 'opacity-40' : ''}`}>
             {(item.price * item.quantity).toLocaleString()}원
           </span>
         </div>
@@ -321,6 +293,7 @@ export default function CartPage() {
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
   const [pageLoading, setPageLoading] = useState(true);
   const [showSoldOut, setShowSoldOut] = useState(true);
+  const [showSalesEnded, setShowSalesEnded] = useState(true);
 
   // API: 장바구니 목록 조회
   useEffect(() => {
@@ -341,17 +314,19 @@ export default function CartPage() {
         }
 
         const data = await res.json();
-        const cartItems: CartItem[] = (data?.data?.items ?? []).map((item: any) => ({
-          id: item.id,
-          teamName: item.team?.name ?? '팀명 없음',
-          productName: item.product?.name ?? '상품명 없음',
-          option1: item.option1 ?? '',
-          option2: item.option2 ?? '',
+        const cartItems: CartItem[] = (data?.data?.cartItems ?? []).map((item: any) => ({
+          id: item.cartItemId,
+          teamName: item.teamName ?? '팀명 없음',
+          productName: item.productName ?? '상품명 없음',
+          option1: item.options?.[0]?.optionValue ?? item.options?.[0]?.optionName ?? '',
+          option2: item.options?.[1]?.optionValue ?? item.options?.[1]?.optionName ?? '',
           quantity: item.quantity ?? 1,
-          price: item.product?.price ?? 0,
-          imageUrl: item.product?.imageUrl ?? '',
-          soldOut: item.product?.status === 2 || item.product?.stock === 0,
-          liked: false,
+          price: item.price ?? 0,
+          imageUrl: item.thumbnailUrl ?? '',
+          status: item.status ?? 'AVAILABLE',
+          liked: item.isLiked ?? false,
+          type: item.type,
+          receiveMethod: item.receiveMethod,
         }));
 
         setItems(cartItems);
@@ -409,8 +384,9 @@ export default function CartPage() {
     setCheckedIds(new Set());
   };
 
-  const activeItems = items.filter((i) => !i.soldOut);
-  const soldOutItems = items.filter((i) => i.soldOut);
+  const activeItems = items.filter((i) => i.status === 'AVAILABLE');
+  const soldOutItems = items.filter((i) => i.status === 'SOLD_OUT');
+  const salesEndedItems = items.filter((i) => i.status === 'SALES_ENDED');
   const allActiveChecked = activeItems.length > 0 && activeItems.every((i) => checkedIds.has(i.id));
   const selectedActiveItems = activeItems.filter((i) => checkedIds.has(i.id));
   const totalPrice = selectedActiveItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -572,6 +548,48 @@ export default function CartPage() {
                         disabled={true}
                       />
                       {idx < soldOutItems.length - 1 && (
+                        <div className="h-px bg-[#f1f1f1] mt-5" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 섹션 구분선: 판매 종료된 상품 위 */}
+          {(activeItems.length > 0 || soldOutItems.length > 0) && salesEndedItems.length > 0 && (
+            <div className="h-px bg-[#f1f1f1]" />
+          )}
+
+          {/* 판매 종료된 상품 */}
+          {salesEndedItems.length > 0 && (
+            <div className="flex flex-col gap-6">
+              <button
+                onClick={() => setShowSalesEnded(!showSalesEnded)}
+                className="flex items-center gap-2 cursor-pointer hover:opacity-70"
+                aria-expanded={showSalesEnded}
+                aria-controls="salesended-list"
+              >
+                <p className="text-[19px] font-bold leading-[1.5] text-black">판매 종료된 상품</p>
+                <div className={`transform transition-transform duration-300 ${showSalesEnded ? 'rotate-0' : '-rotate-90'}`}>
+                  <ChevronDownIcon size={20} />
+                </div>
+              </button>
+              {showSalesEnded && (
+                <div id="salesended-list" className="flex flex-col gap-5">
+                  {salesEndedItems.map((item, idx) => (
+                    <div key={item.id}>
+                      <CartItemCard
+                        item={item}
+                        checked={false}
+                        onCheck={() => {}}
+                        onQtyChange={() => {}}
+                        onRemove={() => removeItem(item.id)}
+                        onChangeOptions={() => {}}
+                        disabled={true}
+                      />
+                      {idx < salesEndedItems.length - 1 && (
                         <div className="h-px bg-[#f1f1f1] mt-5" />
                       )}
                     </div>

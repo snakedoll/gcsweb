@@ -42,15 +42,16 @@ model User {
   updatedAt           DateTime     @updatedAt
 
   // Relations
-  teams         Team[]
-  orders        Order[]
-  reviews       Review[]
-  posts         Post[]
-  inquiries     Inquiry[]
-  likes         Like[]
-  scraps        Scrap[]
-  notifications Notification[]
+  teams                 Team[]
+  orders                Order[]
+  reviews               Review[]
+  posts                 Post[]
+  inquiries             Inquiry[]
+  likes                 Like[]
+  scraps                Scrap[]
+  notifications         Notification[]
   productUpdateRequests ProductUpdateRequest[] @relation("ProductUpdateRequestRequestedBy")
+  carts                 Cart[]
 
   @@index([email])
   @@index([nickname])
@@ -76,10 +77,10 @@ model Team {
   updatedAt              DateTime @updatedAt
 
   // Relations
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects    Project[]
-  products    Product[]
-  settlements Settlement[]
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects              Project[]
+  products              Product[]
+  settlements           Settlement[]
   productUpdateRequests ProductUpdateRequest[]
 
   @@index([userId])
@@ -98,18 +99,18 @@ model Product {
   type                Int       @default(0) // 0: fund, 1: buy now, 2: partner
   status              Int       @default(0) // 0: pending, 1: active, 2: completed
   price               Int
-  goalAmount          Int?      //Fund: 목표 금액
+  goalAmount          Int? //Fund: 목표 금액
   currentAmount       Int       @default(0)
   reservedAmount      Int       @default(0) // 빌링키 결제 모듈 예약 금액 (펀드)
   salesStartDate      DateTime
   salesEndDate        DateTime
-  productionStartDate DateTime?  // Fund 택배: 제작 시작일
-  productionEndDate   DateTime?  // Fund 택배: 제작 종료일
-  deliveryStartDate   DateTime?  // Fund 택배: 배송 시작일
-  deliveryEndDate     DateTime?  // Fund 택배: 배송 종료일
-  pickupStartDate     DateTime?  // Fund 현장 수령: 수령 시작일
-  pickupEndDate       DateTime?  // Fund 현장 수령: 수령 종료일
-  pickupLocation      String?   // Fund 현장 수령: 수령 장소
+  productionStartDate DateTime? // Fund 택배: 제작 시작일
+  productionEndDate   DateTime? // Fund 택배: 제작 종료일
+  deliveryStartDate   DateTime? // Fund 택배: 배송 시작일
+  deliveryEndDate     DateTime? // Fund 택배: 배송 종료일
+  pickupStartDate     DateTime? // Fund 현장 수령: 수령 시작일
+  pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
+  pickupLocation      String? // Fund 현장 수령: 수령 장소
   receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
   isPublic            Boolean   @default(false)
   isHome              Boolean   @default(false)
@@ -120,15 +121,16 @@ model Product {
   updatedAt           DateTime  @updatedAt
 
   // Relations
-  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  options    ProductOption[]
-  images     ProductImage[]   @relation("ProductImages")
-  variants   ProductVariant[]
-  orderItems OrderItem[]
-  reviews    Review[]
-  likes      Like[]
-  scraps     Scrap[]
+  team           Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  options        ProductOption[]
+  images         ProductImage[]         @relation("ProductImages")
+  variants       ProductVariant[]
+  orderItems     OrderItem[]
+  reviews        Review[]
+  likes          Like[]
+  scraps         Scrap[]
   updateRequests ProductUpdateRequest[]
+  cartItems      CartItem[]
 
   @@index([teamId])
   @@index([type])
@@ -149,8 +151,8 @@ model ProductOption {
   product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
   values  ProductOptionValue[]
 
-  @@index([productId])
   @@unique([productId, optionName])
+  @@index([productId])
 }
 
 // ============================================
@@ -166,8 +168,8 @@ model ProductOptionValue {
   // Relations
   option ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
-  @@index([optionId])
   @@unique([optionId, value])
+  @@index([optionId])
 }
 
 // ============================================
@@ -194,12 +196,12 @@ model ProductVariant {
 // ============================================
 
 model ProductImage {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   productId       String
   thumbnailImgUrl String
   detailImgUrl    String[]
   noticeImgUrl    String
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime @default(now())
 
   // Relations
   product Product @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
@@ -212,17 +214,17 @@ model ProductImage {
 // ============================================
 
 model ProductUpdateRequest {
-  id                  String   @id @default(cuid())
-  productId           String   // 등록/수정 요청 모두 대상 Product id
+  id                  String    @id @default(cuid())
+  productId           String // 등록/수정 요청 모두 대상 Product id
   requestedByUserId   String
   teamId              String
-  requestType         Int      @default(0) // 0: register, 1: update
+  requestType         Int       @default(0) // 0: register, 1: update
   name                String
   description         String
-  type                Int      @default(0) // 0: fund, 1: buy now, 2: partner
-  status              Int      @default(0) // 0: pending, 1: active, 2: completed
+  type                Int       @default(0) // 0: fund, 1: buy now, 2: partner
+  status              Int       @default(0) // 0: pending, 1: active, 2: completed
   price               Int
-  goalAmount          Int?     // Fund: 목표 금액
+  goalAmount          Int? // Fund: 목표 금액
   salesStartDate      DateTime
   salesEndDate        DateTime
   productionStartDate DateTime? // Fund 택배: 제작 시작일
@@ -231,15 +233,15 @@ model ProductUpdateRequest {
   deliveryEndDate     DateTime? // Fund 택배: 배송 종료일
   pickupStartDate     DateTime? // Fund 현장 수령: 수령 시작일
   pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
-  pickupLocation      String?   // Fund 현장 수령: 수령 장소
-  receiveMethod       Int      @default(0) // 0: delivery, 1: pickup
-  requestedAt         DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  pickupLocation      String? // Fund 현장 수령: 수령 장소
+  receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
+  requestedAt         DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   // Relations
-  product     Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  requestedBy User                       @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
-  team        Team                       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  product     Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  requestedBy User                         @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  team        Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images      ProductUpdateRequestImage[]
   options     ProductUpdateRequestOption[]
 
@@ -259,7 +261,7 @@ model ProductUpdateRequestImage {
   productUpdateRequestId String
   thumbnailImgUrl        String
   detailImgUrl           String[]
-  noticeImgUrl           String?  // 등록 요청 단계에서는 null 가능(관리자 입력 전)
+  noticeImgUrl           String? // 등록 요청 단계에서는 null 가능(관리자 입력 전)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -279,11 +281,11 @@ model ProductUpdateRequestOption {
   optionName             String
 
   // Relations
-  productUpdateRequest ProductUpdateRequest      @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
+  productUpdateRequest ProductUpdateRequest              @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
   values               ProductUpdateRequestOptionValue[]
 
-  @@index([productUpdateRequestId])
   @@unique([productUpdateRequestId, optionName])
+  @@index([productUpdateRequestId])
 }
 
 // ============================================
@@ -299,8 +301,8 @@ model ProductUpdateRequestOptionValue {
   // Relations
   option ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
-  @@index([optionId])
   @@unique([optionId, value])
+  @@index([optionId])
 }
 
 // ============================================
@@ -672,4 +674,42 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+}
+
+// ============================================
+// Cart - 장바구니
+// ============================================
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@index([userId])
+}
+
+// ============================================
+// CartItem - 장바구니 아이템
+// ============================================
+
+model CartItem {
+  id         String   @id @default(cuid())
+  cartId     String
+  productId  String
+  quantity   Int      @default(1)
+  price      Int
+  optionData Json?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
 }

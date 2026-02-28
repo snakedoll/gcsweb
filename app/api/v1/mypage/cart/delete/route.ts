@@ -17,56 +17,30 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ status: 'error', code: 'EMPTY_LIST', message: '삭제할 상품을 선택해 주세요.' }, { status: 400 });
     }
 
-    const repo: any = prisma as any;
-
-    // get current user id
     const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
       return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' }, { status: 401 });
     }
 
-    // If cartItem model exists, operate on it directly
-    if (repo.cartItem && typeof repo.cartItem.findMany === 'function') {
-      const found = await repo.cartItem.findMany({ where: { id: { in: cartItemIds } }, select: { id: true, userId: true } });
-      if (found.length !== cartItemIds.length) {
-        return NextResponse.json({ status: 'error', code: 'CART_ITEM_NOT_FOUND', message: '존재하지 않는 장바구니 아이템이 있습니다.' }, { status: 404 });
-      }
+    // CartItem 조회 및 소유권 확인
+    const found = await prisma.cartItem.findMany({
+      where: { id: { in: cartItemIds } },
+      select: { id: true, cart: { select: { userId: true } } },
+    });
 
-      const notOwner = found.find((f: any) => f.userId !== user.id);
-      if (notOwner) {
-        return NextResponse.json({ status: 'error', code: 'FORBIDDEN', message: '해당 장바구니 항목에 대한 권한이 없습니다.' }, { status: 403 });
-      }
-
-      await repo.cartItem.deleteMany({ where: { id: { in: cartItemIds } } });
-
-      return NextResponse.json({ status: 'success', message: '선택한 상품이 장바구니에서 삭제되었습니다.' });
+    if (found.length !== cartItemIds.length) {
+      return NextResponse.json({ status: 'error', code: 'CART_ITEM_NOT_FOUND', message: '존재하지 않는 장바구니 아이템이 있습니다.' }, { status: 404 });
     }
 
-    // Fallback: find carts that contain these items
-    if (repo.cart && typeof repo.cart.findMany === 'function') {
-      const carts = await repo.cart.findMany({ where: { items: { some: { id: { in: cartItemIds } } } }, include: { items: { where: { id: { in: cartItemIds } }, select: { id: true } } } });
-      const foundIds = carts.flatMap((c: any) => c.items.map((i: any) => i.id));
-      if (foundIds.length !== cartItemIds.length) {
-        return NextResponse.json({ status: 'error', code: 'CART_ITEM_NOT_FOUND', message: '존재하지 않는 장바구니 아이템이 있습니다.' }, { status: 404 });
-      }
-
-      // Ensure ownership: every cart containing items must belong to user
-      const notOwned = carts.find((c: any) => c.userId !== user.id);
-      if (notOwned) {
-        return NextResponse.json({ status: 'error', code: 'FORBIDDEN', message: '해당 장바구니 항목에 대한 권한이 없습니다.' }, { status: 403 });
-      }
-
-      // Attempt to delete via cartItem model if present
-      if (repo.cartItem && typeof repo.cartItem.deleteMany === 'function') {
-        await repo.cartItem.deleteMany({ where: { id: { in: cartItemIds } } });
-        return NextResponse.json({ status: 'success', message: '선택한 상품이 장바구니에서 삭제되었습니다.' });
-      }
-
-      // Unable to safely delete nested items without item model
-      return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '장바구니 항목을 삭제할 수 없습니다. 서버 설정을 확인하세요.' }, { status: 500 });
+    const notOwner = found.find((f) => f.cart.userId !== user.id);
+    if (notOwner) {
+      return NextResponse.json({ status: 'error', code: 'FORBIDDEN', message: '해당 장바구니 항목에 대한 권한이 없습니다.' }, { status: 403 });
     }
 
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '장바구니 모델을 찾을 수 없습니다.' }, { status: 500 });
+    // 삭제
+    await prisma.cartItem.deleteMany({ where: { id: { in: cartItemIds } } });
+
+    return NextResponse.json({ status: 'success', message: '선택한 상품이 장바구니에서 삭제되었습니다.' });
   } catch (error: any) {
     console.error('Cart delete error:', error);
     return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });
