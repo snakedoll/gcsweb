@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   // Step state
-  const [step, setStep] = useState<'terms' | 'form' | 'terms-service' | 'terms-privacy'>('terms');
+  const [step, setStep] = useState<'terms' | 'form'>('terms');
 
   // Terms state
   const [agreements, setAgreements] = useState({
@@ -289,45 +289,6 @@ export default function RegisterPage() {
       console.error('Register request failed', e);
     }
   };
-
-  const TERMS_CONTENT_SERVICE = `본 약관은 안북스 스튜디오(이하 "회사")가 인터넷 사이트(https://gcsweb.kr)를 통하여 제공하는 회원 서비스, 크라우드펀딩 서비스, 스토어 서비스 등 제반 서비스의 이용과 관련하여 회사와 회원과의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.`;
-  const TERMS_CONTENT_PRIVACY = TERMS_CONTENT_SERVICE; // Figma shows the same text for both as a placeholder. Let's use it.
-
-  if (step === 'terms-service' || step === 'terms-privacy') {
-    const isService = step === 'terms-service';
-    return (
-      <div className="w-full max-w-[375px] h-screen bg-neutral-3 flex flex-col">
-        <NavBar 
-          variant="title-back" 
-          title={isService ? '홈페이지 이용약관' : '개인정보 수집 이용'} 
-          onBack={() => setStep('terms')} 
-        />
-        {/* 흰색 카드: 스크롤 영역 + 하단 버튼 */}
-        <div className="flex-1 flex flex-col bg-white rounded-t-xl overflow-hidden min-h-0">
-          {/* 스크롤 영역 */}
-          <div className="flex-1 overflow-y-auto px-4 py-5 min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#D9D9D9] [&::-webkit-scrollbar-thumb]:rounded-full">
-            <h1 className="typo-heading-small text-[#5f5a58] mb-6">제1장 총칙</h1>
-            
-            <div className="space-y-[12px]">
-              {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="flex flex-col gap-[12px]">
-                  <h2 className="typo-heading-xxsmall text-[#5f5a58]">제{i + 1}조 (목적)</h2>
-                  <p className="typo-body-xsmall text-[#5f5a58] whitespace-pre-wrap">{isService ? TERMS_CONTENT_SERVICE : TERMS_CONTENT_PRIVACY}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* 하단 고정 버튼 */}
-          <div className="shrink-0 bg-white px-4 pt-[17px] pb-[50px]">
-            <Button size="l" color="orange" onClick={() => setStep('terms')} className="w-full h-[55px]">
-              확인
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-[375px] min-h-screen bg-neutral-3 flex flex-col">
       <NavBar variant={step === 'terms' ? 'back' : 'home'} onBack={step === 'terms' ? () => router.back() : undefined} />
@@ -365,7 +326,7 @@ export default function RegisterPage() {
                       </svg>
                     )}
                   </div>
-                  <span className="typo-body-xsmall text-neutral-8 select-none">[필수] 만 14세 이상입니다.</span>
+                  <span className="typo-body-xsmall text-neutral-8 select-none">[필수] 만 14세 이상입니다</span>
                   <input type="checkbox" checked={agreements.age} onChange={() => setAgreements(s => ({ ...s, age: !s.age }))} className="hidden" />
                 </label>
 
@@ -381,7 +342,7 @@ export default function RegisterPage() {
                     <span className="typo-body-xsmall text-neutral-9 select-none">[필수] 홈페이지 이용약관 동의</span>
                     <input type="checkbox" checked={agreements.service} onChange={() => setAgreements(s => ({ ...s, service: !s.service }))} className="hidden" />
                   </label>
-                  <button type="button" onClick={() => setStep('terms-service')} className="p-1 flex items-center justify-center">
+                  <button type="button" onClick={() => router.push('/register/terms/terms-of-service')} className="p-1 flex items-center justify-center">
                     <Image src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg" alt="약관 보기" width={24} height={24} />
                   </button>
                 </div>
@@ -398,7 +359,7 @@ export default function RegisterPage() {
                     <span className="typo-body-xsmall text-neutral-8 select-none">[필수] 개인정보 수집·이용 동의</span>
                     <input type="checkbox" checked={agreements.privacy} onChange={() => setAgreements(s => ({ ...s, privacy: !s.privacy }))} className="hidden" />
                   </label>
-                  <button type="button" onClick={() => setStep('terms-privacy')} className="p-1 flex items-center justify-center">
+                  <button type="button" onClick={() => router.push('/register/terms/privacy-policy')} className="p-1 flex items-center justify-center">
                     <Image src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg" alt="약관 보기" width={24} height={24} />
                   </button>
                 </div>
@@ -485,7 +446,7 @@ export default function RegisterPage() {
                       <TextField
                         id="email"
                         type="email"
-                        label="아이디 (이메일)"
+                        label="아이디(이메일)"
                         placeholder="example@gmail.com"
                         state={
                           emailHasError
@@ -518,7 +479,7 @@ export default function RegisterPage() {
                       disabled={!canSendEmail}
                       className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0 typo-body-small"
                     >
-                      {emailCheckLoading ? '전송 중' : '전송'}
+                      {emailCheckLoading ? '전송 중...' : '전송'}
                     </Button>
                   </div>
 
@@ -571,7 +532,7 @@ export default function RegisterPage() {
                           disabled={!canVerifyCode}
                           className="h-10 w-[70px] shrink-0 whitespace-nowrap py-0 typo-body-small"
                         >
-                          {verifyLoading ? '확인 중' : '확인'}
+                          {verifyLoading ? '확인 중...' : '확인'}
                         </Button>
                       </div>
                   ) : null}
@@ -632,3 +593,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

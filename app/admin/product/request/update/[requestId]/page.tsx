@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import NextImage from 'next/image';
 import { useEffect, useState, useRef } from 'react';
@@ -276,7 +276,7 @@ export default function AdminUpdateRequestStep1Page() {
                     id="update-request-team"
                     label="판매팀"
                     showStar
-                    state={teamName ? 'filled' : 'Default'}
+                    state={teamName ? 'filled' : 'default'}
                     inputProps={{
                       value: teamName,
                       onChange: (e) => setTeamName(e.target.value),
@@ -288,7 +288,7 @@ export default function AdminUpdateRequestStep1Page() {
                   id="update-request-name"
                   label="상품명"
                   showStar
-                  state={productName ? 'filled' : 'Default'}
+                  state={productName ? 'filled' : 'default'}
                   inputProps={{
                     value: productName,
                     onChange: (e) => setProductName(e.target.value),
@@ -299,7 +299,7 @@ export default function AdminUpdateRequestStep1Page() {
                   id="update-request-description"
                   label="상품 설명"
                   showStar
-                  state={productDescription ? 'filled' : 'Default'}
+                  state={productDescription ? 'filled' : 'default'}
                   inputProps={{
                     value: productDescription,
                     onChange: (e) => setProductDescription(e.target.value),

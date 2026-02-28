@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
+import LegalTextView from '../_components/LegalTextView';
 
 const TERMS_OF_SERVICE = `제1장 총칙
 
@@ -138,11 +139,7 @@ export default function RegisterTermsSitePage() {
       <NavBar variant="title" title="홈페이지 이용약관" />
 
       <div className="rounded-t-[12px] bg-white px-4 pb-5 pt-5">
-        <div className="max-h-[610px] overflow-y-auto pr-1">
-          <pre className="text-neutral-8 typo-body-xsmall whitespace-pre-wrap font-pretendard leading-[1.8]">
-            {TERMS_OF_SERVICE}
-          </pre>
-        </div>
+        <LegalTextView text={TERMS_OF_SERVICE} />
       </div>
 
       <div className="bg-white px-4 pb-[50px] pt-[17px]">
