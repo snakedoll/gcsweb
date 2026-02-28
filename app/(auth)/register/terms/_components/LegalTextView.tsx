@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 type BodyBlock =
   | { type: 'chapter'; text: string }

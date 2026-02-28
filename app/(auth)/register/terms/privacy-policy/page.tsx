@@ -145,7 +145,7 @@ export default function RegisterTermsPrivacyPage() {
 
   return (
     <div className="w-full max-w-[375px] min-h-screen bg-neutral-3 flex flex-col">
-      <NavBar variant="title" title="개인정보 수집 이용" />
+      <NavBar variant="title-back" title="개인정보 수집 이용" />
 
       <div className="flex-1 min-h-0 rounded-t-[12px] bg-white px-4 pb-5 pt-5">
         <LegalTextView text={PRIVACY_POLICY} />
@@ -163,3 +163,4 @@ export default function RegisterTermsPrivacyPage() {
     </div>
   );
 }
+
