@@ -16,11 +16,9 @@ type ImageProps = {
 
 function CloseIcon() {
   return (
-    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/35">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-        <path d="M3 3L9 9M9 3L3 9" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    </div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M6 18L18 6M6 6L18 18" stroke="#999694" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
   );
 }
 

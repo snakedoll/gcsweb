@@ -92,9 +92,9 @@ function RequestSummaryBox({
           등록 <span className="text-orange-5">{registerCount}</span>
         </Link>
         <span aria-hidden className="h-[14px] w-px bg-neutral-6" />
-        <span>
+        <Link href="/admin/product/request/update" className="inline-flex items-center">
           수정 <span className="text-orange-5">{updateCount}</span>
-        </span>
+        </Link>
       </div>
     </div>
   );
@@ -159,8 +159,25 @@ export default function AdminProductPage() {
     });
   }, [activeTab, products, search]);
 
-  const updateProductFlag = (productId: string, key: 'isHome' | 'isPublic', value: boolean) => {
+  const updateProductFlag = async (productId: string, key: 'isHome' | 'isPublic', value: boolean) => {
+    // 1. Optimistic UI update
     setProducts((prev) => prev.map((item) => (item.id === productId ? { ...item, [key]: value } : item)));
+
+    try {
+      const res = await fetch(`/api/v1/admin/product/${productId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.status !== 'success') {
+        throw new Error(json.message ?? '상태를 업데이트하지 못했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to update product flag:', error);
+      // Rollback on failure
+      setProducts((prev) => prev.map((item) => (item.id === productId ? { ...item, [key]: !value } : item)));
+    }
   };
 
   return (

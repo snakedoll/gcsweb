@@ -15,10 +15,10 @@ function CheckIcon() {
   );
 }
 
-function CloseIcon() {
+function XIcon() {
   return (
     <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden>
-      <path d="M2 2L6 6M6 2L2 6" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M2 2L6 6M6 2L2 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -48,7 +48,7 @@ export default function StepProgress({ className, status = 'current' }: StepProg
 
       {isSkipped ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <CloseIcon />
+          <XIcon />
         </div>
       ) : null}
     </div>
