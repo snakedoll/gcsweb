@@ -35,10 +35,10 @@ export default function Footer({ showAdminButton = false }: FooterProps) {
             <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={59} height={21} />
           </Link>
           <p className="text-[8px] leading-[1.5] text-neutral-10">© 2025 GCS:Web. All rights reserved.</p>
-          <Link href="/terms/art" className="text-[8px] leading-[1.5] text-neutral-10 underline">
-            이용약관
+          <Link href="/terms/terms-of-service" className="text-[8px] leading-[1.5] text-neutral-10 underline">
+            서비스 이용약관
           </Link>
-          <Link href="/terms/privacy" className="text-[8px] leading-[1.5] text-neutral-10 underline">
+          <Link href="/terms/privacy-policy" className="text-[8px] leading-[1.5] text-neutral-10 underline">
             개인정보처리방침
           </Link>
           {showAdminButton ? (

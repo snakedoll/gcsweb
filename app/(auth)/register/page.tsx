@@ -342,7 +342,7 @@ export default function RegisterPage() {
                     <span className="typo-body-xsmall text-neutral-9 select-none">[필수] 홈페이지 이용약관 동의</span>
                     <input type="checkbox" checked={agreements.service} onChange={() => setAgreements(s => ({ ...s, service: !s.service }))} className="hidden" />
                   </label>
-                  <button type="button" onClick={() => router.push('/register/terms/terms-of-service')} className="p-1 flex items-center justify-center">
+                  <button type="button" onClick={() => router.push('/terms/membership-terms')} className="p-1 flex items-center justify-center">
                     <Image src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg" alt="약관 보기" width={24} height={24} />
                   </button>
                 </div>
@@ -359,7 +359,7 @@ export default function RegisterPage() {
                     <span className="typo-body-xsmall text-neutral-8 select-none">[필수] 개인정보 수집·이용 동의</span>
                     <input type="checkbox" checked={agreements.privacy} onChange={() => setAgreements(s => ({ ...s, privacy: !s.privacy }))} className="hidden" />
                   </label>
-                  <button type="button" onClick={() => router.push('/register/terms/privacy-policy')} className="p-1 flex items-center justify-center">
+                  <button type="button" onClick={() => router.push('/terms/privacy-policy')} className="p-1 flex items-center justify-center">
                     <Image src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg" alt="약관 보기" width={24} height={24} />
                   </button>
                 </div>
