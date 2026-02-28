@@ -135,10 +135,10 @@ export default function RegisterTermsSitePage() {
   const router = useRouter();
 
   return (
-    <div className="w-full max-w-[375px]">
+    <div className="w-full max-w-[375px] min-h-screen bg-neutral-3 flex flex-col">
       <NavBar variant="title" title="홈페이지 이용약관" />
 
-      <div className="rounded-t-[12px] bg-white px-4 pb-5 pt-5">
+      <div className="flex-1 min-h-0 rounded-t-[12px] bg-white px-4 pb-5 pt-5">
         <LegalTextView text={TERMS_OF_SERVICE} />
       </div>
 

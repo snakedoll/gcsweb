@@ -144,10 +144,10 @@ export default function RegisterTermsPrivacyPage() {
   const router = useRouter();
 
   return (
-    <div className="w-full max-w-[375px]">
+    <div className="w-full max-w-[375px] min-h-screen bg-neutral-3 flex flex-col">
       <NavBar variant="title" title="개인정보 수집 이용" />
 
-      <div className="rounded-t-[12px] bg-white px-4 pb-5 pt-5">
+      <div className="flex-1 min-h-0 rounded-t-[12px] bg-white px-4 pb-5 pt-5">
         <LegalTextView text={PRIVACY_POLICY} />
       </div>
 
