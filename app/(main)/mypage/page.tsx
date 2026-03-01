@@ -1,6 +1,7 @@
 'use client';
 
 import { Footer, NavBar } from '@/components/layout';
+import { MenuSection } from '@/components/ui';
 import { useUser } from '@/hooks/useUser';
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -48,35 +49,17 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
       href={href}
       className="flex h-20 w-[109px] flex-col items-center justify-center gap-2 rounded-lg border border-neutral-5 bg-neutral-1"
     >
-      <NextImage src={iconSrc} alt="" width={24} height={24} />
+      <NextImage
+        src={iconSrc}
+        alt=""
+        width={24}
+        height={24}
+        className="h-6 w-6 [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(8%)_saturate(145%)_hue-rotate(336deg)_brightness(91%)_contrast(86%)]"
+      />
       <p className="typo-body-xsmall text-neutral-9">
         {label} <span className="text-orange-5">{count}</span>
       </p>
     </Link>
-  );
-}
-
-interface MenuSectionProps {
-  title: string;
-  items: { label: string; href: string }[];
-}
-
-function MenuSection({ title, items }: MenuSectionProps) {
-  return (
-    <section className="rounded-lg bg-neutral-1 px-4 py-3">
-      <h2 className="typo-body-small-bold text-neutral-12">{title}</h2>
-      <div className="my-1 h-px bg-neutral-4" />
-      <ul className="space-y-3 py-1">
-        {items.map((item) => (
-          <li key={item.href}>
-            <Link href={item.href} className="flex items-center justify-between typo-body-xsmall text-neutral-8">
-              <span>{item.label}</span>
-              <NextImage src="/assets/icons/icon-right.svg" alt="" width={20} height={20} />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 

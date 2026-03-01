@@ -29,55 +29,24 @@ function IconButton({
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-label={label}
-      className="flex h-6 w-6 items-center justify-center text-neutral-7 transition hover:text-neutral-9"
+      onClick={onClick}
+      className={cn(
+        'flex h-6 w-6 items-center justify-center rounded-sm',
+        onClick ? 'cursor-pointer' : 'cursor-default'
+      )}
     >
       {children}
     </button>
   );
 }
 
-function ShareIcon() {
-  return (
-    <Image
-      src="/assets/icons/light/logout.svg"
-      alt=""
-      width={15}
-      height={18.5}
-      className="h-[18.5px] w-[15px] opacity-70"
-      aria-hidden
-    />
-  );
-}
-
-function BookmarkIcon({ selected }: { selected: boolean }) {
-  if (selected) {
-    return (
-      <svg viewBox="0 0 24 24" className="h-[18px] w-[14px] text-orange-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <path d="M8 4.75A1.75 1.75 0 0 1 9.75 3h4.5A1.75 1.75 0 0 1 16 4.75V20l-4-2.6L8 20V4.75Z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[14px]" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path
-        d="M8 4.75A1.75 1.75 0 0 1 9.75 3h4.5A1.75 1.75 0 0 1 16 4.75V20l-4-2.6L8 20V4.75Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export default function ArchiveCard2({
   className,
-  title = '\uC18C\uC7A5 \uC774\uC0C1\uC758 \uD65C\uC6A9 \uAC00\uCE58\uB97C \uB9CC\uB4E4\uB2E4',
-  subtitle = '\uC720\uB791',
+  title = '소장 이상의 활용 가치를 만들다',
+  subtitle = '유랑',
   year = 2025,
-  category = '\uACF5\uBAA8\uC804',
+  category = '공모전',
   imageSrc,
   imageAlt,
   selected = false,
@@ -86,37 +55,56 @@ export default function ArchiveCard2({
 }: ArchiveCard2Props) {
   return (
     <article className={cn('w-[343px] rounded-[13px] bg-white px-[21px] py-5', className)}>
-      <div className="space-y-[11px]">
+      <div className="flex flex-col items-start gap-[11px]">
         <div className="relative h-[375px] w-[300px] overflow-hidden rounded-lg shadow-[0_0_5px_rgba(0,0,0,0.2)]">
           {imageSrc ? (
             <Image
               src={imageSrc}
-              alt={imageAlt ?? `${title} \uD3EC\uC2A4\uD130`}
+              alt={imageAlt ?? `${title} 포스터`}
               fill
               unoptimized
               sizes="300px"
               className="object-cover"
             />
           ) : (
-            <div className="h-full w-full bg-[#F1EEE9]" />
+            <div className="h-full w-full bg-[#f1eee9]" />
           )}
         </div>
 
         <ArchiveCardName title={title} subtitle={subtitle} />
 
-        <div className="relative w-full pt-[9px]">
-          <div className="absolute left-px top-0 h-px w-[296px] bg-neutral-5" />
-          <div className="flex items-start justify-between">
+        <div className="w-full pt-[9px]">
+          <div className="mb-[10px] h-px w-[296px] bg-neutral-5" />
+          <div className="flex items-center justify-between">
             <DashboardHeaderTitle year={year} category={category} className="pt-0" />
-            <div className="mt-px flex items-center gap-[5px]">
-              <IconButton label="\uACF5\uC720" onClick={onShareClick}>
-                <ShareIcon />
+            <div className="flex items-center gap-[6px]">
+              <IconButton label="공유" onClick={onShareClick}>
+                <Image
+                  src="/assets/icons/light/share.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="h-6 w-6"
+                  aria-hidden
+                />
               </IconButton>
+
               <IconButton
-                label={selected ? '\uBD81\uB9C8\uD06C \uD574\uC81C' : '\uBD81\uB9C8\uD06C'}
+                label={selected ? '북마크 해제' : '북마크'}
                 onClick={onBookmarkClick}
               >
-                <BookmarkIcon selected={selected} />
+                <Image
+                  src={selected ? '/assets/icons/filled/Filled/Bookmark.svg' : '/assets/icons/icon-bookmark.svg'}
+                  alt=""
+                  width={24}
+                  height={24}
+                  className={cn(
+                    'h-6 w-6',
+                    selected &&
+                      '[filter:brightness(0)_saturate(100%)_invert(64%)_sepia(65%)_saturate(1452%)_hue-rotate(331deg)_brightness(102%)_contrast(93%)]'
+                  )}
+                  aria-hidden
+                />
               </IconButton>
             </div>
           </div>
