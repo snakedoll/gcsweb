@@ -1,6 +1,7 @@
 'use client';
 
 import { Footer, NavBar } from '@/components/layout';
+import FloatingButton from '@/components/ui/button/FloatingButton';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -189,13 +190,11 @@ function ProductListView({ products, showAdminButton }: { products: ProductItem[
           ))}
         </ul>
       </main>
-      <Link
-        href="/mypage/my-products/new"
-        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-5 shadow-lg"
-        aria-label="새 상품 등록"
-      >
-        <Image src="/assets/icons/light/plus.svg" alt="" width={24} height={24} />
-      </Link>
+      <div className="pointer-events-none fixed inset-x-0 bottom-[15px] z-20 mx-auto flex w-full max-w-[375px] justify-end px-3">
+        <Link href="/mypage/my-products/new" className="pointer-events-auto" aria-label="새 상품 등록">
+          <FloatingButton className="size-[61px] p-4" />
+        </Link>
+      </div>
       <Footer showAdminButton={showAdminButton} />
     </>
   );
