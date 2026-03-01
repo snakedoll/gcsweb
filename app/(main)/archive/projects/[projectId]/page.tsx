@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Footer, NavBar } from '@/components/layout';
+import { BottomTabBar, NavBar } from '@/components/layout';
 import { ArchiveCard2, ProfileAvatar } from '@/components/ui';
 
 type ProjectMember = {
@@ -193,7 +193,7 @@ export default function ArchiveProjectDetailPage({
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
         <NavBar variant="logo-back" />
 
-        <main className="flex-1">
+        <main className="flex-1 pb-[72px]">
           {loading ? (
             <DetailSkeleton />
           ) : errorMessage || !project ? (
@@ -259,7 +259,9 @@ export default function ArchiveProjectDetailPage({
           )}
         </main>
 
-        <Footer showAdminButton />
+        <div className="sticky bottom-0 z-20 mt-auto">
+          <BottomTabBar variant="archive" />
+        </div>
       </div>
     </div>
   );

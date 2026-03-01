@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Banner, Footer, NavBar } from '@/components/layout';
+import { Banner, BottomTabBar, NavBar } from '@/components/layout';
 import { ArchiveCard1, DashboardHeaderTitle, Dropdown, Tab } from '@/components/ui';
 
 type ArchiveFilterOption = {
@@ -179,7 +179,7 @@ export default function ArchivePage() {
         <NavBar />
         <Banner variant="archive" />
 
-        <main className="flex-1">
+        <main className="flex-1 pb-[72px]">
           <section className="border-b border-neutral-4 bg-neutral-3">
             <ProjectNewsTabs />
             <div className="flex items-center gap-[9px] px-4 py-[10px]">
@@ -248,7 +248,9 @@ export default function ArchivePage() {
           </section>
         </main>
 
-        <Footer showAdminButton />
+        <div className="sticky bottom-0 z-20 mt-auto">
+          <BottomTabBar variant="archive" />
+        </div>
       </div>
     </div>
   );

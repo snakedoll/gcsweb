@@ -5,7 +5,6 @@ import { Banner, BottomTabBar, NavBar } from '@/components/layout';
 import Tab from '@/components/ui/button/Tab';
 import Filter from '@/components/ui/admin/product/Filter';
 import ProductListedCard from '@/components/ui/admin/product/ProductListedCard';
-import EmptyviewText from '@/components/ui/common/EmptyviewText';
 
 type ProductType = 0 | 1 | 2;
 type ProgressStatus = 0 | 1 | 2; // 0=진행 예정, 1=진행 중, 2=진행 완료
@@ -49,18 +48,6 @@ const STATUS_TABS: Array<{ key: StatusTabKey; label: string; status: ProgressSta
 ];
 
 function ShopProductCard({ item }: { item: ShopProduct }) {
-  const salesStart = item.salesStartDate ? new Date(item.salesStartDate) : null;
-  const salesEnd = item.salesEndDate ? new Date(item.salesEndDate) : null;
-  const isValidPeriod =
-    salesStart != null &&
-    salesEnd != null &&
-    !Number.isNaN(salesStart.getTime()) &&
-    !Number.isNaN(salesEnd.getTime());
-
-  const periodText = isValidPeriod
-    ? `${salesStart.getFullYear()}.${String(salesStart.getMonth() + 1).padStart(2, '0')}.${String(salesStart.getDate()).padStart(2, '0')} - ${salesEnd.getFullYear()}.${String(salesEnd.getMonth() + 1).padStart(2, '0')}.${String(salesEnd.getDate()).padStart(2, '0')}`
-    : '2025.05.05 - 2025.06.05';
-
   return (
     <ProductListedCard
       property1={item.type === 0 ? 'shopcard_fund' : 'shopcard_buynow_partnerup'}
@@ -68,7 +55,6 @@ function ShopProductCard({ item }: { item: ShopProduct }) {
       brand={item.teamName || '팀명'}
       title={item.name || '상품 제목'}
       description={item.description || ''}
-      periodText={periodText}
       amountText={
         typeof item.currentAmount === 'number'
           ? `${item.currentAmount.toLocaleString('ko-KR')}원`
@@ -168,15 +154,12 @@ export default function ShopPage() {
 
         <main className="flex-1 px-4 pb-6 pt-5">
           {loading ? (
-            <div className="flex h-[320px] items-center justify-center">
-              <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
+            <div className="flex min-h-[calc(100vh-360px)] items-center justify-center">
+              <p className="typo-body-small text-neutral-8">로딩 중...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="flex h-[320px] items-center justify-center">
-              <EmptyviewText
-                title="등록된 상품이 없습니다."
-                subtitle="선택한 조건의 상품이 아직 없습니다."
-              />
+            <div className="flex min-h-[calc(100vh-360px)] items-center justify-center">
+              <p className="typo-body-small text-neutral-8">등록된 상품이 없습니다.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-5">
