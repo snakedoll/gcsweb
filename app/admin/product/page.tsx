@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { NavBar } from '@/components/layout';
 import SearchBar from '@/components/ui/common/SearchBar';
 import ProductListedCard from '@/components/ui/admin/product/ProductListedCard';
-import ProductTabBar from '@/components/ui/admin/product/TabBar';
+import Filter from '@/components/ui/admin/product/Filter';
 
 type ProductType = 0 | 1 | 2;
 type ProductTabKey = 'all' | 'fund' | 'buyNow' | 'partnerUp';
@@ -202,7 +202,7 @@ export default function AdminProductPage() {
           <section className="mt-4 px-4">
             <div className="flex flex-wrap items-center gap-2">
               {TAB_OPTIONS.map((tab) => (
-                <ProductTabBar
+                <Filter
                   key={tab.key}
                   label={tab.label}
                   selected={activeTab === tab.key}

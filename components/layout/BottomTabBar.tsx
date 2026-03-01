@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type TabBarVariant =
+type BottomTabBarVariant =
   | 'about'
   | 'archive'
   | 'home'
@@ -13,8 +13,8 @@ type TabBarVariant =
   | 'shop_fund'
   | 'shop_buynow_partnerup';
 
-interface TabBarProps {
-  variant?: TabBarVariant;
+interface BottomTabBarProps {
+  variant?: BottomTabBarVariant;
   aboutHref?: string;
   archiveHref?: string;
   homeHref?: string;
@@ -110,7 +110,7 @@ function TabItem({ href, label, active = false, icon }: TabItemProps) {
   );
 }
 
-export default function TabBar({
+export default function BottomTabBar({
   variant = 'about',
   aboutHref = '/about',
   archiveHref = '/archive',
@@ -118,7 +118,7 @@ export default function TabBar({
   shopHref = '/shop',
   communityHref = '/community',
   onOrder,
-}: TabBarProps) {
+}: BottomTabBarProps) {
   if (variant === 'shop_fund' || variant === 'shop_buynow_partnerup') {
     return (
       <div className={cn('w-full border-t border-neutral-4 bg-neutral-3 py-[13px]', variant === 'shop_buynow_partnerup' ? 'px-5' : 'px-[18px]')}>

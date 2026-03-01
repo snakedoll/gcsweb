@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-interface TabBarProps {
+interface FilterProps {
   className?: string;
   label?: string;
   selected?: boolean;
@@ -9,14 +9,14 @@ interface TabBarProps {
   disabled?: boolean;
 }
 
-export default function TabBar({
+export default function Filter({
   className,
   label = 'text',
   selected = false,
   onClick,
   type = 'button',
   disabled = false,
-}: TabBarProps) {
+}: FilterProps) {
   return (
     <button
       type={type}

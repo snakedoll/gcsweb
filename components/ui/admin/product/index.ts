@@ -13,4 +13,4 @@ export { default as ProductLike } from './ProductLike';
 export { default as ProductOption } from './ProductOption';
 export { default as Radiocardgroup } from './Radiocardgroup';
 export { default as StepProgress } from './StepProgress';
-export { default as TabBar } from './TabBar';
+export { default as Filter } from './Filter';

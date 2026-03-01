@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/hooks/useUser';
-import { Footer, NavBar, TabBar } from '@/components/layout';
+import { BottomTabBar, Footer, NavBar } from '@/components/layout';
 
 export default function HomePage() {
   const { session, profile, isAuthenticated } = useUser();
@@ -15,7 +15,7 @@ export default function HomePage() {
         <NavBar />
         <div className="mx-auto flex w-full max-w-[375px] flex-1 flex-col px-4 py-6" />
         <div className="sticky bottom-0 z-20">
-          <TabBar variant="home" />
+          <BottomTabBar variant="home" />
         </div>
         <Footer showAdminButton={isAdmin} />
       </div>

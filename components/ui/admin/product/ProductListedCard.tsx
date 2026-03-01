@@ -369,10 +369,11 @@ export default function ProductListedCard({
         {isFundFamily ? (
           <FundingstatusSection
             className="w-full"
-            variant={isAdminFund ? 'admin' : isMyFundAchieved ? 'admin_달성' : isShopFund ? '미달성' : 'admin'}
+            variant={isAdminFund ? 'admin' : isMyFundAchieved ? 'admin_달성' : isShopFund ? 'shop' : 'admin'}
             currentAmount={currentAmountResolved}
             targetAmount={targetAmountText}
             progressPercent={progressResolved}
+            hideSummaryRow={isShopFund}
           />
         ) : null}
 

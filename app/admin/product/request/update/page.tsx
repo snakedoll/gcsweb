@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
-import ProductTabBar from '@/components/ui/admin/product/TabBar';
+import Filter from '@/components/ui/admin/product/Filter';
 import FundPercent from '@/components/ui/admin/product/FundPercent';
 import FundingstatusSection from '@/components/ui/admin/product/FundingstatusSection';
 import { cn } from '@/lib/utils';
@@ -324,7 +324,7 @@ export default function AdminProductUpdateRequestPage() {
           <section className={cn('px-4', !listLoading && !errorMessage && hasItems ? 'mt-4' : 'mt-0')}>
             <div className="flex flex-wrap items-center gap-2">
               {TAB_OPTIONS.map((tab) => (
-                <ProductTabBar
+                <Filter
                   key={tab.key}
                   label={tab.label}
                   selected={activeTab === tab.key}
