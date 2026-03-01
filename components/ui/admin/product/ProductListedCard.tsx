@@ -1,4 +1,4 @@
-import Image from 'next/image';
+﻿import Image from 'next/image';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 import Tag from '@/components/ui/common/Tag';
@@ -9,18 +9,17 @@ import ProductDDay from './ProductDDay';
 import ProductLike from './ProductLike';
 
 export type ProductListedCardVariant =
-  | '내등록상품_펀딩카드_미달성'
-  | '내등록상품_펀딩카드_달성'
-  | '내등록상품_buynow/partnerup'
+  | 'my_fund_pending'
+  | 'my_fund_achieved'
+  | 'my_buynow_partnerup'
   | 'admin_fund'
   | 'shopcard_fund'
   | 'shopcard_buynow_partnerup'
   | 'admin_buynow/partnerup'
-  | 'project_post'
-  | '스크랩한 프로젝트'
-  | '좋아요 누른 상품 목록/진행완료'
-  | '좋아요 누른 상품 목록/진행중'
-  | '좋아요 누른 상품 목록/진행예정';
+  | 'scrapped_project'
+  | 'liked_product_completed'
+  | 'liked_product_active'
+  | 'liked_product_scheduled';
 
 interface ProductListedCardProps {
   className?: string;
@@ -41,8 +40,6 @@ interface ProductListedCardProps {
   onPublicChange?: (checked: boolean) => void;
   onClick?: () => void;
   tags?: string[];
-  postedAt?: string;
-  views?: number;
 }
 
 function DashDivider({ className }: { className?: string }) {
@@ -142,45 +139,6 @@ function ProductInfoBlock({
   );
 }
 
-function ProjectPostInfo({
-  imageSrc,
-  brand,
-  title,
-  tags,
-  onClick,
-}: {
-  imageSrc: string;
-  brand: string;
-  title: string;
-  tags: string[];
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn('flex w-full items-center gap-4 text-left', onClick ? 'cursor-pointer' : 'cursor-default')}
-    >
-      <div className="relative h-[125px] w-[102px] overflow-hidden rounded">
-        <Image src={imageSrc} alt="" fill unoptimized sizes="102px" className="object-cover" />
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
-        <div className="flex flex-col gap-[3px]">
-          <p className="typo-body-xsmall text-neutral-11">{brand}</p>
-          <p className="truncate typo-heading-xsmall text-neutral-12">{title}</p>
-        </div>
-        <DashDivider className="w-[193px]" />
-        <div className="flex flex-wrap items-center gap-2">
-          {tags.map((tag) => (
-            <Tag key={tag} color="orange" contents={tag} />
-          ))}
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function CompactListRow({
   variant,
   imageSrc,
@@ -196,11 +154,11 @@ function CompactListRow({
   tags: string[];
   onClick?: () => void;
 }) {
-  const isScrap = variant === '스크랩한 프로젝트';
+  const isScrap = variant === 'scrapped_project';
   const statusLabel =
-    variant === '좋아요 누른 상품 목록/진행완료'
+    variant === 'liked_product_completed'
       ? '진행완료'
-      : variant === '좋아요 누른 상품 목록/진행중'
+      : variant === 'liked_product_active'
         ? '진행중'
         : '진행예정';
 
@@ -259,74 +217,44 @@ export default function ProductListedCard({
   onPublicChange,
   onClick,
   tags = ['2025', '겨울 공모전'],
-  postedAt = '2025.01.04 15:13',
-  views = 393,
 }: ProductListedCardProps) {
-  const isProjectPost = property1 === 'project_post';
   const isCompact =
-    property1 === '스크랩한 프로젝트' ||
-    property1 === '좋아요 누른 상품 목록/진행완료' ||
-    property1 === '좋아요 누른 상품 목록/진행중' ||
-    property1 === '좋아요 누른 상품 목록/진행예정';
+    property1 === 'scrapped_project' ||
+    property1 === 'liked_product_completed' ||
+    property1 === 'liked_product_active' ||
+    property1 === 'liked_product_scheduled';
   const isShopFund = property1 === 'shopcard_fund';
   const isShopBuy = property1 === 'shopcard_buynow_partnerup';
   const isAdminFund = property1 === 'admin_fund';
   const isAdminBuy = property1 === 'admin_buynow/partnerup';
-  const isMyFund = property1 === '내등록상품_펀딩카드_미달성' || property1 === '내등록상품_펀딩카드_달성';
-  const isMyFundAchieved = property1 === '내등록상품_펀딩카드_달성';
-  const isMyBuy = property1 === '내등록상품_buynow/partnerup';
+  const isMyFund = property1 === 'my_fund_pending' || property1 === 'my_fund_achieved';
+  const isMyFundAchieved = property1 === 'my_fund_achieved';
+  const isMyBuy = property1 === 'my_buynow_partnerup';
   const isFundFamily = isShopFund || isAdminFund || isMyFund;
   const isBuyFamily = isShopBuy || isAdminBuy || isMyBuy;
-  const adminMode = isAdminFund || isAdminBuy || isProjectPost;
-  const showAdminControls = isAdminFund || isAdminBuy || isProjectPost;
+  const adminMode = isAdminFund || isAdminBuy;
+  const showAdminControls = isAdminFund || isAdminBuy;
   const showLikeCountFooter = isAdminFund || isAdminBuy || isMyFund || isMyBuy;
   const showBottomRow = isFundFamily || showLikeCountFooter || isShopFund;
 
   const currentAmountResolved =
     amountText ??
-    (isFundFamily ? (isAdminFund || property1 === '내등록상품_펀딩카드_미달성' ? '370,000원' : '570,000원') : '570,000원');
+    (isFundFamily ? (isAdminFund || property1 === 'my_fund_pending' ? '370,000원' : '570,000원') : '570,000원');
 
   const progressResolved =
     progressPercent ??
-    (isShopFund || isAdminFund || property1 === '내등록상품_펀딩카드_미달성' ? 70 : 100);
+    (isShopFund || isAdminFund || property1 === 'my_fund_pending' ? 70 : 100);
 
   if (isCompact) {
     return (
       <CompactListRow
         variant={property1}
         imageSrc={imageSrc}
-        brand={property1 === '스크랩한 프로젝트' ? 'HUSH' : brand}
-        title={property1 === '스크랩한 프로젝트' ? '조용하게 지구를 지키는 방법' : title}
-        tags={property1 === '스크랩한 프로젝트' ? ['2025', '공모전'] : tags}
+        brand={property1 === 'scrapped_project' ? 'HUSH' : brand}
+        title={property1 === 'scrapped_project' ? '조용하게 지구를 지키는 방법' : title}
+        tags={property1 === 'scrapped_project' ? ['2025', '공모전'] : tags}
         onClick={onClick}
       />
-    );
-  }
-
-  if (isProjectPost) {
-    return (
-      <div className={cn('w-[343px] rounded-lg border border-neutral-4 bg-neutral-2 px-4 pb-4 pt-3', className)}>
-        <div className="flex flex-col gap-[10px]">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <CheckboxButton checked={homeExpose} label="홈에 노출" onChange={onHomeExposeChange} />
-              <div className="inline-flex items-center gap-[9px]">
-                <span className="text-[11px] leading-[1.5] text-neutral-7">공개</span>
-                <ToggleSwitch checked={publicChecked} onChange={onPublicChange} />
-              </div>
-            </div>
-            <DashDivider />
-          </div>
-
-          <ProjectPostInfo imageSrc={imageSrc} brand="팀명" title="프로젝트 제목" tags={tags} onClick={onClick} />
-
-          <div className="flex w-[250px] items-center justify-between text-[11px] leading-[1.5] text-neutral-8">
-            <span>게시 {postedAt}</span>
-            <span>조회수 {views}</span>
-            <span>좋아요 {likeCount}</span>
-          </div>
-        </div>
-      </div>
     );
   }
 
@@ -379,9 +307,9 @@ export default function ProductListedCard({
 
         {showBottomRow ? (
           <div className={cn('flex w-full items-center', showLikeCountFooter && !isFundFamily ? 'justify-end' : 'justify-between')}>
-          {isFundFamily ? <FundPercent variant={isMyFundAchieved ? '달성' : '미달성'} percentText={`${Math.round(progressResolved)}%`} /> : null}
-          {isShopFund ? <ProductLike /> : null}
-          {showLikeCountFooter ? <LikeStat count={likeCount} /> : null}
+            {isFundFamily ? <FundPercent variant={isMyFundAchieved ? '달성' : '미달성'} percentText={`${Math.round(progressResolved)}%`} /> : null}
+            {isShopFund ? <ProductLike /> : null}
+            {showLikeCountFooter ? <LikeStat count={likeCount} /> : null}
           </div>
         ) : null}
       </div>

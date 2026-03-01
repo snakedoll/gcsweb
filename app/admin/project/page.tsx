@@ -6,7 +6,7 @@ import { NavBar } from '@/components/layout';
 import UISearchBar from '@/components/ui/common/SearchBar';
 import FloatingButton from '@/components/ui/button/FloatingButton';
 import ToastMessage from '@/components/ui/common/ToastMessage';
-import { FilterArea, Listedcard } from '@/components/ui/admin/project';
+import { FilterArea, ProjectCard } from '@/components/ui/admin/project';
 import { cn } from '@/lib/utils';
 
 type FilterState = {
@@ -224,10 +224,9 @@ export default function AdminProjectPage() {
               {hasProjects ? (
                 <div className="w-full space-y-3">
                   {filteredProjects.map((project) => (
-                    <Listedcard
+                    <ProjectCard
                       key={project.id}
                       className="w-full"
-                      property1="project_post"
                       onContentClick={() => router.push(`/admin/project/${project.id}/edit`)}
                       imageSrc={project.thumbnailUrl || '/assets/images/profile_image.png'}
                       brand={project.teamName || '팀명'}
