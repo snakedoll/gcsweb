@@ -39,6 +39,7 @@ export async function GET(request: Request) {
     const products = await prisma.product.findMany({
       where: {
         isPublic: true,
+        isAdminApproved: true,
         type,
       },
       orderBy: {
@@ -121,4 +122,3 @@ export async function GET(request: Request) {
     return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }
 }
-

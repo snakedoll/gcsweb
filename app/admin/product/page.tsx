@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { NavBar } from '@/components/layout';
 import SearchBar from '@/components/ui/common/SearchBar';
-import ProductListedCard from '@/components/ui/admin/product/ProductListedCard';
+import Productcard from '@/components/ui/admin/product/Productcard';
 import Filter from '@/components/ui/admin/product/Filter';
 
 type ProductType = 0 | 1 | 2;
@@ -232,17 +232,18 @@ export default function AdminProductPage() {
                     : undefined;
 
                   return (
-                    <ProductListedCard
+                    <Productcard
                       key={product.id}
                       className="w-full"
-                      property1={isFund ? 'admin_fund' : 'admin_buynow/partnerup'}
-                      imageSrc={product.thumbnailUrl || '/assets/images/profile_image.png'}
+                      view="admin"
+                      type={isFund ? 'fund' : 'buynow/partnerup'}
+                      imageSrc={product.thumbnailUrl || undefined}
                       brand={product.teamName || '팀명'}
                       title={product.name || '상품명'}
                       description={product.description || ''}
                       periodText={formatDateRange(product.salesStartDate, product.salesEndDate)}
-                      amountText={isFund ? formatWon(product.currentAmount) : undefined}
-                      targetAmountText={isFund ? formatWon(product.goalAmount) : undefined}
+                      achievedAmountText={isFund ? formatWon(product.currentAmount) : undefined}
+                      totalAmountText={isFund ? formatWon(product.goalAmount) : undefined}
                       progressPercent={progressPercent}
                       likeCount={Number(product.likeCount ?? 0)}
                       homeExpose={Boolean(product.isHome)}

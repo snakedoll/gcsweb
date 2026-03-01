@@ -204,7 +204,6 @@ export default function ArchiveProjectDetailPage({
             <div className="flex flex-col gap-5 pt-5">
               <div className="flex flex-col items-center gap-5">
                 <div className="flex items-center gap-2">
-                  <SideArrowButton direction="left" onClick={() => moveRelated(-1)} disabled={!canMoveRelated} />
                   <ArchiveCard2
                     title={project.title}
                     subtitle={project.teamName}
@@ -213,7 +212,6 @@ export default function ArchiveProjectDetailPage({
                     imageSrc={project.thumbnailUrl}
                     selected={project.isScrap}
                   />
-                  <SideArrowButton direction="right" onClick={() => moveRelated(1)} disabled={!canMoveRelated} />
                 </div>
 
                 <div className="flex flex-col items-center gap-[13px]">

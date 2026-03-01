@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Banner, BottomTabBar, NavBar } from '@/components/layout';
 import Tab from '@/components/ui/button/Tab';
 import Filter from '@/components/ui/admin/product/Filter';
-import ProductListedCard from '@/components/ui/admin/product/ProductListedCard';
+import Productcard from '@/components/ui/admin/product/Productcard';
 
 type ProductType = 0 | 1 | 2;
 type ProgressStatus = 0 | 1 | 2; // 0=진행 예정, 1=진행 중, 2=진행 완료
@@ -47,29 +47,25 @@ const STATUS_TABS: Array<{ key: StatusTabKey; label: string; status: ProgressSta
   { key: 'completed', label: '진행 완료', status: 2 },
 ];
 
-function ShopProductCard({ item }: { item: ShopProduct }) {
+function ShopProductCard({ item, statusKey }: { item: ShopProduct; statusKey: StatusTabKey }) {
+  const progressPercent =
+    item.type === 0 && typeof item.currentAmount === 'number' && typeof item.goalAmount === 'number' && item.goalAmount > 0
+      ? Math.max(0, Math.min(100, Math.round((item.currentAmount / item.goalAmount) * 100)))
+      : 0;
+  const dDayText = statusKey === 'active' ? 'D-day' : statusKey === 'scheduled' ? '진행예정' : '진행완료';
+  const dDayColor = statusKey === 'active' ? 'Orange' : 'Gray';
+
   return (
-    <ProductListedCard
-      property1={item.type === 0 ? 'shopcard_fund' : 'shopcard_buynow_partnerup'}
-      imageSrc={item.thumbnailUrl || '/assets/images/profile_image.png'}
+    <Productcard
+      view="shop"
+      type={item.type === 0 ? 'fund' : 'buynow/partnerup'}
+      imageSrc={item.thumbnailUrl}
       brand={item.teamName || '팀명'}
       title={item.name || '상품 제목'}
       description={item.description || ''}
-      amountText={
-        typeof item.currentAmount === 'number'
-          ? `${item.currentAmount.toLocaleString('ko-KR')}원`
-          : undefined
-      }
-      targetAmountText={
-        typeof item.goalAmount === 'number'
-          ? `${item.goalAmount.toLocaleString('ko-KR')}원`
-          : undefined
-      }
-      progressPercent={
-        item.type === 0 && typeof item.currentAmount === 'number' && typeof item.goalAmount === 'number' && item.goalAmount > 0
-          ? Math.max(0, Math.min(100, Math.round((item.currentAmount / item.goalAmount) * 100)))
-          : undefined
-      }
+      dDayText={dDayText}
+      dDayColor={dDayColor}
+      progressPercent={progressPercent}
       likeCount={0}
       className="w-full"
     />
@@ -82,14 +78,8 @@ export default function ShopPage() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const activeType = useMemo(
-    () => TYPE_TABS.find((tab) => tab.key === typeTab)?.type ?? 0,
-    [typeTab]
-  );
-  const activeStatus = useMemo(
-    () => STATUS_TABS.find((tab) => tab.key === statusTab)?.status ?? 1,
-    [statusTab]
-  );
+  const activeType = useMemo(() => TYPE_TABS.find((tab) => tab.key === typeTab)?.type ?? 0, [typeTab]);
+  const activeStatus = useMemo(() => STATUS_TABS.find((tab) => tab.key === statusTab)?.status ?? 1, [statusTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,12 +132,7 @@ export default function ShopPage() {
         <section className="px-4 pt-5">
           <div className="flex items-center gap-2">
             {STATUS_TABS.map((tab) => (
-              <Filter
-                key={tab.key}
-                label={tab.label}
-                selected={statusTab === tab.key}
-                onClick={() => setStatusTab(tab.key)}
-              />
+              <Filter key={tab.key} label={tab.label} selected={statusTab === tab.key} onClick={() => setStatusTab(tab.key)} />
             ))}
           </div>
         </section>
@@ -164,7 +149,7 @@ export default function ShopPage() {
           ) : (
             <div className="flex flex-col gap-5">
               {products.map((item) => (
-                <ShopProductCard key={item.id} item={item} />
+                <ShopProductCard key={item.id} item={item} statusKey={statusTab} />
               ))}
             </div>
           )}

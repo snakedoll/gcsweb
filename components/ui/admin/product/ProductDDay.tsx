@@ -1,25 +1,27 @@
 import { cn } from '@/lib/utils';
 
-type ProductDDayVariant = 'Default' | 'Variant2';
+export type ProductDDayColor = 'Gray' | 'Orange';
 
 interface ProductDDayProps {
   className?: string;
-  property1?: ProductDDayVariant;
+  color?: ProductDDayColor;
   text?: string;
 }
 
-export default function ProductDDay({ className, property1 = 'Default', text = 'D-5' }: ProductDDayProps) {
-  const highlighted = property1 === 'Variant2';
+export default function ProductDDay({ className, color = 'Gray', text = 'D-5' }: ProductDDayProps) {
+  const isOrange = color === 'Orange';
 
   return (
     <div
       className={cn(
-        'inline-flex items-center justify-center rounded px-[5px]',
-        highlighted ? 'bg-orange-3' : 'bg-neutral-5',
+        'inline-flex items-center justify-center rounded-[4px] px-[5px]',
+        isOrange ? 'bg-orange-4' : 'bg-neutral-5',
         className
       )}
     >
-      <span className={cn('typo-body-xsmall text-center', highlighted ? 'text-neutral-1' : 'text-neutral-9')}>{text}</span>
+      <span className={cn('typo-body-xsmall text-center tracking-[-0.26px]', isOrange ? 'text-neutral-1' : 'text-neutral-9')}>
+        {text}
+      </span>
     </div>
   );
 }

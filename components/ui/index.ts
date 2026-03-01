@@ -31,7 +31,7 @@ export { default as OptionName } from './admin/product/OptionName';
 export { default as OptionVariation } from './admin/product/OptionVariation';
 export { default as PriceInput } from './admin/product/PriceInput';
 export { default as ProductDDay } from './admin/product/ProductDDay';
-export { default as ProductListedCard } from './admin/product/ProductListedCard';
+export { default as Productcard } from './admin/product/Productcard';
 export { default as ProjectCard } from './admin/product/ProjectCard';
 export { default as ProductLike } from './admin/product/ProductLike';
 export { default as ProductOption } from './admin/product/ProductOption';

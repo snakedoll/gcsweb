@@ -8,7 +8,7 @@ export { default as OptionName } from './OptionName';
 export { default as OptionVariation } from './OptionVariation';
 export { default as PriceInput } from './PriceInput';
 export { default as ProductDDay } from './ProductDDay';
-export { default as ProductListedCard } from './ProductListedCard';
+export { default as Productcard } from './Productcard';
 export { default as ProjectCard } from './ProjectCard';
 export { default as ProductLike } from './ProductLike';
 export { default as ProductOption } from './ProductOption';
