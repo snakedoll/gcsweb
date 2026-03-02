@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
@@ -16,6 +17,11 @@ function extractAdditionalPrice(optionData: unknown): number {
     const parsed = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(parsed) ? sum + parsed : sum;
   }, 0);
+}
+
+function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === undefined || value === null) return Prisma.JsonNull;
+  return value as Prisma.InputJsonValue;
 }
 
 export async function POST(request: Request) {
@@ -117,7 +123,7 @@ export async function POST(request: Request) {
         productId: item.productId,
         quantity: item.quantity,
         price: unitPrice,
-        optionData: item.optionData ?? null,
+        optionData: toDbJson(item.optionData),
       };
     });
 
@@ -172,6 +178,7 @@ export async function POST(request: Request) {
               productId: true,
               quantity: true,
               price: true,
+              optionData: true,
             },
           })
         )
