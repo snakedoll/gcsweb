@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 type ShopCardVariant = 'fund' | 'buynow_partnerup';
 
@@ -34,8 +35,8 @@ export default function ShopCard({
   return (
     <div className={cn('flex w-[375px] items-center justify-center bg-white px-4 py-[23px]', className)}>
       <article className="flex w-[343px] flex-col gap-[13px]">
-        <div className="h-[430px] w-full overflow-hidden rounded-xl">
-          <img src={imageSrc} alt={title} className="h-full w-full object-cover" />
+        <div className="relative h-[430px] w-full overflow-hidden rounded-xl">
+          <Image src={imageSrc} alt={title} fill className="object-cover" />
         </div>
 
         <div className={cn('flex w-full flex-col', isFund && 'gap-[15px]')}>
