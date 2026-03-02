@@ -4,14 +4,26 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
+import Modal from '@/components/ui/common/Modal';
 import ProductDDay, { type ProductDDayColor } from '@/components/ui/admin/product/ProductDDay';
 import BottomSheet, { type BottomSheetOption } from '@/components/ui/shop/BottomSheet';
 import ShopCard from '@/components/ui/shop/ShopCard';
+import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
 import { getSaleStatusByDate, type SaleStatus } from '@/lib/sale-date';
 
 type ProductType = 0 | 1 | 2;
 type ReceiveMethod = 0 | 1;
+type SheetMode = 'none' | 'cart' | 'order';
+type SheetSubmitMode = 'cart' | 'order';
+
+interface PendingSheetAction {
+  mode: SheetSubmitMode;
+  quantity: number;
+  optionData: Array<{ name: string; value: string; additionalPrice: number }>;
+  skipAchievedCheck?: boolean;
+  skipFundConflictCheck?: boolean;
+}
 
 interface ProductOptionValue {
   value: string;
@@ -160,6 +172,7 @@ function DateBlock({
 
 export default function ShopDetailPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: isUserLoading } = useUser();
   const params = useParams<{ productId: string }>();
   const productId = useMemo(() => {
     const raw = params?.productId;
@@ -171,7 +184,12 @@ export default function ShopDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addingCart, setAddingCart] = useState(false);
-  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<SheetMode>('none');
+  const [showCartAddedModal, setShowCartAddedModal] = useState(false);
+  const [showLoginOrderModal, setShowLoginOrderModal] = useState(false);
+  const [showFundAchievedModal, setShowFundAchievedModal] = useState(false);
+  const [showFundConflictModal, setShowFundConflictModal] = useState(false);
+  const [pendingSheetAction, setPendingSheetAction] = useState<PendingSheetAction | null>(null);
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([null, null]);
   const [sheetQuantity, setSheetQuantity] = useState(1);
@@ -232,6 +250,8 @@ export default function ShopDetailPage() {
   const orderDisabled = saleStatus !== 'active';
   const isPartnerUp = product?.type === 2;
   const canUseCartSheet = Boolean(product && (product.type === 0 || product.type === 1));
+  const isSheetOpen = sheetMode !== 'none';
+  const isCartSheetOpen = sheetMode === 'cart';
 
   const sheetOptions = useMemo<BottomSheetOption[]>(() => {
     const isGraduationArtbookFunding =
@@ -298,17 +318,58 @@ export default function ShopDetailPage() {
     setOpenOptionIndex(null);
     setSelectedOptionValues([null, null]);
     setSheetQuantity(1);
-    setIsCartSheetOpen(false);
+    setSheetMode('none');
+    setShowCartAddedModal(false);
+    setShowLoginOrderModal(false);
+    setShowFundAchievedModal(false);
+    setShowFundConflictModal(false);
+    setPendingSheetAction(null);
   }, [product?.id]);
 
-  const handleOrder = async () => {
-    if (!product || orderDisabled || addingCart) return;
+  const buildOptionData = () => {
+    return requiredOptionIndexes.map((index) => {
+      const option = sheetOptions[index];
+      const selectedValue = selectedOptionValues[index];
+      const selectedMeta = option?.values.find((value) => value.value === selectedValue);
 
-    if (product.isInCart) {
-      router.push('/cart');
-      return;
+      return {
+        name: option?.name ?? `옵션 ${index + 1}`,
+        value: selectedValue ?? '',
+        additionalPrice: Number(selectedMeta?.additionalPrice ?? 0),
+      };
+    });
+  };
+
+  const fetchCartItemsForGuard = async () => {
+    const res = await fetch('/api/v1/mypage/cart/list?page=1&size=100', { cache: 'no-store' });
+    if (res.status === 401) {
+      return { unauthorized: true as const, items: [] as Array<{ cartItemId: number; productId: string | null }> };
     }
+    const json = (await res.json().catch(() => ({}))) as {
+      status?: string;
+      data?: { cartItems?: Array<{ cartItemId?: number; productId?: string | null }> };
+    };
+    const items = (json?.data?.cartItems ?? [])
+      .filter((item) => typeof item.cartItemId === 'number')
+      .map((item) => ({
+        cartItemId: item.cartItemId as number,
+        productId: item.productId ?? null,
+      }));
+    return { unauthorized: false as const, items };
+  };
 
+  const clearCartItemsForFundGuard = async (cartItemIds: number[]) => {
+    if (cartItemIds.length === 0) return true;
+    const res = await fetch('/api/v1/mypage/cart/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cartItemIds }),
+    });
+    return res.ok;
+  };
+
+  const executeAddToCart = async (action: PendingSheetAction) => {
+    if (!product) return;
     setAddingCart(true);
     try {
       const res = await fetch('/api/v1/mypage/cart/add', {
@@ -316,33 +377,90 @@ export default function ShopDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.id,
-          quantity: 1,
+          quantity: action.quantity,
+          optionData: action.optionData,
         }),
       });
 
       if (res.status === 401) {
-        router.push('/login');
+        setShowLoginOrderModal(true);
         return;
       }
 
       const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string };
       if (!res.ok || json.status !== 'success') {
-        throw new Error(json.message ?? '주문 처리 중 오류가 발생했습니다.');
+        throw new Error(json.message ?? (action.mode === 'cart' ? '장바구니 담기 중 오류가 발생했습니다.' : '주문 처리 중 오류가 발생했습니다.'));
       }
 
-      router.push('/cart');
+      setProduct((prev) => (prev ? { ...prev, isInCart: true } : prev));
+      setSheetMode('none');
+      setOpenOptionIndex(null);
+      setPendingSheetAction(null);
+
+      if (action.mode === 'cart') {
+        setShowCartAddedModal(true);
+      } else {
+        router.push('/cart');
+      }
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : '주문 처리 중 오류가 발생했습니다.');
+      window.alert(error instanceof Error ? error.message : '요청 처리 중 오류가 발생했습니다.');
     } finally {
       setAddingCart(false);
     }
   };
 
+  const submitWithGuards = async (action: PendingSheetAction) => {
+    if (!product || addingCart || saleStatus !== 'active') return;
+
+    if (!isAuthenticated) {
+      setPendingSheetAction(action);
+      setShowLoginOrderModal(true);
+      return;
+    }
+
+    if (!action.skipAchievedCheck && product.type === 0 && isAchieved) {
+      setPendingSheetAction(action);
+      setShowFundAchievedModal(true);
+      return;
+    }
+
+    if (!action.skipFundConflictCheck && product.type === 0) {
+      const cartSnapshot = await fetchCartItemsForGuard();
+      if (cartSnapshot.unauthorized) {
+        setPendingSheetAction(action);
+        setShowLoginOrderModal(true);
+        return;
+      }
+
+      const hasOtherProduct = cartSnapshot.items.some((item) => item.productId && item.productId !== product.id);
+      if (hasOtherProduct) {
+        setPendingSheetAction(action);
+        setShowFundConflictModal(true);
+        return;
+      }
+    }
+
+    await executeAddToCart(action);
+  };
+
+  const handleOrder = async () => {
+    if (!product || orderDisabled || addingCart) return;
+    if (!isAuthenticated) {
+      setShowLoginOrderModal(true);
+      return;
+    }
+    if (product.isInCart) {
+      router.push('/cart');
+      return;
+    }
+    await executeAddToCart({ mode: 'order', quantity: 1, optionData: [] });
+  };
+
   const handleOpenCartSheet = () => {
     if (!canUseCartSheet) return;
 
-    if (isCartSheetOpen) {
-      setIsCartSheetOpen(false);
+    if (sheetMode === 'cart') {
+      setSheetMode('none');
       setOpenOptionIndex(null);
       return;
     }
@@ -350,7 +468,28 @@ export default function ShopDetailPage() {
     setSelectedOptionValues([null, null]);
     setSheetQuantity(1);
     setOpenOptionIndex(null);
-    setIsCartSheetOpen(true);
+    setSheetMode('cart');
+  };
+
+  const handleOpenOrderSheet = () => {
+    if (!isAuthenticated && !isUserLoading) {
+      setShowLoginOrderModal(true);
+      return;
+    }
+
+    if (!canUseCartSheet) {
+      void handleOrder();
+      return;
+    }
+
+    if (sheetMode === 'order') {
+      return;
+    }
+
+    setSelectedOptionValues([null, null]);
+    setSheetQuantity(1);
+    setOpenOptionIndex(null);
+    setSheetMode('order');
   };
 
   const handleOptionToggle = (index: number) => {
@@ -370,50 +509,62 @@ export default function ShopDetailPage() {
 
   const handleAddToCart = async () => {
     if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active') return;
-
-    const optionData = requiredOptionIndexes.map((index) => {
-      const option = sheetOptions[index];
-      const selectedValue = selectedOptionValues[index];
-      const selectedMeta = option?.values.find((value) => value.value === selectedValue);
-
-      return {
-        name: option?.name ?? `옵션 ${index + 1}`,
-        value: selectedValue ?? '',
-        additionalPrice: Number(selectedMeta?.additionalPrice ?? 0),
-      };
+    await submitWithGuards({
+      mode: 'cart',
+      quantity: sheetQuantity,
+      optionData: buildOptionData(),
     });
+  };
 
-    setAddingCart(true);
-    try {
-      const res = await fetch('/api/v1/mypage/cart/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity: sheetQuantity,
-          optionData,
-        }),
-      });
+  const handleOrderFromSheet = async () => {
+    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active') return;
+    await submitWithGuards({
+      mode: 'order',
+      quantity: sheetQuantity,
+      optionData: buildOptionData(),
+    });
+  };
 
-      if (res.status === 401) {
-        router.push('/login');
-        return;
-      }
-
-      const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string };
-      if (!res.ok || json.status !== 'success') {
-        throw new Error(json.message ?? '장바구니 담기 중 오류가 발생했습니다.');
-      }
-
-      setProduct((prev) => (prev ? { ...prev, isInCart: true } : prev));
-      setIsCartSheetOpen(false);
-      setOpenOptionIndex(null);
-      window.alert('장바구니에 담았습니다.');
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : '장바구니 담기 중 오류가 발생했습니다.');
-    } finally {
-      setAddingCart(false);
+  const handleConfirmFundAchievedModal = () => {
+    if (!pendingSheetAction) {
+      setShowFundAchievedModal(false);
+      return;
     }
+    setShowFundAchievedModal(false);
+    void submitWithGuards({
+      ...pendingSheetAction,
+      skipAchievedCheck: true,
+    });
+  };
+
+  const handleConfirmFundConflictModal = async () => {
+    if (!pendingSheetAction || !product) {
+      setShowFundConflictModal(false);
+      return;
+    }
+
+    const cartSnapshot = await fetchCartItemsForGuard();
+    if (cartSnapshot.unauthorized) {
+      setShowFundConflictModal(false);
+      setShowLoginOrderModal(true);
+      return;
+    }
+
+    const deleteTargets = cartSnapshot.items
+      .filter((item) => item.productId && item.productId !== product.id)
+      .map((item) => item.cartItemId);
+
+    const deleted = await clearCartItemsForFundGuard(deleteTargets);
+    if (!deleted) {
+      window.alert('기존 장바구니 상품을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    setShowFundConflictModal(false);
+    await submitWithGuards({
+      ...pendingSheetAction,
+      skipFundConflictCheck: true,
+    });
   };
 
   return (
@@ -508,12 +659,14 @@ export default function ShopDetailPage() {
 
               <button
                 type="button"
-                onClick={isCartSheetOpen ? handleAddToCart : handleOrder}
-                disabled={isCartSheetOpen ? !isAllOptionsSelected || addingCart : orderDisabled || addingCart}
+                onClick={
+                  isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet
+                }
+                disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled : orderDisabled || addingCart}
                 className={cn(
                   'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
-                  isCartSheetOpen
-                    ? !isAllOptionsSelected || addingCart
+                  isSheetOpen
+                    ? !isAllOptionsSelected || addingCart || orderDisabled
                       ? 'cursor-not-allowed bg-orange-3'
                       : 'cursor-pointer bg-orange-5'
                     : orderDisabled || addingCart
@@ -521,13 +674,13 @@ export default function ShopDetailPage() {
                       : 'cursor-pointer bg-orange-5'
                 )}
               >
-                {isCartSheetOpen ? '장바구니에 담기' : '주문하기'}
+                {isSheetOpen ? (sheetMode === 'cart' ? '장바구니에 담기' : '주문하기') : '주문하기'}
               </button>
             </div>
           </div>
         ) : null}
 
-        {!loading && !errorMessage && product && isCartSheetOpen && canUseCartSheet ? (
+        {!loading && !errorMessage && product && isSheetOpen && canUseCartSheet ? (
           <BottomSheet
             className="fixed bottom-[74px] left-1/2 z-30 -translate-x-1/2"
             variant={cartSheetVariant}
@@ -540,6 +693,63 @@ export default function ShopDetailPage() {
             onOptionSelect={handleOptionSelect}
             onQuantityChange={(next) => setSheetQuantity(Math.max(1, next))}
           />
+        ) : null}
+
+        {showCartAddedModal ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+            <Modal
+              variant="Default"
+              className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+              title="장바구니로 이동하시겠습니까?"
+              cancelText="계속 쇼핑"
+              confirmText="장바구니로 이동"
+              onCancel={() => setShowCartAddedModal(false)}
+              onConfirm={() => router.push('/cart')}
+            />
+          </div>
+        ) : null}
+
+        {showFundConflictModal ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+            <Modal
+              variant="Default"
+              className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+              title={'Fund 상품은 동일한 상품만 주문할 수 있습니다.\n기존 장바구니 상품을 삭제하고 담을까요?'}
+              cancelText="취소"
+              confirmText="담기"
+              onCancel={() => {
+                setShowFundConflictModal(false);
+                setPendingSheetAction(null);
+              }}
+              onConfirm={() => {
+                void handleConfirmFundConflictModal();
+              }}
+            />
+          </div>
+        ) : null}
+
+        {showFundAchievedModal ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+            <Modal
+              variant="one button"
+              className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+              title={'펀딩 대기자로, 펀딩 마감일 기준 달성률에 따라\n결제에 실패할 수도 있습니다'}
+              confirmText="확인"
+              onConfirm={handleConfirmFundAchievedModal}
+            />
+          </div>
+        ) : null}
+
+        {showLoginOrderModal ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+            <Modal
+              variant="one button"
+              className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+              title="로그인 사용자만 주문 가능합니다."
+              confirmText="로그인 하러가기"
+              onConfirm={() => router.push('/login')}
+            />
+          </div>
         ) : null}
       </div>
     </div>
