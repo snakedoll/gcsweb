@@ -6,6 +6,7 @@ const nextConfig = {
       { protocol: 'http', hostname: 'localhost', pathname: '/uploads/**' },
       { protocol: 'https', hostname: 'www.gcsweb.kr', pathname: '/uploads/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
     ],
   },
   // Railway 배포 시 ESLint warning이 있어도 빌드 계속 진행

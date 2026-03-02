@@ -18,6 +18,8 @@ interface DropdownProps {
   items?: DropdownItem[];
   className?: string;
   onSelect?: (value: string) => void;
+  open?: boolean;
+  onToggle?: () => void;
 }
 
 function Caret({ open, muted }: { open: boolean; muted: boolean }) {
@@ -46,25 +48,35 @@ export default function Dropdown({
   label = 'Label',
   size = 's',
   state = 'default',
-  placeholder = '선택',
+  placeholder = 'Select',
   value,
   items = [
-    { label: '리스트', value: 'item-1' },
-    { label: '리스트', value: 'item-2' },
-    { label: '리스트', value: 'item-3' },
+    { label: 'Item 1', value: 'item-1' },
+    { label: 'Item 2', value: 'item-2' },
+    { label: 'Item 3', value: 'item-3' },
   ],
   className,
   onSelect,
+  open,
+  onToggle,
 }: DropdownProps) {
   const controlledOpen = state === 'open';
-  const [open, setOpen] = useState(controlledOpen);
+  const isOpenControlled = typeof open === 'boolean';
+  const [internalOpen, setInternalOpen] = useState(controlledOpen);
+  const resolvedOpen = isOpenControlled ? Boolean(open) : controlledOpen || internalOpen;
 
   const isDefault = state === 'default';
   const isSelected = state === 'selected' || state === 'active';
-  const borderClass = controlledOpen ? 'border-orange-5' : isDefault ? 'border-neutral-5' : isSelected ? 'border-neutral-6' : 'border-neutral-10';
+  const borderClass = resolvedOpen
+    ? 'border-orange-5'
+    : isDefault
+      ? 'border-neutral-5'
+      : isSelected
+        ? 'border-neutral-6'
+        : 'border-neutral-10';
   const textClass = isDefault ? 'text-neutral-6' : 'text-neutral-10';
   const fieldHeight = size === 's' ? 'h-[30px]' : 'h-auto';
-  const listHeight = size === 's' ? 'h-[108px]' : 'h-[84px]';
+  const listHeight = size === 's' ? 'h-[108px]' : 'h-auto';
 
   const displayText = value ?? placeholder;
   const showLabel = Boolean(label);
@@ -75,7 +87,15 @@ export default function Dropdown({
 
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          if (onToggle) {
+            onToggle();
+            return;
+          }
+          if (!controlledOpen) {
+            setInternalOpen((prev) => !prev);
+          }
+        }}
         className={cn(
           'flex w-full items-center justify-between rounded-[4px] border bg-neutral-2 px-3 py-2',
           borderClass,
@@ -83,10 +103,10 @@ export default function Dropdown({
         )}
       >
         <span className={cn('typo-body-xsmall', textClass)}>{displayText}</span>
-        <Caret open={open || controlledOpen} muted={isDefault && !controlledOpen} />
+        <Caret open={resolvedOpen} muted={isDefault && !resolvedOpen} />
       </button>
 
-      {(open || controlledOpen) ? (
+      {resolvedOpen ? (
         <div className={cn('w-full overflow-hidden rounded-[4px] bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]', listHeight)}>
           {items.map((item) => (
             <button
@@ -95,7 +115,9 @@ export default function Dropdown({
               className="flex w-full items-center bg-neutral-2 px-3 py-2 text-left typo-body-xsmall text-neutral-10"
               onClick={() => {
                 onSelect?.(item.value);
-                setOpen(false);
+                if (!isOpenControlled) {
+                  setInternalOpen(false);
+                }
               }}
             >
               {item.label}
@@ -106,4 +128,3 @@ export default function Dropdown({
     </div>
   );
 }
-

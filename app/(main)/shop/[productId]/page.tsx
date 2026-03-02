@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import ProductDDay, { type ProductDDayColor } from '@/components/ui/admin/product/ProductDDay';
+import BottomSheet, { type BottomSheetOption } from '@/components/ui/shop/BottomSheet';
 import ShopCard from '@/components/ui/shop/ShopCard';
 import { cn } from '@/lib/utils';
 import { getSaleStatusByDate, type SaleStatus } from '@/lib/sale-date';
@@ -116,18 +117,21 @@ function NeutralHeartIcon({ liked }: { liked: boolean }) {
   );
 }
 
-function NeutralCartIcon() {
+function NeutralCartIcon({ active = false }: { active?: boolean }) {
+  const stroke = active ? 'var(--color-neutral-8)' : 'var(--color-neutral-6)';
+  const fill = active ? 'var(--color-neutral-8)' : 'var(--color-neutral-6)';
+
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M2 3L3.04936 3.20987C3.91136 3.38227 4.55973 4.09732 4.6472 4.97203L4.8 6.5M4.8 6.5L5.7886 14.7383C5.90922 15.7435 6.76195 16.5 7.77435 16.5H16.7673C18.3733 16.5 19.7733 15.407 20.1628 13.8489L21.2855 9.35783C21.6485 7.90619 20.5505 6.5 19.0542 6.5H4.8Z"
-        stroke="var(--color-neutral-6)"
+        stroke={stroke}
         strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <path d="M13 13.5H9" stroke="var(--color-neutral-6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="8.5" cy="20" r="1.5" fill="var(--color-neutral-6)" />
-      <circle cx="17.5" cy="20" r="1.5" fill="var(--color-neutral-6)" />
+      <path d="M13 13.5H9" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8.5" cy="20" r="1.5" fill={fill} />
+      <circle cx="17.5" cy="20" r="1.5" fill={fill} />
     </svg>
   );
 }
@@ -167,6 +171,10 @@ export default function ShopDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [addingCart, setAddingCart] = useState(false);
+  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
+  const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null);
+  const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([null, null]);
+  const [sheetQuantity, setSheetQuantity] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +231,75 @@ export default function ShopDetailPage() {
   const isAchieved = product?.type === 0 && progressPercent >= 100;
   const orderDisabled = saleStatus !== 'active';
   const isPartnerUp = product?.type === 2;
+  const canUseCartSheet = Boolean(product && (product.type === 0 || product.type === 1));
+
+  const sheetOptions = useMemo<BottomSheetOption[]>(() => {
+    const isGraduationArtbookFunding =
+      (product?.name ?? '').trim().toLowerCase() === 'graduation artbook funding';
+
+    if (isGraduationArtbookFunding) {
+      return [
+        {
+          name: 'color',
+          values: [{ value: 'black' }, { value: 'white' }, { value: 'pink' }],
+        },
+        {
+          name: 'size',
+          values: [{ value: 's' }, { value: 'm' }, { value: 'l' }],
+        },
+      ];
+    }
+
+    return (product?.options ?? []).slice(0, 2).map((option) => ({
+      name: option.name || '옵션',
+      values: (option.values ?? []).map((value) => ({
+        value: value.value,
+        additionalPrice: value.additionalPrice ?? 0,
+      })),
+    }));
+  }, [product]);
+
+  const requiredOptionIndexes = useMemo(() => {
+    return sheetOptions
+      .map((option, index) => (option.values.length > 0 ? index : -1))
+      .filter((index) => index >= 0);
+  }, [sheetOptions]);
+
+  const isAllOptionsSelected = useMemo(() => {
+    if (requiredOptionIndexes.length === 0) return true;
+    return requiredOptionIndexes.every((index) => {
+      const selected = selectedOptionValues[index];
+      return typeof selected === 'string' && selected.length > 0;
+    });
+  }, [requiredOptionIndexes, selectedOptionValues]);
+
+  const selectedAdditionalAmount = useMemo(() => {
+    return selectedOptionValues.reduce((sum, selectedValue, optionIndex) => {
+      if (!selectedValue) return sum;
+      const found = sheetOptions[optionIndex]?.values.find((value) => value.value === selectedValue);
+      return sum + Number(found?.additionalPrice ?? 0);
+    }, 0);
+  }, [selectedOptionValues, sheetOptions]);
+
+  const cartTotalPrice = useMemo(() => {
+    if (!product) return 0;
+    return Math.max(0, (product.price + selectedAdditionalAmount) * sheetQuantity);
+  }, [product, selectedAdditionalAmount, sheetQuantity]);
+
+  const cartSheetVariant = useMemo(() => {
+    if (saleStatus !== 'active') return '주문 불가';
+    if (isAllOptionsSelected) return '선택';
+    if (openOptionIndex !== null) return '선택중';
+    return '미선택';
+  }, [isAllOptionsSelected, openOptionIndex, saleStatus]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    setOpenOptionIndex(null);
+    setSelectedOptionValues([null, null]);
+    setSheetQuantity(1);
+    setIsCartSheetOpen(false);
+  }, [product?.id]);
 
   const handleOrder = async () => {
     if (!product || orderDisabled || addingCart) return;
@@ -256,6 +333,84 @@ export default function ShopDetailPage() {
       router.push('/cart');
     } catch (error) {
       window.alert(error instanceof Error ? error.message : '주문 처리 중 오류가 발생했습니다.');
+    } finally {
+      setAddingCart(false);
+    }
+  };
+
+  const handleOpenCartSheet = () => {
+    if (!canUseCartSheet) return;
+
+    if (isCartSheetOpen) {
+      setIsCartSheetOpen(false);
+      setOpenOptionIndex(null);
+      return;
+    }
+
+    setSelectedOptionValues([null, null]);
+    setSheetQuantity(1);
+    setOpenOptionIndex(null);
+    setIsCartSheetOpen(true);
+  };
+
+  const handleOptionToggle = (index: number) => {
+    if (!sheetOptions[index] || sheetOptions[index].values.length === 0) return;
+    setOpenOptionIndex((prev) => (prev === index ? null : index));
+  };
+
+  const handleOptionSelect = (optionIndex: number, value: string) => {
+    setSelectedOptionValues((prev) => {
+      const next = [...prev];
+      next[optionIndex] = value;
+      return next;
+    });
+
+    setOpenOptionIndex(null);
+  };
+
+  const handleAddToCart = async () => {
+    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active') return;
+
+    const optionData = requiredOptionIndexes.map((index) => {
+      const option = sheetOptions[index];
+      const selectedValue = selectedOptionValues[index];
+      const selectedMeta = option?.values.find((value) => value.value === selectedValue);
+
+      return {
+        name: option?.name ?? `옵션 ${index + 1}`,
+        value: selectedValue ?? '',
+        additionalPrice: Number(selectedMeta?.additionalPrice ?? 0),
+      };
+    });
+
+    setAddingCart(true);
+    try {
+      const res = await fetch('/api/v1/mypage/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: sheetQuantity,
+          optionData,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string };
+      if (!res.ok || json.status !== 'success') {
+        throw new Error(json.message ?? '장바구니 담기 중 오류가 발생했습니다.');
+      }
+
+      setProduct((prev) => (prev ? { ...prev, isInCart: true } : prev));
+      setIsCartSheetOpen(false);
+      setOpenOptionIndex(null);
+      window.alert('장바구니에 담았습니다.');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : '장바구니 담기 중 오류가 발생했습니다.');
     } finally {
       setAddingCart(false);
     }
@@ -345,25 +500,46 @@ export default function ShopDetailPage() {
                   type="button"
                   className="inline-flex h-6 w-6 items-center justify-center"
                   aria-label="장바구니"
-                  onClick={() => router.push('/cart')}
+                  onClick={handleOpenCartSheet}
                 >
-                  <NeutralCartIcon />
+                  <NeutralCartIcon active={isCartSheetOpen} />
                 </button>
               ) : null}
 
               <button
                 type="button"
-                onClick={handleOrder}
-                disabled={orderDisabled || addingCart}
+                onClick={isCartSheetOpen ? handleAddToCart : handleOrder}
+                disabled={isCartSheetOpen ? !isAllOptionsSelected || addingCart : orderDisabled || addingCart}
                 className={cn(
                   'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
-                  orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
+                  isCartSheetOpen
+                    ? !isAllOptionsSelected || addingCart
+                      ? 'cursor-not-allowed bg-orange-3'
+                      : 'cursor-pointer bg-orange-5'
+                    : orderDisabled || addingCart
+                      ? 'cursor-not-allowed bg-orange-3'
+                      : 'cursor-pointer bg-orange-5'
                 )}
               >
-                주문하기
+                {isCartSheetOpen ? '장바구니에 담기' : '주문하기'}
               </button>
             </div>
           </div>
+        ) : null}
+
+        {!loading && !errorMessage && product && isCartSheetOpen && canUseCartSheet ? (
+          <BottomSheet
+            className="fixed bottom-[74px] left-1/2 z-30 -translate-x-1/2"
+            variant={cartSheetVariant}
+            options={sheetOptions}
+            selectedValues={selectedOptionValues}
+            openOptionIndex={openOptionIndex}
+            quantity={sheetQuantity}
+            totalPriceText={formatWon(cartTotalPrice)}
+            onOptionToggle={handleOptionToggle}
+            onOptionSelect={handleOptionSelect}
+            onQuantityChange={(next) => setSheetQuantity(Math.max(1, next))}
+          />
         ) : null}
       </div>
     </div>
