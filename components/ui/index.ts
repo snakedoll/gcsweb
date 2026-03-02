@@ -59,3 +59,7 @@ export { default as Tag } from './common/Tag';
 export { default as TextField } from './common/TextField';
 export { default as ToastMessage } from './common/ToastMessage';
 export { default as WarningAlert } from './common/WarningAlert';
+
+// Shop
+export { default as ShopCard } from './shop/ShopCard';
+export { default as Tabbar } from './shop/Tabbar';

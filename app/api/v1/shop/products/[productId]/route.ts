@@ -19,14 +19,15 @@ export async function GET(
   try {
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
-      return jsonError(400, 'INVALID_INPUT', 'productId 형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'productId \uD615\uC2DD \uC624\uB958');
     }
 
+    const safeProductId = productId.trim();
     const repo = prisma as any;
 
     const product = await repo.product.findFirst({
       where: {
-        id: productId.trim(),
+        id: safeProductId,
         isPublic: true,
         isAdminApproved: true,
       },
@@ -72,10 +73,14 @@ export async function GET(
     });
 
     if (!product) {
-      return jsonError(404, 'PRODUCT_NOT_FOUND', '존재하지 않거나 비공개/미승인 상품입니다.');
+      return jsonError(
+        404,
+        'PRODUCT_NOT_FOUND',
+        '\uC874\uC7AC\uD558\uC9C0 \uC54A\uAC70\uB098 \uBE44\uACF5\uAC1C/\uBBF8\uC2B9\uC778 \uC0C1\uD488\uC785\uB2C8\uB2E4.'
+      );
     }
 
-    // 상세 조회 성공 시 조회수 즉시 증가
+    // Increment viewCount immediately on successful detail response.
     await repo.product.update({
       where: { id: product.id },
       data: { viewCount: { increment: 1 } },
@@ -127,8 +132,8 @@ export async function GET(
     const thumbnailUrl = normalizeImageUrl(image?.thumbnailImgUrl ?? '') ?? '';
     const detailImageUrls = Array.isArray(image?.detailImgUrl)
       ? image.detailImgUrl
-          .map((url) => normalizeImageUrl(url))
-          .filter((url): url is string => typeof url === 'string' && url.length > 0)
+          .map((url: string) => normalizeImageUrl(url))
+          .filter((url: string | null): url is string => typeof url === 'string' && url.length > 0)
       : [];
 
     return NextResponse.json({
@@ -146,13 +151,20 @@ export async function GET(
           salesStartDate: product.salesStartDate,
           salesEndDate: product.salesEndDate,
           receiveMethod: product.receiveMethod,
-          productionStartDate: product.type === 0 && product.receiveMethod === 0 ? product.productionStartDate : null,
-          productionEndDate: product.type === 0 && product.receiveMethod === 0 ? product.productionEndDate : null,
-          deliveryStartDate: product.type === 0 && product.receiveMethod === 0 ? product.deliveryStartDate : null,
-          deliveryEndDate: product.type === 0 && product.receiveMethod === 0 ? product.deliveryEndDate : null,
-          pickupStartDate: product.type === 0 && product.receiveMethod === 1 ? product.pickupStartDate : null,
-          pickupEndDate: product.type === 0 && product.receiveMethod === 1 ? product.pickupEndDate : null,
-          pickupLocation: product.type === 0 && product.receiveMethod === 1 ? product.pickupLocation : null,
+          productionStartDate:
+            product.type === 0 && product.receiveMethod === 0 ? product.productionStartDate : null,
+          productionEndDate:
+            product.type === 0 && product.receiveMethod === 0 ? product.productionEndDate : null,
+          deliveryStartDate:
+            product.type === 0 && product.receiveMethod === 0 ? product.deliveryStartDate : null,
+          deliveryEndDate:
+            product.type === 0 && product.receiveMethod === 0 ? product.deliveryEndDate : null,
+          pickupStartDate:
+            product.type === 0 && product.receiveMethod === 1 ? product.pickupStartDate : null,
+          pickupEndDate:
+            product.type === 0 && product.receiveMethod === 1 ? product.pickupEndDate : null,
+          pickupLocation:
+            product.type === 0 && product.receiveMethod === 1 ? product.pickupLocation : null,
           goalAmount: product.type === 0 ? product.goalAmount ?? null : null,
           currentAmount: product.type === 0 ? product.currentAmount ?? 0 : null,
           isLiked,
@@ -170,7 +182,10 @@ export async function GET(
     });
   } catch (error) {
     console.error('Shop product detail error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+    return jsonError(
+      500,
+      'SERVER_ERROR',
+      '\uC11C\uBC84 \uB0B4\uBD80 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.'
+    );
   }
 }
-
