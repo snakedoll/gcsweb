@@ -97,7 +97,8 @@ export default function AdminMemberDetailPage() {
         setMember((m) => (m ? { ...m, memberType: updatedUser.memberType } : m));
       }
       if (isSelfRoleChange) {
-        await signOut({ callbackUrl: '/login' });
+        await signOut({ redirect: false });
+        router.replace('/login');
       }
     } catch (err) {
       setMember((m) => (m ? { ...m, memberType: prevType } : m));
