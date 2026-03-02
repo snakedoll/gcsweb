@@ -21,7 +21,13 @@ function AdminCard({
 }) {
   const content = (
     <div className="flex h-[84px] w-[113px] flex-col items-center justify-center gap-2 rounded-lg border border-neutral-4 bg-neutral-1">
-      <Image src={iconSrc} alt="" width={24} height={24} />
+      <Image
+        src={iconSrc}
+        alt=""
+        width={24}
+        height={24}
+        className="h-6 w-6 [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(8%)_saturate(145%)_hue-rotate(336deg)_brightness(91%)_contrast(86%)]"
+      />
       <p className="typo-body-xsmall text-neutral-9">
         {label}
         {count !== undefined && <span className="text-orange-5"> {count}</span>}
@@ -60,7 +66,6 @@ function AdminMenuSection({
               )}
             >
               <span>{item.label}</span>
-              <Image src="/assets/icons/icon-right.svg" alt="" width={20} height={20} />
             </Link>
           </li>
         ))}
