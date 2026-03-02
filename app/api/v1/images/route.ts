@@ -214,9 +214,8 @@ export async function POST(request: Request) {
         },
       });
     } catch (dbError) {
-      console.error('Image metadata save error:', dbError);
-      await fs.promises.unlink(outputPath).catch(() => undefined);
-      return errorResponse(500, 'SERVER_ERROR', '서버 내부 오류 발생.');
+      // Metadata persistence failure should not block successful image upload.
+      console.error('Image metadata save warning:', dbError);
     }
 
     return NextResponse.json({
