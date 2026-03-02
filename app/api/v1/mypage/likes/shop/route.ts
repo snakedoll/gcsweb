@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 
+export const dynamic = 'force-dynamic';
+
 function mapStatus(status: number) {
   // Normalize to API spec strings
   return status === 1 ? 'AVAILABLE' : 'SOLD_OUT';

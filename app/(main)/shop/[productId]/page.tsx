@@ -16,6 +16,7 @@ type ProductType = 0 | 1 | 2;
 type ReceiveMethod = 0 | 1;
 type SheetMode = 'none' | 'cart' | 'order';
 type SheetSubmitMode = 'cart' | 'order';
+const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
 
 interface PendingSheetAction {
   mode: SheetSubmitMode;
@@ -368,6 +369,44 @@ export default function ShopDetailPage() {
     return res.ok;
   };
 
+  const resolveOrderPagePath = (target: ShopProductDetail) => {
+    if (target.type === 0) {
+      return target.receiveMethod === 0 ? '/shop/orders' : '/shop/orders/pickup';
+    }
+    if (target.type === 1) {
+      return '/shop/orders/buynow';
+    }
+    return '/cart';
+  };
+
+  const buildGuestOrderItems = (action: PendingSheetAction) => {
+    if (!product) return [];
+    const additionalPrice = action.optionData.reduce((sum, option) => {
+      const value = Number(option.additionalPrice ?? 0);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+    const unitPrice = Math.max(0, product.price + additionalPrice);
+    const totalPrice = unitPrice * action.quantity;
+    const optionText = action.optionData.length
+      ? `${action.optionData.map((opt) => opt.value).join(' / ')} / ${action.quantity}개`
+      : `${action.quantity}개`;
+
+    return [
+      {
+        id: `guest-${product.id}`,
+        productId: product.id,
+        quantity: action.quantity,
+        unitPrice,
+        optionData: action.optionData,
+        brand: product.teamName || '팀명',
+        title: product.name || '상품',
+        optionText,
+        priceText: `${totalPrice.toLocaleString('ko-KR')}원`,
+        imageUrl: product.thumbnailUrl || '',
+      },
+    ];
+  };
+
   const executeAddToCart = async (action: PendingSheetAction) => {
     if (!product) return;
     setAddingCart(true);
@@ -400,7 +439,7 @@ export default function ShopDetailPage() {
       if (action.mode === 'cart') {
         setShowCartAddedModal(true);
       } else {
-        router.push('/cart');
+        router.push(resolveOrderPagePath(product));
       }
     } catch (error) {
       window.alert(error instanceof Error ? error.message : '요청 처리 중 오류가 발생했습니다.');
@@ -413,6 +452,20 @@ export default function ShopDetailPage() {
     if (!product || addingCart || saleStatus !== 'active') return;
 
     if (!isAuthenticated) {
+      if (product.type === 1 && action.mode === 'order') {
+        const guestItems = buildGuestOrderItems(action);
+        try {
+          sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestItems));
+        } catch (_) {
+          window.alert('주문 정보를 저장하지 못했습니다. 다시 시도해주세요.');
+          return;
+        }
+        setSheetMode('none');
+        setOpenOptionIndex(null);
+        setPendingSheetAction(null);
+        router.push('/shop/orders/buynow-guest');
+        return;
+      }
       setPendingSheetAction(action);
       setShowLoginOrderModal(true);
       return;
@@ -445,12 +498,12 @@ export default function ShopDetailPage() {
 
   const handleOrder = async () => {
     if (!product || orderDisabled || addingCart) return;
-    if (!isAuthenticated) {
+    if (product.type === 0 && !isAuthenticated) {
       setShowLoginOrderModal(true);
       return;
     }
     if (product.isInCart) {
-      router.push('/cart');
+      router.push(resolveOrderPagePath(product));
       return;
     }
     await executeAddToCart({ mode: 'order', quantity: 1, optionData: [] });
@@ -472,7 +525,7 @@ export default function ShopDetailPage() {
   };
 
   const handleOpenOrderSheet = () => {
-    if (!isAuthenticated && !isUserLoading) {
+    if (product?.type === 0 && !isAuthenticated && !isUserLoading) {
       setShowLoginOrderModal(true);
       return;
     }

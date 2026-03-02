@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
 
+export const dynamic = 'force-dynamic';
+
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }

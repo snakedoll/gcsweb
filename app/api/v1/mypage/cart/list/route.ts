@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 
+export const dynamic = 'force-dynamic';
+
 function mapStatus(product: any) {
   if (product == null) return 'SOLD_OUT';
   if (typeof product.status === 'number' && product.status !== 1) {

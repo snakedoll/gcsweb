@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { jsonError, parseOptionalProductType, requireAdmin } from '../../../_utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const auth = await requireAdmin();

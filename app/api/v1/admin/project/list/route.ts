@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 
+export const dynamic = 'force-dynamic';
+
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
