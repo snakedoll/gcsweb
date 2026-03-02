@@ -1,11 +1,13 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
-interface FooterProps {
-  showAdminButton?: boolean;
-}
+export default function Footer() {
+  const { data: session } = useSession();
+  const showAdminButton = session?.user?.role === 'admin';
 
-export default function Footer({ showAdminButton = false }: FooterProps) {
   return (
     <footer className="w-full bg-neutral-3 text-left">
       <div className="mx-auto max-w-[375px] px-[21px] py-[21px]">

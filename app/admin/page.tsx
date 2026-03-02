@@ -126,7 +126,7 @@ export default function AdminPage() {
           />
         </div>
       </main>
-      <Footer showAdminButton />
+      <Footer />
     </div>
   );
 }

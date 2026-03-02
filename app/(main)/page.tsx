@@ -1,14 +1,8 @@
 'use client';
 
-import { useUser } from '@/hooks/useUser';
 import { BottomTabBar, Footer, NavBar } from '@/components/layout';
 
 export default function HomePage() {
-  const { session, profile, isAuthenticated } = useUser();
-  const isAdmin =
-    isAuthenticated &&
-    (session?.user?.role === 'admin' || profile?.role === 'admin');
-
   return (
     <>
       <div className="flex min-h-screen w-full flex-col">
@@ -17,7 +11,7 @@ export default function HomePage() {
         <div className="sticky bottom-0 z-20">
           <BottomTabBar variant="home" />
         </div>
-        <Footer showAdminButton={isAdmin} />
+        <Footer />
       </div>
     </>
   );

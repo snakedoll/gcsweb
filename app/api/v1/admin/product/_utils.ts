@@ -1,29 +1,27 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin as requireDbAdmin } from '@/lib/admin-auth';
 
 export function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
 export async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
+  const auth = await requireDbAdmin();
+  if (!auth.ok && auth.reason === 'UNAUTHORIZED') {
     return {
       ok: false as const,
-      response: jsonError(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.'),
+      response: jsonError(401, 'UNAUTHORIZED', 'Unauthorized'),
     };
   }
 
-  if (session.user.role !== 'admin') {
+  if (!auth.ok && auth.reason === 'FORBIDDEN') {
     return {
       ok: false as const,
-      response: jsonError(403, 'FORBIDDEN', '어드민 권한이 없습니다.'),
+      response: jsonError(403, 'FORBIDDEN', 'Forbidden'),
     };
   }
 
-  return { ok: true as const, session };
+  return { ok: true as const, session: auth.session };
 }
 
 export function parseOptionalProductType(value: string | null) {

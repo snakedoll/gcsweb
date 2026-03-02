@@ -42,7 +42,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 /** 판매 권한 없음: 안내 + 창작자 가이드 버튼 */
-function NoPermissionView({ showAdminButton }: { showAdminButton?: boolean }) {
+function NoPermissionView() {
   return (
     <>
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
@@ -55,13 +55,13 @@ function NoPermissionView({ showAdminButton }: { showAdminButton?: boolean }) {
           창작자 가이드 보러가기
         </Link>
       </main>
-      <Footer showAdminButton={showAdminButton} />
+      <Footer />
     </>
   );
 }
 
 /** 판매 권한 있음, 등록 상품 없음: 빈 상태 + 새 상품 등록 버튼 */
-function EmptyProductsView({ showAdminButton }: { showAdminButton?: boolean }) {
+function EmptyProductsView() {
   return (
     <>
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
@@ -74,7 +74,7 @@ function EmptyProductsView({ showAdminButton }: { showAdminButton?: boolean }) {
           새 상품 등록하러가기
         </Link>
       </main>
-      <Footer showAdminButton={showAdminButton} />
+      <Footer />
     </>
   );
 }
@@ -154,7 +154,7 @@ function ProductCard({ item }: { item: ProductItem }) {
 }
 
 /** 판매 권한 있음, 상품 있음: 탭 + 상품 카드 목록 + FAB */
-function ProductListView({ products, showAdminButton }: { products: ProductItem[]; showAdminButton?: boolean }) {
+function ProductListView({ products }: { products: ProductItem[] }) {
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const filtered = useMemo(() => {
     if (activeTab === 'all') return products;
@@ -195,7 +195,7 @@ function ProductListView({ products, showAdminButton }: { products: ProductItem[
           <FloatingButton className="size-[61px] p-4" />
         </Link>
       </div>
-      <Footer showAdminButton={showAdminButton} />
+      <Footer />
     </>
   );
 }
@@ -228,18 +228,18 @@ export default function MyProductsPage() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       <NavBar variant="title-back" title="내가 등록한 상품" />
-      {!hasPermission && <NoPermissionView showAdminButton={profile?.role === 'admin'} />}
-      {hasPermission && !productsLoading && !hasProducts && <EmptyProductsView showAdminButton={profile?.role === 'admin'} />}
+      {!hasPermission && <NoPermissionView />}
+      {hasPermission && !productsLoading && !hasProducts && <EmptyProductsView />}
       {hasPermission && productsLoading && (
         <>
           <main className="flex flex-1 items-center justify-center">
             <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
           </main>
-          <Footer showAdminButton={profile?.role === 'admin'} />
+          <Footer />
         </>
       )}
       {hasPermission && !productsLoading && hasProducts && (
-        <ProductListView products={products} showAdminButton={profile?.role === 'admin'} />
+        <ProductListView products={products} />
       )}
     </div>
   );

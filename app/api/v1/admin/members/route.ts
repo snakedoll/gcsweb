@@ -1,12 +1,14 @@
-import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '@/lib/auth';
+import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id || session?.user?.role !== 'admin') {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin();
+  if (!auth.ok) {
+    return NextResponse.json(
+      { message: auth.reason === 'UNAUTHORIZED' ? 'Unauthorized' : 'Forbidden' },
+      { status: auth.reason === 'UNAUTHORIZED' ? 401 : 403 }
+    );
   }
 
   const { searchParams } = new URL(request.url);

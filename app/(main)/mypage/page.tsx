@@ -319,7 +319,7 @@ export default function MypagePage() {
           <MenuSection title="고객센터" items={[{ label: '문의하기', href: '/mypage/inquiries' }]} />
         </div>
       </main>
-      <Footer showAdminButton={profile?.role === 'admin'} />
+      <Footer />
     </div>
   );
 }
