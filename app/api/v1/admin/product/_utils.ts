@@ -7,17 +7,11 @@ export function jsonError(status: number, code: string, message: string) {
 
 export async function requireAdmin() {
   const auth = await requireDbAdmin();
-  if (!auth.ok && auth.reason === 'UNAUTHORIZED') {
+  if (!auth.ok) {
+    const status = auth.reason === 'UNAUTHORIZED' ? 401 : 403;
     return {
       ok: false as const,
-      response: jsonError(401, 'UNAUTHORIZED', 'Unauthorized'),
-    };
-  }
-
-  if (!auth.ok && auth.reason === 'FORBIDDEN') {
-    return {
-      ok: false as const,
-      response: jsonError(403, 'FORBIDDEN', 'Forbidden'),
+      response: jsonError(status, auth.reason, auth.reason === 'UNAUTHORIZED' ? 'Unauthorized' : 'Forbidden'),
     };
   }
 
