@@ -61,5 +61,6 @@ export { default as ToastMessage } from './common/ToastMessage';
 export { default as WarningAlert } from './common/WarningAlert';
 
 // Shop
+export { default as BottomSheet } from './shop/BottomSheet';
 export { default as ShopCard } from './shop/ShopCard';
 export { default as Tabbar } from './shop/Tabbar';

@@ -1,14 +1,14 @@
-import Image from 'next/image';
+﻿import Image from 'next/image';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
-import { cn } from '@/lib/utils';
-import FundPercent from './FundPercent';
-import ProductDDay from './ProductDDay';
 import ProductLike from './ProductLike';
+import ProductDDay from './ProductDDay';
+import FundPercent from './FundPercent';
+import { cn } from '@/lib/utils';
 import type { ProductDDayColor } from './ProductDDay';
 
-export type ProductcardType = 'fund' | 'buynow/partnerup';
-export type ProductcardView = 'shop' | 'admin' | 'seller';
+export type ProductcardType = 'fund' | 'buynow/partnerup' | 'all';
+export type ProductcardView = 'shop' | 'admin' | 'seller' | 'cart';
 
 interface ProductcardProps {
   className?: string;
@@ -30,6 +30,9 @@ interface ProductcardProps {
   onHomeExposeChange?: (checked: boolean) => void;
   onPublicChange?: (checked: boolean) => void;
   onCardClick?: () => void;
+  cartOptionText?: string;
+  cartPriceText?: string;
+  cartTags?: string[];
 }
 
 function DashDivider({ className }: { className?: string }) {
@@ -59,6 +62,14 @@ function ProgressBar({ percent }: { percent: number }) {
     <div className="h-[7px] w-full overflow-hidden rounded-[3.5px] border border-neutral-5 bg-neutral-3">
       <div className="h-[7px] rounded-[3.5px] bg-[#EFDDC9]" style={{ width: `${safePercent}%` }} />
     </div>
+  );
+}
+
+function CartTag({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7">
+      {text}
+    </span>
   );
 }
 
@@ -152,13 +163,43 @@ export default function Productcard({
   onHomeExposeChange,
   onPublicChange,
   onCardClick,
+  cartOptionText = 'BLACK·S / 1개',
+  cartPriceText = '30,300원',
+  cartTags = ['Fund', '택배 배송'],
 }: ProductcardProps) {
   const isFund = type === 'fund';
   const isBuy = type === 'buynow/partnerup';
   const isShop = view === 'shop';
   const isAdmin = view === 'admin';
   const isSeller = view === 'seller';
+  const isCartAll = type === 'all' && view === 'cart';
   const safePercent = Math.max(0, Math.min(100, Math.round(progressPercent)));
+
+  if (isCartAll) {
+    return (
+      <div className={cn('flex w-[312px] flex-col gap-2', className)}>
+        <div className="flex gap-4">
+          <div className="relative h-[100px] w-[80px] shrink-0 overflow-hidden rounded bg-neutral-4">
+            {imageSrc ? <Image src={imageSrc} alt="" fill unoptimized sizes="80px" className="object-cover" /> : null}
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="typo-body-small text-neutral-8">{brand}</p>
+            <p className="truncate typo-body-small-bold text-neutral-12">{title}</p>
+            <p className="typo-body-xsmall text-neutral-11">{cartOptionText}</p>
+            <div className="mt-0.5 flex flex-wrap gap-1">
+              {cartTags.map((tag) => (
+                <CartTag key={tag} text={tag} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DashDivider className="w-full" />
+        <p className="typo-body-small-bold text-neutral-11">{cartPriceText}</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -203,7 +244,7 @@ export default function Productcard({
               <p className="typo-body-xsmall text-neutral-8">
                 <span>달성/목표 금액 : </span>
                 <span className="text-orange-5">{achievedAmountText}</span>
-                <span>{`/ ${totalAmountText}`}</span>
+                <span>{` / ${totalAmountText}`}</span>
               </p>
             ) : null}
             <ProgressBar percent={safePercent} />
