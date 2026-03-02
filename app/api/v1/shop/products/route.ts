@@ -37,9 +37,7 @@ export async function GET(request: Request) {
     const type = parsedType.value;
     const status = parsedStatus.value;
     const now = new Date();
-    const repo = prisma as any;
-
-    const products = await repo.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         isPublic: true,
         isAdminApproved: true,
