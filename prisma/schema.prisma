@@ -113,6 +113,7 @@ model Product {
   pickupLocation      String? // Fund 현장 수령: 수령 장소
   receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
   isPublic            Boolean   @default(false)
+  publicAt            DateTime?
   isHome              Boolean   @default(false)
   isAdminApproved     Boolean   @default(false)
   likeCount           Int       @default(0)

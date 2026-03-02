@@ -7,10 +7,10 @@ import { NavBar } from '@/components/layout';
 import ProductDDay, { type ProductDDayColor } from '@/components/ui/admin/product/ProductDDay';
 import ShopCard from '@/components/ui/shop/ShopCard';
 import { cn } from '@/lib/utils';
+import { getSaleStatusByDate, type SaleStatus } from '@/lib/sale-date';
 
 type ProductType = 0 | 1 | 2;
 type ReceiveMethod = 0 | 1;
-type SaleStatus = 'scheduled' | 'active' | 'completed';
 
 interface ProductOptionValue {
   value: string;
@@ -80,17 +80,6 @@ function formatDateRange(start: string | null | undefined, end: string | null | 
 function calcProgressPercent(currentAmount: number | null, goalAmount: number | null) {
   if (typeof currentAmount !== 'number' || typeof goalAmount !== 'number' || goalAmount <= 0) return 0;
   return Math.max(0, Math.min(100, Math.round((currentAmount / goalAmount) * 100)));
-}
-
-function getSaleStatus(startDate: string, endDate: string): SaleStatus {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'completed';
-  if (now < start) return 'scheduled';
-  if (now > end) return 'completed';
-  return 'active';
 }
 
 function getDdayPresentation(status: SaleStatus): { color: ProductDDayColor; text: string } {
@@ -218,10 +207,13 @@ export default function ShopDetailPage() {
 
   const saleStatus = useMemo<SaleStatus>(() => {
     if (!product) return 'completed';
-    return getSaleStatus(product.salesStartDate, product.salesEndDate);
+    return getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
   }, [product]);
 
-  const dday = useMemo(() => getDdayPresentation(saleStatus), [saleStatus]);
+  const dday = useMemo(() => {
+    if (!product) return getDdayPresentation('completed');
+    return getDdayPresentation(saleStatus);
+  }, [product, saleStatus]);
 
   const progressPercent = useMemo(() => {
     if (!product || product.type !== 0) return 0;

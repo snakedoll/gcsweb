@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { getSaleStatusByDate } from '@/lib/sale-date';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -17,9 +18,10 @@ function parseQueryInt(value: string | null, allowed: number[], fallback: number
 }
 
 function computeProgressStatus(now: Date, salesStartDate: Date, salesEndDate: Date): 0 | 1 | 2 {
-  if (now < salesStartDate) return 0; // pending
-  if (now > salesEndDate) return 2; // completed
-  return 1; // active
+  const status = getSaleStatusByDate(salesStartDate, salesEndDate, now);
+  if (status === 'scheduled') return 0;
+  if (status === 'completed') return 2;
+  return 1;
 }
 
 export async function GET(request: Request) {
@@ -35,16 +37,15 @@ export async function GET(request: Request) {
     const type = parsedType.value;
     const status = parsedStatus.value;
     const now = new Date();
+    const repo = prisma as any;
 
-    const products = await prisma.product.findMany({
+    const products = await repo.product.findMany({
       where: {
         isPublic: true,
         isAdminApproved: true,
         type,
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
+      orderBy: [{ publicAt: 'desc' }, { createdAt: 'desc' }],
       select: {
         id: true,
         teamId: true,

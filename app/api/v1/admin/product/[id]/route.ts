@@ -22,9 +22,24 @@ export async function PATCH(
     const body = await request.json().catch(() => ({}));
     const { isHome, isPublic } = body;
 
+    const existing = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, isPublic: true },
+    });
+    if (!existing) {
+      return jsonError(404, 'NOT_FOUND', '상품을 찾을 수 없습니다.');
+    }
+
     const updateData: any = {};
     if (typeof isHome === 'boolean') updateData.isHome = isHome;
-    if (typeof isPublic === 'boolean') updateData.isPublic = isPublic;
+    if (typeof isPublic === 'boolean') {
+      updateData.isPublic = isPublic;
+      if (isPublic && !existing.isPublic) {
+        updateData.publicAt = new Date();
+      } else if (!isPublic && existing.isPublic) {
+        updateData.publicAt = null;
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       return jsonError(400, 'INVALID_INPUT', '변경할 필드(isHome, isPublic)가 필요합니다.');
