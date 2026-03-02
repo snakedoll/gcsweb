@@ -311,26 +311,34 @@ model ProductUpdateRequestOptionValue {
 // ============================================
 
 model Order {
-  id              String   @id @default(cuid())
-  userId          String
-  status          Int      @default(0) // 0: pending, 1: approved, 2: processing, 3: delivered, 4: confirmed
-  totalAmount     Int
-  orderDate       DateTime @default(now())
-  shippingAddress String
-  shippingName    String
-  shippingPhone   String
-  shippingEmail   String?
-  memo            String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  userId                String?
+  productType           Int // 0: fund, 1: buy now
+  receiveMethod         Int // 0: delivery, 1: pickup
+  receiverName          String?
+  receiverPhone         String?
+  deliveryZipCode       String? // fund + delivery only
+  deliveryAddressMain   String? // fund + delivery only
+  deliveryAddressDetail String? // fund + delivery only
+  deliveryMessage       String? // fund + delivery only
+  ordererName           String
+  ordererPhone          String
+  paymentStatus         Int      @default(0) // 0: payment_pending, 1: payment_completed, 2: payment_canceled, 3: payment_failed
+  fulfillmentStatus     Int? // 0: preparing, 1: in_delivery, 2: received (paymentStatus=1 only)
+  paymentAmount         Int
+  orderDate             DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   // Relations
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items     OrderItem[]
   inquiries Inquiry[]
 
   @@index([userId])
-  @@index([status])
+  @@index([productType, receiveMethod])
+  @@index([paymentStatus])
+  @@index([fulfillmentStatus])
   @@index([orderDate])
 }
 
