@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const ProductTypeSchema = z.union([z.literal(0), z.literal(1)]); // fund | buy now
 const ReceiveMethodSchema = z.union([z.literal(0), z.literal(1)]); // delivery | pickup
+const PaymentMethodSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]); // card | virtual account | easy pay
 
 const OrderItemSchema = z.object({
   productId: z.string().min(1, 'productId is required.'),
@@ -23,12 +24,15 @@ export const createOrderSchema = z
     deliveryMessage: z.string().trim().optional().nullable(),
     ordererName: z.string().trim().min(1, 'ordererName is required.'),
     ordererPhone: z.string().trim().min(1, 'ordererPhone is required.'),
-    paymentAmount: z.coerce.number().int().min(0, 'paymentAmount must be >= 0.'),
+    paymentMethod: PaymentMethodSchema,
+    isPolicyAgreed: z.boolean().optional(),
+    paymentAmount: z.coerce.number().int().min(0, 'paymentAmount must be >= 0.').optional(),
     items: z.array(OrderItemSchema).min(1, 'at least one order item is required.'),
   })
   .superRefine((data, ctx) => {
     const isFund = data.productType === 0;
     const isDelivery = data.receiveMethod === 0;
+    const requiresPolicyAgreement = data.productType === 1 || (data.productType === 0 && data.receiveMethod === 1);
 
     if (!isFund && isDelivery) {
       ctx.addIssue({
@@ -84,6 +88,22 @@ export const createOrderSchema = z
           message: 'deliveryMessage is required for fund delivery.',
         });
       }
+    }
+
+    if (isFund && data.paymentMethod === 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['paymentMethod'],
+        message: 'fund orders do not support easy pay.',
+      });
+    }
+
+    if (requiresPolicyAgreement && data.isPolicyAgreed !== true) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['isPolicyAgreed'],
+        message: 'isPolicyAgreed must be true for this order type.',
+      });
     }
 
     if (isFund) {

@@ -323,6 +323,7 @@ model Order {
   deliveryMessage       String? // fund + delivery only
   ordererName           String
   ordererPhone          String
+  paymentMethod         Int // 0: card, 1: virtual_account, 2: easy_pay
   paymentStatus         Int      @default(0) // 0: payment_pending, 1: payment_completed, 2: payment_canceled, 3: payment_failed
   fulfillmentStatus     Int? // 0: preparing, 1: in_delivery, 2: received (paymentStatus=1 only)
   paymentAmount         Int
