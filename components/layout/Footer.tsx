@@ -2,11 +2,13 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@/hooks/useUser';
 
 export default function Footer() {
-  const { data: session } = useSession();
-  const showAdminButton = session?.user?.role === 'admin';
+  const { session, profile, isAuthenticated } = useUser();
+  const showAdminButton =
+    isAuthenticated &&
+    (session?.user?.role === 'admin' || profile?.role === 'admin');
 
   return (
     <footer className="w-full bg-neutral-3 text-left">
