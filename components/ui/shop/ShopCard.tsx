@@ -1,5 +1,5 @@
+﻿import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 
 type ShopCardVariant = 'fund' | 'buynow_partnerup';
 
@@ -10,6 +10,7 @@ interface ShopCardProps {
   title?: string;
   description?: string;
   imageSrc?: string;
+  statusLabel?: string;
   percentText?: string;
   targetAmountText?: string;
   progressPercent?: number;
@@ -25,12 +26,14 @@ export default function ShopCard({
   title = '염소 후드집업',
   description = '따뜻함 한 스푼을 더한 그래픽 후드집업',
   imageSrc = DEFAULT_IMAGE,
+  statusLabel = '미달성',
   percentText = '70%',
   targetAmountText = '목표 금액 : 570,000원',
   progressPercent = 70,
 }: ShopCardProps) {
   const isFund = variant === 'fund';
   const clampedPercent = Math.max(0, Math.min(100, progressPercent));
+  const isAchieved = isFund && (statusLabel === '달성' || clampedPercent >= 100);
 
   return (
     <div className={cn('flex w-[375px] items-center justify-center bg-white px-4 py-[23px]', className)}>
@@ -48,14 +51,19 @@ export default function ShopCard({
             </div>
           </div>
 
-          {isFund && (
+          {isFund ? (
             <>
               <div className="w-full border-t border-neutral-5" />
               <div className="flex w-full flex-col gap-[10px]">
                 <div className="flex w-full items-center justify-between">
                   <div className="inline-flex items-center gap-1.5">
-                    <span className="inline-flex h-[17px] w-[39px] items-center justify-center rounded bg-neutral-5 px-[5px] text-center text-[11px] leading-[1.5] text-neutral-9">
-                      미달성
+                    <span
+                      className={cn(
+                        'inline-flex h-[17px] min-w-[39px] items-center justify-center rounded px-[5px] text-center text-[11px] leading-[1.5]',
+                        isAchieved ? 'bg-orange-1 text-orange-7' : 'bg-neutral-5 text-neutral-9'
+                      )}
+                    >
+                      {statusLabel}
                     </span>
                     <span className="text-[13px] leading-[1.5] tracking-[-0.02em] text-neutral-8">{percentText}</span>
                   </div>
@@ -63,11 +71,14 @@ export default function ShopCard({
                 </div>
 
                 <div className="h-[7px] w-full overflow-hidden rounded-[3.5px] border border-neutral-5 bg-[#f8f6f4]">
-                  <div className="h-full rounded-[3.5px] bg-[#efddc9]" style={{ width: `${clampedPercent}%` }} />
+                  <div
+                    className={cn('h-full rounded-[3.5px]', isAchieved ? 'bg-orange-5' : 'bg-[#efddc9]')}
+                    style={{ width: `${clampedPercent}%` }}
+                  />
                 </div>
               </div>
             </>
-          )}
+          ) : null}
         </div>
       </article>
     </div>

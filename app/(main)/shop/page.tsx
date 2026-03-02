@@ -1,13 +1,14 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Banner, BottomTabBar, NavBar } from '@/components/layout';
 import Tab from '@/components/ui/button/Tab';
 import Filter from '@/components/ui/admin/product/Filter';
 import Productcard from '@/components/ui/admin/product/Productcard';
 
 type ProductType = 0 | 1 | 2;
-type ProgressStatus = 0 | 1 | 2; // 0=진행 예정, 1=진행 중, 2=진행 완료
+type ProgressStatus = 0 | 1 | 2;
 
 type ShopProduct = {
   id: string;
@@ -47,11 +48,20 @@ const STATUS_TABS: Array<{ key: StatusTabKey; label: string; status: ProgressSta
   { key: 'completed', label: '진행 완료', status: 2 },
 ];
 
-function ShopProductCard({ item, statusKey }: { item: ShopProduct; statusKey: StatusTabKey }) {
+function ShopProductCard({
+  item,
+  statusKey,
+  onClick,
+}: {
+  item: ShopProduct;
+  statusKey: StatusTabKey;
+  onClick: () => void;
+}) {
   const progressPercent =
     item.type === 0 && typeof item.currentAmount === 'number' && typeof item.goalAmount === 'number' && item.goalAmount > 0
       ? Math.max(0, Math.min(100, Math.round((item.currentAmount / item.goalAmount) * 100)))
       : 0;
+
   const dDayText = statusKey === 'active' ? 'D-day' : statusKey === 'scheduled' ? '진행예정' : '진행완료';
   const dDayColor = statusKey === 'active' ? 'Orange' : 'Gray';
 
@@ -68,11 +78,13 @@ function ShopProductCard({ item, statusKey }: { item: ShopProduct; statusKey: St
       progressPercent={progressPercent}
       likeCount={0}
       className="w-full"
+      onCardClick={onClick}
     />
   );
 }
 
 export default function ShopPage() {
+  const router = useRouter();
   const [typeTab, setTypeTab] = useState<TypeTabKey>('fund');
   const [statusTab, setStatusTab] = useState<StatusTabKey>('active');
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -149,7 +161,7 @@ export default function ShopPage() {
           ) : (
             <div className="flex flex-col gap-5">
               {products.map((item) => (
-                <ShopProductCard key={item.id} item={item} statusKey={statusTab} />
+                <ShopProductCard key={item.id} item={item} statusKey={statusTab} onClick={() => router.push(`/shop/${item.id}`)} />
               ))}
             </div>
           )}
