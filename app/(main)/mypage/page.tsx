@@ -324,11 +324,11 @@ export default function MypagePage() {
             ]}
           />
           <MenuSection
-            title="나의 창작 정보"
+            title="나의 판매 정보"
             items={[
               { label: '창작자 가이드', href: '/mypage/creator-guide' },
               { label: '내가 등록한 상품', href: '/mypage/my-products' },
-              { label: '판매 활동', href: '/mypage/sales' },
+              { label: '나의 판매 활동', href: '/mypage/sales' },
             ]}
           />
           <MenuSection title="고객센터" items={[{ label: '문의하기', href: '/mypage/inquiries' }]} />

@@ -5,8 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-const ALERT_COUNT = 5;
-const INQUIRY_COUNT = 5;
+const ALERT_COUNT = 0;
+const INQUIRY_COUNT = 0;
+const LOG_COUNT = 0;
 
 function AdminCard({
   href,
@@ -30,7 +31,7 @@ function AdminCard({
       />
       <p className="typo-body-xsmall text-neutral-9">
         {label}
-        {count !== undefined && <span className="text-orange-5"> {count}</span>}
+        {typeof count === 'number' && count > 0 && <span className="text-orange-5"> {count}</span>}
       </p>
     </div>
   );
@@ -82,7 +83,7 @@ export default function AdminPage() {
         <div className="mb-4 flex justify-center gap-[6px]">
           <AdminCard href="#" iconSrc="/assets/icons/icon-bell.svg" label="알림" count={ALERT_COUNT} />
           <AdminCard href="#" iconSrc="/assets/icons/icon-message-square.svg" label="문의" count={INQUIRY_COUNT} />
-          <AdminCard href="#" iconSrc="/assets/icons/icon-folder.svg" label="로그" />
+          <AdminCard href="#" iconSrc="/assets/icons/icon-folder.svg" label="로그" count={LOG_COUNT} />
         </div>
 
         <div className="space-y-3">
@@ -90,15 +91,15 @@ export default function AdminPage() {
             title="판매 관리"
             items={[
               { label: '상품글 관리', href: '/admin/product' },
-              { label: '주문 관리', href: '#' },
-              { label: '재고 관리 | Buy now', href: '#' },
+              { label: 'Fund | 주문 관리', href: '#' },
+              { label: 'Buy Now | 현장 관리', href: '#' },
               { label: '정산 관리', href: '#' },
               { label: '상품 리뷰 관리', href: '#' },
             ]}
           />
 
           <AdminMenuSection
-            title="회원 · 팀 관리"
+            title="사용자 관리"
             items={[
               { label: '회원 관리', href: '/admin/members' },
               { label: '팀 관리', href: '/admin/team' },
