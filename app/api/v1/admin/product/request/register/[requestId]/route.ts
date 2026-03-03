@@ -35,6 +35,8 @@ export async function GET(
       return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
     }
 
+    // 등록 요청 상세: 요청본(ProductUpdateRequest)만 조회. 판매자가 등록신청 당시 기입한 값이 그대로 노출된다.
+    // 공개용 Product는 관리자 승인 시 반영되며, 승인 전까지 유저에게 보이는 값은 변경되지 않는다.
     const repo = prisma as any;
     const row = await repo.productUpdateRequest.findFirst({
       where: { id: requestId, requestType: 0 },
@@ -91,6 +93,14 @@ export async function GET(
 
     const image = row.images?.[0] ?? null;
 
+    function toDateOnly(d: Date | null | undefined): string | null {
+      if (!d || !(d instanceof Date) || Number.isNaN(d.getTime())) return null;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
     return NextResponse.json({
       status: 'success',
       data: {
@@ -107,12 +117,12 @@ export async function GET(
           goalAmount: row.goalAmount,
           salesStartDate: row.salesStartDate,
           salesEndDate: row.salesEndDate,
-          productionStartDate: row.productionStartDate,
-          productionEndDate: row.productionEndDate,
-          deliveryStartDate: row.deliveryStartDate,
-          deliveryEndDate: row.deliveryEndDate,
-          pickupStartDate: row.pickupStartDate,
-          pickupEndDate: row.pickupEndDate,
+          productionStartDate: toDateOnly(row.productionStartDate),
+          productionEndDate: toDateOnly(row.productionEndDate),
+          deliveryStartDate: toDateOnly(row.deliveryStartDate),
+          deliveryEndDate: toDateOnly(row.deliveryEndDate),
+          pickupStartDate: toDateOnly(row.pickupStartDate),
+          pickupEndDate: toDateOnly(row.pickupEndDate),
           pickupLocation: row.pickupLocation,
           thumbnailUrl: image?.thumbnailImgUrl ?? '',
           detailImageUrls: Array.isArray(image?.detailImgUrl) ? image?.detailImgUrl : [],

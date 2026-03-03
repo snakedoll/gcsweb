@@ -200,6 +200,34 @@ export async function POST(request: Request) {
       );
     }
 
+    const receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
+    if (type === 0) {
+      if (receiveMethodResolved === 0) {
+        if (
+          !parseDate(productionStartDate) ||
+          !parseDate(productionEndDate) ||
+          !parseDate(deliveryStartDate) ||
+          !parseDate(deliveryEndDate)
+        ) {
+          return NextResponse.json(
+            { status: 'error', code: 'INVALID_INPUT', message: '예상 제작 기간·배송 기간을 올바르게 입력해주세요.' },
+            { status: 400 }
+          );
+        }
+      } else {
+        if (
+          !parseDate(pickupStartDate) ||
+          !parseDate(pickupEndDate) ||
+          !(typeof pickupLocation === 'string' && pickupLocation.trim())
+        ) {
+          return NextResponse.json(
+            { status: 'error', code: 'INVALID_INPUT', message: '예상 수령 기간·수령 장소를 입력해주세요.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const goalAmountNum =
       typeof goalAmount === 'number'
         ? goalAmount

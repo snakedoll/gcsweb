@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { format, parseISO } from 'date-fns';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ko } from 'date-fns/locale';
 import { NavBar } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import PriceInput from '@/components/ui/admin/product/PriceInput';
-import DaterangepickerVariation, {
-  type DaterangepickerVariationVariant,
-} from '@/components/ui/admin/product/DaterangepickerVariation';
 import TextField from '@/components/ui/common/TextField';
 
 type RegisterRequestDetailResponse = {
@@ -30,21 +31,23 @@ type RegisterRequestDetailResponse = {
 };
 
 function toYyyyMmDd(val: string | null | undefined): string {
-  if (!val || typeof val !== 'string') return '';
-  return val.slice(0, 10);
+  if (val == null) return '';
+  const s = typeof val === 'string' ? val.trim() : '';
+  return s.length >= 10 ? s.slice(0, 10) : s;
 }
 
 type DeliveryMode = 'parcel' | 'pickup';
-type FieldKey =
-  | 'goalAmount'
-  | 'productionStart'
-  | 'productionEnd'
-  | 'shippingStart'
-  | 'shippingEnd'
-  | 'pickupStart'
-  | 'pickupEnd'
-  | 'pickupLocation'
-  | null;
+type FieldKey = 'goalAmount' | 'pickupLocation' | null;
+
+function parseDateOrNull(s: string): Date | null {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return null;
+  try {
+    const d = parseISO(s.trim() + 'T00:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
 
 type Step2Preset =
   | 'parcel-default'
@@ -71,42 +74,24 @@ function formatPriceDisplay(raw: string) {
   return Number(digits).toLocaleString('ko-KR');
 }
 
+const TODAY = new Date();
+TODAY.setHours(0, 0, 0, 0);
+
 function Step2DateRange({
   title,
   startLabel,
   endLabel,
   value,
-  focusedField,
-  setFocusedField,
   onChange,
 }: {
   title: string;
   startLabel: string;
   endLabel: string;
   value: RangeValue;
-  focusedField: FieldKey;
-  setFocusedField: Dispatch<SetStateAction<FieldKey>>;
   onChange: (next: RangeValue) => void;
 }) {
-  const isStartFocused = focusedField === (title.includes('제작') ? 'productionStart' : title.includes('배송') ? 'shippingStart' : 'pickupStart');
-  const isEndFocused = focusedField === (title.includes('제작') ? 'productionEnd' : title.includes('배송') ? 'shippingEnd' : 'pickupEnd');
-
-  const startKey: FieldKey = title.includes('제작')
-    ? 'productionStart'
-    : title.includes('배송')
-      ? 'shippingStart'
-      : 'pickupStart';
-  const endKey: FieldKey = title.includes('제작')
-    ? 'productionEnd'
-    : title.includes('배송')
-      ? 'shippingEnd'
-      : 'pickupEnd';
-
-  const getVariant = (text: string, isFocused: boolean): DaterangepickerVariationVariant => {
-    if (isFocused) return 'focused';
-    if (text.trim()) return 'filled';
-    return 'Default';
-  };
+  const startDate = parseDateOrNull(value.start);
+  const endDate = parseDateOrNull(value.end);
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -117,52 +102,49 @@ function Step2DateRange({
         </div>
       </div>
 
-      <div className="flex h-16 w-full items-center justify-between">
-        <div className="flex h-full w-[158px] flex-col gap-1">
+      <div className="flex w-full flex-nowrap items-end gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="h-5 typo-body-xsmall text-neutral-8">{startLabel}</p>
-          <div className="flex items-center gap-[7px]">
-            <div className="relative">
-              <DaterangepickerVariation
-                property1={getVariant(value.start, isStartFocused)}
-                value={value.start || undefined}
-              />
-              <input
-                aria-label={`${title} 시작일`}
-                value={value.start}
-                inputMode="numeric"
-                placeholder="YYYY-MM-DD"
-                className="absolute inset-0 h-10 w-[125px] rounded-lg opacity-0"
-                onFocus={() => setFocusedField(startKey)}
-                onBlur={() => setFocusedField((prev) => (prev === startKey ? null : prev))}
-                onChange={(e) => onChange({ ...value, start: e.target.value })}
-              />
-            </div>
-            <span className="typo-heading-xxsmall text-neutral-13">부터</span>
-          </div>
+          <DatePicker
+            selected={startDate}
+            onChange={(date: Date | null) => {
+              const nextStart = date ? format(date, 'yyyy-MM-dd') : '';
+              onChange({ ...value, start: nextStart });
+              if (endDate && date && endDate < date) {
+                onChange({ ...value, start: nextStart, end: nextStart });
+              }
+            }}
+            minDate={TODAY}
+            locale={ko}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="YYYY-MM-DD"
+            popperPlacement="bottom-start"
+            className={cn(
+              'h-10 w-full min-w-0 rounded-lg border bg-neutral-2 px-3 py-2 typo-body-small text-neutral-12',
+              'border-neutral-5 focus:border-orange-6 focus:outline-none focus:ring-1 focus:ring-orange-6'
+            )}
+            calendarClassName="gcs-datepicker-calendar"
+          />
         </div>
-
-        <div className="flex h-full w-[158px] flex-col gap-1">
+        <span className="shrink-0 typo-body-xsmall text-neutral-8">부터</span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="h-5 typo-body-xsmall text-neutral-8">{endLabel}</p>
-          <div className="flex items-center gap-[7px]">
-            <div className="relative">
-              <DaterangepickerVariation
-                property1={getVariant(value.end, isEndFocused)}
-                value={value.end || undefined}
-              />
-              <input
-                aria-label={`${title} 종료일`}
-                value={value.end}
-                inputMode="numeric"
-                placeholder="YYYY-MM-DD"
-                className="absolute inset-0 h-10 w-[125px] rounded-lg opacity-0"
-                onFocus={() => setFocusedField(endKey)}
-                onBlur={() => setFocusedField((prev) => (prev === endKey ? null : prev))}
-                onChange={(e) => onChange({ ...value, end: e.target.value })}
-              />
-            </div>
-            <span className="typo-heading-xxsmall text-neutral-13">까지</span>
-          </div>
+          <DatePicker
+            selected={endDate}
+            onChange={(date: Date | null) => onChange({ ...value, end: date ? format(date, 'yyyy-MM-dd') : '' })}
+            minDate={startDate ?? TODAY}
+            locale={ko}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="YYYY-MM-DD"
+            popperPlacement="bottom-start"
+            className={cn(
+              'h-10 w-full min-w-0 rounded-lg border bg-neutral-2 px-3 py-2 typo-body-small text-neutral-12',
+              'border-neutral-5 focus:border-orange-6 focus:outline-none focus:ring-1 focus:ring-orange-6'
+            )}
+            calendarClassName="gcs-datepicker-calendar"
+          />
         </div>
+        <span className="shrink-0 typo-body-xsmall text-neutral-8">까지</span>
       </div>
     </div>
   );
@@ -293,10 +275,8 @@ export default function AdminRegisterRequestStep2Page() {
   }, [requestId]);
 
   useEffect(() => {
-    setFocusedField(null);
-    if (initialDataLoaded && (preset === 'parcel-default' || preset === 'pickup-default')) {
-      return;
-    }
+    // API로 기존 데이터를 불러왔으면 preset으로 덮어쓰지 않음 (기존 데이터 유지)
+    if (initialDataLoaded) return;
 
     if (preset === 'parcel-default' || preset === 'pickup-default') {
       setGoalAmountRaw('');
@@ -317,7 +297,7 @@ export default function AdminRegisterRequestStep2Page() {
     } else if (preset === 'parcel-date-focus') {
       setProductionRange({ start: '20', end: '' });
       setShippingRange({ start: '', end: '' });
-    } else {
+    } else if (preset !== 'parcel-default') {
       setProductionRange({ start: '', end: '' });
       setShippingRange({ start: '', end: '' });
     }
@@ -325,13 +305,12 @@ export default function AdminRegisterRequestStep2Page() {
     if (preset === 'pickup-filled') {
       setPickupRange({ start: '2025-02-25', end: '2025-02-25' });
       setPickupLocation('동국대학교 학술관K127');
-    } else {
+    } else if (preset !== 'pickup-default') {
       setPickupRange({ start: '', end: '' });
       setPickupLocation('');
     }
 
     if (preset === 'parcel-price-focus') setFocusedField('goalAmount');
-    if (preset === 'parcel-date-focus') setFocusedField('productionStart');
   }, [preset, initialDataLoaded]);
 
   useEffect(() => {
@@ -347,13 +326,7 @@ export default function AdminRegisterRequestStep2Page() {
   const pickupLocationState =
     focusedField === 'pickupLocation' ? 'focus' : pickupLocation.trim() ? 'filled' : 'default';
 
-  const showKeyboard =
-    mode === 'parcel' &&
-    (focusedField === 'goalAmount' ||
-      focusedField === 'productionStart' ||
-      focusedField === 'productionEnd' ||
-      focusedField === 'shippingStart' ||
-      focusedField === 'shippingEnd');
+  const showKeyboard = mode === 'parcel' && focusedField === 'goalAmount';
 
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
@@ -408,8 +381,6 @@ export default function AdminRegisterRequestStep2Page() {
                     startLabel="기간 시작일"
                     endLabel="기간 종료일"
                     value={productionRange}
-                    focusedField={focusedField}
-                    setFocusedField={setFocusedField}
                     onChange={setProductionRange}
                   />
 
@@ -418,8 +389,6 @@ export default function AdminRegisterRequestStep2Page() {
                     startLabel="기간 시작일"
                     endLabel="기간 종료일"
                     value={shippingRange}
-                    focusedField={focusedField}
-                    setFocusedField={setFocusedField}
                     onChange={setShippingRange}
                   />
                 </>
@@ -430,8 +399,6 @@ export default function AdminRegisterRequestStep2Page() {
                     startLabel="기간 시작일"
                     endLabel="기간 종료일"
                     value={pickupRange}
-                    focusedField={focusedField}
-                    setFocusedField={setFocusedField}
                     onChange={setPickupRange}
                   />
 
