@@ -78,7 +78,8 @@ function getUsageFromRequest(request: Request, formData: FormData) {
   return (queryUsage ?? (typeof bodyUsage === 'string' ? bodyUsage : '')).trim();
 }
 
-function sanitizeBaseName(fileName: string) {
+function sanitizeBaseName(fileName: string | undefined | null) {
+  if (!fileName || typeof fileName !== 'string') return 'image';
   const ext = path.extname(fileName);
   const base = path.basename(fileName, ext);
   const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_').slice(0, 80);
@@ -157,7 +158,13 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const usage = getUsageFromRequest(request, formData);
     const imageEntry = formData.get('image');
-    const file = imageEntry instanceof File ? imageEntry : null;
+    
+    // Fix: `instanceof File` can fail in Node.js/Next.js polyfills.
+    // Use duck-typing to safely extract the file.
+    let file: File | null = null;
+    if (imageEntry && typeof imageEntry === 'object' && 'arrayBuffer' in imageEntry) {
+      file = imageEntry as unknown as File;
+    }
 
     if (!usage || !file) {
       return errorResponse(400, 'INVALID_INPUT', 'usage와 image는 필수입니다.');
@@ -222,8 +229,8 @@ export async function POST(request: Request) {
       status: 'success',
       data: { imageUrl: relativeUrl },
     });
-  } catch (error) {
-    console.error('Image upload API error:', error);
+  } catch (error: any) {
+    console.error('Image upload API error details:', error?.message || error);
     return errorResponse(500, 'SERVER_ERROR', '서버 내부 오류 발생.');
   }
 }

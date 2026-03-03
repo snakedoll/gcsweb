@@ -23,7 +23,7 @@ async function fetchUserProfile(): Promise<UserProfile> {
 }
 
 export function useUser() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['user', 'profile'],
@@ -34,6 +34,7 @@ export function useUser() {
   return {
     session,
     profile,
+    update,
     isLoading: status === 'loading' || isProfileLoading,
     isAuthenticated: !!session,
   };

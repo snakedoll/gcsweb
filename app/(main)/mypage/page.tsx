@@ -7,6 +7,7 @@ import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 async function resizeImageFile(file: File, maxWidth = 1024): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -65,7 +66,8 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
 
 export default function MypagePage() {
   const router = useRouter();
-  const { profile, isLoading, isAuthenticated } = useUser();
+  const queryClient = useQueryClient();
+  const { session, profile, isLoading, isAuthenticated, update } = useUser();
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -166,7 +168,12 @@ export default function MypagePage() {
           return;
         }
 
-        router.refresh(); // Soft refresh to show new image without losing session
+        // React Query 캐시 초기화 및 UI 즉시 업데이트 
+        await queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+        if (update) {
+          await update();
+        }
+        router.refresh();
       } catch (err) {
         console.error(err);
         alert('업로드 중 오류가 발생했습니다.');
@@ -177,7 +184,7 @@ export default function MypagePage() {
     return () => {
       for (const input of inputs) input.removeEventListener('change', handler);
     };
-  }, [router]);
+  }, [router, queryClient]);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -203,7 +210,7 @@ export default function MypagePage() {
             <div className="relative h-[100px] w-[100px]">
               <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full bg-neutral-4">
                 {profile?.profileImage ? (
-                  <NextImage src={profile.profileImage} alt="프로필" fill className="object-cover" sizes="100px" />
+                  <NextImage src={profile.profileImage} alt="프로필" fill unoptimized className="object-cover" sizes="100px" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
                     <NextImage src="/assets/icons/icon-user-nav.svg" alt="" width={38} height={38} />
