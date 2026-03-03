@@ -276,9 +276,17 @@ function LoginContent() {
   );
 }
 
+function LoginFallback() {
+  return (
+    <div className="flex min-h-[400px] w-full max-w-[375px] items-center justify-center typo-body-small text-neutral-6">
+      로딩 중...
+    </div>
+  );
+}
+
 export default function LoginPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LoginFallback />}>
       <LoginContent />
     </Suspense>
   );
