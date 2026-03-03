@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import FloatingButton from '@/components/ui/button/FloatingButton';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,6 @@ function NoPermissionView() {
           창작자 가이드 보러가기
         </Link>
       </main>
-      <Footer />
     </>
   );
 }
@@ -74,7 +73,6 @@ function EmptyProductsView() {
           새 상품 등록하러가기
         </Link>
       </main>
-      <Footer />
     </>
   );
 }
@@ -195,7 +193,6 @@ function ProductListView({ products }: { products: ProductItem[] }) {
           <FloatingButton className="size-[61px] p-4" />
         </Link>
       </div>
-      <Footer />
     </>
   );
 }
@@ -235,7 +232,6 @@ export default function MyProductsPage() {
           <main className="flex flex-1 items-center justify-center">
             <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
           </main>
-          <Footer />
         </>
       )}
       {hasPermission && !productsLoading && hasProducts && (

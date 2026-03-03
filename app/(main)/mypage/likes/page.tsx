@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -180,7 +180,6 @@ export default function MypageLikesPage() {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 }

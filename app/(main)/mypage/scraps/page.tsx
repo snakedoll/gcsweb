@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -177,7 +177,6 @@ export default function MypageScrapsPage() {
         )}
       </main>
 
-      <Footer />
     </div>
   );
 }

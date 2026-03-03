@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import { MenuSection } from '@/components/ui';
 import { useUser } from '@/hooks/useUser';
 import { signOut } from 'next-auth/react';
@@ -59,7 +59,8 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
         className="h-6 w-6 [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(8%)_saturate(145%)_hue-rotate(336deg)_brightness(91%)_contrast(86%)]"
       />
       <p className="typo-body-xsmall text-neutral-9">
-        {label} <span className="text-orange-5">{count}</span>
+        {label}
+        {typeof count === 'number' && count > 0 && <span className="text-orange-5"> {count}</span>}
       </p>
     </Link>
   );
@@ -334,7 +335,6 @@ export default function MypagePage() {
           <MenuSection title="고객센터" items={[{ label: '문의하기', href: '/mypage/inquiries' }]} />
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

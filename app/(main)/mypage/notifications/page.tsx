@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -269,7 +269,6 @@ export default function NotificationsPage() {
         )}
       </main>
 
-      <Footer />
     </div>
   );
 }

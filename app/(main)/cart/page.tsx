@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/hooks/useUser';
-import Footer from '@/components/layout/Footer';
 
 function MinusIcon({ disabled = false }: { disabled?: boolean }) {
   const lineColor = disabled ? '#DDDCDB' : '#6C6764';
@@ -621,8 +620,6 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* 푸터 */}
-        <Footer />
       </div>
 
       {/* ── 선택 시 하단 바 ───────────────────────────────── */}
