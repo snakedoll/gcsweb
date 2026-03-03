@@ -3,6 +3,7 @@
 import { Footer, NavBar } from '@/components/layout';
 import { MenuSection } from '@/components/ui';
 import { useUser } from '@/hooks/useUser';
+import { useQueryClient } from '@tanstack/react-query';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -65,6 +66,7 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
 
 export default function MypagePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { profile, isLoading, isAuthenticated } = useUser();
   const profileSettled = !isLoading && (profile !== undefined || !isAuthenticated);
   const hasValidAuth = isAuthenticated && profile != null;
@@ -172,7 +174,8 @@ export default function MypagePage() {
           return;
         }
 
-        router.refresh(); // Soft refresh to show new image without losing session
+        queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+        router.refresh();
       } catch (err) {
         console.error(err);
         alert('업로드 중 오류가 발생했습니다.');
@@ -183,7 +186,7 @@ export default function MypagePage() {
     return () => {
       for (const input of inputs) input.removeEventListener('change', handler);
     };
-  }, [router]);
+  }, [router, queryClient]);
 
   if (isLoading || !hasValidAuth) {
     return (
