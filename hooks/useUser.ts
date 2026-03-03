@@ -14,8 +14,11 @@ interface UserProfile {
   createdAt: string;
 }
 
-async function fetchUserProfile(): Promise<UserProfile> {
+async function fetchUserProfile(): Promise<UserProfile | null> {
   const res = await fetch('/api/user/profile');
+  if (res.status === 401 || res.status === 404) {
+    return null;
+  }
   if (!res.ok) {
     throw new Error('Failed to fetch user profile');
   }
@@ -29,6 +32,7 @@ export function useUser() {
     queryKey: ['user', 'profile'],
     queryFn: fetchUserProfile,
     enabled: !!session,
+    retry: false,
   });
 
   return {
