@@ -38,13 +38,30 @@ export async function POST(request: Request) {
       cart = await prisma.cart.create({ data: { userId: user.id } });
     }
 
+    // 추가 금액 계산
+    let additionalPrice = 0;
+    if (Array.isArray(optionData)) {
+      optionData.forEach((opt: any) => {
+        if (opt && typeof opt.additionalPrice === 'number') {
+          additionalPrice += opt.additionalPrice;
+        }
+      });
+    }
+    const itemPrice = product.price + additionalPrice;
+
     // 같은 상품+옵션이 이미 장바구니에 있는지 확인
-    const existingItem = await prisma.cartItem.findFirst({
+    const cartItems = await prisma.cartItem.findMany({
       where: {
         cartId: cart.id,
         productId,
       },
     });
+
+    const isMatch = (itemOptionData: any, newOptionData: any) => {
+      return JSON.stringify(itemOptionData || null) === JSON.stringify(newOptionData || null);
+    };
+
+    const existingItem = cartItems.find((item) => isMatch(item.optionData, optionData));
 
     if (existingItem) {
       // 이미 있으면 수량 증가
@@ -67,7 +84,7 @@ export async function POST(request: Request) {
         cartId: cart.id,
         productId,
         quantity: quantity ?? 1,
-        price: product.price,
+        price: itemPrice,
         optionData: optionData ?? null,
       },
     });
