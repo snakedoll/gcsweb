@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
@@ -93,7 +93,7 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
   );
 }
 
-export default function ShopOrdersPage() {
+function ShopOrdersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -413,5 +413,19 @@ export default function ShopOrdersPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function ShopOrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-neutral-3 text-neutral-9">
+          주문 정보를 불러오는 중입니다.
+        </div>
+      }
+    >
+      <ShopOrdersPageContent />
+    </Suspense>
   );
 }
