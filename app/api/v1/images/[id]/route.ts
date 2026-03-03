@@ -11,11 +11,11 @@ export async function GET(
       select: { data: true, mimeType: true },
     });
 
-    if (!image) {
+    if (!image || !image.data) {
       return new NextResponse(null, { status: 404 });
     }
 
-    return new NextResponse(new Uint8Array(image.data), {
+    return new NextResponse(Buffer.from(image.data) as unknown as BodyInit, {
       headers: {
         'Content-Type': image.mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
