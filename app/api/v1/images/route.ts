@@ -157,7 +157,12 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const usage = getUsageFromRequest(request, formData);
     const imageEntry = formData.get('image');
-    const file = imageEntry instanceof File ? imageEntry : null;
+    // Node 런타임 일부 환경에서 전역 File이 없을 수 있으므로 duck-typing 사용
+    const file =
+      imageEntry != null &&
+      typeof (imageEntry as { arrayBuffer?: unknown }).arrayBuffer === 'function'
+        ? (imageEntry as File)
+        : null;
 
     if (!usage || !file) {
       return errorResponse(400, 'INVALID_INPUT', 'usage와 image는 필수입니다.');
