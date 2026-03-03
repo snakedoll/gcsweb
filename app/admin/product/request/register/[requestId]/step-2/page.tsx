@@ -11,6 +11,29 @@ import DaterangepickerVariation, {
 } from '@/components/ui/admin/product/DaterangepickerVariation';
 import TextField from '@/components/ui/common/TextField';
 
+type RegisterRequestDetailResponse = {
+  status: 'success' | 'error';
+  message?: string;
+  data?: {
+    request?: {
+      receiveMethod?: number;
+      goalAmount?: number | null;
+      productionStartDate?: string | null;
+      productionEndDate?: string | null;
+      deliveryStartDate?: string | null;
+      deliveryEndDate?: string | null;
+      pickupStartDate?: string | null;
+      pickupEndDate?: string | null;
+      pickupLocation?: string | null;
+    };
+  };
+};
+
+function toYyyyMmDd(val: string | null | undefined): string {
+  if (!val || typeof val !== 'string') return '';
+  return val.slice(0, 10);
+}
+
 type DeliveryMode = 'parcel' | 'pickup';
 type FieldKey =
   | 'goalAmount'
@@ -227,10 +250,53 @@ export default function AdminRegisterRequestStep2Page() {
   const [pickupRange, setPickupRange] = useState<RangeValue>({ start: '', end: '' });
   const [pickupLocation, setPickupLocation] = useState('');
   const [focusedField, setFocusedField] = useState<FieldKey>(null);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!requestId) return;
+      try {
+        const res = await fetch(`/api/v1/admin/product/request/register/${requestId}`, {
+          cache: 'no-store',
+        });
+        const json = (await res.json().catch(() => ({}))) as RegisterRequestDetailResponse;
+        if (cancelled || !res.ok || json.status !== 'success') return;
+        const req = json.data?.request;
+        if (!req) return;
+
+        if (req.goalAmount != null && req.goalAmount >= 0) {
+          setGoalAmountRaw(String(req.goalAmount));
+        }
+        setProductionRange({
+          start: toYyyyMmDd(req.productionStartDate),
+          end: toYyyyMmDd(req.productionEndDate),
+        });
+        setShippingRange({
+          start: toYyyyMmDd(req.deliveryStartDate),
+          end: toYyyyMmDd(req.deliveryEndDate),
+        });
+        setPickupRange({
+          start: toYyyyMmDd(req.pickupStartDate),
+          end: toYyyyMmDd(req.pickupEndDate),
+        });
+        setPickupLocation(req.pickupLocation ?? '');
+        setInitialDataLoaded(true);
+      } catch {
+        // ignore; keep form empty or preset values
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [requestId]);
+
+  useEffect(() => {
     setFocusedField(null);
+    if (initialDataLoaded && (preset === 'parcel-default' || preset === 'pickup-default')) {
+      return;
+    }
 
     if (preset === 'parcel-default' || preset === 'pickup-default') {
       setGoalAmountRaw('');
@@ -266,7 +332,7 @@ export default function AdminRegisterRequestStep2Page() {
 
     if (preset === 'parcel-price-focus') setFocusedField('goalAmount');
     if (preset === 'parcel-date-focus') setFocusedField('productionStart');
-  }, [preset]);
+  }, [preset, initialDataLoaded]);
 
   useEffect(() => {
     if (focusedField === 'goalAmount') {
