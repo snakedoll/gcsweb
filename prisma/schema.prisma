@@ -324,6 +324,9 @@ model Order {
   ordererName           String
   ordererPhone          String
   paymentMethod         Int // 0: card, 1: virtual_account, 2: easy_pay
+  cardCompany           Int? // card only: 0: bc, 1: woori
+  bankCode              Int? // virtual_account only: 0: ibk, 1: shinhan
+  easyPayProvider       Int? // easy_pay only: 0: kakao_pay, 1: naver_pay, 2: toss_pay
   paymentStatus         Int      @default(0) // 0: payment_pending, 1: payment_completed, 2: payment_canceled, 3: payment_failed
   fulfillmentStatus     Int? // 0: preparing, 1: in_delivery, 2: received (paymentStatus=1 only)
   paymentAmount         Int

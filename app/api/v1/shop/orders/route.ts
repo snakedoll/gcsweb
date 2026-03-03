@@ -9,6 +9,30 @@ function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
+function parsePositiveInt(value: string | null, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.floor(parsed);
+}
+
+function mapValidationIssueToErrorCode(issue: { path?: (string | number)[]; message?: string }): string {
+  const path = issue.path?.[0];
+  if (issue.message === 'INVALID_PAYMENT_METHOD') return 'INVALID_PAYMENT_METHOD';
+  if (issue.message === 'INVALID_PAYMENT_DETAIL_COMBINATION') return 'INVALID_PAYMENT_DETAIL_COMBINATION';
+  if (issue.message === 'INVALID_CARD_COMPANY') return 'INVALID_CARD_COMPANY';
+  if (issue.message === 'INVALID_BANK_CODE') return 'INVALID_BANK_CODE';
+  if (issue.message === 'INVALID_EASY_PAY_PROVIDER') return 'INVALID_EASY_PAY_PROVIDER';
+  if (issue.message === 'POLICY_AGREEMENT_REQUIRED') return 'POLICY_AGREEMENT_REQUIRED';
+
+  if (path === 'cardCompany') return 'INVALID_CARD_COMPANY';
+  if (path === 'bankCode') return 'INVALID_BANK_CODE';
+  if (path === 'easyPayProvider') return 'INVALID_EASY_PAY_PROVIDER';
+  if (path === 'isPolicyAgreed') return 'POLICY_AGREEMENT_REQUIRED';
+
+  return 'INVALID_INPUT';
+}
+
 function extractAdditionalPrice(optionData: unknown): number {
   const list = Array.isArray(optionData) ? optionData : optionData && typeof optionData === 'object' ? [optionData] : [];
   return list.reduce((sum, item) => {
@@ -24,6 +48,86 @@ function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNul
   return value as Prisma.InputJsonValue;
 }
 
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    const sessionEmail = session?.user?.email ?? null;
+
+    if (!sessionEmail) {
+      return jsonError(401, 'UNAUTHORIZED', 'authentication required.');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: sessionEmail },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return jsonError(401, 'UNAUTHORIZED', 'authentication required.');
+    }
+
+    const url = new URL(request.url);
+    const page = parsePositiveInt(url.searchParams.get('page'), 1);
+    const size = Math.min(parsePositiveInt(url.searchParams.get('size'), 20), 100);
+    const skip = (page - 1) * size;
+
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where: { userId: user.id } }),
+      prisma.order.findMany({
+        where: { userId: user.id },
+        select: {
+          id: true,
+          productType: true,
+          receiveMethod: true,
+          receiverName: true,
+          receiverPhone: true,
+          deliveryZipCode: true,
+          deliveryAddressMain: true,
+          deliveryAddressDetail: true,
+          deliveryMessage: true,
+          ordererName: true,
+          ordererPhone: true,
+          paymentMethod: true,
+          cardCompany: true,
+          bankCode: true,
+          easyPayProvider: true,
+          paymentStatus: true,
+          fulfillmentStatus: true,
+          paymentAmount: true,
+          createdAt: true,
+          items: {
+            select: {
+              productId: true,
+              quantity: true,
+              price: true,
+              optionData: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: size,
+      }),
+    ]);
+
+    return NextResponse.json({
+      status: 'success',
+      data: {
+        orders,
+        pagination: {
+          page,
+          size,
+          total,
+          totalPages: Math.ceil(total / size),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Shop order list error:', error);
+    return jsonError(500, 'SERVER_ERROR', 'server internal error.');
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -33,7 +137,8 @@ export async function POST(request: Request) {
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {
       const firstIssue = parsed.error.issues[0];
-      return jsonError(400, 'INVALID_INPUT', firstIssue?.message ?? 'invalid request body');
+      const code = mapValidationIssueToErrorCode(firstIssue ?? {});
+      return jsonError(400, code, firstIssue?.message ?? 'invalid request body');
     }
 
     const data = parsed.data;
@@ -82,6 +187,11 @@ export async function POST(request: Request) {
     }
 
     const productMap = new Map(products.map((product) => [product.id, product]));
+    const productTypes = new Set(products.map((product) => product.type));
+    if (productTypes.size > 1) {
+      return jsonError(400, 'MIXED_PRODUCT_TYPE_NOT_ALLOWED', 'fund and buyNow products cannot be ordered together.');
+    }
+
     const now = new Date();
 
     for (const product of products) {
@@ -101,10 +211,6 @@ export async function POST(request: Request) {
 
     if (isFund && data.paymentMethod === 2) {
       return jsonError(400, 'INVALID_PAYMENT_METHOD', 'easy pay is not allowed for fund.');
-    }
-
-    if (isBuyNow && data.receiveMethod !== 1) {
-      return jsonError(400, 'INVALID_RECEIVE_METHOD', 'buyNow supports pickup only.');
     }
 
     if ((isBuyNow || isFundPickup) && data.isPolicyAgreed !== true) {
@@ -148,6 +254,9 @@ export async function POST(request: Request) {
           ordererName,
           ordererPhone,
           paymentMethod: data.paymentMethod,
+          cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
+          bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
+          easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
           paymentStatus: 0,
           fulfillmentStatus: null,
           paymentAmount,
@@ -156,7 +265,18 @@ export async function POST(request: Request) {
           id: true,
           productType: true,
           receiveMethod: true,
+          receiverName: true,
+          receiverPhone: true,
+          deliveryZipCode: true,
+          deliveryAddressMain: true,
+          deliveryAddressDetail: true,
+          deliveryMessage: true,
+          ordererName: true,
+          ordererPhone: true,
           paymentMethod: true,
+          cardCompany: true,
+          bankCode: true,
+          easyPayProvider: true,
           paymentStatus: true,
           fulfillmentStatus: true,
           paymentAmount: true,

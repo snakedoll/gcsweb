@@ -1,11 +1,12 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
+import Dropdown from '@/components/ui/button/Dropdown';
 
 type CartApiItem = {
   cartItemId: string;
@@ -52,7 +53,17 @@ type OrderLineItem = {
 const TAG_BASE_CLASS =
   'inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7';
 
-function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string; additionalPrice?: number }> {
+const CARD_COMPANY_ITEMS = [
+  { label: '비씨', value: '0' },
+  { label: '우리', value: '1' },
+];
+
+const BANK_CODE_ITEMS = [
+  { label: '기업', value: '0' },
+  { label: '신한', value: '1' },
+];
+
+function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string }> {
   if (!value || typeof value !== 'object') return [];
   return Array.isArray(value) ? value : [value];
 }
@@ -67,9 +78,9 @@ function toOptionText(options: ReturnType<typeof parseOptions>) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '-';
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function OrderLineCard({ item }: { item: OrderLineItem }) {
@@ -86,7 +97,7 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
           </div>
           <div className="flex items-center gap-1">
             <span className={TAG_BASE_CLASS}>Fund</span>
-            <span className={TAG_BASE_CLASS}>현장 수령</span>
+            <span className={TAG_BASE_CLASS}>현장수령</span>
           </div>
           <div className="h-px w-full border-t border-dashed border-neutral-5" />
           <p className="typo-body-xsmall-bold text-neutral-11">{item.priceText}</p>
@@ -98,17 +109,32 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
 
 export default function ShopOrdersPickupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [receiverName, setReceiverName] = useState('');
   const [receiverPhone, setReceiverPhone] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<0 | 1 | null>(null);
+  const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
+  const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [isAgreed, setIsAgreed] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
   const [pickupLocation, setPickupLocation] = useState<string | null>(null);
   const [pickupStartDate, setPickupStartDate] = useState<string | null>(null);
   const [pickupEndDate, setPickupEndDate] = useState<string | null>(null);
+  const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
+
+  const selectedCartItemIds = useMemo(() => {
+    const raw = searchParams.get('cartItemIds')?.trim();
+    if (!raw) return null;
+    const ids = raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,8 +156,11 @@ export default function ShopOrdersPickupPage() {
         const rows = ((cartJson?.data?.cartItems ?? []) as CartApiItem[]).filter(
           (row) => row.type === 0 && row.receiveMethod === 1 && typeof row.productId === 'string'
         );
+        const scopedRows = selectedCartItemIds
+          ? rows.filter((row) => selectedCartItemIds.has(String(row.cartItemId)))
+          : rows;
 
-        const mapped: OrderLineItem[] = rows.map((row) => {
+        const mapped: OrderLineItem[] = scopedRows.map((row) => {
           const options = parseOptions(row.options);
           return {
             id: row.cartItemId,
@@ -146,6 +175,7 @@ export default function ShopOrdersPickupPage() {
             imageUrl: row.thumbnailUrl ?? '',
           };
         });
+
         if (!cancelled) setItems(mapped);
 
         if (profileRes.ok) {
@@ -156,16 +186,16 @@ export default function ShopOrdersPickupPage() {
           }
         }
 
-        const firstProductId = rows[0]?.productId;
+        const firstProductId = scopedRows[0]?.productId;
         if (firstProductId) {
           const productRes = await fetch(`/api/v1/shop/products/${firstProductId}`, { cache: 'no-store' });
           if (productRes.ok) {
             const productJson = (await productRes.json().catch(() => ({}))) as ProductDetailResponse;
-            const p = productJson?.data?.product;
+            const product = productJson?.data?.product;
             if (!cancelled) {
-              setPickupLocation(p?.pickupLocation ?? null);
-              setPickupStartDate(p?.pickupStartDate ?? null);
-              setPickupEndDate(p?.pickupEndDate ?? null);
+              setPickupLocation(product?.pickupLocation ?? null);
+              setPickupStartDate(product?.pickupStartDate ?? null);
+              setPickupEndDate(product?.pickupEndDate ?? null);
             }
           }
         }
@@ -178,23 +208,23 @@ export default function ShopOrdersPickupPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, selectedCartItemIds]);
 
-  const totalPriceText = useMemo(() => {
-    const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    return `${total.toLocaleString('ko-KR')}원`;
-  }, [items]);
-
+  const calculatedTotal = useMemo(() => items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [items]);
+  const displayedTotal = confirmedPaymentAmount ?? calculatedTotal;
+  const totalPriceText = `${displayedTotal.toLocaleString('ko-KR')}원`;
   const pickupPeriodText = `${formatDate(pickupStartDate)} ~ ${formatDate(pickupEndDate)}`;
 
   const isPayEnabled =
     items.length > 0 &&
     receiverName.trim().length > 0 &&
     receiverPhone.trim().length > 0 &&
+    paymentMethod !== null &&
+    ((paymentMethod === 0 && cardCompany !== null) || (paymentMethod === 1 && bankCode !== null)) &&
     isAgreed;
 
   const handleSubmit = async () => {
-    if (!isPayEnabled || isSubmitting) return;
+    if (!isPayEnabled || isSubmitting || paymentMethod === null) return;
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -207,6 +237,9 @@ export default function ShopOrdersPickupPage() {
         ordererName: receiverName.trim(),
         ordererPhone: receiverPhone.trim(),
         paymentMethod,
+        cardCompany: paymentMethod === 0 ? cardCompany : null,
+        bankCode: paymentMethod === 1 ? bankCode : null,
+        easyPayProvider: null,
         isPolicyAgreed: true,
         items: items.map((item) => ({
           productId: item.productId,
@@ -226,6 +259,11 @@ export default function ShopOrdersPickupPage() {
       if (!res.ok || json?.status !== 'success') {
         setSubmitError(json?.message ?? '주문 생성에 실패했습니다.');
         return;
+      }
+
+      const serverAmount = Number(json?.data?.order?.paymentAmount);
+      if (Number.isFinite(serverAmount)) {
+        setConfirmedPaymentAmount(serverAmount);
       }
 
       window.alert('주문이 생성되었습니다.');
@@ -286,23 +324,51 @@ export default function ShopOrdersPickupPage() {
           <div className="flex gap-3">
             <Button
               size="s"
-              color="white"
-              status={paymentMethod === 0 ? 'activated' : 'default'}
+              color={paymentMethod === 0 ? 'orange' : 'white'}
+              status="default"
               className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(0)}
+              onClick={() => {
+                setPaymentMethod(0);
+                setBankCode(null);
+              }}
             >
               신용카드
             </Button>
             <Button
               size="s"
-              color="white"
-              status={paymentMethod === 1 ? 'activated' : 'default'}
+              color={paymentMethod === 1 ? 'orange' : 'white'}
+              status="default"
               className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(1)}
+              onClick={() => {
+                setPaymentMethod(1);
+                setCardCompany(null);
+              }}
             >
               가상계좌
             </Button>
           </div>
+          {paymentMethod === 0 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={cardCompany === null ? 'default' : 'selected'}
+              placeholder="카드 선택"
+              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+              items={CARD_COMPANY_ITEMS}
+              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+            />
+          ) : null}
+          {paymentMethod === 1 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={bankCode === null ? 'default' : 'selected'}
+              placeholder="은행 선택"
+              value={bankCode === null ? undefined : BANK_CODE_ITEMS.find((x) => x.value === String(bankCode))?.label}
+              items={BANK_CODE_ITEMS}
+              onSelect={(value) => setBankCode(Number(value) as 0 | 1)}
+            />
+          ) : null}
         </section>
 
         <section className="rounded-2xl bg-neutral-2 p-4">
@@ -323,7 +389,7 @@ export default function ShopOrdersPickupPage() {
               <br />
               해당 사유로는 환불이 불가합니다.
             </p>
-            <CheckboxButton checked={isAgreed} onChange={setIsAgreed} label="확인했습니다." className="mt-1" />
+            <CheckboxButton checked={isAgreed} onChange={setIsAgreed} label="확인하였습니다." className="mt-1" />
           </div>
         </section>
 
@@ -341,4 +407,3 @@ export default function ShopOrdersPickupPage() {
     </div>
   );
 }
-

@@ -192,7 +192,7 @@ export default function ShopDetailPage() {
   const [showFundConflictModal, setShowFundConflictModal] = useState(false);
   const [pendingSheetAction, setPendingSheetAction] = useState<PendingSheetAction | null>(null);
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null);
-  const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([null, null]);
+  const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([]);
   const [sheetQuantity, setSheetQuantity] = useState(1);
 
   useEffect(() => {
@@ -271,7 +271,7 @@ export default function ShopDetailPage() {
       ];
     }
 
-    return (product?.options ?? []).slice(0, 2).map((option) => ({
+    return (product?.options ?? []).map((option) => ({
       name: option.name || '옵션',
       values: (option.values ?? []).map((value) => ({
         value: value.value,
@@ -317,7 +317,7 @@ export default function ShopDetailPage() {
   useEffect(() => {
     if (!product?.id) return;
     setOpenOptionIndex(null);
-    setSelectedOptionValues([null, null]);
+    setSelectedOptionValues(new Array(sheetOptions.length).fill(null));
     setSheetQuantity(1);
     setSheetMode('none');
     setShowCartAddedModal(false);
@@ -325,7 +325,7 @@ export default function ShopDetailPage() {
     setShowFundAchievedModal(false);
     setShowFundConflictModal(false);
     setPendingSheetAction(null);
-  }, [product?.id]);
+  }, [product?.id, sheetOptions.length]);
 
   const buildOptionData = () => {
     return requiredOptionIndexes.map((index) => {
@@ -369,12 +369,17 @@ export default function ShopDetailPage() {
     return res.ok;
   };
 
-  const resolveOrderPagePath = (target: ShopProductDetail) => {
+  const resolveOrderPagePath = (target: ShopProductDetail, cartItemId?: string | number | null) => {
+    const query =
+      cartItemId !== undefined && cartItemId !== null
+        ? `?cartItemIds=${encodeURIComponent(String(cartItemId))}`
+        : '';
+
     if (target.type === 0) {
-      return target.receiveMethod === 0 ? '/shop/orders' : '/shop/orders/pickup';
+      return target.receiveMethod === 0 ? `/shop/orders${query}` : `/shop/orders/pickup${query}`;
     }
     if (target.type === 1) {
-      return '/shop/orders/buynow';
+      return `/shop/orders/buynow${query}`;
     }
     return '/cart';
   };
@@ -426,7 +431,11 @@ export default function ShopDetailPage() {
         return;
       }
 
-      const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        status?: string;
+        message?: string;
+        data?: { cartItemId?: string | number };
+      };
       if (!res.ok || json.status !== 'success') {
         throw new Error(json.message ?? (action.mode === 'cart' ? '장바구니 담기 중 오류가 발생했습니다.' : '주문 처리 중 오류가 발생했습니다.'));
       }
@@ -439,7 +448,7 @@ export default function ShopDetailPage() {
       if (action.mode === 'cart') {
         setShowCartAddedModal(true);
       } else {
-        router.push(resolveOrderPagePath(product));
+        router.push(resolveOrderPagePath(product, json?.data?.cartItemId ?? null));
       }
     } catch (error) {
       window.alert(error instanceof Error ? error.message : '요청 처리 중 오류가 발생했습니다.');
@@ -518,7 +527,7 @@ export default function ShopDetailPage() {
       return;
     }
 
-    setSelectedOptionValues([null, null]);
+    setSelectedOptionValues(new Array(sheetOptions.length).fill(null));
     setSheetQuantity(1);
     setOpenOptionIndex(null);
     setSheetMode('cart');
@@ -539,7 +548,7 @@ export default function ShopDetailPage() {
       return;
     }
 
-    setSelectedOptionValues([null, null]);
+    setSelectedOptionValues(new Array(sheetOptions.length).fill(null));
     setSheetQuantity(1);
     setOpenOptionIndex(null);
     setSheetMode('order');
