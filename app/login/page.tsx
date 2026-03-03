@@ -173,7 +173,15 @@ function LoginContent() {
 
               <button
                 type="button"
-                onClick={() => signIn('kakao', { callbackUrl: '/' })}
+                onClick={async () => {
+                  const res = await signIn('kakao', { callbackUrl: '/', redirect: false });
+                  if (res?.url) {
+                    window.location.href = res.url;
+                  } else if (res?.error) {
+                    console.error('Kakao signIn error:', res.error);
+                    alert('카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+                  }
+                }}
                 className={cn(
                   'flex h-[45px] w-full items-center justify-center gap-2 rounded-lg bg-[#fee500] text-[#191600]',
                   'typo-body-small-bold'
