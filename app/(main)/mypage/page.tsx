@@ -178,13 +178,14 @@ export default function MypagePage() {
         console.error(err);
         alert('업로드 중 오류가 발생했습니다.');
       }
+      target.value = '';
     };
 
     for (const input of inputs) input.addEventListener('change', handler);
     return () => {
       for (const input of inputs) input.removeEventListener('change', handler);
     };
-  }, [router, queryClient]);
+  }, [router, queryClient, update]);
 
   if (isLoading || !isAuthenticated) {
     return (
