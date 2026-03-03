@@ -13,7 +13,7 @@ export function normalizeImageUrl(url: string | null | undefined): string | null
       parsed.hostname === '127.0.0.1' ||
       parsed.hostname === '0.0.0.0';
 
-    if (isLocalhost && parsed.pathname.startsWith('/uploads/')) {
+    if (isLocalhost && (parsed.pathname.startsWith('/uploads/') || parsed.pathname.startsWith('/api/v1/images/'))) {
       return `${parsed.pathname}${parsed.search}${parsed.hash}`;
     }
 

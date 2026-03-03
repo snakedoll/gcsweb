@@ -185,7 +185,7 @@ export async function PATCH(
 
     // If accountUrl provided and non-null, validate URL format
     if (accountUrl !== undefined && accountUrl !== null) {
-      if (!accountUrl.trim().startsWith('/uploads/')) {
+      if (!accountUrl.trim().startsWith('/')) {
         try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
       }
     }

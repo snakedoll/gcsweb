@@ -112,7 +112,7 @@ function ProductCard({ item }: { item: ProductItem }) {
       <div className={cn('flex w-full', isFund ? 'flex-col gap-4' : 'flex-col gap-2.5')}>
         <div className="flex w-full items-start justify-between gap-3">
           <div className="relative h-[125px] min-h-[125px] w-[100px] min-w-[100px] shrink-0 overflow-hidden rounded rounded-[4px] bg-neutral-4">
-            <Image src={thumbSrc} alt="" fill className="object-cover" sizes="100px" unoptimized={thumbSrc.startsWith('/uploads/')} />
+            <Image src={thumbSrc} alt="" fill className="object-cover" sizes="100px" unoptimized={thumbSrc.startsWith('/')} />
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-[7px] pl-3">
             <p className="typo-body-xsmall text-neutral-11">{item.teamName}</p>

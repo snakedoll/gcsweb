@@ -440,12 +440,15 @@ model ReviewImage {
 // ============================================
 
 model Image {
-  id       String @id @default(cuid()) @map("imageId")
-  usage    String
-  fileSize Int
-  mimeType String
-  imageUrl String
+  id        String   @id @default(cuid()) @map("imageId")
+  usage     String
+  fileSize  Int
+  mimeType  String
+  imageUrl  String   @default("")
+  data      Bytes?
+  createdAt DateTime @default(now())
 
+  @@index([usage])
   @@map("Image")
 }
 

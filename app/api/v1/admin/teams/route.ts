@@ -148,7 +148,7 @@ export async function POST(request: Request) {
       if (!accountUrl || typeof accountUrl !== 'string') {
         return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: '판매팀 등록에는 accountUrl이 필요합니다.' }, { status: 400 });
       }
-      if (!accountUrl.trim().startsWith('/uploads/')) {
+      if (!accountUrl.trim().startsWith('/')) {
         try { new URL(accountUrl); } catch { return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'accountUrl이 올바른 URL이 아닙니다.' }, { status: 400 }); }
       }
     }
