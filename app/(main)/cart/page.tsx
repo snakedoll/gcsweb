@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/hooks/useUser';
+import Modal from '@/components/ui/common/Modal';
 
 function MinusIcon({ disabled = false }: { disabled?: boolean }) {
   const lineColor = disabled ? '#DDDCDB' : '#6C6764';
@@ -290,6 +291,7 @@ export default function CartPage() {
   const { isAuthenticated, isLoading } = useUser();
   const [items, setItems] = useState<CartItem[]>([]);
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
+  const [orderWarningMessage, setOrderWarningMessage] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [showSoldOut, setShowSoldOut] = useState(true);
   const [showSalesEnded, setShowSalesEnded] = useState(true);
@@ -436,6 +438,37 @@ export default function CartPage() {
 
   function deleteSelected() {
     deleteSelectedItems();
+  }
+
+  function handleOrderSelected() {
+    if (!hasSelected) return;
+
+    const first = selectedActiveItems[0];
+    if (!first) return;
+
+    const isSameGroup = selectedActiveItems.every(
+      (item) => item.type === first.type && item.receiveMethod === first.receiveMethod
+    );
+    if (!isSameGroup) {
+      setOrderWarningMessage('서로 다른 주문 유형의 상품은 동시에 주문할 수 없습니다.');
+      return;
+    }
+
+    const cartItemIds = selectedActiveItems.map((item) => item.id).join(',');
+    const query = `?cartItemIds=${encodeURIComponent(cartItemIds)}`;
+
+    if (first.type === 0) {
+      const route = first.receiveMethod === 1 ? '/shop/orders/pickup' : '/shop/orders';
+      router.push(`${route}${query}`);
+      return;
+    }
+
+    if (first.type === 1) {
+      router.push(`/shop/orders/buynow${query}`);
+      return;
+    }
+
+    setOrderWarningMessage('해당 상품 유형은 주문을 지원하지 않습니다.');
   }
 
   
@@ -610,10 +643,7 @@ export default function CartPage() {
             <button
               className={`w-full text-[15px] font-bold leading-[1.5] py-4 rounded-lg flex items-center justify-center ${hasSelected ? 'bg-[#3f3835] text-[#fdfdfd] cursor-pointer' : 'bg-[#DDDCDB] text-[#999694] cursor-not-allowed'}`}
               disabled={!hasSelected}
-              onClick={() => {
-                if (!hasSelected) return;
-                alert('선택한 상품으로 주문 진행(샘플)');
-              }}
+              onClick={handleOrderSelected}
             >
               {'주문하기'}
             </button>
@@ -638,7 +668,11 @@ export default function CartPage() {
                 </span>
               </div>
               <div className="px-5">
-                <button className="w-full bg-[#3f3835] text-[#fdfdfd] text-[15px] font-bold leading-[1.5] p-4 rounded-lg flex items-center justify-center cursor-pointer gap-1">
+                <button
+                  className={`w-full text-[15px] font-bold leading-[1.5] p-4 rounded-lg flex items-center justify-center gap-1 ${hasSelected ? 'bg-[#3f3835] text-[#fdfdfd] cursor-pointer' : 'bg-[#DDDCDB] text-[#999694] cursor-not-allowed'}`}
+                  disabled={!hasSelected}
+                  onClick={handleOrderSelected}
+                >
                   {totalCount}개 주문하기
                 </button>
               </div>
@@ -649,6 +683,18 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {orderWarningMessage ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+          <Modal
+            variant="one button"
+            className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+            title={orderWarningMessage}
+            confirmText="확인"
+            onConfirm={() => setOrderWarningMessage(null)}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

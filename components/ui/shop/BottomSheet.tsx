@@ -59,16 +59,6 @@ export default function BottomSheet({
 }: BottomSheetProps) {
   const isSelected = variant === '선택';
   const isOrderBlocked = variant === '주문 불가';
-  const isOption1Opened = openOptionIndex === 0;
-  const isOption2Opened = openOptionIndex === 1;
-
-  const firstLabel = options[0]?.name ?? '옵션 1';
-  const secondLabel = options[1]?.name ?? '옵션 2';
-
-  const firstSelected = selectedValues[0] ?? null;
-  const secondSelected = selectedValues[1] ?? null;
-  const firstHasValue = Boolean(firstSelected);
-  const secondHasValue = Boolean(secondSelected);
 
   const canDecrease = quantity > 1;
 
@@ -80,43 +70,35 @@ export default function BottomSheet({
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-[5px]">
-              <Dropdown
-                label=""
-                size="l"
-                state={isOption1Opened ? 'open' : firstHasValue ? 'selected' : 'default'}
-                placeholder={firstLabel}
-                value={firstSelected ?? undefined}
-                items={(options[0]?.values ?? []).map((value) => ({
-                  label: value.value,
-                  value: value.value,
-                }))}
-                open={isOption1Opened}
-                onToggle={() => !isOrderBlocked && onOptionToggle?.(0)}
-                onSelect={(value) => onOptionSelect?.(0, value)}
-                className="gap-[5px]"
-              />
-            </div>
+          {options.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {options.map((option, index) => {
+                const selected = selectedValues[index] ?? null;
+                const hasValue = Boolean(selected);
+                const isOpened = openOptionIndex === index;
 
-            <div className="flex flex-col gap-[5px]">
-              <Dropdown
-                label=""
-                size="l"
-                state={isOption2Opened ? 'open' : secondHasValue ? 'selected' : 'default'}
-                placeholder={secondLabel}
-                value={secondSelected ?? undefined}
-                items={(options[1]?.values ?? []).map((value) => ({
-                  label: value.value,
-                  value: value.value,
-                }))}
-                open={isOption2Opened}
-                onToggle={() => !isOrderBlocked && onOptionToggle?.(1)}
-                onSelect={(value) => onOptionSelect?.(1, value)}
-                className="gap-[5px]"
-              />
+                return (
+                  <div key={`${option.name}-${index}`} className="flex flex-col gap-[5px]">
+                    <Dropdown
+                      label=""
+                      size="l"
+                      state={isOpened ? 'open' : hasValue ? 'selected' : 'default'}
+                      placeholder={option.name || `옵션 ${index + 1}`}
+                      value={selected ?? undefined}
+                      items={(option.values ?? []).map((value) => ({
+                        label: value.value,
+                        value: value.value,
+                      }))}
+                      open={isOpened}
+                      onToggle={() => !isOrderBlocked && onOptionToggle?.(index)}
+                      onSelect={(value) => onOptionSelect?.(index, value)}
+                      className="gap-[5px]"
+                    />
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          ) : null}
 
           {isOrderBlocked ? (
             <p className="typo-body-small whitespace-pre-line text-neutral-7">

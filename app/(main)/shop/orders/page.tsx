@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
+import Dropdown from '@/components/ui/button/Dropdown';
 
 type CartApiItem = {
   cartItemId: string;
@@ -38,9 +39,19 @@ type OrderLineItem = {
 };
 
 const TAG_BASE_CLASS =
-  'inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7';
+  'inline-flex items-center justify-center rounded-[4px] bg-orange-4 px-[5px] typo-body-xsmall text-neutral-2';
 
-function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string; additionalPrice?: number }> {
+const CARD_COMPANY_ITEMS = [
+  { label: '비씨', value: '0' },
+  { label: '우리', value: '1' },
+];
+
+const BANK_CODE_ITEMS = [
+  { label: '기업', value: '0' },
+  { label: '신한', value: '1' },
+];
+
+function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string }> {
   if (!value || typeof value !== 'object') return [];
   return Array.isArray(value) ? value : [value];
 }
@@ -59,16 +70,21 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
       <div className="flex w-full gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={item.imageUrl} alt={item.title} className="h-[100px] w-20 rounded-[4px] object-cover" />
+
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div>
-            <p className="typo-body-small text-neutral-8">{item.brand}</p>
-            <p className="typo-body-small-bold text-neutral-12">{item.title}</p>
-            <p className="typo-body-xsmall text-neutral-11">{item.optionText}</p>
+          <div className="space-y-[5px]">
+            <div className="space-y-[1px] leading-[1.5]">
+              <p className="typo-body-xsmall text-neutral-11">{item.brand}</p>
+              <p className="typo-body-medium-bold text-neutral-12">{item.title}</p>
+              <p className="typo-body-xsmall text-neutral-11">{item.optionText}</p>
+            </div>
+
+            <div className="flex items-center gap-[5px]">
+              <span className={TAG_BASE_CLASS}>Fund</span>
+              <span className={TAG_BASE_CLASS}>택배배송</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <span className={TAG_BASE_CLASS}>Fund</span>
-            <span className={TAG_BASE_CLASS}>택배 배송</span>
-          </div>
+
           <div className="h-px w-full border-t border-dashed border-neutral-5" />
           <p className="typo-body-xsmall-bold text-neutral-11">{item.priceText}</p>
         </div>
@@ -79,6 +95,8 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
 
 export default function ShopOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -91,6 +109,19 @@ export default function ShopOrdersPage() {
   const [addressDetail, setAddressDetail] = useState('');
   const [deliveryMessage, setDeliveryMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
+  const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
+  const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
+  const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
+
+  const selectedCartItemIds = useMemo(() => {
+    const raw = searchParams.get('cartItemIds')?.trim();
+    if (!raw) return null;
+    const ids = raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,9 +143,14 @@ export default function ShopOrdersPage() {
         const rows = ((cartJson?.data?.cartItems ?? []) as CartApiItem[]).filter(
           (row) => row.type === 0 && row.receiveMethod === 0 && typeof row.productId === 'string'
         );
+        const scopedRows = selectedCartItemIds
+          ? rows.filter((row) => selectedCartItemIds.has(String(row.cartItemId)))
+          : rows;
 
-        const mapped: OrderLineItem[] = rows.map((row) => {
+        const mapped: OrderLineItem[] = scopedRows.map((row) => {
           const options = parseOptions(row.options);
+          const optionText = toOptionText(options);
+
           return {
             id: row.cartItemId,
             productId: row.productId as string,
@@ -123,7 +159,7 @@ export default function ShopOrdersPage() {
             optionData: row.options ?? null,
             brand: row.teamName ?? '',
             title: row.productName ?? '',
-            optionText: `${toOptionText(options)} / ${row.quantity ?? 1}개`,
+            optionText: `${optionText ? `${optionText} / ` : ''}${row.quantity ?? 1}개`,
             priceText: `${Number((row.price ?? 0) * (row.quantity ?? 1)).toLocaleString('ko-KR')}원`,
             imageUrl: row.thumbnailUrl ?? '',
           };
@@ -147,12 +183,11 @@ export default function ShopOrdersPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, selectedCartItemIds]);
 
-  const totalPriceText = useMemo(() => {
-    const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    return `${total.toLocaleString('ko-KR')}원`;
-  }, [items]);
+  const calculatedTotal = useMemo(() => items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [items]);
+  const displayedTotal = confirmedPaymentAmount ?? calculatedTotal;
+  const totalPriceText = `${displayedTotal.toLocaleString('ko-KR')}원`;
 
   const isPayEnabled =
     items.length > 0 &&
@@ -161,13 +196,15 @@ export default function ShopOrdersPage() {
     zipCode.trim().length > 0 &&
     addressMain.trim().length > 0 &&
     addressDetail.trim().length > 0 &&
-    deliveryMessage.trim().length > 0;
+    deliveryMessage.trim().length > 0 &&
+    ((paymentMethod === 0 && cardCompany !== null) || (paymentMethod === 1 && bankCode !== null));
 
   const handleSubmit = async () => {
     if (!isPayEnabled || isSubmitting) return;
 
     setSubmitError(null);
     setIsSubmitting(true);
+
     try {
       const payload = {
         productType: 0 as const,
@@ -181,6 +218,9 @@ export default function ShopOrdersPage() {
         ordererName: receiverName.trim(),
         ordererPhone: receiverPhone.trim(),
         paymentMethod,
+        cardCompany: paymentMethod === 0 ? cardCompany : null,
+        bankCode: paymentMethod === 1 ? bankCode : null,
+        easyPayProvider: null,
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -194,11 +234,17 @@ export default function ShopOrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.status !== 'success') {
         setSubmitError(json?.message ?? '주문 생성에 실패했습니다.');
         return;
+      }
+
+      const paymentAmount = Number(json?.data?.order?.paymentAmount);
+      if (Number.isFinite(paymentAmount)) {
+        setConfirmedPaymentAmount(paymentAmount);
       }
 
       window.alert('주문이 생성되었습니다.');
@@ -209,7 +255,11 @@ export default function ShopOrdersPage() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-neutral-3 text-neutral-9">주문 정보를 불러오는 중입니다.</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-3 text-neutral-9">
+        주문 정보를 불러오는 중입니다.
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -256,61 +306,99 @@ export default function ShopOrdersPage() {
 
         <section className="space-y-4">
           <h2 className="typo-body-medium-bold text-neutral-10">배송 정보</h2>
-          <div className="flex items-end gap-4">
-            <div className="min-w-0 flex-1">
-              <TextField
-                id="delivery-zip"
-                label="배송지"
-                placeholder="우편번호"
-                inputProps={{ value: zipCode, onChange: (e) => setZipCode(e.target.value) }}
-              />
+
+          <div className="space-y-3">
+            <div className="flex items-end gap-4">
+              <div className="min-w-0 flex-1">
+                <TextField
+                  id="delivery-zip"
+                  label="배송지"
+                  placeholder="우편번호"
+                  state={zipCode ? 'filled' : 'default'}
+                  inputProps={{ value: zipCode, onChange: (e) => setZipCode(e.target.value) }}
+                />
+              </div>
+              <Button size="s" color="black" className="h-[39px] w-auto px-5">
+                검색
+              </Button>
             </div>
-            <Button size="s" color="black" className="w-auto px-5">
-              검색
-            </Button>
+
+            <TextField
+              id="delivery-address-main"
+              label=""
+              placeholder="주소"
+              state={addressMain ? 'filled' : 'default'}
+              inputProps={{ value: addressMain, onChange: (e) => setAddressMain(e.target.value) }}
+            />
+            <TextField
+              id="delivery-address-detail"
+              label=""
+              placeholder="상세 주소"
+              state={addressDetail ? 'filled' : 'default'}
+              inputProps={{ value: addressDetail, onChange: (e) => setAddressDetail(e.target.value) }}
+            />
+            <TextField
+              id="delivery-message"
+              label=""
+              placeholder="배송 메세지를 입력하세요."
+              inputProps={{ value: deliveryMessage, onChange: (e) => setDeliveryMessage(e.target.value) }}
+            />
           </div>
-          <TextField
-            id="delivery-address-main"
-            label=""
-            placeholder="주소"
-            inputProps={{ value: addressMain, onChange: (e) => setAddressMain(e.target.value) }}
-          />
-          <TextField
-            id="delivery-address-detail"
-            label=""
-            placeholder="상세 주소"
-            inputProps={{ value: addressDetail, onChange: (e) => setAddressDetail(e.target.value) }}
-          />
-          <TextField
-            id="delivery-message"
-            label=""
-            placeholder="배송 메시지를 입력하세요."
-            inputProps={{ value: deliveryMessage, onChange: (e) => setDeliveryMessage(e.target.value) }}
-          />
         </section>
 
         <section className="space-y-3">
           <h2 className="typo-body-medium-bold text-neutral-10">결제수단</h2>
+
           <div className="flex gap-3">
             <Button
               size="s"
-              color="white"
-              status={paymentMethod === 0 ? 'activated' : 'default'}
+              color={paymentMethod === 0 ? 'orange' : 'white'}
+              status="default"
               className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(0)}
+              onClick={() => {
+                setPaymentMethod(0);
+                setBankCode(null);
+              }}
             >
               신용카드
             </Button>
             <Button
               size="s"
-              color="white"
-              status={paymentMethod === 1 ? 'activated' : 'default'}
+              color={paymentMethod === 1 ? 'orange' : 'white'}
+              status="default"
               className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(1)}
+              onClick={() => {
+                setPaymentMethod(1);
+                setCardCompany(null);
+              }}
             >
               가상계좌
             </Button>
           </div>
+
+          {paymentMethod === 0 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={cardCompany === null ? 'default' : 'selected'}
+              placeholder="카드 선택"
+              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+              items={CARD_COMPANY_ITEMS}
+              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+            />
+          ) : null}
+
+          {paymentMethod === 1 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={bankCode === null ? 'default' : 'selected'}
+              placeholder="은행 선택"
+              value={bankCode === null ? undefined : BANK_CODE_ITEMS.find((x) => x.value === String(bankCode))?.label}
+              items={BANK_CODE_ITEMS}
+              onSelect={(value) => setBankCode(Number(value) as 0 | 1)}
+            />
+          ) : null}
         </section>
 
         <section className="space-y-4">
@@ -327,4 +415,3 @@ export default function ShopOrdersPage() {
     </div>
   );
 }
-

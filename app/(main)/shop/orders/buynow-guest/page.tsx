@@ -6,6 +6,7 @@ import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
+import Dropdown from '@/components/ui/button/Dropdown';
 
 type GuestOrderItem = {
   id: string;
@@ -22,6 +23,14 @@ type GuestOrderItem = {
 
 const TAG_BASE_CLASS =
   'inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7';
+const CARD_COMPANY_ITEMS = [
+  { label: '비씨', value: '0' },
+  { label: '우리', value: '1' },
+];
+const BANK_CODE_ITEMS = [
+  { label: '기업', value: '0' },
+  { label: '신한', value: '1' },
+];
 
 const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
 
@@ -58,6 +67,9 @@ export default function ShopOrdersBuyNowGuestPage() {
   const [ordererName, setOrdererName] = useState('');
   const [ordererPhone, setOrdererPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<0 | 1 | 2>(2);
+  const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
+  const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
+  const [easyPayProvider, setEasyPayProvider] = useState<0 | 1 | 2 | null>(null);
   const [isAgreed, setIsAgreed] = useState(false);
 
   useEffect(() => {
@@ -94,6 +106,9 @@ export default function ShopOrdersBuyNowGuestPage() {
     items.length > 0 &&
     ordererName.trim().length > 0 &&
     ordererPhone.trim().length > 0 &&
+    ((paymentMethod === 0 && cardCompany !== null) ||
+      (paymentMethod === 1 && bankCode !== null) ||
+      (paymentMethod === 2 && easyPayProvider !== null)) &&
     isAgreed;
 
   const handleSubmit = async () => {
@@ -107,6 +122,9 @@ export default function ShopOrdersBuyNowGuestPage() {
         ordererName: ordererName.trim(),
         ordererPhone: ordererPhone.trim(),
         paymentMethod,
+        cardCompany: paymentMethod === 0 ? cardCompany : null,
+        bankCode: paymentMethod === 1 ? bankCode : null,
+        easyPayProvider: paymentMethod === 2 ? easyPayProvider : null,
         isPolicyAgreed: true,
         items: items.map((item) => ({
           productId: item.productId,
@@ -184,35 +202,102 @@ export default function ShopOrdersBuyNowGuestPage() {
 
         <section className="space-y-3">
           <h2 className="typo-body-medium-bold text-neutral-10">결제수단</h2>
-          <div className="flex gap-3">
-            <Button
-              size="s"
-              color="white"
-              status={paymentMethod === 2 ? 'activated' : 'default'}
-              className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(2)}
-            >
-              간편결제
-            </Button>
-            <Button
-              size="s"
-              color="white"
-              status={paymentMethod === 0 ? 'activated' : 'default'}
-              className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(0)}
-            >
-              신용카드
-            </Button>
-            <Button
-              size="s"
-              color="white"
-              status={paymentMethod === 1 ? 'activated' : 'default'}
-              className="w-auto min-w-[79px]"
-              onClick={() => setPaymentMethod(1)}
-            >
-              가상계좌
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-3">
+              <Button
+                size="s"
+                color={paymentMethod === 2 && easyPayProvider === 1 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[87px]"
+                onClick={() => {
+                  setPaymentMethod(2);
+                  setEasyPayProvider(1);
+                  setCardCompany(null);
+                  setBankCode(null);
+                }}
+              >
+                네이버페이
+              </Button>
+              <Button
+                size="s"
+                color={paymentMethod === 2 && easyPayProvider === 0 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[87px]"
+                onClick={() => {
+                  setPaymentMethod(2);
+                  setEasyPayProvider(0);
+                  setCardCompany(null);
+                  setBankCode(null);
+                }}
+              >
+                카카오페이
+              </Button>
+              <Button
+                size="s"
+                color={paymentMethod === 2 && easyPayProvider === 2 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[87px]"
+                onClick={() => {
+                  setPaymentMethod(2);
+                  setEasyPayProvider(2);
+                  setCardCompany(null);
+                  setBankCode(null);
+                }}
+              >
+                토스페이
+              </Button>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                size="s"
+                color={paymentMethod === 0 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[79px]"
+                onClick={() => {
+                  setPaymentMethod(0);
+                  setBankCode(null);
+                  setEasyPayProvider(null);
+                }}
+              >
+                신용카드
+              </Button>
+              <Button
+                size="s"
+                color={paymentMethod === 1 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[79px]"
+                onClick={() => {
+                  setPaymentMethod(1);
+                  setCardCompany(null);
+                  setEasyPayProvider(null);
+                }}
+              >
+                가상계좌
+              </Button>
+            </div>
           </div>
+          {paymentMethod === 0 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={cardCompany === null ? 'default' : 'selected'}
+              placeholder="카드 선택"
+              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+              items={CARD_COMPANY_ITEMS}
+              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+            />
+          ) : null}
+          {paymentMethod === 1 ? (
+            <Dropdown
+              label=""
+              size="m"
+              state={bankCode === null ? 'default' : 'selected'}
+              placeholder="은행 선택"
+              value={bankCode === null ? undefined : BANK_CODE_ITEMS.find((x) => x.value === String(bankCode))?.label}
+              items={BANK_CODE_ITEMS}
+              onSelect={(value) => setBankCode(Number(value) as 0 | 1)}
+            />
+          ) : null}
         </section>
 
         <section className="rounded-2xl bg-neutral-2 p-4">
@@ -240,4 +325,3 @@ export default function ShopOrdersBuyNowGuestPage() {
     </div>
   );
 }
-
