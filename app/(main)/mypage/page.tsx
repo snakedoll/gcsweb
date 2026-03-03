@@ -66,6 +66,8 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
 export default function MypagePage() {
   const router = useRouter();
   const { profile, isLoading, isAuthenticated } = useUser();
+  const profileSettled = !isLoading && (profile !== undefined || !isAuthenticated);
+  const hasValidAuth = isAuthenticated && profile != null;
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -77,8 +79,12 @@ export default function MypagePage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/login');
+      return;
     }
-  }, [isLoading, isAuthenticated, router]);
+    if (profileSettled && isAuthenticated && profile == null) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, profile, profileSettled, router]);
 
   // 알림, 찜, 스크랩 개수 API 호출
   useEffect(() => {
@@ -179,7 +185,7 @@ export default function MypagePage() {
     };
   }, [router]);
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !hasValidAuth) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center">
         <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
