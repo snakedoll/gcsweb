@@ -200,6 +200,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const goalAmountNum =
+      typeof goalAmount === 'number'
+        ? goalAmount
+        : typeof goalAmount === 'string'
+          ? Number(goalAmount)
+          : NaN;
+    const resolvedGoalAmount =
+      !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
+
     const productData = {
       teamId,
       name: name.trim(),
@@ -207,7 +216,7 @@ export async function POST(request: Request) {
       type,
       status: 0,
       price: priceNum,
-      goalAmount: typeof goalAmount === 'number' && goalAmount >= 0 ? goalAmount : null,
+      goalAmount: resolvedGoalAmount,
       currentAmount: 0,
       salesStartDate: salesStart,
       salesEndDate: salesEnd,
@@ -276,7 +285,7 @@ export async function POST(request: Request) {
           type,
           status: 0,
           price: priceNum,
-          goalAmount: typeof goalAmount === 'number' && goalAmount >= 0 ? goalAmount : null,
+          goalAmount: resolvedGoalAmount,
           salesStartDate: salesStart,
           salesEndDate: salesEnd,
           productionStartDate: parseDate(productionStartDate) ?? undefined,

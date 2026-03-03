@@ -1,4 +1,4 @@
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 
 interface UserProfile {
@@ -14,9 +14,13 @@ interface UserProfile {
   createdAt: string;
 }
 
-async function fetchUserProfile(): Promise<UserProfile | null> {
+async function fetchUserProfile(on401?: () => void): Promise<UserProfile | null> {
   const res = await fetch('/api/user/profile');
-  if (res.status === 401 || res.status === 404) {
+  if (res.status === 401) {
+    on401?.();
+    return null;
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -30,7 +34,7 @@ export function useUser() {
   
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['user', 'profile'],
-    queryFn: fetchUserProfile,
+    queryFn: () => fetchUserProfile(() => signOut({ callbackUrl: '/login' })),
     enabled: !!session,
     retry: false,
   });

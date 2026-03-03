@@ -3,6 +3,7 @@
 import { Footer, NavBar } from '@/components/layout';
 import { MenuSection } from '@/components/ui';
 import { useUser } from '@/hooks/useUser';
+import { signOut } from 'next-auth/react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -97,8 +98,11 @@ export default function MypagePage() {
       }
 
       try {
-        // 찜한 상품 개수
         const likesRes = await fetch('/api/v1/mypage/likes/shop?page=1&size=1');
+        if (likesRes.status === 401) {
+          signOut({ callbackUrl: '/login' });
+          return;
+        }
         if (likesRes.ok) {
           const likesJson = await likesRes.json();
           setLikesCount(likesJson?.data?.totalCount ?? 0);
@@ -108,8 +112,11 @@ export default function MypagePage() {
       }
 
       try {
-        // 스크랩 개수
         const scrapsRes = await fetch('/api/v1/mypage/scraps/project?page=1&size=1');
+        if (scrapsRes.status === 401) {
+          signOut({ callbackUrl: '/login' });
+          return;
+        }
         if (scrapsRes.ok) {
           const scrapsJson = await scrapsRes.json();
           setScrapsCount(scrapsJson?.data?.totalCount ?? 0);
