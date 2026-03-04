@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       pickupStartDate?: string;
       pickupEndDate?: string;
       pickupLocation?: string;
-      price?: number;
+      price?: number | string;
       options?: { optionName: string; values: { value: string; extraPrice: number }[] }[];
       thumbnailImgUrl?: string;
       detailImgUrls?: string[];
