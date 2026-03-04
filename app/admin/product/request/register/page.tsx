@@ -312,7 +312,7 @@ export default function AdminProductRegisterRequestPage() {
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="relative mx-auto w-full max-w-[375px] bg-neutral-3">
         {toastKind ? <TopToast kind={toastKind} visible={toastVisible} /> : null}
-        <NavBar variant="title-back" title="등록 요청" />
+        <NavBar variant="title-back" title="등록 요청" onBack={() => router.push('/admin/product')} />
 
         <main className="pb-8 pt-[19px]">
           {!listLoading && !errorMessage && hasItems ? (
