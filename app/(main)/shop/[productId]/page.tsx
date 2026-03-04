@@ -194,6 +194,7 @@ export default function ShopDetailPage() {
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([]);
   const [sheetQuantity, setSheetQuantity] = useState(1);
+  const [togglingLike, setTogglingLike] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -505,6 +506,26 @@ export default function ShopDetailPage() {
     await executeAddToCart(action);
   };
 
+  const handleToggleLike = async () => {
+    if (!product || togglingLike) return;
+    if (!isAuthenticated) {
+      setShowLoginOrderModal(true);
+      return;
+    }
+    setTogglingLike(true);
+    try {
+      const res = await fetch(`/api/v1/shop/products/${product.id}/like`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.status === 'success') {
+        setProduct((prev) => prev ? { ...prev, isLiked: json.data?.isLiked ?? !prev.isLiked } : prev);
+      }
+    } catch (err) {
+      console.error('Like toggle failed:', err);
+    } finally {
+      setTogglingLike(false);
+    }
+  };
+
   const handleOrder = async () => {
     if (!product || orderDisabled || addingCart) return;
     if (product.type === 0 && !isAuthenticated) {
@@ -704,7 +725,7 @@ export default function ShopDetailPage() {
         {!loading && !errorMessage && product ? (
           <div className="sticky bottom-0 z-20 border-t border-neutral-4 bg-neutral-3 px-5 py-[13px]">
             <div className={cn('mx-auto flex w-full max-w-[375px] items-center', isPartnerUp ? 'gap-[23px]' : 'gap-5')}>
-              <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="찜">
+              <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="찜" onClick={handleToggleLike} disabled={togglingLike}>
                 <NeutralHeartIcon liked={product.isLiked} />
               </button>
 

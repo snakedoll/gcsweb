@@ -28,47 +28,36 @@ export async function GET(request: Request) {
       );
     }
 
-    const repo: any = prisma as any;
-    let projects: any[] = [];
-    let totalCount = 0;
-    try {
-      // Scrap 모델이 존재하면 사용, 없으면 빈 배열 반환
-      if (repo.scrap && typeof repo.scrap.findMany === 'function') {
-        totalCount = await repo.scrap.count({
-          where: { userId: user.id, projectId: { not: null } }
-        });
+    const totalCount = await prisma.scrap.count({
+      where: { userId: user.id, projectId: { not: null } }
+    });
 
-        const rows = await repo.scrap.findMany({
-          where: { userId: user.id, projectId: { not: null } },
-          orderBy: { createdAt: 'desc' },
-          skip: (page - 1) * size,
-          take: size + 1,
-          include: {
-            project: {
-              select: {
-                id: true,
-                title: true,
-                thumbnailUrl: true,
-              },
-            },
+    const rows = await prisma.scrap.findMany({
+      where: { userId: user.id, projectId: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * size,
+      take: size + 1,
+      include: {
+        project: {
+          select: {
+            id: true,
+            title: true,
+            thumbnailUrl: true,
           },
-        });
+        },
+      },
+    });
 
-        projects = rows
-          .map((r: any) => r.project)
-          .filter((p: any) => p)
-          .map((p: any) => ({
-            id: p.id,
-            teamName: null,
-            title: p.title,
-            thumbnailUrl: normalizeImageUrl(p.thumbnailUrl ?? null),
-            keywords: [],
-          }));
-      }
-    } catch (e) {
-      console.warn('Scraps project query failed or model missing:', e);
-      projects = [];
-    }
+    let projects = rows
+      .map((r: any) => r.project)
+      .filter((p: any) => p)
+      .map((p: any) => ({
+        id: p.id,
+        teamName: null,
+        title: p.title,
+        thumbnailUrl: normalizeImageUrl(p.thumbnailUrl ?? null),
+        keywords: [],
+      }));
 
     const hasNext = projects.length > size;
     if (hasNext) projects = projects.slice(0, size);

@@ -23,7 +23,6 @@ export async function GET() {
       profileImage: true,
       memberType: true,
       isSeller: true,
-      notificationCount: true,
       createdAt: true,
     },
   });
@@ -35,6 +34,13 @@ export async function GET() {
     );
   }
 
+  const unreadNotificationCount = await prisma.notification.count({
+    where: {
+      userId: session.user.id,
+      isRead: false,
+    },
+  });
+
   return NextResponse.json({
     id: user.id,
     email: user.email,
@@ -45,7 +51,7 @@ export async function GET() {
     role: Number(user.memberType) === 2 ? 'admin' : 'user',
     memberType: user.memberType,
     isSeller: user.isSeller,
-    notificationCount: user.notificationCount,
+    notificationCount: unreadNotificationCount,
     createdAt: user.createdAt.toISOString(),
   });
 }

@@ -31,7 +31,7 @@ async function fetchUserProfile(on401?: () => void): Promise<UserProfile | null>
 
 export function useUser() {
   const { data: session, status, update } = useSession();
-  
+
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['user', 'profile', session?.user?.id],
     queryFn: () => fetchUserProfile(() => signOut({ callbackUrl: '/login' })),

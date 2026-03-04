@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { BottomTabBar, NavBar } from '@/components/layout';
 import { ArchiveCard2, ProfileAvatar } from '@/components/ui';
+import { useUser } from '@/hooks/useUser';
 
 type ProjectMember = {
   userId: string | null;
@@ -111,11 +112,13 @@ export default function ArchiveProjectDetailPage({
   const router = useRouter();
   const projectId = params.projectId;
 
+  const { isAuthenticated } = useUser();
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [project, setProject] = useState<ArchiveProjectDetail | null>(null);
   const [relatedProjects, setRelatedProjects] = useState<ArchiveSectionProject[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [togglingScrap, setTogglingScrap] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,6 +191,27 @@ export default function ArchiveProjectDetailPage({
     router.push(`/archive/projects/${next.projectId}`);
   };
 
+  const handleToggleScrap = async () => {
+    if (!project || togglingScrap) return;
+    if (!isAuthenticated) {
+      alert('로그인이 필요한 서비스입니다.');
+      router.push('/login');
+      return;
+    }
+    setTogglingScrap(true);
+    try {
+      const res = await fetch(`/api/v1/archive/projects/${project.projectId}/scrap`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.status === 'success') {
+        setProject((prev) => prev ? { ...prev, isScrap: json.data?.isScraped ?? !prev.isScrap } : prev);
+      }
+    } catch (err) {
+      console.error('Scrap toggle failed:', err);
+    } finally {
+      setTogglingScrap(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-3">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
@@ -211,6 +235,7 @@ export default function ArchiveProjectDetailPage({
                     category={project.category}
                     imageSrc={project.thumbnailUrl}
                     selected={project.isScrap}
+                    onBookmarkClick={handleToggleScrap}
                   />
                 </div>
 

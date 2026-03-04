@@ -84,51 +84,32 @@ export default function MypagePage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // 알림, 찜, 스크랩 개수 API 호출
+  // 마이페이지 전용 정보(카운트 등) API 호출
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
 
-    const fetchCounts = async () => {
+    const fetchMypageInfo = async () => {
       try {
-        // 알림 개수는 프로필 데이터(User Model)를 통해 가져옵니다.
-        if (profile?.notificationCount !== undefined) {
-          setNotificationCount(profile.notificationCount);
-        }
-      } catch (err) {
-        console.error('Failed to fetch notification count:', err);
-      }
-
-      try {
-        const likesRes = await fetch('/api/v1/mypage/likes/shop?page=1&size=1');
-        if (likesRes.status === 401) {
+        const res = await fetch('/api/v1/mypage/info', { cache: 'no-store' });
+        if (res.status === 401) {
           signOut({ callbackUrl: '/login' });
           return;
         }
-        if (likesRes.ok) {
-          const likesJson = await likesRes.json();
-          setLikesCount(likesJson?.data?.totalCount ?? 0);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === 'success' && json.data) {
+            setNotificationCount(json.data.notificationCount || 0);
+            setLikesCount(json.data.likeCount || 0);
+            setScrapsCount(json.data.scrapCount || 0);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch likes count:', err);
-      }
-
-      try {
-        const scrapsRes = await fetch('/api/v1/mypage/scraps/project?page=1&size=1');
-        if (scrapsRes.status === 401) {
-          signOut({ callbackUrl: '/login' });
-          return;
-        }
-        if (scrapsRes.ok) {
-          const scrapsJson = await scrapsRes.json();
-          setScrapsCount(scrapsJson?.data?.totalCount ?? 0);
-        }
-      } catch (err) {
-        console.error('Failed to fetch scraps count:', err);
+        console.error('Failed to fetch mypage info:', err);
       }
     };
 
-    fetchCounts();
-  }, [isAuthenticated, isLoading, profile?.notificationCount]);
+    fetchMypageInfo();
+  }, [isAuthenticated, isLoading]);
 
   // Handle file selection directly (no preview modal)
   useEffect(() => {
@@ -204,10 +185,10 @@ export default function MypagePage() {
   }
 
   const displayName = profile?.name ?? profile?.nickname ?? profile?.email ?? '사용자';
-  const roleLabel = profile?.memberType === 2 || profile?.role === 'admin' 
-    ? '관리자' 
-    : profile?.memberType === 1 
-      ? '전공 회원' 
+  const roleLabel = profile?.memberType === 2 || profile?.role === 'admin'
+    ? '관리자'
+    : profile?.memberType === 1
+      ? '전공 회원'
       : '일반 회원';
 
   return (
@@ -254,7 +235,7 @@ export default function MypagePage() {
               >
                 <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-4 border-neutral-3 bg-neutral-12">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-                    <path d="M10.1416 2.25C11.0414 2.2501 11.8544 2.78635 12.209 3.61328L12.4414 4.15527C12.6284 4.59156 13.0576 4.87483 13.5322 4.875C15.171 4.875 16.5 6.20396 16.5 7.84277V11.625C16.5 13.6961 14.8211 15.375 12.75 15.375H5.25C3.17893 15.375 1.5 13.6961 1.5 11.625V7.84277C1.5 6.20396 2.82896 4.875 4.46777 4.875C4.94241 4.87483 5.37161 4.59156 5.55859 4.15527L5.79102 3.61328C6.14565 2.78635 6.95861 2.2501 7.8584 2.25H10.1416ZM9 6.5625C7.4467 6.5625 6.1875 7.8217 6.1875 9.375C6.1875 10.9283 7.4467 12.1875 9 12.1875C10.5533 12.1875 11.8125 10.9283 11.8125 9.375C11.8125 7.8217 10.5533 6.5625 9 6.5625ZM9 7.6875C9.93198 7.6875 10.6875 8.44302 10.6875 9.375C10.6875 10.307 9.93198 11.0625 9 11.0625C8.06802 11.0625 7.3125 10.307 7.3125 9.375C7.3125 8.44302 8.06802 7.6875 9 7.6875Z" fill="#FDFDFD"/>
+                    <path d="M10.1416 2.25C11.0414 2.2501 11.8544 2.78635 12.209 3.61328L12.4414 4.15527C12.6284 4.59156 13.0576 4.87483 13.5322 4.875C15.171 4.875 16.5 6.20396 16.5 7.84277V11.625C16.5 13.6961 14.8211 15.375 12.75 15.375H5.25C3.17893 15.375 1.5 13.6961 1.5 11.625V7.84277C1.5 6.20396 2.82896 4.875 4.46777 4.875C4.94241 4.87483 5.37161 4.59156 5.55859 4.15527L5.79102 3.61328C6.14565 2.78635 6.95861 2.2501 7.8584 2.25H10.1416ZM9 6.5625C7.4467 6.5625 6.1875 7.8217 6.1875 9.375C6.1875 10.9283 7.4467 12.1875 9 12.1875C10.5533 12.1875 11.8125 10.9283 11.8125 9.375C11.8125 7.8217 10.5533 6.5625 9 6.5625ZM9 7.6875C9.93198 7.6875 10.6875 8.44302 10.6875 9.375C10.6875 10.307 9.93198 11.0625 9 11.0625C8.06802 11.0625 7.3125 10.307 7.3125 9.375C7.3125 8.44302 8.06802 7.6875 9 7.6875Z" fill="#FDFDFD" />
                   </svg>
                 </span>
               </button>

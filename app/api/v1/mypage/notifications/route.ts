@@ -40,43 +40,31 @@ export async function GET(request: Request) {
       );
     }
 
-    // Prisma schema may not include a Notification model. Try to query if available,
-    // otherwise return empty list.
-    let notifications: any[] = [];
-    try {
-      const repo: any = prisma as any;
-      if (repo.notification && typeof repo.notification.findMany === 'function') {
-        const rows = await repo.notification.findMany({
-          where: { userId: user.id },
-          orderBy: { createdAt: 'desc' },
-          skip: (page - 1) * size,
-          take: size + 1,
-          select: {
-            id: true,
-            type: true,
-            title: true,
-            content: true,
-            isRead: true,
-            createdAt: true,
-            linkUrl: true,
-          },
-        });
+    const rows = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * size,
+      take: size + 1,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        content: true,
+        isRead: true,
+        createdAt: true,
+        linkUrl: true,
+      },
+    });
 
-        notifications = rows.map((r: any) => ({
-          id: r.id,
-          type: r.type,
-          title: r.title,
-          content: r.content,
-          isRead: Boolean(r.isRead),
-          createdAt: r.createdAt,
-          linkUrl: r.linkUrl ?? null,
-        }));
-      }
-    } catch (e) {
-      // 모델이 없거나 쿼리 실패 시 빈 배열으로 처리
-      console.warn('Notification query skipped or failed:', e);
-      notifications = [];
-    }
+    let notifications = rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      content: r.content,
+      isRead: Boolean(r.isRead),
+      createdAt: r.createdAt,
+      linkUrl: r.linkUrl ?? null,
+    }));
 
     const hasNext = notifications.length > size;
     if (hasNext) notifications = notifications.slice(0, size);

@@ -26,8 +26,12 @@ export async function GET(request: Request) {
         nickname: true,
         profileImage: true,
         memberType: true,
-        notificationCount: true,
-        likeCount: true,
+        _count: {
+          select: {
+            likes: true,
+            scraps: true,
+          },
+        },
       },
     });
 
@@ -42,17 +46,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Scrap 모델이 DB에 존재하면 카운트, 없으면 0 반환
-    let scrapCount = 0;
-    try {
-      const repo: any = prisma as any;
-      if (repo.scrap && typeof repo.scrap.count === 'function') {
-        scrapCount = await repo.scrap.count({ where: { userId: user.id } });
-      }
-    } catch (e) {
-      scrapCount = 0;
-    }
-    const likeCount = user.likeCount ?? 0;
+    // 읽지 않은 알림만 카운트
+    const unreadNotificationCount = await prisma.notification.count({
+      where: { userId: user.id, isRead: false },
+    });
+
     const roleMap: Record<number, string> = {
       0: 'GENERAL',
       1: 'MAJOR',
@@ -69,9 +67,9 @@ export async function GET(request: Request) {
         profileImageUrl: user.profileImage ?? null,
         memberType: user.memberType,
         role,
-        notificationCount: user.notificationCount ?? 0,
-        likeCount,
-        scrapCount,
+        notificationCount: unreadNotificationCount,
+        likeCount: user._count.likes,
+        scrapCount: user._count.scraps,
       },
     });
   } catch (error: any) {
@@ -86,3 +84,4 @@ export async function GET(request: Request) {
     );
   }
 }
+

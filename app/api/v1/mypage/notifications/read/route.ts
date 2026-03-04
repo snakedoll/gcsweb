@@ -35,17 +35,11 @@ export async function POST(request: Request) {
 
     // Update the notification as read
     await prisma.notification.updateMany({
-      where: { 
+      where: {
         id: id,
-        userId: user.id 
+        userId: user.id
       },
       data: { isRead: true },
-    });
-
-    // Option: Reduce global unread count in user model (if tracking it)
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { notificationCount: { decrement: 1 } }
     });
 
 
