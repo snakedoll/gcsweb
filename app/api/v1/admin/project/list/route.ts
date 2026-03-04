@@ -31,8 +31,7 @@ export async function GET(request: Request) {
       return errorResponse(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
     }
 
-    const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const adminUser = await prisma.user.findFirst({ where: { email: session.user.email },
       select: { memberType: true },
     });
 

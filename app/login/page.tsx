@@ -35,6 +35,16 @@ function LoginContent() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [maxAttempts, setMaxAttempts] = useState(MAX_FAILED_ATTEMPTS);
   const [lockedUntilMs, setLockedUntilMs] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'AccessDenied') {
+      setErrorMessage('이미 사용 중인 이메일입니다.');
+    } else if (error) {
+      setErrorMessage('로그인 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    }
+  }, [searchParams]);
 
   const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<LoginInput>({
     defaultValues: {
@@ -168,6 +178,11 @@ function LoginContent() {
               {resetSuccess ? (
                 <p className="text-center typo-body-xsmall text-orange-5">
                   비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.
+                </p>
+              ) : null}
+              {errorMessage ? (
+                <p className="text-center typo-body-xsmall text-danger">
+                  {errorMessage}
                 </p>
               ) : null}
 

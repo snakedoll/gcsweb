@@ -58,8 +58,7 @@ export async function PATCH(
       return errorResponse(401, 'UNAUTHORIZED', '인증이 필요합니다.');
     }
 
-    const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const adminUser = await prisma.user.findFirst({ where: { email: session.user.email },
       select: { memberType: true },
     });
 

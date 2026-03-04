@@ -149,8 +149,7 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = parsed.data;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({ where: { email },
       select: {
         id: true,
         email: true,

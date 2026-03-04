@@ -33,6 +33,7 @@ model User {
   profileImage        String?
   isVerified          Boolean      @default(false)
   signupMethod        SignupMethod @default(EMAIL)
+  providerId          String?
   isRepresentative    Boolean      @default(false)
   failedLoginAttempts Int          @default(0)
   lockedUntil         DateTime?

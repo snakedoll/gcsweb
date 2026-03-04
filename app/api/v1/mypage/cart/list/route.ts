@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
     const size = Math.max(1, Number(url.searchParams.get('size') ?? '20'));
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+    const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
       return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' }, { status: 401 });
     }

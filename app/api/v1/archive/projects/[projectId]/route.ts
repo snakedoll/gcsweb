@@ -133,8 +133,7 @@ export async function GET(
     try {
       const session = await getServerSession(authOptions);
       if (session?.user?.email) {
-        const user = await prisma.user.findUnique({
-          where: { email: session.user.email },
+        const user = await prisma.user.findFirst({ where: { email: session.user.email },
           select: { id: true },
         });
 

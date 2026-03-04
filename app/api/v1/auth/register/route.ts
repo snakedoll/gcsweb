@@ -96,8 +96,7 @@ export async function POST(request: Request) {
       return jsonError(400, 'PASSWORD_MISMATCH', '비밀번호가 일치하지 않습니다.');
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    const existingUser = await prisma.user.findFirst({ where: { email },
       select: { id: true },
     });
 

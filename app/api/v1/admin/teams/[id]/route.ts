@@ -17,7 +17,7 @@ export async function GET(
       );
     }
 
-    const adminUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
       return NextResponse.json(
         { status: 'error', code: 'UNAUTHORIZED', message: '접근 권한이 없습니다.' },
@@ -117,7 +117,7 @@ export async function PATCH(
       return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '토큰이 없거나 만료되었습니다.' }, { status: 401 });
     }
 
-    const adminUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
       return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '접근 권한이 없습니다.' }, { status: 401 });
     }

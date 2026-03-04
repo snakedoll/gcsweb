@@ -15,8 +15,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const existing = await prisma.user.findUnique({
-      where: { email },
+    const existing = await prisma.user.findFirst({ where: { email },
       select: { id: true },
     });
     if (existing) {

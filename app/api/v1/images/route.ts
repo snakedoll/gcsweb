@@ -99,8 +99,7 @@ export async function POST(request: Request) {
     }
 
     if (policy.requiresAdmin) {
-      const adminUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
+      const adminUser = await prisma.user.findFirst({ where: { email: session.user.email },
         select: { memberType: true },
       });
 

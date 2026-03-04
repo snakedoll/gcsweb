@@ -38,7 +38,7 @@ export async function PATCH(request: Request) {
     }
 
     // 본인 장바구니인지 확인
-    const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } });
+    const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user || cartItem.cart.userId !== user.id) {
       return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '권한이 없습니다.' }, { status: 403 });
     }

@@ -63,8 +63,7 @@ export async function POST(request: Request) {
     }
 
     const email = resetRecord.identifier.replace(/^reset:/, '');
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({ where: { email },
       select: { id: true },
     });
     if (!user) {

@@ -74,8 +74,7 @@ export async function GET(request: Request) {
     try {
       const session = await getServerSession(authOptions);
       if (session?.user?.email && filteredByStatus.length > 0) {
-        const user = await prisma.user.findUnique({
-          where: { email: session.user.email },
+        const user = await prisma.user.findFirst({ where: { email: session.user.email },
           select: { id: true },
         });
 

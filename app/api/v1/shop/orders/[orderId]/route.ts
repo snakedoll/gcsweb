@@ -19,8 +19,7 @@ export async function GET(_request: Request, { params }: Params) {
       return jsonError(401, 'UNAUTHORIZED', 'authentication required.');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: sessionEmail },
+    const user = await prisma.user.findFirst({ where: { email: sessionEmail },
       select: { id: true },
     });
     if (!user) {

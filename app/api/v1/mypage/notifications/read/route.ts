@@ -21,8 +21,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const user = await prisma.user.findFirst({ where: { email: session.user.email },
       select: { id: true },
     });
 

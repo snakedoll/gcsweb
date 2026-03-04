@@ -68,8 +68,17 @@ export async function PATCH(request: Request) {
     const normalizedProfileImageUrl =
       typeof profileImageUrl === 'string' ? normalizeImageUrl(profileImageUrl) : profileImageUrl;
 
-    const updated = await prisma.user.update({
+    const user = await prisma.user.findFirst({
       where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ status: 'error', code: 'USER_NOT_FOUND', message: '사용자를 찾을 수 없습니다.' }, { status: 404 });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
       data: {
         profileImage: normalizedProfileImageUrl ?? null,
       },

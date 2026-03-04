@@ -24,8 +24,7 @@ export async function GET(request: Request) {
     const size = Math.max(1, Number(url.searchParams.get('size') ?? '20'));
 
     // 사용자 id 먼저 조회
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const user = await prisma.user.findFirst({ where: { email: session.user.email },
       select: { id: true },
     });
 

@@ -39,8 +39,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        const user = await prisma.user.findFirst({
+          where: { email: credentials.email, signupMethod: 'EMAIL' },
         });
 
         if (!user || !user.password) {
@@ -108,12 +108,17 @@ export const authOptions: NextAuthOptions = {
         return false;
       }
 
-      const existing = await prisma.user.findUnique({
+      const existing = await prisma.user.findFirst({
         where: { email },
-        select: { id: true },
+        select: { id: true, signupMethod: true },
       });
 
-      if (existing) return true;
+      if (existing) {
+        if (existing.signupMethod === 'EMAIL') {
+          return false; // This redirects to /login?error=AccessDenied
+        }
+        return true;
+      }
 
       const nickname = await createUniqueNickname(email);
       const name = user.name ?? 'Kakao User';
@@ -145,10 +150,11 @@ export const authOptions: NextAuthOptions = {
       // For OAuth logins (e.g. Kakao), or when token is missing app-specific fields,
       // hydrate token.id/role from our User table.
       if (token.email && (!token.id || !token.role || account?.provider === 'kakao')) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
+        const dbUser = await prisma.user.findFirst({
+          where: { email: token.email as string },
           select: { id: true, memberType: true },
         });
+
         if (dbUser) {
           token.id = dbUser.id;
           token.role = mapMemberTypeToRole(dbUser.memberType);
