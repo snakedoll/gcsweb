@@ -240,6 +240,7 @@ export default function NewProductPage() {
   const {
     register,
     handleSubmit,
+    getValues,
     setValue,
     watch,
     control,
@@ -259,6 +260,8 @@ export default function NewProductPage() {
 
   const teamId = watch('teamId');
   const nameValue = watch('name') ?? '';
+  const descriptionValue = watch('description') ?? '';
+  const receiveMethodWatch = watch('receiveMethod');
   const nameOverLimit = nameValue.length > PRODUCT_NAME_MAX_LENGTH;
   const salesStartDateStr = watch('salesStartDate');
   const salesEndDateStr = watch('salesEndDate');
@@ -277,6 +280,7 @@ export default function NewProductPage() {
 
   const THUMBNAIL_MAX = 1;
   const DETAIL_MAX = 10;
+  const MAX_OPTION_CARD_COUNT = 3;
 
   const handleDetailReorder = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -359,6 +363,7 @@ export default function NewProductPage() {
   const productionEndStr = watchStep2Delivery('productionEndDate');
   const deliveryStartStr = watchStep2Delivery('deliveryStartDate');
   const deliveryEndStr = watchStep2Delivery('deliveryEndDate');
+  const deliveryGoalAmount = watchStep2Delivery('goalAmount');
   const productionStartDate = productionStartStr ? parseOrNull(productionStartStr) : null;
   const productionEndDate = productionEndStr ? parseOrNull(productionEndStr) : null;
   const deliveryStartDate = deliveryStartStr ? parseOrNull(deliveryStartStr) : null;
@@ -366,8 +371,11 @@ export default function NewProductPage() {
 
   const pickupStartStr = watchStep2Pickup('pickupStartDate');
   const pickupEndStr = watchStep2Pickup('pickupEndDate');
+  const pickupGoalAmount = watchStep2Pickup('goalAmount');
+  const pickupLocation = watchStep2Pickup('pickupLocation');
   const pickupStartDate = pickupStartStr ? parseOrNull(pickupStartStr) : null;
   const pickupEndDate = pickupEndStr ? parseOrNull(pickupEndStr) : null;
+  const buyNowPrice = watchStep2BuyNow('price');
 
   const productTypeWatch = watch('type');
   useEffect(() => {
@@ -385,11 +393,35 @@ export default function NewProductPage() {
     }
   };
 
+  const onMoveStep2WithoutValidation = () => {
+    const draft = getValues();
+    const normalizedDraft = {
+      ...draft,
+      receiveMethod: draft.type === 1 ? 1 : draft.type === 2 ? 0 : draft.receiveMethod,
+    };
+    setStep1Data(normalizedDraft as NewProductStep1Input);
+    setCurrentStep(2);
+  };
+
+  const onRequestPartnerUpWithoutValidation = () => {
+    const draft = getValues();
+    const normalizedDraft = {
+      ...draft,
+      receiveMethod: draft.type === 1 ? 1 : draft.type === 2 ? 0 : draft.receiveMethod,
+    };
+    setStep1Data(normalizedDraft as NewProductStep1Input);
+    router.push('/mypage/my-products');
+  };
+
   const onSubmitStep2Delivery = (_data: NewProductStep2DeliveryInput) => {
     setCurrentStep(3);
   };
 
   const onSubmitStep2Pickup = (_data: NewProductStep2PickupInput) => {
+    setCurrentStep(3);
+  };
+
+  const onMoveStep3WithoutValidation = () => {
     setCurrentStep(3);
   };
 
@@ -401,8 +433,10 @@ export default function NewProductPage() {
   const {
     register: registerStep3Fund,
     handleSubmit: handleSubmitStep3Fund,
+    watch: watchStep3Fund,
     formState: { errors: errorsStep3Fund },
   } = step3FundForm;
+  const fundPrice = watchStep3Fund('price');
 
   const onSubmitStep3Fund = async (data: NewProductStep2BuyNowInput) => {
     if (!step1Data || !thumbnailFile || detailFiles.length === 0) {
@@ -454,7 +488,10 @@ export default function NewProductPage() {
 
   const nextIdFund = () => `f3-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const addFundStep3Option = () => {
-    setFundStep3Options((prev) => [...prev, { id: nextIdFund(), optionName: '', values: [{ id: nextIdFund(), value: '', extraPrice: 0 }] }]);
+    setFundStep3Options((prev) => {
+      if (prev.length >= MAX_OPTION_CARD_COUNT) return prev;
+      return [...prev, { id: nextIdFund(), optionName: '', values: [{ id: nextIdFund(), value: '', extraPrice: 0 }] }];
+    });
   };
   const removeFundStep3Option = (optionId: string) => {
     setFundStep3Options((prev) => prev.filter((o) => o.id !== optionId));
@@ -486,6 +523,69 @@ export default function NewProductPage() {
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [showRegistrationConfirmModal, setShowRegistrationConfirmModal] = useState(false);
   const [pendingRegistrationType, setPendingRegistrationType] = useState<'buyNow' | 'fund' | null>(null);
+
+  const isStep1RequiredValid = useMemo(() => {
+    if (!step1Data) return false;
+    return newProductStep1Schema.safeParse(step1Data).success;
+  }, [step1Data]);
+
+  const isStep1DraftRequiredValid = useMemo(() => {
+    const draft = getValues();
+    return newProductStep1Schema.safeParse({
+      ...draft,
+      teamId,
+      name: nameValue,
+      description: descriptionValue,
+      type: productTypeWatch,
+      receiveMethod: receiveMethodWatch,
+      salesStartDate: salesStartDateStr,
+      salesEndDate: salesEndDateStr,
+    }).success;
+  }, [
+    getValues,
+    teamId,
+    nameValue,
+    descriptionValue,
+    productTypeWatch,
+    receiveMethodWatch,
+    salesStartDateStr,
+    salesEndDateStr,
+  ]);
+
+  const hasRequiredImages = Boolean(thumbnailFile) && detailFiles.length > 0;
+
+  const isBuyNowStep2Valid = useMemo(() => {
+    return newProductStep2BuyNowSchema.safeParse(step2BuyNowForm.getValues()).success;
+  }, [step2BuyNowForm, buyNowPrice]);
+
+  const isFundStep2Valid = useMemo(() => {
+    if (isFundDelivery) {
+      return newProductStep2DeliverySchema.safeParse(step2DeliveryForm.getValues()).success;
+    }
+    return newProductStep2PickupSchema.safeParse(step2PickupForm.getValues()).success;
+  }, [
+    isFundDelivery,
+    step2DeliveryForm,
+    step2PickupForm,
+    deliveryGoalAmount,
+    productionStartStr,
+    productionEndStr,
+    deliveryStartStr,
+    deliveryEndStr,
+    pickupGoalAmount,
+    pickupStartStr,
+    pickupEndStr,
+    pickupLocation,
+  ]);
+
+  const isFundStep3Valid = useMemo(() => {
+    return newProductStep2BuyNowSchema.safeParse(step3FundForm.getValues()).success;
+  }, [step3FundForm, fundPrice]);
+
+  const isBuyNowRegistrationEnabled = !isSubmittingRegistration && isStep1RequiredValid && hasRequiredImages && isBuyNowStep2Valid;
+  const isFundRegistrationEnabled =
+    !isSubmittingRegistration && isStep1RequiredValid && hasRequiredImages && isFundStep2Valid && isFundStep3Valid;
+  const isPartnerUpRegistrationEnabled = !isSubmitting && !nameOverLimit && isStep1DraftRequiredValid && hasRequiredImages;
 
   const onSubmitStep2BuyNow = async (data: NewProductStep2BuyNowInput) => {
     if (!step1Data || !thumbnailFile || detailFiles.length === 0) {
@@ -525,7 +625,10 @@ export default function NewProductPage() {
 
   const nextId = () => `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const addBuyNowOption = () => {
-    setBuyNowOptions((prev) => [...prev, { id: nextId(), optionName: '', values: [{ id: nextId(), value: '', extraPrice: 0 }] }]);
+    setBuyNowOptions((prev) => {
+      if (prev.length >= MAX_OPTION_CARD_COUNT) return prev;
+      return [...prev, { id: nextId(), optionName: '', values: [{ id: nextId(), value: '', extraPrice: 0 }] }];
+    });
   };
   const removeBuyNowOption = (optionId: string) => {
     setBuyNowOptions((prev) => prev.filter((o) => o.id !== optionId));
@@ -948,8 +1051,9 @@ export default function NewProductPage() {
 
           <div className="pt-4">
             <button
-              type="submit"
-              disabled={isSubmitting || nameOverLimit}
+              type="button"
+              onClick={productTypeWatch === 2 ? onRequestPartnerUpWithoutValidation : onMoveStep2WithoutValidation}
+              disabled={productTypeWatch === 2 ? !isPartnerUpRegistrationEnabled : isSubmitting || nameOverLimit}
               className="h-12 w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
             >
               {productTypeWatch === 2 ? '등록요청' : '다음'}
@@ -1063,13 +1167,15 @@ export default function NewProductPage() {
                   </div>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={addBuyNowOption}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
-              >
-                옵션 추가
-              </button>
+              {buyNowOptions.length < MAX_OPTION_CARD_COUNT && (
+                <button
+                  type="button"
+                  onClick={addBuyNowOption}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
+                >
+                  옵션 추가
+                </button>
+              )}
             </section>
 
             <div className="flex gap-2 pt-4">
@@ -1082,13 +1188,11 @@ export default function NewProductPage() {
               </button>
               <button
                 type="button"
-                disabled={isSubmittingRegistration}
-                onClick={() =>
-                  step2BuyNowForm.handleSubmit(() => {
-                    setPendingRegistrationType('buyNow');
-                    setShowRegistrationConfirmModal(true);
-                  })()
-                }
+                disabled={!isBuyNowRegistrationEnabled}
+                onClick={() => {
+                  setPendingRegistrationType('buyNow');
+                  setShowRegistrationConfirmModal(true);
+                }}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
                 {isSubmittingRegistration ? '등록 중...' : '등록 요청'}
@@ -1281,7 +1385,8 @@ export default function NewProductPage() {
                 이전
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
                 다음
@@ -1422,7 +1527,8 @@ export default function NewProductPage() {
                 이전
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
                 다음
@@ -1533,13 +1639,15 @@ export default function NewProductPage() {
                   </div>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={addFundStep3Option}
-                className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
-              >
-                옵션 추가
-              </button>
+              {fundStep3Options.length < MAX_OPTION_CARD_COUNT && (
+                <button
+                  type="button"
+                  onClick={addFundStep3Option}
+                  className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
+                >
+                  옵션 추가
+                </button>
+              )}
             </section>
 
             <div className="flex gap-2 pt-4">
@@ -1552,13 +1660,11 @@ export default function NewProductPage() {
               </button>
               <button
                 type="button"
-                disabled={isSubmittingRegistration}
-                onClick={() =>
-                  step3FundForm.handleSubmit(() => {
-                    setPendingRegistrationType('fund');
-                    setShowRegistrationConfirmModal(true);
-                  })()
-                }
+                disabled={!isFundRegistrationEnabled}
+                onClick={() => {
+                  setPendingRegistrationType('fund');
+                  setShowRegistrationConfirmModal(true);
+                }}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
                 {isSubmittingRegistration ? '등록 중...' : '등록 요청'}

@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import SearchBar from '@/components/ui/common/SearchBar';
 import Productcard from '@/components/ui/admin/product/Productcard';
@@ -101,6 +102,7 @@ function RequestSummaryBox({
 }
 
 export default function AdminProductPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<ProductTabKey>('all');
   const [products, setProducts] = useState<AdminProductItem[]>([]);
@@ -183,7 +185,7 @@ export default function AdminProductPage() {
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
-        <NavBar variant="title-back" title="상품글 관리" />
+        <NavBar variant="title-back" title="상품글 관리" onBack={() => router.push('/admin')} />
 
         <main className="pb-8">
           <div className="mt-[19px] flex items-center gap-[7px] px-4">
