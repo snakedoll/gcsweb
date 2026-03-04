@@ -1,6 +1,7 @@
 'use client';
 
 import DevSessionClear from '@/components/auth/DevSessionClear';
+import SignOutCacheClear from '@/components/auth/SignOutCacheClear';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { useState, type ReactNode } from 'react';
@@ -26,7 +27,7 @@ export default function Providers({ children }: ProvidersProps) {
     <SessionProvider>
       <DevSessionClear>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <SignOutCacheClear>{children}</SignOutCacheClear>
         </QueryClientProvider>
       </DevSessionClear>
     </SessionProvider>
