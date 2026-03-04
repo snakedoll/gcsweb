@@ -1,6 +1,6 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import FloatingButton from '@/components/ui/button/FloatingButton';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,6 @@ function NoPermissionView() {
           창작자 가이드 보러가기
         </Link>
       </main>
-      <Footer />
     </>
   );
 }
@@ -74,7 +73,6 @@ function EmptyProductsView() {
           새 상품 등록하러가기
         </Link>
       </main>
-      <Footer />
     </>
   );
 }
@@ -112,7 +110,7 @@ function ProductCard({ item }: { item: ProductItem }) {
       <div className={cn('flex w-full', isFund ? 'flex-col gap-4' : 'flex-col gap-2.5')}>
         <div className="flex w-full items-start justify-between gap-3">
           <div className="relative h-[125px] min-h-[125px] w-[100px] min-w-[100px] shrink-0 overflow-hidden rounded rounded-[4px] bg-neutral-4">
-            <Image src={thumbSrc} alt="" fill className="object-cover" sizes="100px" unoptimized={thumbSrc.startsWith('/uploads/')} />
+            <Image src={thumbSrc} alt="" fill className="object-cover" sizes="100px" unoptimized={thumbSrc.startsWith('/')} />
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-[7px] pl-3">
             <p className="typo-body-xsmall text-neutral-11">{item.teamName}</p>
@@ -195,7 +193,6 @@ function ProductListView({ products }: { products: ProductItem[] }) {
           <FloatingButton className="size-[61px] p-4" />
         </Link>
       </div>
-      <Footer />
     </>
   );
 }
@@ -235,7 +232,6 @@ export default function MyProductsPage() {
           <main className="flex flex-1 items-center justify-center">
             <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
           </main>
-          <Footer />
         </>
       )}
       {hasPermission && !productsLoading && hasProducts && (

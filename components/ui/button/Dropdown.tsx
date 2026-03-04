@@ -1,7 +1,7 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-type DropdownSize = 's' | 'l';
+type DropdownSize = 's' | 'm' | 'l';
 type DropdownState = 'default' | 'selected' | 'active' | 'open';
 
 interface DropdownItem {
@@ -22,20 +22,21 @@ interface DropdownProps {
   onToggle?: () => void;
 }
 
-function Caret({ open, muted }: { open: boolean; muted: boolean }) {
+function Caret({ open, colorClass }: { open: boolean; colorClass: string }) {
   return (
     <svg
-      width="15"
-      height="15"
-      viewBox="0 0 15 15"
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={cn(open ? 'rotate-180' : '', 'transition-transform')}
       aria-hidden
     >
       <path
-        d="M4 6L7.5 9L11 6"
-        stroke={muted ? 'var(--color-neutral-6)' : 'var(--color-neutral-10)'}
+        d="M7 8.5L10 11.5L13 8.5"
+        className={colorClass}
+        stroke="currentColor"
         strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -44,46 +45,64 @@ function Caret({ open, muted }: { open: boolean; muted: boolean }) {
   );
 }
 
+const fieldSizeClassMap: Record<DropdownSize, string> = {
+  s: 'h-[30px] rounded-[4px] px-3 py-2',
+  m: 'rounded-[4px] px-3 py-2',
+  l: 'rounded-[4px] p-3',
+};
+
+const listClassMap: Record<DropdownSize, string> = {
+  s: 'h-[108px] rounded-[4px]',
+  m: 'rounded-[8px]',
+  l: 'rounded-[8px]',
+};
+
+const itemClassMap: Record<DropdownSize, string> = {
+  s: 'px-3 py-2',
+  m: 'px-3 py-2',
+  l: 'p-3',
+};
+
 export default function Dropdown({
   label = 'Label',
   size = 's',
   state = 'default',
-  placeholder = 'Select',
+  placeholder = '선택',
   value,
   items = [
-    { label: 'Item 1', value: 'item-1' },
-    { label: 'Item 2', value: 'item-2' },
-    { label: 'Item 3', value: 'item-3' },
+    { label: '리스트', value: 'item-1' },
+    { label: '리스트', value: 'item-2' },
+    { label: '리스트', value: 'item-3' },
   ],
   className,
   onSelect,
   open,
   onToggle,
 }: DropdownProps) {
-  const controlledOpen = state === 'open';
   const isOpenControlled = typeof open === 'boolean';
-  const [internalOpen, setInternalOpen] = useState(controlledOpen);
-  const resolvedOpen = isOpenControlled ? Boolean(open) : controlledOpen || internalOpen;
+  const [internalOpen, setInternalOpen] = useState(state === 'open');
+  const resolvedOpen = isOpenControlled ? Boolean(open) : state === 'open' || internalOpen;
 
-  const isDefault = state === 'default';
-  const isSelected = state === 'selected' || state === 'active';
-  const borderClass = resolvedOpen
-    ? 'border-orange-5'
-    : isDefault
-      ? 'border-neutral-5'
-      : isSelected
-        ? 'border-neutral-6'
-        : 'border-neutral-10';
-  const textClass = isDefault ? 'text-neutral-6' : 'text-neutral-10';
-  const fieldHeight = size === 's' ? 'h-[30px]' : 'h-auto';
-  const listHeight = size === 's' ? 'h-[108px]' : 'h-auto';
+  const visualState: DropdownState = resolvedOpen ? 'open' : state;
+
+  const borderClass =
+    visualState === 'open'
+      ? 'border-orange-5'
+      : visualState === 'active'
+        ? 'border-neutral-12'
+        : visualState === 'selected'
+          ? 'border-neutral-6'
+          : 'border-neutral-5';
+
+  const textClass = visualState === 'default' ? 'text-neutral-7' : 'text-neutral-10';
+  const caretColorClass = visualState === 'default' ? 'text-neutral-6' : 'text-neutral-10';
 
   const displayText = value ?? placeholder;
   const showLabel = Boolean(label);
 
   return (
     <div className={cn('relative flex w-full flex-col items-start gap-[5px]', className)}>
-      {showLabel ? <p className="w-full whitespace-pre-wrap typo-body-xsmall text-neutral-12">{label}</p> : null}
+      {showLabel ? <p className="w-full typo-body-xsmall text-neutral-12">{label}</p> : null}
 
       <button
         type="button"
@@ -92,27 +111,27 @@ export default function Dropdown({
             onToggle();
             return;
           }
-          if (!controlledOpen) {
+          if (!isOpenControlled) {
             setInternalOpen((prev) => !prev);
           }
         }}
         className={cn(
-          'flex w-full items-center justify-between rounded-[4px] border bg-neutral-2 px-3 py-2',
-          borderClass,
-          fieldHeight
+          'flex w-full items-center justify-between border bg-neutral-2',
+          fieldSizeClassMap[size],
+          borderClass
         )}
       >
         <span className={cn('typo-body-xsmall', textClass)}>{displayText}</span>
-        <Caret open={resolvedOpen} muted={isDefault && !resolvedOpen} />
+        <Caret open={resolvedOpen} colorClass={caretColorClass} />
       </button>
 
       {resolvedOpen ? (
-        <div className={cn('w-full overflow-hidden rounded-[4px] bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]', listHeight)}>
+        <div className={cn('w-full overflow-hidden bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]', listClassMap[size])}>
           {items.map((item) => (
             <button
               key={item.value}
               type="button"
-              className="flex w-full items-center bg-neutral-2 px-3 py-2 text-left typo-body-xsmall text-neutral-10"
+              className={cn('flex w-full items-center bg-neutral-2 text-left typo-body-xsmall text-neutral-10', itemClassMap[size])}
               onClick={() => {
                 onSelect?.(item.value);
                 if (!isOpenControlled) {

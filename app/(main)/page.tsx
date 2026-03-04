@@ -1,6 +1,6 @@
 'use client';
 
-import { BottomTabBar, Footer, NavBar } from '@/components/layout';
+import { BottomTabBar, NavBar } from '@/components/layout';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -28,7 +28,6 @@ export default function HomePage() {
         <div className="sticky bottom-0 z-20">
           <BottomTabBar variant="home" />
         </div>
-        <Footer />
       </div>
     </>
   );

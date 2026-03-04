@@ -27,7 +27,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isValidUrlString(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
-  if (value.trim().startsWith('/uploads/')) return true;
+  if (value.trim().startsWith('/')) return true;
   try {
     new URL(value);
     return true;

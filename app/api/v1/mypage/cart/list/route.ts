@@ -98,7 +98,7 @@ export async function GET(request: Request) {
         isLiked: Boolean(p?.id && likeSet.has(p.id)),
         status: mapStatus(p),
         type: p?.type ?? 0,
-        receiveMethod: p?.receiveMethod ?? 0,
+        receiveMethod: p?.type === 1 ? 1 : (p?.receiveMethod ?? 0),
       };
     });
 

@@ -11,7 +11,7 @@ export default function DashboardStatusName({
   count,
   className,
 }: DashboardStatusNameProps) {
-  const showCount = typeof count === 'number';
+  const showCount = typeof count === 'number' && count > 0;
 
   return (
     <p className={cn('flex items-center justify-center gap-[3px] typo-body-xsmall', className)}>

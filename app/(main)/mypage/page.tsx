@@ -1,8 +1,9 @@
 'use client';
 
-import { Footer, NavBar } from '@/components/layout';
+import { NavBar } from '@/components/layout';
 import { MenuSection } from '@/components/ui';
 import { useUser } from '@/hooks/useUser';
+import { signOut } from 'next-auth/react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -58,7 +59,8 @@ function StatusCard({ href, iconSrc, label, count }: StatusCardProps) {
         className="h-6 w-6 [filter:brightness(0)_saturate(100%)_invert(61%)_sepia(8%)_saturate(145%)_hue-rotate(336deg)_brightness(91%)_contrast(86%)]"
       />
       <p className="typo-body-xsmall text-neutral-9">
-        {label} <span className="text-orange-5">{count}</span>
+        {label}
+        {typeof count === 'number' && count > 0 && <span className="text-orange-5"> {count}</span>}
       </p>
     </Link>
   );
@@ -97,8 +99,11 @@ export default function MypagePage() {
       }
 
       try {
-        // 찜한 상품 개수
         const likesRes = await fetch('/api/v1/mypage/likes/shop?page=1&size=1');
+        if (likesRes.status === 401) {
+          signOut({ callbackUrl: '/login' });
+          return;
+        }
         if (likesRes.ok) {
           const likesJson = await likesRes.json();
           setLikesCount(likesJson?.data?.totalCount ?? 0);
@@ -108,8 +113,11 @@ export default function MypagePage() {
       }
 
       try {
-        // 스크랩 개수
         const scrapsRes = await fetch('/api/v1/mypage/scraps/project?page=1&size=1');
+        if (scrapsRes.status === 401) {
+          signOut({ callbackUrl: '/login' });
+          return;
+        }
         if (scrapsRes.ok) {
           const scrapsJson = await scrapsRes.json();
           setScrapsCount(scrapsJson?.data?.totalCount ?? 0);
@@ -178,13 +186,14 @@ export default function MypagePage() {
         console.error(err);
         alert('업로드 중 오류가 발생했습니다.');
       }
+      target.value = '';
     };
 
     for (const input of inputs) input.addEventListener('change', handler);
     return () => {
       for (const input of inputs) input.removeEventListener('change', handler);
     };
-  }, [router, queryClient]);
+  }, [router, queryClient, update]);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -316,17 +325,16 @@ export default function MypagePage() {
             ]}
           />
           <MenuSection
-            title="나의 창작 정보"
+            title="나의 판매 정보"
             items={[
               { label: '창작자 가이드', href: '/mypage/creator-guide' },
               { label: '내가 등록한 상품', href: '/mypage/my-products' },
-              { label: '판매 활동', href: '/mypage/sales' },
+              { label: '나의 판매 활동', href: '/mypage/sales' },
             ]}
           />
           <MenuSection title="고객센터" items={[{ label: '문의하기', href: '/mypage/inquiries' }]} />
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

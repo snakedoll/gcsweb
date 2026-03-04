@@ -48,7 +48,7 @@ export async function PATCH(request: Request) {
       );
     }
 
-    if (typeof profileImageUrl === 'string' && !profileImageUrl.trim().startsWith('/uploads/')) {
+    if (typeof profileImageUrl === 'string' && !profileImageUrl.trim().startsWith('/')) {
       // 간단한 URL 형식 검사
       try {
         // eslint-disable-next-line no-new

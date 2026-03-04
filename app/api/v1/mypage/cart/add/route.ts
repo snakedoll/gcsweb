@@ -1,7 +1,13 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+
+function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === undefined || value === null) return Prisma.JsonNull;
+  return value as Prisma.InputJsonValue;
+}
 
 export async function POST(request: Request) {
   try {
@@ -18,12 +24,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { productId, quantity, optionData } = body as { productId?: string; quantity?: number; optionData?: any };
 
-    if (!productId || typeof productId !== 'string') {
+    if (!productId || typeof productId !== 'string' || !productId.trim()) {
       return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'productId가 필요합니다.' }, { status: 400 });
     }
 
+    if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
+      return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'quantity는 1 이상의 정수여야 합니다.' }, { status: 400 });
+    }
+
     // 상품 존재 확인
-    const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, price: true, status: true } });
+    const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, type: true, price: true, status: true } });
     if (!product) {
       return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_FOUND', message: '상품을 찾을 수 없습니다.' }, { status: 404 });
     }
@@ -36,6 +46,23 @@ export async function POST(request: Request) {
     let cart = await prisma.cart.findFirst({ where: { userId: user.id } });
     if (!cart) {
       cart = await prisma.cart.create({ data: { userId: user.id } });
+    }
+
+    const existingCartItems = await prisma.cartItem.findMany({
+      where: { cartId: cart.id },
+      select: { product: { select: { type: true } } },
+    });
+
+    const existingTypes = new Set(existingCartItems.map((item) => item.product.type));
+    if (existingTypes.size > 0 && !existingTypes.has(product.type)) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          code: 'MIXED_PRODUCT_TYPE_NOT_ALLOWED',
+          message: '상품 유형이 다른 상품은 동시에 장바구니에 담을 수 없습니다.',
+        },
+        { status: 400 }
+      );
     }
 
     // 추가 금액 계산
@@ -85,7 +112,7 @@ export async function POST(request: Request) {
         productId,
         quantity: quantity ?? 1,
         price: itemPrice,
-        optionData: optionData ?? null,
+        optionData: toDbJson(optionData),
       },
     });
 
