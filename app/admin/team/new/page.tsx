@@ -15,10 +15,10 @@ function formatPhone(phone?: string) {
   if (!phone) return "";
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 11) {
-    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   }
   if (digits.length === 10) {
-    return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
   return phone;
 }
@@ -191,10 +191,10 @@ export default function AdminTeamCreatePage() {
 
   const isFormValid = Boolean(
     teamName.trim().length > 0 &&
-      memberIds.length > 0 &&
-      (teamType === 1
-        ? Boolean(leaderId) && accountImage
-        : true)
+    memberIds.length > 0 &&
+    (teamType === 1
+      ? Boolean(leaderId) && accountImage
+      : true)
   );
 
   return (
@@ -224,9 +224,8 @@ export default function AdminTeamCreatePage() {
 
                 <div className="mt-3 space-y-2">
                   <div
-                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
-                      teamType === 0 ? "bg-orange-1" : ""
-                    }`}
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${teamType === 0 ? "bg-orange-1" : ""
+                      }`}
                   >
                     <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
@@ -238,9 +237,8 @@ export default function AdminTeamCreatePage() {
                   </div>
 
                   <div
-                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
-                      teamType === 1 ? "bg-orange-1" : ""
-                    }`}
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${teamType === 1 ? "bg-orange-1" : ""
+                      }`}
                   >
                     <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
@@ -483,10 +481,10 @@ export default function AdminTeamCreatePage() {
 
                 <button
                   type="button"
-                      onClick={() => {
-                        cameraInputRef.current?.click();
-                        setShowImageModal(false);
-                      }}
+                  onClick={() => {
+                    cameraInputRef.current?.click();
+                    setShowImageModal(false);
+                  }}
                   className="w-full py-4 text-center text-orange-5 font-medium bg-white"
                 >
                   사진 찍기
@@ -587,43 +585,52 @@ export default function AdminTeamCreatePage() {
                   {usersLoading ? (
                     <p className="typo-body-xsmall text-neutral-9 p-4">로딩 중...</p>
                   ) : (() => {
-                      const filteredList = usersList.filter((m) =>
-                        m.name.includes(memberInputValue) ||
-                        (m.phone && m.phone.includes(memberInputValue)) ||
-                        m.major.includes(memberInputValue)
-                      );
-                      return filteredList.map((member, idx) => (
-                      <div key={member.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMemberIds((s) =>
-                              s.includes(member.id) ? s.filter((x) => x !== member.id) : [...s, member.id]
-                            );
-                          }}
-                          className="w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors hover:bg-neutral-3"
-                        >
-                          <div className="flex-1 text-left flex flex-col gap-2">
-                            <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
-                            <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
-                          </div>
-                          <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
-                            {memberIds.includes(member.id) ? (
-                              <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
-                                <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-                              </svg>
-                            ) : (
-                              <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
-                                <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-                              </svg>
-                            )}
-                          </div>
-                        </button>
-                        {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
-                      </div>
-                    ));
+                    const filteredList = usersList.filter((m) =>
+                      m.name.includes(memberInputValue) ||
+                      (m.phone && m.phone.includes(memberInputValue)) ||
+                      m.major.includes(memberInputValue)
+                    );
+                    return filteredList.map((member, idx) => {
+                      const isLeader = member.id === leaderId;
+                      return (
+                        <div key={member.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isLeader) {
+                                setMemberIds((s) =>
+                                  s.includes(member.id) ? s.filter((x) => x !== member.id) : [...s, member.id]
+                                );
+                              }
+                            }}
+                            className={`w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors ${isLeader ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-3'}`}
+                            disabled={isLeader}
+                          >
+                            <div className="flex-1 text-left flex flex-col gap-2">
+                              <p className="typo-body-small-bold text-[#3F3835] flex items-center gap-2">
+                                {member.name}
+                                {isLeader && <span className="typo-body-xsmall text-orange-5 bg-orange-1 px-2 py-0.5 rounded">팀장</span>}
+                              </p>
+                              <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
+                            </div>
+                            <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
+                              {memberIds.includes(member.id) ? (
+                                <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
+                                  <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                              ) : (
+                                <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
+                                  <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                          {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
+                        </div>
+                      )
+                    });
                   })()}
                 </div>
               </div>
@@ -699,43 +706,43 @@ export default function AdminTeamCreatePage() {
                       m.major.includes(leaderSearch)
                     );
                     return leaderFiltered.map((member, idx) => (
-                    <div key={member.id}>
-                      <button
-                        type="button"
-                        onClick={() => selectLeader(member.id)}
-                        className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 flex flex-col gap-1">
-                            <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
-                            <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
+                      <div key={member.id}>
+                        <button
+                          type="button"
+                          onClick={() => selectLeader(member.id)}
+                          className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 flex flex-col gap-1">
+                              <p className="typo-body-small-bold text-[#3F3835]">{member.name}</p>
+                              <p className="typo-body-xsmall text-[#5A5451]">{member.phone ? formatPhone(member.phone) : '-'}</p>
+                            </div>
+                            <div className="ml-4 flex items-center">
+                              {leaderId === member.id ? (
+                                <div className="flex items-center justify-center h-8 w-8">
+                                  <Image
+                                    src="/assets/icons/additional/Vector.svg"
+                                    alt="selected"
+                                    width={20}
+                                    height={20}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-center h-8 w-8">
+                                  <Image
+                                    src="/assets/icons/additional/fluent_radio-button-24-regular.svg"
+                                    alt="unselected"
+                                    width={20}
+                                    height={20}
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="ml-4 flex items-center">
-                            {leaderId === member.id ? (
-                              <div className="flex items-center justify-center h-8 w-8">
-                                <Image
-                                  src="/assets/icons/additional/Vector.svg"
-                                  alt="selected"
-                                  width={20}
-                                  height={20}
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center h-8 w-8">
-                                <Image
-                                  src="/assets/icons/additional/fluent_radio-button-24-regular.svg"
-                                  alt="unselected"
-                                  width={20}
-                                  height={20}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                      {idx < leaderFiltered.length - 1 && <div className="h-px bg-neutral-4" />}
-                    </div>
-                  ));
+                        </button>
+                        {idx < leaderFiltered.length - 1 && <div className="h-px bg-neutral-4" />}
+                      </div>
+                    ));
                   })()}
                 </div>
               </div>

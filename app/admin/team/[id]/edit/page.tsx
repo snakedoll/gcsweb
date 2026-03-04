@@ -13,10 +13,10 @@ function formatPhone(phone?: string) {
   if (!phone) return "";
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 11) {
-    return `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
   }
   if (digits.length === 10) {
-    return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
   return phone;
 }
@@ -71,7 +71,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
           if (typeof d.teamType === 'number') setTeamType(d.teamType);
           if (typeof d.teamName === 'string') setTeamName(d.teamName);
           if (d.accountUrl) setAccountImageUrl(d.accountUrl);
-          
+
           if (Array.isArray(d.members)) {
             // Load backend members into our cache to replace the fixed mock
             const formattedMembers = d.members.map((m: any) => ({
@@ -80,11 +80,11 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
               phone: m.phone || '',
               role: m.role
             }));
-            
+
             // Re-populate our list & cache
             setAllMembersCache(formattedMembers);
             setMemberIds(formattedMembers.map((m: any) => m.id));
-            
+
             // Set leader if any role is '대표'
             const leader = formattedMembers.find((m: any) => m.role === '대표');
             if (leader) setLeaderId(leader.id);
@@ -95,7 +95,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
       }
     })();
     return () => { mounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const removeMember = (id: string) => {
@@ -191,9 +191,8 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 </label>
                 <div className="mt-3 space-y-2">
                   <div
-                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
-                      teamType === 0 ? "bg-orange-1" : ""
-                    }`}
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${teamType === 0 ? "bg-orange-1" : ""
+                      }`}
                   >
                     <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
@@ -205,9 +204,8 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   </div>
 
                   <div
-                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${
-                      teamType === 1 ? "bg-orange-1" : ""
-                    }`}
+                    className={`w-full flex items-center justify-between rounded py-[4px] px-[8px] ${teamType === 1 ? "bg-orange-1" : ""
+                      }`}
                   >
                     <label className="flex items-center gap-3 w-full cursor-pointer">
                       <RadioButton
@@ -346,30 +344,42 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 <div className="mb-28 border border-neutral-4 rounded-[16px] overflow-hidden bg-neutral-2">
                   {(() => {
                     const filteredList = allMembersCache.filter(m => (m.name + m.major).includes(memberInputValue));
-                    return filteredList.map((m, idx) => (
-                    <div key={m.id}>
-                      <button type="button" onClick={() => { setMemberIds(s => s.includes(m.id) ? s.filter(x => x !== m.id) : [...s, m.id]); }} className="w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors hover:bg-neutral-3">
-                        <div className="flex-1 text-left flex flex-col gap-2">
-                          <p className="typo-body-small-bold text-[#3F3835]">{m.name}</p>
-                          <p className="typo-body-xsmall text-[#5A5451]">{m.phone ? formatPhone(m.phone) : '-'}</p>
+                    return filteredList.map((m, idx) => {
+                      const isLeader = m.id === leaderId;
+                      return (
+                        <div key={m.id}>
+                          <button
+                            type="button"
+                            onClick={() => { if (!isLeader) setMemberIds(s => s.includes(m.id) ? s.filter(x => x !== m.id) : [...s, m.id]); }}
+                            className={`w-full flex items-start justify-between p-4 bg-neutral-2 transition-colors ${isLeader ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-3'}`}
+                            disabled={isLeader}
+                          >
+                            <div className="flex-1 text-left flex flex-col gap-2">
+                              <p className="typo-body-small-bold text-[#3F3835] flex items-center gap-2">
+                                {m.name}
+                                {isLeader && <span className="typo-body-xsmall text-orange-5 bg-orange-1 px-2 py-0.5 rounded">팀장</span>}
+                              </p>
+                              <p className="typo-body-xsmall text-[#5A5451]">{m.phone ? formatPhone(m.phone) : '-'}</p>
+                            </div>
+                            <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
+                              {memberIds.includes(m.id) ? (
+                                <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
+                                  <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                              ) : (
+                                <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
+                                  <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                          {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
                         </div>
-                        <div className="ml-4 flex items-center justify-center h-6 w-6 shrink-0 relative">
-                          {memberIds.includes(m.id) ? (
-                            <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect width="21.5" height="21.5" rx="3.75" fill="#F6874C" />
-                              <path d="M5.75 10.75h10M10.75 5.75v10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                          ) : (
-                            <svg className="absolute w-[21.5px] h-[21.5px]" viewBox="0 0 21.5 21.5" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <rect width="21.5" height="21.5" rx="3.75" fill="#C7C5C4" />
-                              <path d="M5.75 10.75h10" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                          )}
-                        </div>
-                      </button>
-                      {idx < filteredList.length - 1 && <div className="h-px bg-neutral-4 w-full" />}
-                    </div>
-                  ))})()}
+                      )
+                    });
+                  })()}
                 </div>
               </div>
               <div className="p-4"><Button type="button" color="black" size="l" onClick={() => setShowMemberModal(false)}>저장하기</Button></div>
