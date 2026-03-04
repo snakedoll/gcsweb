@@ -157,7 +157,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const priceNum = typeof price === 'number' ? price : 0;
+    const priceNum =
+      typeof price === 'number' && Number.isFinite(price)
+        ? Math.floor(price)
+        : typeof price === 'string'
+          ? (() => {
+              const n = Number(price.replace(/\D/g, ''));
+              return Number.isFinite(n) ? Math.floor(n) : 0;
+            })()
+          : 0;
     if (priceNum < 0) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: '가격은 0 이상이어야 합니다.' },
