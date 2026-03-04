@@ -1,12 +1,13 @@
-'use client';
+﻿'use client';
 
 import { NavBar } from '@/components/layout';
 import FloatingButton from '@/components/ui/button/FloatingButton';
+import ToastMessage from '@/components/ui/common/ToastMessage';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -27,13 +28,13 @@ type ProductItem = {
 
 async function fetchMyProducts(): Promise<ProductItem[]> {
   const res = await fetch('/api/v1/mypage/products');
-  if (!res.ok) throw new Error('상품 목록을 불러올 수 없습니다.');
+  if (!res.ok) throw new Error('?곹뭹 紐⑸줉??遺덈윭?????놁뒿?덈떎.');
   const json = (await res.json()) as { data?: { products?: ProductItem[] } };
   return json.data?.products ?? [];
 }
 
 const TABS = [
-  { id: 'all', label: '전체' },
+  { id: 'all', label: '?꾩껜' },
   { id: 'fund', label: 'Fund' },
   { id: 'buynow', label: 'Buy Now' },
   { id: 'partner', label: 'Partner Up' },
@@ -41,43 +42,43 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-/** 판매 권한 없음: 안내 + 창작자 가이드 버튼 */
+/** ?먮ℓ 沅뚰븳 ?놁쓬: ?덈궡 + 李쎌옉??媛?대뱶 踰꾪듉 */
 function NoPermissionView() {
   return (
     <>
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
-        <p className="typo-heading-small mb-2 text-neutral-12">판매 권한이 없습니다.</p>
-        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에 상품을 등록하고 싶다면?</p>
+        <p className="typo-heading-small mb-2 text-neutral-12">?먮ℓ 沅뚰븳???놁뒿?덈떎.</p>
+        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web???곹뭹???깅줉?섍퀬 ?띕떎硫?</p>
         <Link
           href="/mypage/creator-guide"
           className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-neutral-10 px-8 typo-body-small-bold text-neutral-1"
         >
-          창작자 가이드 보러가기
+          李쎌옉??媛?대뱶 蹂대윭媛湲?
         </Link>
       </main>
     </>
   );
 }
 
-/** 판매 권한 있음, 등록 상품 없음: 빈 상태 + 새 상품 등록 버튼 */
+/** ?먮ℓ 沅뚰븳 ?덉쓬, ?깅줉 ?곹뭹 ?놁쓬: 鍮??곹깭 + ???곹뭹 ?깅줉 踰꾪듉 */
 function EmptyProductsView() {
   return (
     <>
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
-        <p className="typo-heading-small mb-2 text-neutral-12">등록된 상품이 없습니다.</p>
-        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에 상품을 등록하고 싶다면?</p>
+        <p className="typo-heading-small mb-2 text-neutral-12">?깅줉???곹뭹???놁뒿?덈떎.</p>
+        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web???곹뭹???깅줉?섍퀬 ?띕떎硫?</p>
         <Link
           href="/mypage/my-products/new"
           className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-orange-5 px-8 typo-body-small-bold text-neutral-2"
         >
-          새 상품 등록하러가기
+          ???곹뭹 ?깅줉?섎윭媛湲?
         </Link>
       </main>
     </>
   );
 }
 
-/** 카드 하단: Fund는 미달성/달성 + %, 공통 좋아요 수 */
+/** 移대뱶 ?섎떒: Fund??誘몃떖???ъ꽦 + %, 怨듯넻 醫뗭븘????*/
 function FundPercentBadge({ achieved, progressPercent }: { achieved: boolean; progressPercent: number }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5">
@@ -94,10 +95,10 @@ function FundPercentBadge({ achieved, progressPercent }: { achieved: boolean; pr
   );
 }
 
-/** Figma 5603-10911 기반 상품 카드 (데이터 컨테이너) */
+/** Figma 5603-10911 湲곕컲 ?곹뭹 移대뱶 (?곗씠??而⑦뀒?대꼫) */
 function ProductCard({ item }: { item: ProductItem }) {
   const isFund = item.type === 0;
-  const periodLabel = isFund ? '펀딩 기간' : '판매 기간';
+  const periodLabel = isFund ? '???湲곌컙' : '?먮ℓ 湲곌컙';
   const periodText =
     item.salesStartDate && item.salesEndDate
       ? `${item.salesStartDate.replace(/-/g, '.')} - ${item.salesEndDate.replace(/-/g, '.')}`
@@ -116,7 +117,7 @@ function ProductCard({ item }: { item: ProductItem }) {
             <p className="typo-body-xsmall text-neutral-11">{item.teamName}</p>
             <div className="flex flex-col gap-0.5">
               <h3 className="typo-heading-xsmall text-neutral-12">{item.name}</h3>
-              <p className="line-clamp-2 typo-body-xsmall text-neutral-11">{item.description || '설명 없음'}</p>
+              <p className="line-clamp-2 typo-body-xsmall text-neutral-11">{item.description || '?ㅻ챸 ?놁쓬'}</p>
             </div>
             <div className="flex flex-col gap-0.5">
               <p className="text-[11px] leading-[1.5] text-neutral-8">{periodLabel}</p>
@@ -144,14 +145,14 @@ function ProductCard({ item }: { item: ProductItem }) {
         {isFund && <FundPercentBadge achieved={achieved} progressPercent={item.progressPercent} />}
         {!isFund && <div />}
         <p className="typo-body-xsmall text-neutral-8">
-          좋아요 수 <span className="text-neutral-8">{item.likeCount}</span>
+          醫뗭븘????<span className="text-neutral-8">{item.likeCount}</span>
         </p>
       </div>
     </article>
   );
 }
 
-/** 판매 권한 있음, 상품 있음: 탭 + 상품 카드 목록 + FAB */
+/** ?먮ℓ 沅뚰븳 ?덉쓬, ?곹뭹 ?덉쓬: ??+ ?곹뭹 移대뱶 紐⑸줉 + FAB */
 function ProductListView({ products }: { products: ProductItem[] }) {
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const filtered = useMemo(() => {
@@ -183,13 +184,15 @@ function ProductListView({ products }: { products: ProductItem[] }) {
         <ul className="flex flex-col gap-5">
           {filtered.map((item) => (
             <li key={item.id}>
-              <ProductCard item={item} />
+              <Link href={`/mypage/my-products/${item.id}/edit`} className="block">
+                <ProductCard item={item} />
+              </Link>
             </li>
           ))}
         </ul>
       </main>
       <div className="pointer-events-none fixed inset-x-0 bottom-[15px] z-20 mx-auto flex w-full max-w-[375px] justify-end px-3">
-        <Link href="/mypage/my-products/new" className="pointer-events-auto" aria-label="새 상품 등록">
+        <Link href="/mypage/my-products/new" className="pointer-events-auto" aria-label="???곹뭹 ?깅줉">
           <FloatingButton className="size-[61px] p-4" />
         </Link>
       </div>
@@ -199,8 +202,10 @@ function ProductListView({ products }: { products: ProductItem[] }) {
 
 export default function MyProductsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile, isLoading, isAuthenticated } = useUser();
   const hasPermission = profile?.isSeller === true;
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['mypage', 'my-products'],
     queryFn: fetchMyProducts,
@@ -214,29 +219,45 @@ export default function MyProductsPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  useEffect(() => {
+    const toast = searchParams.get('toast');
+    if (toast === 'update-requested') {
+      setToastMessage('상품글 수정이 요청되었습니다.');
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center">
-        <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
+        <p className="typo-body-xsmall text-neutral-7">濡쒕뵫 以?..</p>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <NavBar variant="title-back" title="내가 등록한 상품" />
+      <NavBar variant="title-back" title="?닿? ?깅줉???곹뭹" />
       {!hasPermission && <NoPermissionView />}
       {hasPermission && !productsLoading && !hasProducts && <EmptyProductsView />}
       {hasPermission && productsLoading && (
         <>
           <main className="flex flex-1 items-center justify-center">
-            <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
+            <p className="typo-body-xsmall text-neutral-7">?곹뭹 紐⑸줉 濡쒕뵫 以?..</p>
           </main>
         </>
       )}
       {hasPermission && !productsLoading && hasProducts && (
         <ProductListView products={products} />
       )}
+      {toastMessage ? (
+        <div className="pointer-events-none fixed inset-x-0 top-[54px] z-40 mx-auto w-full max-w-[375px] px-4">
+          <ToastMessage message={toastMessage} />
+        </div>
+      ) : null}
     </div>
   );
 }
+
+
