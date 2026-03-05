@@ -1,11 +1,33 @@
-import { getServerSession } from 'next-auth';
+﻿import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 
-/** 내가 속한 팀(팀장 또는 팀원)의 상품 목록 */
-export async function GET() {
+function parseDate(str: string | undefined): Date | undefined {
+  if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return undefined;
+  const d = new Date(str + 'T00:00:00');
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+function isValidProductId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+async function getMyTeamIds(userId: string): Promise<string[]> {
+  const myTeams = await prisma.team.findMany({
+    where: {
+      OR: [{ userId }, { teamMember: { has: userId } }],
+    },
+    select: { id: true },
+  });
+  return myTeams.map((t) => t.id);
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: { productId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -15,50 +37,88 @@ export async function GET() {
       );
     }
 
-    const myTeams = await prisma.team.findMany({
-      where: {
-        OR: [{ userId: session.user.id }, { teamMember: { has: session.user.id } }],
-      },
-      select: { id: true },
-    });
-    const teamIds = myTeams.map((t) => t.id);
-    if (teamIds.length === 0) {
-      return NextResponse.json({ status: 'success', data: { products: [] } });
+    const productId = params?.productId;
+    if (!isValidProductId(productId)) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_INPUT', message: 'productId 형식 오류' },
+        { status: 400 }
+      );
     }
 
-    const products = await prisma.product.findMany({
-      where: { teamId: { in: teamIds } },
-      include: {
-        images: { take: 1, orderBy: { createdAt: 'asc' } },
-        team: { select: { teamName: true } },
+    const teamIds = await getMyTeamIds(session.user.id);
+    if (teamIds.length === 0) {
+      return NextResponse.json(
+        { status: 'error', code: 'FORBIDDEN', message: '해당 상품을 수정할 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId.trim(),
+        teamId: { in: teamIds },
       },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        team: { select: { teamName: true } },
+        images: { orderBy: { createdAt: 'asc' }, take: 1 },
+        options: {
+          orderBy: { optionName: 'asc' },
+          include: {
+            values: {
+              orderBy: { value: 'asc' },
+            },
+          },
+        },
+      },
     });
 
-    const list = products.map((p) => {
-      const thumb = p.images[0]?.thumbnailImgUrl ?? null;
-      const goal = p.goalAmount ?? 0;
-      const current = p.currentAmount ?? 0;
-      const progressPercent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
-      return {
-        id: p.id,
-        type: p.type,
-        name: p.name,
-        description: p.description ?? '',
-        teamName: p.team.teamName,
-        likeCount: p.likeCount,
-        salesStartDate: p.salesStartDate?.toISOString().slice(0, 10) ?? null,
-        salesEndDate: p.salesEndDate?.toISOString().slice(0, 10) ?? null,
-        goalAmount: goal,
-        currentAmount: current,
-        progressPercent,
-        thumbnailImgUrl: normalizeImageUrl(thumb),
-      };
-    });
+    if (!product) {
+      return NextResponse.json(
+        { status: 'error', code: 'NOT_FOUND', message: '상품을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ status: 'success', data: { products: list } });
+    const image = product.images?.[0] ?? null;
+
+    return NextResponse.json({
+      status: 'success',
+      data: {
+        product: {
+          id: product.id,
+          teamId: product.teamId,
+          teamName: product.team?.teamName ?? '',
+          name: product.name,
+          description: product.description ?? '',
+          type: product.type,
+          receiveMethod: product.receiveMethod,
+          price: product.price,
+          goalAmount: product.goalAmount ?? 0,
+          salesStartDate: product.salesStartDate?.toISOString().slice(0, 10) ?? '',
+          salesEndDate: product.salesEndDate?.toISOString().slice(0, 10) ?? '',
+          productionStartDate: product.productionStartDate?.toISOString().slice(0, 10) ?? '',
+          productionEndDate: product.productionEndDate?.toISOString().slice(0, 10) ?? '',
+          deliveryStartDate: product.deliveryStartDate?.toISOString().slice(0, 10) ?? '',
+          deliveryEndDate: product.deliveryEndDate?.toISOString().slice(0, 10) ?? '',
+          pickupStartDate: product.pickupStartDate?.toISOString().slice(0, 10) ?? '',
+          pickupEndDate: product.pickupEndDate?.toISOString().slice(0, 10) ?? '',
+          pickupLocation: product.pickupLocation ?? '',
+          thumbnailImgUrl: normalizeImageUrl(image?.thumbnailImgUrl ?? null) ?? '',
+          detailImgUrls: (image?.detailImgUrl ?? [])
+            .map((url) => normalizeImageUrl(url))
+            .filter((url): url is string => typeof url === 'string' && url.length > 0),
+          options: (product.options ?? []).map((option) => ({
+            optionName: option.optionName,
+            values: (option.values ?? []).map((value) => ({
+              value: value.value,
+              extraPrice: value.additionalPrice,
+            })),
+          })),
+        },
+      },
+    });
   } catch (error) {
-    console.error('My products list error:', error);
+    console.error('My product detail error:', error);
     return NextResponse.json(
       { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
       { status: 500 }
@@ -66,19 +126,24 @@ export async function GET() {
   }
 }
 
-function parseDate(str: string | undefined): Date | undefined {
-  if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return undefined;
-  const d = new Date(str + 'T00:00:00');
-  return isNaN(d.getTime()) ? undefined : d;
-}
-
-export async function POST(request: Request) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: { productId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
         { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
         { status: 401 }
+      );
+    }
+
+    const productId = params?.productId;
+    if (!isValidProductId(productId)) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_INPUT', message: 'productId 형식 오류' },
+        { status: 400 }
       );
     }
 
@@ -144,12 +209,25 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
+
     const memberIds = Array.isArray(team.teamMember) ? team.teamMember : [];
-    const canCreate = team.userId === session.user.id || memberIds.includes(session.user.id);
-    if (!canCreate) {
+    const canUpdate = team.userId === session.user.id || memberIds.includes(session.user.id);
+    if (!canUpdate) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '해당 팀에 상품을 등록할 권한이 없습니다.' },
+        { status: 'error', code: 'FORBIDDEN', message: '해당 팀 상품 수정 요청 권한이 없습니다.' },
         { status: 403 }
+      );
+    }
+
+    const targetProduct = await prisma.product.findFirst({
+      where: { id: productId.trim(), teamId: { in: await getMyTeamIds(session.user.id) } },
+      select: { id: true },
+    });
+
+    if (!targetProduct) {
+      return NextResponse.json(
+        { status: 'error', code: 'NOT_FOUND', message: '수정 대상 상품을 찾을 수 없습니다.' },
+        { status: 404 }
       );
     }
 
@@ -162,6 +240,7 @@ export async function POST(request: Request) {
               return Number.isFinite(n) ? Math.floor(n) : 0;
             })()
           : 0;
+
     if (priceNum < 0) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: '가격은 0 이상이어야 합니다.' },
@@ -175,6 +254,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
     const normalizedThumbnailImgUrl = normalizeImageUrl(thumbnailImgUrl.trim());
     const detailUrls = Array.isArray(detailImgUrls)
       ? detailImgUrls
@@ -182,12 +262,14 @@ export async function POST(request: Request) {
           .filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
       : [];
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
+
     if (!normalizedThumbnailImgUrl) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: '유효한 썸네일 이미지 URL이 필요합니다.' },
         { status: 400 }
       );
     }
+
     if (detailUrls.length === 0) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1개 이상 필요합니다.' },
@@ -232,80 +314,24 @@ export async function POST(request: Request) {
       }
     }
 
-    const goalAmountNum = typeof goalAmount === 'number' ? goalAmount : typeof goalAmount === 'string' ? Number(goalAmount) : NaN;
-    const resolvedGoalAmount = !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
-
-    const productData = {
-      teamId,
-      name: name.trim(),
-      description: typeof description === 'string' ? description.trim() : '',
-      type,
-      status: 0,
-      price: priceNum,
-      goalAmount: resolvedGoalAmount,
-      currentAmount: 0,
-      salesStartDate: salesStart,
-      salesEndDate: salesEnd,
-      productionStartDate: parseDate(productionStartDate) ?? undefined,
-      productionEndDate: parseDate(productionEndDate) ?? undefined,
-      deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-      deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
-      pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-      pickupEndDate: parseDate(pickupEndDate) ?? undefined,
-      pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-      receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
-      isPublic: false,
-      likeCount: 0,
-      viewCount: 0,
-    };
+    const goalAmountNum =
+      typeof goalAmount === 'number'
+        ? goalAmount
+        : typeof goalAmount === 'string'
+          ? Number(goalAmount)
+          : NaN;
+    const resolvedGoalAmount =
+      !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
 
     const optionList = Array.isArray(options) ? options : [];
 
-    const product = await prisma.$transaction(async (tx) => {
-      const createdProduct = await tx.product.create({
+    const requestRow = await prisma.$transaction(async (tx) => {
+      const createdRequest = await tx.productUpdateRequest.create({
         data: {
-          ...productData,
-          isAdminApproved: false,
-          isPublic: false,
-          isHome: false,
-        },
-      });
-
-      await tx.productImage.create({
-        data: {
-          productId: createdProduct.id,
-          thumbnailImgUrl: normalizedThumbnailImgUrl,
-          detailImgUrl: detailUrls,
-          // ProductImage.noticeImgUrl is non-null in schema, keep empty until admin approval.
-          noticeImgUrl: normalizedNoticeImgUrl ?? '',
-        },
-      });
-
-      for (const opt of optionList) {
-        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
-        if (!optionName) continue;
-
-        const optionRow = await tx.productOption.create({
-          data: { productId: createdProduct.id, optionName },
-        });
-
-        const values = Array.isArray(opt.values) ? opt.values : [];
-        for (const v of values) {
-          const value = typeof v?.value === 'string' ? v.value.trim() : '';
-          if (!value) continue;
-          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
-          await tx.productOptionValue.create({
-            data: { optionId: optionRow.id, value, additionalPrice },
-          });
-        }
-      }
-
-      const requestRow = await tx.productUpdateRequest.create({
-        data: {
-          productId: createdProduct.id,
+          productId: targetProduct.id,
           requestedByUserId: session.user.id,
           teamId,
-          requestType: 0,
+          requestType: 1,
           name: name.trim(),
           description: typeof description === 'string' ? description.trim() : '',
           type,
@@ -327,10 +353,9 @@ export async function POST(request: Request) {
 
       await tx.productUpdateRequestImage.create({
         data: {
-          productUpdateRequestId: requestRow.id,
+          productUpdateRequestId: createdRequest.id,
           thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
-          // Policy: register request can have null notice image before admin review.
           noticeImgUrl: normalizedNoticeImgUrl ?? null,
         },
       });
@@ -340,7 +365,7 @@ export async function POST(request: Request) {
         if (!optionName) continue;
 
         const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: requestRow.id, optionName },
+          data: { productUpdateRequestId: createdRequest.id, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];
@@ -354,18 +379,19 @@ export async function POST(request: Request) {
         }
       }
 
-      return createdProduct;
+      return createdRequest;
     });
 
     return NextResponse.json({
       status: 'success',
       data: {
-        productId: product.id,
-        message: '등록 요청이 접수되었습니다. 관리자 확인 후 노출됩니다.',
+        requestId: requestRow.id,
+        productId: targetProduct.id,
+        message: '상품글 수정이 요청되었습니다.',
       },
     });
   } catch (error) {
-    console.error('Product registration error:', error);
+    console.error('Product update request error:', error);
     return NextResponse.json(
       { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
       { status: 500 }

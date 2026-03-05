@@ -2,13 +2,14 @@
 
 import { NavBar } from '@/components/layout';
 import FloatingButton from '@/components/ui/button/FloatingButton';
+import ToastMessage from '@/components/ui/common/ToastMessage';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 
 type ProductItem = {
   id: string;
@@ -44,40 +45,36 @@ type TabId = (typeof TABS)[number]['id'];
 /** 판매 권한 없음: 안내 + 창작자 가이드 버튼 */
 function NoPermissionView() {
   return (
-    <>
-      <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
-        <p className="typo-heading-small mb-2 text-neutral-12">판매 권한이 없습니다.</p>
-        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에 상품을 등록하고 싶다면?</p>
-        <Link
-          href="/mypage/creator-guide"
-          className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-neutral-10 px-8 typo-body-small-bold text-neutral-1"
-        >
-          창작자 가이드 보러가기
-        </Link>
-      </main>
-    </>
+    <main className="mx-auto flex w-full max-w-[375px] min-h-[85vh] flex-1 flex-col items-center justify-center px-4 pb-24 pt-24">
+      <p className="typo-heading-small mb-2 text-neutral-12">판매 권한이 없습니다.</p>
+      <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에서 상품을 등록하고 싶다면?</p>
+      <Link
+        href="/mypage/creator-guide"
+        className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-neutral-10 px-8 typo-body-small-bold text-neutral-1"
+      >
+        창작자 가이드 보러가기
+      </Link>
+    </main>
   );
 }
 
 /** 판매 권한 있음, 등록 상품 없음: 빈 상태 + 새 상품 등록 버튼 */
 function EmptyProductsView() {
   return (
-    <>
-      <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col items-center justify-center px-4 pt-24 pb-24 min-h-[85vh]">
-        <p className="typo-heading-small mb-2 text-neutral-12">등록된 상품이 없습니다.</p>
-        <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에 상품을 등록하고 싶다면?</p>
-        <Link
-          href="/mypage/my-products/new"
-          className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-orange-5 px-8 typo-body-small-bold text-neutral-2"
-        >
-          새 상품 등록하러가기
-        </Link>
-      </main>
-    </>
+    <main className="mx-auto flex w-full max-w-[375px] min-h-[85vh] flex-1 flex-col items-center justify-center px-4 pb-24 pt-24">
+      <p className="typo-heading-small mb-2 text-neutral-12">등록된 상품이 없습니다.</p>
+      <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에서 상품을 등록하고 싶다면?</p>
+      <Link
+        href="/mypage/my-products/new"
+        className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-orange-5 px-8 typo-body-small-bold text-neutral-2"
+      >
+        새 상품 등록하러가기
+      </Link>
+    </main>
   );
 }
 
-/** 카드 하단: Fund는 미달성/달성 + %, 공통 좋아요 수 */
+/** 카드 하단: Fund 미달성/달성 + %, 공통 좋아요 개수 */
 function FundPercentBadge({ achieved, progressPercent }: { achieved: boolean; progressPercent: number }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5">
@@ -94,7 +91,7 @@ function FundPercentBadge({ achieved, progressPercent }: { achieved: boolean; pr
   );
 }
 
-/** Figma 5603-10911 기반 상품 카드 (데이터 컨테이너) */
+/** Figma 5603-10911 기반 상품 카드 (리스트 컨테이너) */
 function ProductCard({ item }: { item: ProductItem }) {
   const isFund = item.type === 0;
   const periodLabel = isFund ? '펀딩 기간' : '판매 기간';
@@ -144,7 +141,7 @@ function ProductCard({ item }: { item: ProductItem }) {
         {isFund && <FundPercentBadge achieved={achieved} progressPercent={item.progressPercent} />}
         {!isFund && <div />}
         <p className="typo-body-xsmall text-neutral-8">
-          좋아요 수 <span className="text-neutral-8">{item.likeCount}</span>
+          좋아요 <span className="text-neutral-8">{item.likeCount}</span>
         </p>
       </div>
     </article>
@@ -183,7 +180,9 @@ function ProductListView({ products }: { products: ProductItem[] }) {
         <ul className="flex flex-col gap-5">
           {filtered.map((item) => (
             <li key={item.id}>
-              <ProductCard item={item} />
+              <Link href={`/mypage/my-products/${item.id}/edit`} className="block">
+                <ProductCard item={item} />
+              </Link>
             </li>
           ))}
         </ul>
@@ -199,8 +198,10 @@ function ProductListView({ products }: { products: ProductItem[] }) {
 
 export default function MyProductsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile, isLoading, isAuthenticated } = useUser();
   const hasPermission = profile?.isSeller === true;
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['mypage', 'my-products'],
     queryFn: fetchMyProducts,
@@ -213,6 +214,15 @@ export default function MyProductsPage() {
       router.replace('/login');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    const toast = searchParams.get('toast');
+    if (toast === 'update-requested') {
+      setToastMessage('상품글 수정이 요청되었습니다.');
+      const timer = setTimeout(() => setToastMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -228,15 +238,16 @@ export default function MyProductsPage() {
       {!hasPermission && <NoPermissionView />}
       {hasPermission && !productsLoading && !hasProducts && <EmptyProductsView />}
       {hasPermission && productsLoading && (
-        <>
-          <main className="flex flex-1 items-center justify-center">
-            <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
-          </main>
-        </>
+        <main className="flex flex-1 items-center justify-center">
+          <p className="typo-body-xsmall text-neutral-7">상품 목록 로딩 중...</p>
+        </main>
       )}
-      {hasPermission && !productsLoading && hasProducts && (
-        <ProductListView products={products} />
-      )}
+      {hasPermission && !productsLoading && hasProducts && <ProductListView products={products} />}
+      {toastMessage ? (
+        <div className="pointer-events-none fixed inset-x-0 top-[54px] z-40 mx-auto w-full max-w-[375px] px-4">
+          <ToastMessage message={toastMessage} />
+        </div>
+      ) : null}
     </div>
   );
 }
