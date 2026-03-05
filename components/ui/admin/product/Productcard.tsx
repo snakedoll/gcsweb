@@ -1,4 +1,5 @@
-﻿import Image from 'next/image';
+﻿import React from 'react';
+import Image from 'next/image';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
 import ToggleSwitch from '@/components/ui/button/ToggleSwitch';
 import ProductLike from './ProductLike';
