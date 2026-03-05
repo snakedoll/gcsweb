@@ -125,6 +125,36 @@ export default function AdminRegisterRequestStep2Page() {
         setPickupStartDate(toDateOnly(item.pickupStartDate));
         setPickupEndDate(toDateOnly(item.pickupEndDate));
         setPickupLocation(item.pickupLocation ?? '');
+
+        if (typeof window !== 'undefined') {
+          const step2Raw = window.sessionStorage.getItem(`register-request-step2:${requestId}`);
+          if (step2Raw) {
+            try {
+              const parsed = JSON.parse(step2Raw) as {
+                goalAmount?: string | null;
+                productionStartDate?: string | null;
+                productionEndDate?: string | null;
+                deliveryStartDate?: string | null;
+                deliveryEndDate?: string | null;
+                pickupStartDate?: string | null;
+                pickupEndDate?: string | null;
+                pickupLocation?: string | null;
+              };
+
+              if (parsed.goalAmount != null) setGoalAmount(parsed.goalAmount);
+              if (parsed.productionStartDate != null) setProductionStartDate(parsed.productionStartDate);
+              if (parsed.productionEndDate != null) setProductionEndDate(parsed.productionEndDate);
+              if (parsed.deliveryStartDate != null) setDeliveryStartDate(parsed.deliveryStartDate);
+              if (parsed.deliveryEndDate != null) setDeliveryEndDate(parsed.deliveryEndDate);
+              if (parsed.pickupStartDate != null) setPickupStartDate(parsed.pickupStartDate);
+              if (parsed.pickupEndDate != null) setPickupEndDate(parsed.pickupEndDate);
+              if (parsed.pickupLocation != null) setPickupLocation(parsed.pickupLocation);
+            } catch {
+              // ignore parse error
+            }
+          }
+        }
+
         setErrorMessage(null);
       } catch (error: any) {
         if (!cancelled) setErrorMessage(error?.message ?? '등록 요청 정보를 불러오지 못했습니다.');
@@ -137,6 +167,36 @@ export default function AdminRegisterRequestStep2Page() {
       cancelled = true;
     };
   }, [requestId, router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading || errorMessage) return;
+    window.sessionStorage.setItem(
+      `register-request-step2:${requestId}`,
+      JSON.stringify({
+        goalAmount,
+        productionStartDate: mode === 'parcel' ? productionStartDate : null,
+        productionEndDate: mode === 'parcel' ? productionEndDate : null,
+        deliveryStartDate: mode === 'parcel' ? deliveryStartDate : null,
+        deliveryEndDate: mode === 'parcel' ? deliveryEndDate : null,
+        pickupStartDate: mode === 'pickup' ? pickupStartDate : null,
+        pickupEndDate: mode === 'pickup' ? pickupEndDate : null,
+        pickupLocation: mode === 'pickup' ? pickupLocation : null,
+      })
+    );
+  }, [
+    requestId,
+    loading,
+    errorMessage,
+    mode,
+    goalAmount,
+    productionStartDate,
+    productionEndDate,
+    deliveryStartDate,
+    deliveryEndDate,
+    pickupStartDate,
+    pickupEndDate,
+    pickupLocation,
+  ]);
 
   const handleNext = () => {
     if (typeof window !== 'undefined') {
@@ -161,7 +221,7 @@ export default function AdminRegisterRequestStep2Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" onBack={() => setShowLeaveModal(true)} />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={() => router.push(`/admin/product/request/register/${requestId}`)} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -241,7 +301,7 @@ export default function AdminRegisterRequestStep2Page() {
             <div className="flex w-full items-start gap-[9px]">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push(`/admin/product/request/register/${requestId}`)}
                 className="flex flex-1 items-center justify-center rounded-lg bg-[#E9DED2] p-4"
               >
                 <span className="typo-body-small-bold text-neutral-12">이전</span>

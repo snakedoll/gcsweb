@@ -82,6 +82,12 @@ type Step2Draft = {
   pickupLocation?: string | null;
 };
 
+type Step3Draft = {
+  price?: string;
+  options?: OptionCard[];
+  isPublic?: boolean;
+};
+
 function toDateOnly(value: string | null | undefined) {
   if (!value) return '';
   const date = new Date(value);
@@ -427,6 +433,20 @@ export default function AdminRegisterRequestStep3Page() {
           }))
         );
 
+        if (typeof window !== 'undefined') {
+          const step3Raw = window.sessionStorage.getItem(`register-request-step3:${requestId}`);
+          if (step3Raw) {
+            try {
+              const parsed = JSON.parse(step3Raw) as Step3Draft;
+              if (typeof parsed.price === 'string') setPrice(parsed.price);
+              if (Array.isArray(parsed.options)) setCards(parsed.options);
+              if (typeof parsed.isPublic === 'boolean') setIsPublic(parsed.isPublic);
+            } catch {
+              // ignore parse error
+            }
+          }
+        }
+
         setStep1Draft((prev) =>
           prev ?? {
             teamId: item.teamId,
@@ -470,6 +490,18 @@ export default function AdminRegisterRequestStep3Page() {
       cancelled = true;
     };
   }, [requestId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading || errorMessage) return;
+    window.sessionStorage.setItem(
+      `register-request-step3:${requestId}`,
+      JSON.stringify({
+        price,
+        options: cards,
+        isPublic,
+      } satisfies Step3Draft)
+    );
+  }, [requestId, loading, errorMessage, price, cards, isPublic]);
 
   const canAddCard = cards.length < 3;
   const scrollOptionArea = cards.length >= 2;
@@ -516,6 +548,14 @@ export default function AdminRegisterRequestStep3Page() {
     );
   }, [price, step1Draft, step2Draft]);
 
+  const goToPreviousStep = () => {
+    if (step1Draft?.type === 0) {
+      router.push(`/admin/product/request/register/${requestId}/step-2`);
+      return;
+    }
+    router.push(`/admin/product/request/register/${requestId}`);
+  };
+
   const handleModalConfirm = async () => {
     if (actionLoading) return;
 
@@ -536,6 +576,11 @@ export default function AdminRegisterRequestStep3Page() {
         const json = await res.json().catch(() => ({}));
         if (!res.ok || json?.status !== 'success') {
           throw new Error(json?.message ?? '거부 처리에 실패했습니다.');
+        }
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(`register-request-step1:${requestId}`);
+          window.sessionStorage.removeItem(`register-request-step2:${requestId}`);
+          window.sessionStorage.removeItem(`register-request-step3:${requestId}`);
         }
         router.push('/admin/product/request/register?toast=reject');
       } catch (error: any) {
@@ -607,6 +652,11 @@ export default function AdminRegisterRequestStep3Page() {
         if (!res.ok || json?.status !== 'success') {
           throw new Error(json?.message ?? '승인 처리에 실패했습니다.');
         }
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(`register-request-step1:${requestId}`);
+          window.sessionStorage.removeItem(`register-request-step2:${requestId}`);
+          window.sessionStorage.removeItem(`register-request-step3:${requestId}`);
+        }
         router.push(`/admin/product/request/register?toast=${isPublic ? 'approve-public' : 'approve-private'}`);
       } catch (error: any) {
         alert(error?.message ?? '승인 처리에 실패했습니다.');
@@ -621,7 +671,7 @@ export default function AdminRegisterRequestStep3Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" onBack={() => setModalType('leave')} />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={goToPreviousStep} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -714,13 +764,7 @@ export default function AdminRegisterRequestStep3Page() {
             <div className="flex w-full items-start gap-[10px]">
               <button
                 type="button"
-                onClick={() => {
-                  if (step1Draft?.type === 0) {
-                    router.push(`/admin/product/request/register/${requestId}/step-2`);
-                  } else {
-                    router.push(`/admin/product/request/register/${requestId}`);
-                  }
-                }}
+                onClick={goToPreviousStep}
                 className="flex h-[55px] w-[37px] items-center justify-center rounded-lg bg-[#E9DED2] text-neutral-12"
                 aria-label="이전"
               >

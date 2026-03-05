@@ -140,8 +140,23 @@ export default function AdminRegisterRequestStep1Page() {
         if (!item) throw new Error('등록 요청 정보를 찾을 수 없습니다.');
         if (cancelled) return;
 
+        let nextNotice = item.noticeImgUrl ?? null;
+        if (typeof window !== 'undefined') {
+          const step1Raw = window.sessionStorage.getItem(`register-request-step1:${requestId}`);
+          if (step1Raw) {
+            try {
+              const parsed = JSON.parse(step1Raw) as { noticeImgUrl?: string | null };
+              if (Object.prototype.hasOwnProperty.call(parsed, 'noticeImgUrl')) {
+                nextNotice = parsed.noticeImgUrl ?? null;
+              }
+            } catch {
+              // ignore parse error
+            }
+          }
+        }
+
         setRequestData(item);
-        setNoticePreviewUrl(item.noticeImgUrl ?? null);
+        setNoticePreviewUrl(nextNotice);
         setErrorMessage(null);
       } catch (error: any) {
         if (!cancelled) setErrorMessage(error?.message ?? '등록 요청 정보를 불러오지 못했습니다.');
@@ -154,6 +169,26 @@ export default function AdminRegisterRequestStep1Page() {
       cancelled = true;
     };
   }, [requestId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !requestData) return;
+    window.sessionStorage.setItem(
+      `register-request-step1:${requestId}`,
+      JSON.stringify({
+        teamId: requestData.teamId,
+        teamName: requestData.teamName,
+        name: requestData.name,
+        description: requestData.description,
+        type: requestData.type,
+        receiveMethod: requestData.receiveMethod,
+        salesStartDate: toDateOnly(requestData.salesStartDate),
+        salesEndDate: toDateOnly(requestData.salesEndDate),
+        thumbnailUrl: requestData.thumbnailUrl ?? '',
+        detailImageUrls: requestData.detailImageUrls ?? [],
+        noticeImgUrl: noticePreviewUrl,
+      })
+    );
+  }, [requestId, requestData, noticePreviewUrl]);
 
   const handleNext = () => {
     if (!requestData) return;
