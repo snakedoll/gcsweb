@@ -74,11 +74,11 @@ async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PROD
   const res = await fetch('/api/v1/images', { method: 'POST', body: form });
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
-    throw new Error((j as { message?: string }).message || '?대?吏 ?낅줈?쒖뿉 ?ㅽ뙣?덉뒿?덈떎.');
+    throw new Error((j as { message?: string }).message || '이미지 업로드에 실패했습니다.');
   }
   const data = (await res.json()) as { data?: { imageUrl?: string } };
   const url = data.data?.imageUrl;
-  if (!url) throw new Error('?대?吏 URL??諛쏆? 紐삵뻽?듬땲??');
+  if (!url) throw new Error('이미지 URL을 받지 못했습니다.');
   return url;
 }
 
@@ -169,7 +169,7 @@ function TeamDropdown({
         )}
       >
         <span className={selectedTeam ? 'text-neutral-12' : 'text-neutral-6'}>
-          {selectedTeam ? selectedTeam.teamName : '?먮ℓ????낅젰?섏꽭??'}
+          {selectedTeam ? selectedTeam.teamName : '판매팀을 입력해 주세요'}
         </span>
         <Image src="/assets/icons/icon-right.svg" alt="" width={20} height={20} className={open ? 'rotate-90' : ''} />
       </button>
@@ -187,9 +187,9 @@ function TeamDropdown({
           </div>
           <ul className="max-h-44 overflow-y-auto py-1">
             {isLoading ? (
-              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">濡쒕뵫 以?..</li>
+              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">로딩 중...</li>
             ) : filtered.length === 0 ? (
-              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">?깅줉??????놁뒿?덈떎.</li>
+              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">등록된 팀이 없습니다.</li>
             ) : (
               filtered.map((team) => (
                 <li key={team.id}>
@@ -216,7 +216,7 @@ function TeamDropdown({
   );
 }
 
-/** ?뺤궗媛곹삎 ?④퀎 ?쒖떆: ?꾨즺=二쇳솴+??泥댄겕, ?꾩옱=Figma 5020-2903(?고븳 諛곌꼍+二쇳솴 ?뚮몢由?, 鍮꾪솢???뚯깋 */
+/** 정사각형 단계 표시: 완료=주황+체크, 현재=Figma 5020-2903(연한 배경+주황 테두리, 비활성=회색 */
 function StepIndicator({ currentStep, totalSteps = 3 }: { currentStep: number; totalSteps?: number }) {
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
   return (
@@ -226,7 +226,7 @@ function StepIndicator({ currentStep, totalSteps = 3 }: { currentStep: number; t
       aria-valuenow={currentStep}
       aria-valuemin={1}
       aria-valuemax={totalSteps}
-      aria-label={`?깅줉 ?④퀎 ${currentStep} of ${totalSteps}`}
+      aria-label={`등록 단계 ${currentStep} of ${totalSteps}`}
     >
       {steps.map((step) => {
         const isCompleted = step < currentStep;
@@ -436,7 +436,7 @@ export default function NewProductPage() {
     if (data.type === 1) setCurrentStep(2);
     else if (data.type === 0) setCurrentStep(2);
     else if (data.type === 2) {
-      // Partner Up: ?깅줉?붿껌
+      // Partner Up: 등록요청
       router.push('/mypage/my-products');
     }
   };
@@ -551,7 +551,7 @@ export default function NewProductPage() {
 
   const onSubmitStep3Fund = async (data: NewProductStep2BuyNowInput) => {
     if (!step1Data || (!thumbnailFile && !initialThumbnailUrl) || (detailFiles.length === 0 && initialDetailUrls.length === 0)) {
-      alert('?꾩닔 ??ぉ(?/?곹뭹?뺣낫, ?몃꽕?? ?곸꽭 ?대?吏 1???댁긽)???뺤씤?댁＜?몄슂.');
+      alert('필수 항목(팀/상품정보, 썸네일, 상세 이미지 1장 이상)을 확인해주세요.');
       return;
     }
     const step2Data = isFundDelivery ? step2DeliveryForm.getValues() : step2PickupForm.getValues();
@@ -586,12 +586,12 @@ export default function NewProductPage() {
       const res = await fetch(`/api/v1/mypage/products/${productId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
       if (!res.ok) {
-        setRegistrationError(json.message || json.data?.message || '?깅줉 ?붿껌???ㅽ뙣?덉뒿?덈떎.');
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
         return;
       }
       router.push('/mypage/my-products?toast=update-requested');
     } catch (e) {
-      setRegistrationError(e instanceof Error ? e.message : '?깅줉 ?붿껌 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      setRegistrationError(e instanceof Error ? e.message : '등록 요청 중 오류가 발생했습니다.');
     } finally {
       setSubmittingRegistration(false);
     }
@@ -700,7 +700,7 @@ export default function NewProductPage() {
 
   const onSubmitStep2BuyNow = async (data: NewProductStep2BuyNowInput) => {
     if (!step1Data || (!thumbnailFile && !initialThumbnailUrl) || (detailFiles.length === 0 && initialDetailUrls.length === 0)) {
-      alert('?꾩닔 ??ぉ(?/?곹뭹?뺣낫, ?몃꽕?? ?곸꽭 ?대?吏 1???댁긽)???뺤씤?댁＜?몄슂.');
+      alert('필수 항목(팀/상품정보, 썸네일, 상세 이미지 1장 이상)을 확인해주세요.');
       return;
     }
     setSubmittingRegistration(true);
@@ -721,12 +721,12 @@ export default function NewProductPage() {
       const res = await fetch(`/api/v1/mypage/products/${productId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
       if (!res.ok) {
-        setRegistrationError(json.message || json.data?.message || '?깅줉 ?붿껌???ㅽ뙣?덉뒿?덈떎.');
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
         return;
       }
       router.push('/mypage/my-products?toast=update-requested');
     } catch (e) {
-      setRegistrationError(e instanceof Error ? e.message : '?깅줉 ?붿껌 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.');
+      setRegistrationError(e instanceof Error ? e.message : '등록 요청 중 오류가 발생했습니다.');
     } finally {
       setSubmittingRegistration(false);
     }
@@ -770,7 +770,7 @@ export default function NewProductPage() {
   if (userLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="typo-body-xsmall text-neutral-7">濡쒕뵫 以?..</p>
+        <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
       </div>
     );
   }
@@ -808,10 +808,10 @@ export default function NewProductPage() {
 
         {currentStep === 1 && (
         <form onSubmit={handleSubmit(onSubmitStep1)} className="min-w-0 space-y-5">
-          {/* ?먮ℓ? */}
+          {/* 판매팀 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?먮ℓ? <span className="text-orange-5">*</span>
+              판매팀 <span className="text-orange-5">*</span>
             </label>
             <div className="mt-1">
               <TeamDropdown
@@ -824,7 +824,7 @@ export default function NewProductPage() {
             </div>
           </section>
 
-          {/* ?곹뭹紐?- Figma 5083-9264: ?먮윭 ???쇰꺼/?뚮몢由??꾩씠肄?硫붿떆吏 紐⑤몢 鍮④컙??*/}
+          {/* 상품명- Figma 5083-9264: 에러 시 라벨/테두리/아이콘/메시지 모두 빨간색 */}
           <section>
             <label
               className={cn(
@@ -832,7 +832,7 @@ export default function NewProductPage() {
                 (errors.name || nameOverLimit) ? 'text-red-5' : 'text-neutral-12'
               )}
             >
-              ?곹뭹紐?<span className={(errors.name || nameOverLimit) ? 'text-red-5' : 'text-orange-5'}>*</span>
+              상품명<span className={(errors.name || nameOverLimit) ? 'text-red-5' : 'text-orange-5'}>*</span>
             </label>
             <div className="relative mt-1">
               <input
@@ -852,19 +852,19 @@ export default function NewProductPage() {
             </div>
             {(errors.name?.message || nameOverLimit) && (
               <p className="mt-1 typo-body-xsmall text-red-5" role="alert">
-                {nameOverLimit ? '湲?먯닔??13???대궡濡??묒꽦?댁＜?몄슂' : errors.name?.message}
+                {nameOverLimit ? '글자수는 13자 이내로 작성해주세요' : errors.name?.message}
               </p>
             )}
           </section>
 
-          {/* ?곹뭹 ?ㅻ챸 */}
+          {/* 상품 설명 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?곹뭹 ?ㅻ챸 <span className="text-orange-5">*</span>
+              상품 설명 <span className="text-orange-5">*</span>
             </label>
             <input
               {...register('description')}
-              placeholder="?? 而ㅽ뵾 ?ㅺ퀬 吏援????ㅺ린"
+              placeholder="예) 커피 향이 깊고 진득한 뒷맛"
               className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6"
             />
             {errors.description && (
@@ -872,10 +872,10 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* ?곹뭹 ?좏삎 */}
+          {/* 상품 유형 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?곹뭹 ?좏삎 <span className="text-orange-5">*</span>
+              상품 유형 <span className="text-orange-5">*</span>
             </label>
             <Controller
               name="type"
@@ -912,20 +912,20 @@ export default function NewProductPage() {
             />
           </section>
 
-          {/* ?섎졊 諛⑹떇: Fund=?좏깮, Buy Now=?꾩옣?섎졊 怨좎젙, Partner Up=鍮꾪솢?깊솕 */}
+          {/* 수령 방식: Fund=선택, Buy Now=현장수령 고정, Partner Up=비활성화 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?섎졊 諛⑹떇 <span className="text-orange-5">*</span>
+              수령 방식 <span className="text-orange-5">*</span>
             </label>
             {productTypeWatch === 2 ? (
               <>
                 <p className="mt-1 typo-body-xsmall text-neutral-7">
-                  Partner Up? ?섎졊 諛⑹떇 ?좏깮??遺덇????⑸땲??
+                  Partner Up은 수령 방식을 선택할 수 없습니다.
                 </p>
                 <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-3">
                   {[
-                    { value: 0, label: '?앸같 諛곗넚' },
-                    { value: 1, label: '?꾩옣 ?섎졊' },
+                    { value: 0, label: '택배 배송' },
+                    { value: 1, label: '현장 수령' },
                   ].map((opt, i) => (
                     <div
                       key={opt.value}
@@ -947,14 +947,14 @@ export default function NewProductPage() {
             ) : productTypeWatch === 1 ? (
               <>
                 <p className="mt-1 typo-body-xsmall text-neutral-7">
-                  Buy Now???꾩옣 ?섎졊留?媛?ν빀?덈떎.
+                  Buy Now는 현장 수령만 가능합니다.
                 </p>
                 <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
                   <div className="flex items-center px-4 py-3 opacity-60">
-                    <RadioButton checked={false} label="?앸같 諛곗넚" disabled value={0} />
+                    <RadioButton checked={false} label="택배 배송" disabled value={0} />
                   </div>
                   <div className="pointer-events-none flex items-center border-t border-neutral-4 px-4 py-3">
-                    <RadioButton checked label="?꾩옣 ?섎졊" value={1} className="w-full" />
+                    <RadioButton checked label="현장 수령" value={1} className="w-full" />
                   </div>
                 </div>
               </>
@@ -965,8 +965,8 @@ export default function NewProductPage() {
                 render={({ field }) => (
                   <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
                     {[
-                      { value: 0, label: '?앸같 諛곗넚' },
-                      { value: 1, label: '?꾩옣 ?섎졊' },
+                      { value: 0, label: '택배 배송' },
+                      { value: 1, label: '현장 수령' },
                     ].map((opt, i) => (
                       <div
                         key={opt.value}
@@ -994,10 +994,10 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* ?덉긽 ?먮ℓ 湲곌컙 */}
+          {/* 예상 판매 기간 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?덉긽 ?먮ℓ 湲곌컙 <span className="text-orange-5">*</span>
+              예상 판매 기간 <span className="text-orange-5">*</span>
             </label>
             <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
               <div className="min-w-0 flex-1">
@@ -1055,7 +1055,7 @@ export default function NewProductPage() {
                   )}
                 />
               </div>
-              <span className="shrink-0 typo-body-small-bold text-neutral-8">源뚯?</span>
+              <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
             </div>
             {(errors.salesStartDate || errors.salesEndDate) && (
               <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1064,12 +1064,12 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* ?몃꽕???대?吏 */}
+          {/* 썸네일 이미지 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?몃꽕???대?吏 <span className="text-orange-5">*</span>
+              썸네일 이미지 <span className="text-orange-5">*</span>
             </label>
-            <p className="mt-1 typo-body-xsmall text-neutral-7">?몃꽕???대?吏??理쒕? 1?κ퉴吏 ?낅줈??媛?ν빀?덈떎.</p>
+            <p className="mt-1 typo-body-xsmall text-neutral-7">썸네일 이미지는 최대 1장까지 업로드 가능합니다.</p>
             <input
               ref={thumbnailInputRef}
               type="file"
@@ -1102,19 +1102,19 @@ export default function NewProductPage() {
                   onClick={() => thumbnailInputRef.current?.click()}
                   className="flex h-24 w-24 min-w-[96px] cursor-pointer items-center justify-center rounded-lg border border-dashed border-neutral-5 typo-body-xsmall text-neutral-6 hover:bg-neutral-3"
                 >
-                  蹂寃?
+                  변경
                 </button>
               )}
             </div>
           </section>
 
-          {/* ?곸꽭?섏씠吏 ?대?吏 */}
+          {/* 상세페이지 이미지 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?곸꽭?섏씠吏 ?대?吏 <span className="text-orange-5">*</span>
+              상세페이지 이미지 <span className="text-orange-5">*</span>
             </label>
             <p className="mt-1 typo-body-xsmall text-neutral-7">
-              ?щ윭 ?μ씤 寃쎌슦, ?붾㈃???몄텧???쒖꽌?濡??낅줈?쒗빐 二쇱꽭?? ?쒕옒洹명븯???쒖꽌瑜?蹂寃쏀븷 ???덉뒿?덈떎.
+              여러 장인 경우, 화면에 노출되는 순서대로 업로드해 주세요. 드래그하여 순서를 변경할 수 있습니다.
             </p>
             <input
               ref={detailInputRef}
@@ -1184,7 +1184,7 @@ export default function NewProductPage() {
                 </li>
               )}
             </ul>
-            <p className="mt-1 typo-body-xsmall text-neutral-7">理쒕? {DETAIL_MAX}?? ?쒕옒洹몃줈 ?쒖꽌 蹂寃</p>
+            <p className="mt-1 typo-body-xsmall text-neutral-7">최대 {DETAIL_MAX}장, 드래그로 순서 변경</p>
           </section>
 
           <div className="pt-4">
@@ -1197,7 +1197,7 @@ export default function NewProductPage() {
               {productTypeWatch === 2 ? '수정요청' : '다음'}
             </button>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
-              ?ㅼ쓬?쇰줈 ?섏뼱媛???꾩옱???댁슜? ??λ맗?덈떎.
+              다음으로 넘어가면 현재 입력 내용은 저장됩니다.
             </p>
           </div>
         </form>
@@ -1205,10 +1205,10 @@ export default function NewProductPage() {
 
         {currentStep === 2 && isBuyNow && (
           <form onSubmit={handleSubmitStep2BuyNow(onSubmitStep2BuyNow)} className="min-w-0 space-y-5">
-            {/* 媛寃?*/}
+            {/* 가격*/}
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                媛寃?<span className="text-red-5">*</span>
+                가격<span className="text-red-5">*</span>
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <input
@@ -1228,29 +1228,29 @@ export default function NewProductPage() {
               )}
             </section>
 
-            {/* ?듭뀡 */}
+            {/* 옵션 */}
             <section>
-              <label className="typo-body-small-bold text-neutral-10">?듭뀡</label>
-              <p className="mt-1 typo-body-xsmall text-neutral-8">?듭뀡 異붽????좏깮 ?ы빆?낅땲??</p>
+              <label className="typo-body-small-bold text-neutral-10">옵션</label>
+              <p className="mt-1 typo-body-xsmall text-neutral-8">옵션 추가는 선택 사항입니다.</p>
               {buyNowOptions.map((opt, idx) => (
                 <div
                   key={opt.id}
                   className="mt-3 rounded-lg border border-neutral-5 bg-neutral-1 p-3"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="typo-body-small-bold text-neutral-12">?듭뀡 {idx + 1}</span>
+                    <span className="typo-body-small-bold text-neutral-12">옵션 {idx + 1}</span>
                     <button
                       type="button"
                       onClick={() => removeBuyNowOption(opt.id)}
                       className="flex h-8 w-8 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                      aria-label="?듭뀡 ??젣"
+                      aria-label="옵션 삭제"
                     >
                       <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={20} height={20} />
                     </button>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <p className="typo-body-xsmall text-neutral-9 mb-1">?듭뀡紐</p>
+                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
                       <input
                         type="text"
                         placeholder="예: 컬러"
@@ -1262,7 +1262,7 @@ export default function NewProductPage() {
                     <div>
                       <div className="flex justify-between typo-body-xsmall text-neutral-9 mb-1">
                         <span>옵션값</span>
-                        <span>異붽? 湲덉븸</span>
+                        <span>추가 금액</span>
                       </div>
                       {opt.values.map((v) => (
                         <div key={v.id} className="flex items-center gap-2 mt-1">
@@ -1287,7 +1287,7 @@ export default function NewProductPage() {
                             type="button"
                             onClick={() => removeBuyNowOptionValue(opt.id, v.id)}
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                            aria-label="?듭뀡媛???젣"
+                            aria-label="옵션값 삭제"
                           >
                             <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
                           </button>
@@ -1297,7 +1297,7 @@ export default function NewProductPage() {
                         type="button"
                         onClick={() => addBuyNowOptionValue(opt.id)}
                         className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-5 bg-neutral-3 text-neutral-8 hover:bg-neutral-4"
-                        aria-label="?듭뀡媛?異붽?"
+                        aria-label="옵션값 추가"
                       >
                         <Image src="/assets/icons/light/plus.svg" alt="" width={16} height={16} />
                       </button>
@@ -1311,7 +1311,7 @@ export default function NewProductPage() {
                   onClick={addBuyNowOption}
                   className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
                 >
-                  ?듭뀡 異붽?
+                  옵션 추가
                 </button>
               )}
             </section>
@@ -1322,7 +1322,7 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
@@ -1349,10 +1349,10 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep2Delivery(onSubmitStep2Delivery)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                紐⑺몴 湲덉븸 <span className="text-red-5">*</span>
+                목표 금액 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                紐⑺몴 湲덉븸???녿떎硫?0?먯쑝濡??낅젰?댁＜?몄슂.
+                목표 금액이 없다면 0으로 입력해 주세요.
               </p>
               <div
                 className={cn(
@@ -1376,7 +1376,7 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-12">
-                ?덉긽 ?쒖옉 湲곌컙 <span className="text-orange-5">*</span>
+                예상 시작 기간 <span className="text-orange-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
                 <div className="min-w-0 flex-1">
@@ -1434,7 +1434,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">源뚯?</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
               </div>
               {(errorsStep2Delivery.productionStartDate || errorsStep2Delivery.productionEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1446,7 +1446,7 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-12">
-                ?덉긽 諛곗넚 湲곌컙 <span className="text-orange-5">*</span>
+                예상 배송 기간 <span className="text-orange-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
                 <div className="min-w-0 flex-1">
@@ -1504,7 +1504,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">源뚯?</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
               </div>
               {(errorsStep2Delivery.deliveryStartDate || errorsStep2Delivery.deliveryEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1520,18 +1520,18 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
                 onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
-                ?ㅼ쓬
+                다음
               </button>
             </div>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
-              ?ㅼ쓬?쇰줈 ?섏뼱媛???꾩옱???댁슜? ??λ맗?덈떎.
+              다음으로 넘어가면 현재 입력 내용은 저장됩니다.
             </p>
           </form>
         )}
@@ -1540,10 +1540,10 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep2Pickup(onSubmitStep2Pickup)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                紐⑺몴 湲덉븸 <span className="text-red-5">*</span>
+                목표 금액 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                紐⑺몴 湲덉븸???녿떎硫?0?먯쑝濡??낅젰?댁＜?몄슂.
+                목표 금액이 없다면 0으로 입력해 주세요.
               </p>
               <div
                 className={cn(
@@ -1567,11 +1567,11 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?덉긽 ?섎졊 湲곌컙 <span className="text-red-5">*</span>
+                예상 수령 기간 <span className="text-red-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-start gap-2">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="typo-body-xsmall text-neutral-8">湲곌컙 ?쒖옉?</p>
+                  <p className="typo-body-xsmall text-neutral-8">기간 시작일</p>
                   <Controller
                     name="pickupStartDate"
                     control={controlStep2Pickup}
@@ -1603,7 +1603,7 @@ export default function NewProductPage() {
                 </div>
                 <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">~</span>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="typo-body-xsmall text-neutral-8">湲곌컙 醫낅즺?</p>
+                  <p className="typo-body-xsmall text-neutral-8">기간 종료일</p>
                   <Controller
                     name="pickupEndDate"
                     control={controlStep2Pickup}
@@ -1627,7 +1627,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">源뚯?</span>
+                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">까지</span>
               </div>
               {(errorsStep2Pickup.pickupStartDate || errorsStep2Pickup.pickupEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1638,14 +1638,14 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?섎졊 ?μ냼 <span className="text-red-5">*</span>
+                수령 장소 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                誘몄젙??寃쎌슦, &quot;誘몄젙&quot;?쇰줈 ?낅젰??二쇱꽭??
+                미정인 경우, &quot;미정&quot;으로 입력해 주세요.
               </p>
               <input
                 {...registerStep2Pickup('pickupLocation')}
-                placeholder="?섎졊 ?μ냼瑜??낅젰?댁＜?몄슂"
+                placeholder="수령 장소를 입력해 주세요"
                 className={cn(
                   'mt-1 h-10 w-full rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6',
                   errorsStep2Pickup.pickupLocation ? 'border-red-5' : 'border-neutral-5'
@@ -1662,18 +1662,18 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
                 onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
-                ?ㅼ쓬
+                다음
               </button>
             </div>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
-              ?ㅼ쓬?쇰줈 ?섏뼱媛???꾩옱???댁슜? ??λ맗?덈떎.
+              다음으로 넘어가면 현재 입력 내용은 저장됩니다.
             </p>
           </form>
         )}
@@ -1682,7 +1682,7 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep3Fund(onSubmitStep3Fund)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                媛寃?<span className="text-red-5">*</span>
+                가격<span className="text-red-5">*</span>
               </label>
               <div
                 className={cn(
@@ -1705,24 +1705,24 @@ export default function NewProductPage() {
             </section>
 
             <section>
-              <label className="typo-body-small-bold text-neutral-10">?듭뀡</label>
-              <p className="mt-1 typo-body-xsmall text-neutral-8">?듭뀡 異붽????좏깮 ?ы빆?낅땲??</p>
+              <label className="typo-body-small-bold text-neutral-10">옵션</label>
+              <p className="mt-1 typo-body-xsmall text-neutral-8">옵션 추가는 선택 사항입니다.</p>
               {fundStep3Options.map((opt, idx) => (
                 <div key={opt.id} className="mt-3 rounded-lg border border-neutral-5 bg-neutral-1 p-3">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="typo-body-small-bold text-neutral-12">?듭뀡 {idx + 1}</span>
+                    <span className="typo-body-small-bold text-neutral-12">옵션 {idx + 1}</span>
                     <button
                       type="button"
                       onClick={() => removeFundStep3Option(opt.id)}
                       className="flex h-8 w-8 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                      aria-label="?듭뀡 ??젣"
+                      aria-label="옵션 삭제"
                     >
                       <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={20} height={20} />
                     </button>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <p className="typo-body-xsmall text-neutral-9 mb-1">?듭뀡紐</p>
+                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
                       <input
                         type="text"
                         placeholder="예: 컬러"
@@ -1734,7 +1734,7 @@ export default function NewProductPage() {
                     <div>
                       <div className="mb-1 flex justify-between typo-body-xsmall text-neutral-9">
                         <span>옵션값</span>
-                        <span>異붽? 湲덉븸</span>
+                        <span>추가 금액</span>
                       </div>
                       {opt.values.map((v) => (
                         <div key={v.id} className="mt-1 flex items-center gap-2">
@@ -1759,7 +1759,7 @@ export default function NewProductPage() {
                             type="button"
                             onClick={() => removeFundStep3OptionValue(opt.id, v.id)}
                             className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                            aria-label="?듭뀡媛???젣"
+                            aria-label="옵션값 삭제"
                           >
                             <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
                           </button>
@@ -1769,7 +1769,7 @@ export default function NewProductPage() {
                         type="button"
                         onClick={() => addFundStep3OptionValue(opt.id)}
                         className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-5 bg-neutral-3 text-neutral-8 hover:bg-neutral-4"
-                        aria-label="?듭뀡媛?異붽?"
+                        aria-label="옵션값 추가"
                       >
                         <Image src="/assets/icons/light/plus.svg" alt="" width={16} height={16} />
                       </button>
@@ -1783,7 +1783,7 @@ export default function NewProductPage() {
                   onClick={addFundStep3Option}
                   className="mt-3 flex h-12 w-full items-center justify-center rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-10"
                 >
-                  ?듭뀡 異붽?
+                  옵션 추가
                 </button>
               )}
             </section>
@@ -1794,7 +1794,7 @@ export default function NewProductPage() {
                 onClick={() => setCurrentStep(2)}
                 className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
@@ -1817,12 +1817,12 @@ export default function NewProductPage() {
           </form>
         )}
 
-        {/* ?깅줉 ?붿껌 ?뺤씤 紐⑤떖 */}
+        {/* 등록 요청 확인 모달 */}
         {showRegistrationConfirmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <button
               type="button"
-              aria-label="諛곌꼍 ?リ린"
+              aria-label="배경 닫기"
               className="absolute inset-0 bg-neutral-12 opacity-70"
               onClick={() => {
                 setShowRegistrationConfirmModal(false);
@@ -1845,7 +1845,7 @@ export default function NewProductPage() {
                   }}
                   className="flex-1 rounded-lg border border-neutral-5 bg-neutral-2 py-3 typo-body-small-bold text-neutral-10"
                 >
-                  痍⑥냼
+                  취소
                 </button>
                 <button
                   type="button"
@@ -1860,7 +1860,7 @@ export default function NewProductPage() {
                   }}
                   className="flex-1 rounded-lg bg-orange-5 py-3 typo-body-small-bold text-neutral-2"
                 >
-                  ?뺤씤
+                  확인
                 </button>
               </div>
             </div>

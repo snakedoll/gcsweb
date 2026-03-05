@@ -17,10 +17,7 @@ export async function GET() {
 
     const myTeams = await prisma.team.findMany({
       where: {
-        OR: [
-          { userId: session.user.id },
-          { teamMember: { has: session.user.id } },
-        ],
+        OR: [{ userId: session.user.id }, { teamMember: { has: session.user.id } }],
       },
       select: { id: true },
     });
@@ -43,7 +40,6 @@ export async function GET() {
       const goal = p.goalAmount ?? 0;
       const current = p.currentAmount ?? 0;
       const progressPercent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
-      const isFund = p.type === 0;
       return {
         id: p.id,
         type: p.type,
@@ -194,7 +190,7 @@ export async function POST(request: Request) {
     }
     if (detailUrls.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1장 이상 필요합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1개 이상 필요합니다.' },
         { status: 400 }
       );
     }
@@ -203,7 +199,7 @@ export async function POST(request: Request) {
     const salesEnd = parseDate(salesEndDate);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '판매 시작일·종료일을 올바르게 입력해주세요.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '판매 시작일/종료일을 올바르게 입력해 주세요.' },
         { status: 400 }
       );
     }
@@ -218,7 +214,7 @@ export async function POST(request: Request) {
           !parseDate(deliveryEndDate)
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 제작 기간·배송 기간을 올바르게 입력해주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: '예상 제작 기간/배송 기간을 올바르게 입력해 주세요.' },
             { status: 400 }
           );
         }
@@ -229,21 +225,15 @@ export async function POST(request: Request) {
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 수령 기간·수령 장소를 입력해주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: '예상 수령 기간/수령 장소를 입력해 주세요.' },
             { status: 400 }
           );
         }
       }
     }
 
-    const goalAmountNum =
-      typeof goalAmount === 'number'
-        ? goalAmount
-        : typeof goalAmount === 'string'
-          ? Number(goalAmount)
-          : NaN;
-    const resolvedGoalAmount =
-      !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
+    const goalAmountNum = typeof goalAmount === 'number' ? goalAmount : typeof goalAmount === 'string' ? Number(goalAmount) : NaN;
+    const resolvedGoalAmount = !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
 
     const productData = {
       teamId,
@@ -371,7 +361,7 @@ export async function POST(request: Request) {
       status: 'success',
       data: {
         productId: product.id,
-        message: '등록 요청이 접수되었습니다. 관리자 승인 후 노출됩니다.',
+        message: '등록 요청이 접수되었습니다. 관리자 확인 후 노출됩니다.',
       },
     });
   } catch (error) {
