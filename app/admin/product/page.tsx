@@ -26,6 +26,7 @@ type AdminProductItem = {
   currentAmount: number | null;
   goalAmount: number | null;
   likeCount: number;
+  isLiked?: boolean;
 };
 
 type AdminProductListResponse = {
@@ -182,6 +183,56 @@ export default function AdminProductPage() {
     }
   };
 
+  const updateProductLike = async (productId: string) => {
+    // 1. Optimistic Update
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.id === productId
+          ? {
+              ...item,
+              isLiked: !item.isLiked,
+              likeCount: !item.isLiked ? (item.likeCount ?? 0) + 1 : Math.max(0, (item.likeCount ?? 0) - 1),
+            }
+          : item
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/v1/shop/products/${productId}/like`, {
+        method: 'POST',
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.status !== 'success') {
+        throw new Error(json.message ?? '좋아요 상태를 변경하지 못했습니다.');
+      }
+
+      // 2. Refresh with server data (optional)
+      const isLiked = json.data?.isLiked;
+      if (isLiked !== undefined) {
+        setProducts((prev) =>
+          prev.map((item) =>
+            item.id === productId ? { ...item, isLiked } : item
+          )
+        );
+      }
+    } catch (error: any) {
+      console.error('Failed to update product like:', error);
+      // 3. Rollback
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === productId
+            ? {
+                ...item,
+                isLiked: !item.isLiked,
+                likeCount: item.isLiked ? (item.likeCount ?? 0) + 1 : Math.max(0, (item.likeCount ?? 0) - 1),
+              }
+            : item
+        )
+      );
+      alert(error.message || '요청 처리에 실패했습니다.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
@@ -248,6 +299,8 @@ export default function AdminProductPage() {
                       totalAmountText={isFund ? formatWon(product.goalAmount) : undefined}
                       progressPercent={progressPercent}
                       likeCount={Number(product.likeCount ?? 0)}
+                      liked={Boolean(product.isLiked)}
+                      onLikeClick={() => updateProductLike(product.id)}
                       homeExpose={Boolean(product.isHome)}
                       publicChecked={Boolean(product.isPublic)}
                       onHomeExposeChange={(checked) => updateProductFlag(product.id, 'isHome', checked)}

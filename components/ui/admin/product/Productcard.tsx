@@ -33,6 +33,8 @@ interface ProductcardProps {
   cartOptionText?: string;
   cartPriceText?: string;
   cartTags?: string[];
+  liked?: boolean;
+  onLikeClick?: (e: React.MouseEvent) => void;
 }
 
 function DashDivider({ className }: { className?: string }) {
@@ -86,6 +88,8 @@ function ProductContext({
   dDayText,
   dDayColor,
   onCardClick,
+  liked,
+  onLikeClick,
 }: {
   imageSrc?: string;
   brand: string;
@@ -99,6 +103,8 @@ function ProductContext({
   dDayText: string;
   dDayColor: ProductDDayColor;
   onCardClick?: () => void;
+  liked?: boolean;
+  onLikeClick?: (e: React.MouseEvent) => void;
 }) {
   return (
     <button
@@ -125,7 +131,7 @@ function ProductContext({
           {showPeriod ? (
             <div className="flex flex-col gap-0.5">
               <p className="text-[11px] leading-[1.5] text-neutral-8">{periodLabel}</p>
-              <div className="w-[154px]">
+              <div className="w-fit">
                 <PeriodField value={periodText} />
               </div>
             </div>
@@ -134,7 +140,15 @@ function ProductContext({
           {showDday || showLikeInContext ? (
             <div className={cn('flex items-center', showLikeInContext ? 'justify-between' : 'justify-start')}>
               {showDday ? <ProductDDay color={dDayColor} text={dDayText} /> : <span />}
-              {showLikeInContext ? <ProductLike /> : null}
+              {showLikeInContext ? (
+                <ProductLike
+                  selected={liked}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLikeClick?.(e);
+                  }}
+                />
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -166,6 +180,8 @@ export default function Productcard({
   cartOptionText = 'BLACK·S / 1개',
   cartPriceText = '30,300원',
   cartTags = ['Fund', '택배 배송'],
+  liked = false,
+  onLikeClick,
 }: ProductcardProps) {
   const isFund = type === 'fund';
   const isBuy = type === 'buynow/partnerup';
@@ -236,6 +252,8 @@ export default function Productcard({
           dDayText={dDayText}
           dDayColor={dDayColor}
           onCardClick={onCardClick}
+          liked={liked}
+          onLikeClick={onLikeClick}
         />
 
         {isFund ? (
@@ -252,10 +270,20 @@ export default function Productcard({
         ) : null}
 
         {isFund || isAdmin || isSeller ? (
-          <div className={cn('flex w-full items-center', isBuy ? 'justify-end' : 'justify-between')}>
+          <div className={cn('flex w-full items-center', isBuy && !isAdmin && !isSeller ? 'justify-end' : 'justify-between')}>
             {isFund ? <FundPercent variant={safePercent >= 100 ? '달성' : '미달성'} percentText={`${safePercent}%`} /> : null}
-            {isShop && isFund ? <ProductLike /> : null}
-            {isAdmin || isSeller ? <LikeCount count={likeCount} /> : null}
+            {isShop && isFund ? (
+              <ProductLike
+                selected={liked}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLikeClick?.(e);
+                }}
+              />
+            ) : null}
+            {isAdmin || isSeller ? (
+              <LikeCount count={likeCount} />
+            ) : null}
           </div>
         ) : null}
       </div>

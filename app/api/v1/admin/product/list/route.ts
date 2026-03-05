@@ -54,6 +54,10 @@ export async function GET(request: Request) {
           goalAmount: true,
           likeCount: true,
           team: { select: { teamName: true } },
+          likes: {
+            where: { userId: auth.session.user.id },
+            select: { id: true },
+          },
           images: {
             select: { thumbnailImgUrl: true },
             orderBy: { createdAt: 'asc' },
@@ -85,6 +89,7 @@ export async function GET(request: Request) {
           currentAmount: p.type === 0 ? (p.currentAmount ?? 0) : null,
           goalAmount: p.type === 0 ? (p.goalAmount ?? null) : null,
           likeCount: p.likeCount ?? 0,
+          isLiked: p.likes && p.likes.length > 0,
         })),
       },
     });

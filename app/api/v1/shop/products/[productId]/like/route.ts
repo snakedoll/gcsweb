@@ -23,13 +23,25 @@ export async function POST(
 
         if (existingLike) {
             // 좋아요 취소 (삭제)
-            await prisma.like.delete({ where: { id: existingLike.id } });
+            await prisma.$transaction([
+                prisma.like.delete({ where: { id: existingLike.id } }),
+                prisma.product.update({
+                    where: { id: productId },
+                    data: { likeCount: { decrement: 1 } }
+                })
+            ]);
             return NextResponse.json({ status: 'success', message: '좋아요 취소 완료', data: { isLiked: false } });
         } else {
             // 좋아요 추가 (생성)
-            await prisma.like.create({
-                data: { userId, productId },
-            });
+            await prisma.$transaction([
+                prisma.like.create({
+                    data: { userId, productId },
+                }),
+                prisma.product.update({
+                    where: { id: productId },
+                    data: { likeCount: { increment: 1 } }
+                })
+            ]);
             return NextResponse.json({ status: 'success', message: '좋아요 추가 완료', data: { isLiked: true } });
         }
 

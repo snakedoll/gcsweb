@@ -56,6 +56,7 @@ export async function GET(request: Request) {
         salesEndDate: true,
         currentAmount: true,
         goalAmount: true,
+        likeCount: true,
         team: { select: { teamName: true } },
         images: {
           select: { thumbnailImgUrl: true },
@@ -113,6 +114,7 @@ export async function GET(request: Request) {
           salesEndDate: product.salesEndDate,
           currentAmount: product.type === 0 ? product.currentAmount ?? 0 : null,
           goalAmount: product.type === 0 ? product.goalAmount ?? null : null,
+          likeCount: product.likeCount ?? 0,
           isLiked: likedProductIds.has(product.id),
         })),
       },

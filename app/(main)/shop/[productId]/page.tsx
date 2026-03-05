@@ -512,15 +512,30 @@ export default function ShopDetailPage() {
       setShowLoginOrderModal(true);
       return;
     }
+
+    // 1. 낙관적 업데이트 (Optimistic Update)
+    const originalIsLiked = product.isLiked;
+    setProduct((prev) => prev ? { ...prev, isLiked: !originalIsLiked } : prev);
+    
     setTogglingLike(true);
     try {
       const res = await fetch(`/api/v1/shop/products/${product.id}/like`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (res.ok && json.status === 'success') {
-        setProduct((prev) => prev ? { ...prev, isLiked: json.data?.isLiked ?? !prev.isLiked } : prev);
+      
+      if (!res.ok || json.status !== 'success') {
+        throw new Error(json.message ?? '좋아요 상태를 변경하지 못했습니다.');
+      }
+
+      // 2. 서버 데이터와 동기화 (필요한 경우)
+      const serverIsLiked = json.data?.isLiked;
+      if (serverIsLiked !== undefined && serverIsLiked !== !originalIsLiked) {
+        setProduct((prev) => prev ? { ...prev, isLiked: serverIsLiked } : prev);
       }
     } catch (err) {
       console.error('Like toggle failed:', err);
+      // 3. 에러 발생 시 롤백
+      setProduct((prev) => prev ? { ...prev, isLiked: originalIsLiked } : prev);
+      window.alert(err instanceof Error ? err.message : '요청 처리에 실패했습니다.');
     } finally {
       setTogglingLike(false);
     }

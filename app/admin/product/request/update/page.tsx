@@ -87,7 +87,7 @@ function DashDivider({ className }: { className?: string }) {
 
 function DateField({ value }: { value: string }) {
   return (
-    <div className="inline-flex h-[22px] items-center justify-center rounded-[3px] border border-neutral-5 px-1.5 py-px">
+    <div className="inline-flex h-[22px] items-center justify-center rounded-[3px] border border-neutral-5 px-[6px] py-px">
       <span className="typo-body-xsmall text-neutral-7">{value}</span>
     </div>
   );
@@ -200,7 +200,7 @@ function RequestProductCard({
 
                 <div className="flex flex-col gap-0.5">
                   <p className="text-[11px] leading-[1.5] text-neutral-8">{periodLabel}</p>
-                  <div className="w-[154px]">
+                  <div className="w-fit">
                     <DateField value={periodText} />
                   </div>
                 </div>

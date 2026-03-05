@@ -20,10 +20,11 @@ type ShopProduct = {
   type: ProductType;
   thumbnailUrl: string;
   salesStartDate: string;
-  salesEndDate: string;
+  salesEndDate: string | null;
   currentAmount: number | null;
   goalAmount: number | null;
-  isLiked: boolean;
+  likeCount: number;
+  isLiked?: boolean;
 };
 
 type ShopProductsResponse = {
@@ -52,9 +53,11 @@ const STATUS_TABS: Array<{ key: StatusTabKey; label: string; status: ProgressSta
 function ShopProductCard({
   item,
   onClick,
+  onLikeClick,
 }: {
   item: ShopProduct;
   onClick: () => void;
+  onLikeClick: () => void;
 }) {
   const progressPercent =
     item.type === 0 && typeof item.currentAmount === 'number' && typeof item.goalAmount === 'number' && item.goalAmount > 0
@@ -64,6 +67,7 @@ function ShopProductCard({
   const saleStatus = getSaleStatusByDate(item.salesStartDate, item.salesEndDate);
   const dDayText = saleStatus === 'active' ? 'D-day' : saleStatus === 'scheduled' ? '진행예정' : '진행완료';
   const dDayColor = saleStatus === 'active' ? 'Orange' : 'Gray';
+
 
   return (
     <Productcard
@@ -76,7 +80,12 @@ function ShopProductCard({
       dDayText={dDayText}
       dDayColor={dDayColor}
       progressPercent={progressPercent}
-      likeCount={0}
+      likeCount={item.likeCount}
+      liked={item.isLiked}
+      onLikeClick={(e) => {
+        e.stopPropagation();
+        onLikeClick();
+      }}
       className="w-full"
       onCardClick={onClick}
     />
@@ -92,6 +101,63 @@ export default function ShopPage() {
 
   const activeType = useMemo(() => TYPE_TABS.find((tab) => tab.key === typeTab)?.type ?? 0, [typeTab]);
   const activeStatus = useMemo(() => STATUS_TABS.find((tab) => tab.key === statusTab)?.status ?? 1, [statusTab]);
+
+  const updateProductLike = async (productId: string) => {
+    // 1. Optimistic Update
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? {
+              ...p,
+              isLiked: !p.isLiked,
+              likeCount: !p.isLiked ? (p.likeCount ?? 0) + 1 : Math.max(0, (p.likeCount ?? 0) - 1),
+            }
+          : p
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/v1/shop/products/${productId}/like`, {
+        method: 'POST',
+      });
+      const json = await res.json().catch(() => ({}));
+      
+      if (!res.ok || json.status !== 'success') {
+        throw new Error(json.message ?? '좋아요 상태를 변경하지 못했습니다.');
+      }
+
+      // 2. Sync with server result (optional but good for consistency)
+      const serverIsLiked = json.data?.isLiked;
+      if (serverIsLiked !== undefined) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === productId
+              ? {
+                  ...p,
+                  isLiked: serverIsLiked,
+                  // We already updated likeCount optimistically, but let's ensure it's correct if needed
+                }
+              : p
+          )
+        );
+      }
+    } catch (error: any) {
+      console.error('Failed to update product like:', error);
+      // 3. Rollback on error
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                isLiked: !p.isLiked,
+                likeCount: p.isLiked ? (p.likeCount ?? 0) + 1 : Math.max(0, (p.likeCount ?? 0) - 1),
+              }
+            : p
+        )
+      );
+      alert(error.message || '요청 처리에 실패했습니다.');
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -161,7 +227,12 @@ export default function ShopPage() {
           ) : (
             <div className="flex flex-col gap-5">
               {products.map((item) => (
-                <ShopProductCard key={item.id} item={item} onClick={() => router.push(`/shop/${item.id}`)} />
+                <ShopProductCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => router.push(`/shop/${item.id}`)}
+                  onLikeClick={() => updateProductLike(item.id)}
+                />
               ))}
             </div>
           )}
