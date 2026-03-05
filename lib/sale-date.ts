@@ -42,13 +42,13 @@ function toEpochDay(dateKey: string): number {
 }
 
 export function getSaleStatusByDate(
-  salesStartDate: string | Date,
-  salesEndDate: string | Date,
+  salesStartDate: string | Date | null,
+  salesEndDate: string | Date | null,
   now: Date = new Date()
 ): SaleStatus {
   const nowKey = parseInputToDateKey(now);
-  const startKey = parseInputToDateKey(salesStartDate);
-  const endKey = parseInputToDateKey(salesEndDate);
+  const startKey = salesStartDate ? parseInputToDateKey(salesStartDate) : null;
+  const endKey = salesEndDate ? parseInputToDateKey(salesEndDate) : null;
 
   if (!nowKey || !startKey || !endKey) return 'completed';
   if (nowKey < startKey) return 'scheduled';
@@ -56,9 +56,9 @@ export function getSaleStatusByDate(
   return 'active';
 }
 
-export function getDdayText(salesEndDate: string | Date, now: Date = new Date()): string {
+export function getDdayText(salesEndDate: string | Date | null, now: Date = new Date()): string {
   const nowKey = parseInputToDateKey(now);
-  const endKey = parseInputToDateKey(salesEndDate);
+  const endKey = salesEndDate ? parseInputToDateKey(salesEndDate) : null;
 
   if (!nowKey || !endKey) return '진행완료';
 
