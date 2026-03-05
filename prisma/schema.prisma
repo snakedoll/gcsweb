@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,127 +7,105 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// User - 사용자
-// ============================================
-
-enum SignupMethod {
-  EMAIL
-  KAKAO
-}
-
 model User {
-  id                  String       @id @default(cuid())
-  email               String       @unique
-  password            String?
-  nickname            String       @unique
-  name                String
-  phone               String?
-  memberType          Int          @default(0) // 0: general, 1: major, 2: admin
-  isSeller            Boolean      @default(false)
-  studentId           String?
-  major               String?
-  profileImage        String?
-  isVerified          Boolean      @default(false)
-  signupMethod        SignupMethod @default(EMAIL)
-  providerId          String?
-  isRepresentative    Boolean      @default(false)
-  failedLoginAttempts Int          @default(0)
-  lockedUntil         DateTime?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  // Relations
-  teams                 Team[]
-  orders                Order[]
-  reviews               Review[]
-  posts                 Post[]
+  id                    String                 @id @default(cuid())
+  email                 String
+  password              String?
+  nickname              String                 @unique
+  name                  String
+  phone                 String?
+  memberType            Int                    @default(0)
+  isSeller              Boolean                @default(false)
+  studentId             String?
+  major                 String?
+  profileImage          String?
+  isVerified            Boolean                @default(false)
+  signupMethod          SignupMethod           @default(EMAIL)
+  isRepresentative      Boolean                @default(false)
+  failedLoginAttempts   Int                    @default(0)
+  lockedUntil           DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  providerId            String?
+  carts                 Cart[]
   inquiries             Inquiry[]
   likes                 Like[]
-  scraps                Scrap[]
   notifications         Notification[]
+  orders                Order[]
+  posts                 Post[]
   productUpdateRequests ProductUpdateRequest[] @relation("ProductUpdateRequestRequestedBy")
-  carts                 Cart[]
+  reviews               Review[]
+  scraps                Scrap[]
+  teams                 Team[]
 
+  @@unique([email, signupMethod])
   @@index([email])
   @@index([nickname])
   @@index([memberType])
 }
 
-// ============================================
-// Team - 판매팀
-// ============================================
-
 model Team {
-  id                     String   @id @default(cuid())
+  id                     String                 @id @default(cuid())
   userId                 String
-  teamName               String   @unique
+  teamName               String                 @unique
   representativeName     String
   representativeNickname String
   teamMember             String[]
   teamMemberNickname     String[]
   accountUrl             String
-  isSalesTeam            Boolean  @default(false) // true: 판매팀, false: 일반팀
   totalSales             Int?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  // Relations
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects              Project[]
-  products              Product[]
-  settlements           Settlement[]
-  productUpdateRequests ProductUpdateRequest[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  isSalesTeam            Boolean                @default(false)
+  products               Product[]
+  productUpdateRequests  ProductUpdateRequest[]
+  projects               Project[]
+  settlements            Settlement[]
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([teamName])
 }
 
-// ============================================
-// Product - 상품 (관리자 승인 완료된 운영본)
-// ============================================
-
 model Product {
-  id                  String    @id @default(cuid())
+  id                  String                 @id @default(cuid())
   teamId              String
   name                String
   description         String
-  type                Int       @default(0) // 0: fund, 1: buy now, 2: partner
-  status              Int       @default(0) // 0: pending, 1: active, 2: completed
+  type                Int                    @default(0)
+  status              Int                    @default(0)
   price               Int
-  goalAmount          Int? //Fund: 목표 금액
-  currentAmount       Int       @default(0)
-  reservedAmount      Int       @default(0) // 빌링키 결제 모듈 예약 금액 (펀드)
+  goalAmount          Int?
+  currentAmount       Int                    @default(0)
   salesStartDate      DateTime
   salesEndDate        DateTime
-  productionStartDate DateTime? // Fund 택배: 제작 시작일
-  productionEndDate   DateTime? // Fund 택배: 제작 종료일
-  deliveryStartDate   DateTime? // Fund 택배: 배송 시작일
-  deliveryEndDate     DateTime? // Fund 택배: 배송 종료일
-  pickupStartDate     DateTime? // Fund 현장 수령: 수령 시작일
-  pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
-  pickupLocation      String? // Fund 현장 수령: 수령 장소
-  receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
-  isPublic            Boolean   @default(false)
+  productionStartDate DateTime?
+  deliveryStartDate   DateTime?
+  receiveMethod       Int                    @default(0)
+  isPublic            Boolean                @default(false)
+  likeCount           Int                    @default(0)
+  viewCount           Int                    @default(0)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  productionEndDate   DateTime?
+  deliveryEndDate     DateTime?
+  pickupStartDate     DateTime?
+  pickupEndDate       DateTime?
+  pickupLocation      String?
+  reservedAmount      Int                    @default(0)
+  isHome              Boolean                @default(false)
+  isAdminApproved     Boolean                @default(false)
   publicAt            DateTime?
-  isHome              Boolean   @default(false)
-  isAdminApproved     Boolean   @default(false)
-  likeCount           Int       @default(0)
-  viewCount           Int       @default(0)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  // Relations
-  team           Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  options        ProductOption[]
-  images         ProductImage[]         @relation("ProductImages")
-  variants       ProductVariant[]
-  orderItems     OrderItem[]
-  reviews        Review[]
-  likes          Like[]
-  scraps         Scrap[]
-  updateRequests ProductUpdateRequest[]
-  cartItems      CartItem[]
+  cartItems           CartItem[]
+  likes               Like[]
+  orderItems          OrderItem[]
+  team                Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  images              ProductImage[]         @relation("ProductImages")
+  options             ProductOption[]
+  updateRequests      ProductUpdateRequest[]
+  variants            ProductVariant[]
+  reviews             Review[]
+  scraps              Scrap[]
 
   @@index([teamId])
   @@index([type])
@@ -138,43 +113,27 @@ model Product {
   @@index([isPublic])
 }
 
-// ============================================
-// ProductOption - 상품 옵션
-// ============================================
-
 model ProductOption {
-  id         String @id @default(cuid())
+  id         String               @id @default(cuid())
   productId  String
   optionName String
-
-  // Relations
-  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
-  values  ProductOptionValue[]
+  product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values     ProductOptionValue[]
 
   @@unique([productId, optionName])
   @@index([productId])
 }
 
-// ============================================
-// ProductOptionValue - 상품 옵션 값
-// ============================================
-
 model ProductOptionValue {
-  id              String @id @default(cuid())
+  id              String        @id @default(cuid())
   optionId        String
   value           String
-  additionalPrice Int    @default(0)
-
-  // Relations
-  option ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  additionalPrice Int           @default(0)
+  option          ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
   @@index([optionId])
 }
-
-// ============================================
-// ProductVariant - 상품 변형 (옵션 조합)
-// ============================================
 
 model ProductVariant {
   id          String   @id @default(cuid())
@@ -184,66 +143,52 @@ model ProductVariant {
   stock       Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
-
-// ============================================
-// ProductImage - 상품 이미지
-// ============================================
 
 model ProductImage {
   id              String   @id @default(cuid())
   productId       String
   thumbnailImgUrl String
   detailImgUrl    String[]
-  noticeImgUrl    String
   createdAt       DateTime @default(now())
-
-  // Relations
-  product Product @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
+  noticeImgUrl    String
+  product         Product  @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
 
-// ============================================
-// ProductUpdateRequest - 상품 등록/수정 요청 (판매자가 보낸 요청본)
-// ============================================
-
 model ProductUpdateRequest {
-  id                  String    @id @default(cuid())
-  productId           String // 등록/수정 요청 모두 대상 Product id
+  id                  String                       @id @default(cuid())
+  productId           String
   requestedByUserId   String
   teamId              String
-  requestType         Int       @default(0) // 0: register, 1: update
+  requestType         Int                          @default(0)
   name                String
   description         String
-  type                Int       @default(0) // 0: fund, 1: buy now, 2: partner
-  status              Int       @default(0) // 0: pending, 1: active, 2: completed
+  type                Int                          @default(0)
+  status              Int                          @default(0)
   price               Int
-  goalAmount          Int? // Fund: 목표 금액
+  goalAmount          Int?
   salesStartDate      DateTime
   salesEndDate        DateTime
-  productionStartDate DateTime? // Fund 택배: 제작 시작일
-  productionEndDate   DateTime? // Fund 택배: 제작 종료일
-  deliveryStartDate   DateTime? // Fund 택배: 배송 시작일
-  deliveryEndDate     DateTime? // Fund 택배: 배송 종료일
-  pickupStartDate     DateTime? // Fund 현장 수령: 수령 시작일
-  pickupEndDate       DateTime? // Fund 현장 수령: 수령 종료일
-  pickupLocation      String? // Fund 현장 수령: 수령 장소
-  receiveMethod       Int       @default(0) // 0: delivery, 1: pickup
-  requestedAt         DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  // Relations
-  product     Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  requestedBy User                         @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
-  team        Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  images      ProductUpdateRequestImage[]
-  options     ProductUpdateRequestOption[]
+  productionStartDate DateTime?
+  productionEndDate   DateTime?
+  deliveryStartDate   DateTime?
+  deliveryEndDate     DateTime?
+  pickupStartDate     DateTime?
+  pickupEndDate       DateTime?
+  pickupLocation      String?
+  receiveMethod       Int                          @default(0)
+  requestedAt         DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  product             Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  requestedBy         User                         @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  team                Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  images              ProductUpdateRequestImage[]
+  options             ProductUpdateRequestOption[]
 
   @@index([productId])
   @@index([requestedByUserId])
@@ -252,91 +197,67 @@ model ProductUpdateRequest {
   @@index([requestedAt])
 }
 
-// ============================================
-// ProductUpdateRequestImage - 상품 요청 이미지
-// ============================================
-
 model ProductUpdateRequestImage {
-  id                     String   @id @default(cuid())
+  id                     String               @id @default(cuid())
   productUpdateRequestId String
   thumbnailImgUrl        String
   detailImgUrl           String[]
-  noticeImgUrl           String? // 등록 요청 단계에서는 null 가능(관리자 입력 전)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  // Relations
-  productUpdateRequest ProductUpdateRequest @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
+  noticeImgUrl           String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  productUpdateRequest   ProductUpdateRequest @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
 
   @@index([productUpdateRequestId])
 }
 
-// ============================================
-// ProductUpdateRequestOption - 상품 요청 옵션
-// ============================================
-
 model ProductUpdateRequestOption {
-  id                     String @id @default(cuid())
+  id                     String                            @id @default(cuid())
   productUpdateRequestId String
   optionName             String
-
-  // Relations
-  productUpdateRequest ProductUpdateRequest              @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
-  values               ProductUpdateRequestOptionValue[]
+  productUpdateRequest   ProductUpdateRequest              @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
+  values                 ProductUpdateRequestOptionValue[]
 
   @@unique([productUpdateRequestId, optionName])
   @@index([productUpdateRequestId])
 }
 
-// ============================================
-// ProductUpdateRequestOptionValue - 상품 요청 옵션 값
-// ============================================
-
 model ProductUpdateRequestOptionValue {
-  id              String @id @default(cuid())
+  id              String                     @id @default(cuid())
   optionId        String
   value           String
-  additionalPrice Int    @default(0)
-
-  // Relations
-  option ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  additionalPrice Int                        @default(0)
+  option          ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
   @@index([optionId])
 }
 
-// ============================================
-// Order - 주문
-// ============================================
-
 model Order {
-  id                    String   @id @default(cuid())
+  id                    String      @id @default(cuid())
   userId                String?
-  productType           Int // 0: fund, 1: buy now
-  receiveMethod         Int // 0: delivery, 1: pickup
+  paymentAmount         Int
+  orderDate             DateTime    @default(now())
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  productType           Int
+  receiveMethod         Int
   receiverName          String?
   receiverPhone         String?
-  deliveryZipCode       String? // fund + delivery only
-  deliveryAddressMain   String? // fund + delivery only
-  deliveryAddressDetail String? // fund + delivery only
-  deliveryMessage       String? // fund + delivery only
+  deliveryZipCode       String?
+  deliveryAddressMain   String?
+  deliveryAddressDetail String?
+  deliveryMessage       String?
   ordererName           String
   ordererPhone          String
-  paymentMethod         Int // 0: card, 1: virtual_account, 2: easy_pay
-  cardCompany           Int? // card only: 0: bc, 1: woori
-  bankCode              Int? // virtual_account only: 0: ibk, 1: shinhan
-  easyPayProvider       Int? // easy_pay only: 0: kakao_pay, 1: naver_pay, 2: toss_pay
-  paymentStatus         Int      @default(0) // 0: payment_pending, 1: payment_completed, 2: payment_canceled, 3: payment_failed
-  fulfillmentStatus     Int? // 0: preparing, 1: in_delivery, 2: received (paymentStatus=1 only)
-  paymentAmount         Int
-  orderDate             DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  // Relations
-  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items     OrderItem[]
-  inquiries Inquiry[]
+  paymentStatus         Int         @default(0)
+  fulfillmentStatus     Int?
+  paymentMethod         Int
+  cardCompany           Int?
+  bankCode              Int?
+  easyPayProvider       Int?
+  inquiries             Inquiry[]
+  user                  User?       @relation(fields: [userId], references: [id])
+  items                 OrderItem[]
 
   @@index([userId])
   @@index([productType, receiveMethod])
@@ -344,10 +265,6 @@ model Order {
   @@index([fulfillmentStatus])
   @@index([orderDate])
 }
-
-// ============================================
-// OrderItem - 주문 항목
-// ============================================
 
 model OrderItem {
   id         String   @id @default(cuid())
@@ -357,32 +274,24 @@ model OrderItem {
   price      Int
   optionData Json?
   createdAt  DateTime @default(now())
-
-  // Relations
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
 }
-
-// ============================================
-// Scrap - 사용자 스크랩 (프로젝트/상품)
-// ============================================
 
 model Scrap {
   id        String   @id @default(cuid())
   userId    String
   projectId String?
   productId String?
-  postId    String?
   createdAt DateTime @default(now())
-
-  // Relations
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
   @@unique([userId, productId])
@@ -393,53 +302,33 @@ model Scrap {
   @@index([postId])
 }
 
-// ============================================
-// Review - 리뷰
-// ============================================
-
 model Review {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   userId    String
   productId String
   orderId   String?
   rating    Int
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  images  ReviewImage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images    ReviewImage[]
 
   @@index([userId])
   @@index([productId])
   @@index([rating])
 }
 
-// ============================================
-// ReviewImage - 리뷰 이미지
-// ============================================
-
 model ReviewImage {
   id        String   @id @default(cuid())
   reviewId  String
   url       String[]
   createdAt DateTime @default(now())
-
-  // Relations
-  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@index([reviewId])
 }
-
-// ============================================
-// Post - 게시글 (Board / Lounge)
-// ============================================
-
-// ============================================
-// Image - 공용 업로드 이미지 메타데이터
-// ============================================
 
 model Image {
   id        String   @id @default(cuid()) @map("imageId")
@@ -457,7 +346,7 @@ model Image {
 model Post {
   id           String   @id @default(cuid())
   userId       String
-  category     Int      @default(0) // 0: board, 1: lounge
+  category     Int      @default(0)
   title        String
   subTitle     String?
   content      String
@@ -468,11 +357,9 @@ model Post {
   isPublic     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  // Relations
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  likes  Like[]
-  scraps Scrap[]
+  likes        Like[]
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scraps       Scrap[]
 
   @@index([userId])
   @@index([category])
@@ -480,70 +367,48 @@ model Post {
   @@index([createdAt])
 }
 
-// ============================================
-// Category - 카테고리
-// ============================================
-
 model Category {
   id       String @id @default(cuid())
   category String @unique
 }
 
-// ============================================
-// Project Category - 프로젝트 카테고리
-// ============================================
-
 model ProjectCategory {
-  id       String @id @default(cuid()) @map("categoryId")
+  id       String    @id @default(cuid()) @map("categoryId")
   category String
-
-  // Relations
   projects Project[]
 
   @@map("Project Category")
 }
 
-// ============================================
-// Project Year - 프로젝트 연도
-// ============================================
-
 model ProjectYear {
-  id   String @id @default(cuid()) @map("yearId")
-  year Int
-
-  // Relations
+  id       String    @id @default(cuid()) @map("yearId")
+  year     Int
   projects Project[]
 
   @@map("Proejct Year")
 }
 
-// ============================================
-// Project - 프로젝트 
-// ============================================
-
 model Project {
-  id            String    @id @default(cuid()) @map("projectId")
-  teamId        String
   title         String
+  likeCount     Int             @default(0)
+  viewCount     Int             @default(0)
+  isPublic      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   categoryId    String
-  yearId        String
-  thumbnailUrl  String
   detailUrl     String
-  isPublic      Boolean   @default(false)
-  likeCount     Int       @default(0)
-  viewCount     Int       @default(0)
-  isHome        Boolean   @default(false) @map("ishome")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  softDeletedAt DateTime?
   hardDeleteAt  DateTime?
-
-  // Relations
-  team        Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  category    ProjectCategory @relation(fields: [categoryId], references: [id])
-  projectYear ProjectYear     @relation(fields: [yearId], references: [id])
-  likes       Like[]
-  scraps      Scrap[]
+  isHome        Boolean         @default(false) @map("ishome")
+  id            String          @id @default(cuid()) @map("projectId")
+  softDeletedAt DateTime?
+  teamId        String
+  thumbnailUrl  String
+  yearId        String
+  likes         Like[]
+  category      ProjectCategory @relation(fields: [categoryId], references: [id])
+  team          Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projectYear   ProjectYear     @relation(fields: [yearId], references: [id])
+  scraps        Scrap[]
 
   @@index([teamId])
   @@index([categoryId])
@@ -552,10 +417,6 @@ model Project {
   @@index([isHome])
   @@index([softDeletedAt])
 }
-
-// ============================================
-// News - 뉴스
-// ============================================
 
 model News {
   id              String    @id @default(cuid())
@@ -570,38 +431,26 @@ model News {
   isPublic        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-
-  // Relations
-  likes Like[]
+  likes           Like[]
 
   @@index([isHeadline])
   @@index([isPublic])
 }
-
-// ============================================
-// Inquiry - 문의 / 환불 요청
-// ============================================
 
 model Inquiry {
   id        String   @id @default(cuid())
   userId    String
   orderId   String?
   content   String
-  status    Int      @default(0) // 0: pending, 1: completed
+  status    Int      @default(0)
   createdAt DateTime @default(now())
-
-  // Relations
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order Order? @relation(fields: [orderId], references: [id])
+  order     Order?   @relation(fields: [orderId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([orderId])
   @@index([status])
 }
-
-// ============================================
-// Settlement - 정산
-// ============================================
 
 model Settlement {
   id                  String    @id @default(cuid())
@@ -616,21 +465,15 @@ model Settlement {
   attachmentUrl       String?
   settlementStartDate DateTime
   settlementEndDate   DateTime
-  status              Int       @default(0) // 0: pending, 1: completed, 2: suspended
+  status              Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
-
-  // Relations
-  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team                Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([teamId])
   @@index([status])
   @@index([settlementStartDate, settlementEndDate])
 }
-
-// ============================================
-// Like - 좋아요
-// ============================================
 
 model Like {
   id        String   @id @default(cuid())
@@ -640,13 +483,11 @@ model Like {
   projectId String?
   newsId    String?
   createdAt DateTime @default(now())
-
-  // Relations
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  news    News?    @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  news      News?    @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@unique([userId, postId])
@@ -654,10 +495,6 @@ model Like {
   @@unique([userId, newsId])
   @@index([userId])
 }
-
-// ============================================
-// VerificationToken - 이메일 인증
-// ============================================
 
 model VerificationToken {
   id         String   @id @default(cuid())
@@ -670,47 +507,31 @@ model VerificationToken {
   @@index([identifier])
 }
 
-// ============================================
-// Notification - 사용자 알림
-// ============================================
-
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      Int      @default(0) // 알림 타입 코드
+  type      Int      @default(0)
   title     String
   content   String?
   isRead    Boolean  @default(false)
   linkUrl   String?
   createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
 }
 
-// ============================================
-// Cart - 장바구니
-// ============================================
-
 model Cart {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
 
   @@index([userId])
 }
-
-// ============================================
-// CartItem - 장바구니 아이템
-// ============================================
 
 model CartItem {
   id         String   @id @default(cuid())
@@ -720,11 +541,14 @@ model CartItem {
   price      Int
   optionData Json?
   createdAt  DateTime @default(now())
-
-  // Relations
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([cartId])
   @@index([productId])
+}
+
+enum SignupMethod {
+  EMAIL
+  KAKAO
 }
