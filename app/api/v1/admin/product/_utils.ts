@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { requireAdmin as requireDbAdmin } from '@/lib/admin-auth';
 
 export function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
-export async function requireAdmin() {
+type AdminSession = NonNullable<Awaited<ReturnType<typeof getServerSession>>>;
+type AdminAuthOk = { ok: true; session: AdminSession };
+type AdminAuthFail = { ok: false; response: ReturnType<typeof jsonError> };
+
+export async function requireAdmin(): Promise<AdminAuthOk | AdminAuthFail> {
   const auth = await requireDbAdmin();
   if (!auth.ok) {
     const status = auth.reason === 'UNAUTHORIZED' ? 401 : 403;
