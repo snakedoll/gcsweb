@@ -149,13 +149,13 @@ export default function ForgotIdPage() {
               <button
                 type={isSuccessState ? 'button' : 'submit'}
                 onClick={isSuccessState ? () => router.push('/login') : undefined}
-                disabled={(!isSuccessState && !hasAllFields) || loading}
+                disabled={(!isSuccessState && !hasAllFields) || loading || isFailureState}
                 className={cn(
                   'h-[55px] w-full rounded-lg text-neutral-2 transition-colors typo-body-small-bold',
-                  hasAllFields || isSuccessState ? 'bg-orange-5' : 'bg-orange-3'
+                  (hasAllFields || isSuccessState) && !isFailureState ? 'bg-orange-5' : 'bg-orange-3'
                 )}
               >
-                {loading ? '찾는 중...' : '아이디 찾기'}
+                {loading ? '찾는 중...' : isSuccessState ? '이메일로 로그인' : '아이디 찾기'}
               </button>
 
               {!isSuccessState ? (
