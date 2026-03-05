@@ -1,9 +1,9 @@
-import { getServerSession } from 'next-auth';
+import { getServerSession, type Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 type AdminAuthResult =
-  | { ok: true; session: NonNullable<Awaited<ReturnType<typeof getServerSession>>> }
+  | { ok: true; session: Session }
   | { ok: false; reason: 'UNAUTHORIZED' | 'FORBIDDEN' };
 
 export async function requireAdmin(): Promise<AdminAuthResult> {
