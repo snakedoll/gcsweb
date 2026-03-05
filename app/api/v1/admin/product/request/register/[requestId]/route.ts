@@ -227,6 +227,7 @@ export async function PATCH(
       options,
       isPublic,
     } = body as any;
+    const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
 
     const trimmedDetails = trimStringArray(detailImageUrls);
     if (
@@ -256,6 +257,22 @@ export async function PATCH(
     const salesEnd = parseDateTime(salesEndDate);
     if (!validRange(salesStart, salesEnd)) {
       return jsonError(400, 'INVALID_DATE_RANGE', '판매기간/제작기간/배송기간/수령기간 범위 오류');
+    }
+
+    if (
+      type !== 0 &&
+      [
+        'goalAmount',
+        'productionStartDate',
+        'productionEndDate',
+        'deliveryStartDate',
+        'deliveryEndDate',
+        'pickupStartDate',
+        'pickupEndDate',
+        'pickupLocation',
+      ].some(hasOwn)
+    ) {
+      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
     }
 
     let resolvedGoalAmount: number | null = null;
@@ -322,7 +339,6 @@ export async function PATCH(
           pickupLocation: type === 0 && receiveMethod === 1 ? resolvedPickupLocation : null,
           isAdminApproved: true,
           isPublic,
-          isHome: false,
         },
       });
 
