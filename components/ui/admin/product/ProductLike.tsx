@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 type ProductLikeProperty1 = 'Light' | 'selected';
@@ -7,7 +8,7 @@ interface ProductLikeProps {
   className?: string;
   property1?: ProductLikeProperty1;
   property2?: ProductLikeProperty2;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   selected?: boolean;
   disabled?: boolean;
 }
