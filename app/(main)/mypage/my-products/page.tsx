@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
 type ProductItem = {
   id: string;
@@ -196,7 +196,7 @@ function ProductListView({ products }: { products: ProductItem[] }) {
   );
 }
 
-export default function MyProductsPage() {
+function MyProductsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading, isAuthenticated } = useUser();
@@ -249,5 +249,19 @@ export default function MyProductsPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function MyProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen w-full flex-col items-center justify-center">
+          <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
+        </div>
+      }
+    >
+      <MyProductsPageContent />
+    </Suspense>
   );
 }
