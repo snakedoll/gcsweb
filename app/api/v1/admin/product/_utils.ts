@@ -52,23 +52,31 @@ export function parseAdminOptionsInput(
   if (!Array.isArray(input)) return { ok: false };
 
   const result: AdminProductOptionInput[] = [];
+  const optionNameSet = new Set<string>();
 
   for (const option of input) {
     if (!option || typeof option !== 'object') return { ok: false };
     const name = (option as any).name;
     const values = (option as any).values;
     if (!isNonEmptyString(name) || !Array.isArray(values)) return { ok: false };
+    const trimmedName = name.trim();
+    if (optionNameSet.has(trimmedName)) return { ok: false };
+    optionNameSet.add(trimmedName);
 
     const parsedValues: Array<{ value: string; additionalPrice: number }> = [];
+    const valueSet = new Set<string>();
     for (const item of values) {
       if (!item || typeof item !== 'object') return { ok: false };
       const value = (item as any).value;
       const additionalPrice = (item as any).additionalPrice;
       if (!isNonEmptyString(value) || !isNonNegativeInt(additionalPrice)) return { ok: false };
-      parsedValues.push({ value: value.trim(), additionalPrice });
+      const trimmedValue = value.trim();
+      if (valueSet.has(trimmedValue)) return { ok: false };
+      valueSet.add(trimmedValue);
+      parsedValues.push({ value: trimmedValue, additionalPrice });
     }
 
-    result.push({ name: name.trim(), values: parsedValues });
+    result.push({ name: trimmedName, values: parsedValues });
   }
 
   return { ok: true, value: result };
