@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
+import { getSaleStatusByDate } from '@/lib/sale-date';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -46,6 +47,10 @@ function extractAdditionalPrice(optionData: unknown): number {
 function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === undefined || value === null) return Prisma.JsonNull;
   return value as Prisma.InputJsonValue;
+}
+
+function toTypeGroup(type: number): 0 | 1 {
+  return type === 0 ? 0 : 1;
 }
 
 export async function GET(request: Request) {
@@ -185,21 +190,17 @@ export async function POST(request: Request) {
     }
 
     const productMap = new Map(products.map((product) => [product.id, product]));
-    const productTypes = new Set(products.map((product) => product.type));
+    const productTypes = new Set(products.map((product) => toTypeGroup(product.type)));
     if (productTypes.size > 1) {
       return jsonError(400, 'MIXED_PRODUCT_TYPE_NOT_ALLOWED', 'fund and buyNow products cannot be ordered together.');
     }
 
-    const now = new Date();
-
     for (const product of products) {
-      if (!product.isPublic || !product.isAdminApproved || product.status !== 1) {
+      const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
+      if (!product.isPublic || !product.isAdminApproved || saleStatus !== 'active') {
         return jsonError(404, 'PRODUCT_NOT_FOUND', 'one or more products were not available.');
       }
-      if (product.salesStartDate > now || product.salesEndDate < now) {
-        return jsonError(400, 'PRODUCT_NOT_AVAILABLE', 'one or more products are outside sales period.');
-      }
-      if (product.type !== data.productType) {
+      if (toTypeGroup(product.type) !== data.productType) {
         return jsonError(400, 'INVALID_PRODUCT_TYPE', 'productType does not match the requested products.');
       }
       if (product.receiveMethod !== data.receiveMethod) {
