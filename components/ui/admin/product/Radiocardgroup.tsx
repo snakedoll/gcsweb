@@ -1,45 +1,16 @@
 import { cn } from '@/lib/utils';
+import RadioButton from '@/components/ui/button/RadioButton';
 
 type RadiocardgroupVariant = 'Default' | 'filled';
+type RadiocardgroupOptionStatus = 'default' | 'disabled';
 
 interface RadiocardgroupProps {
   className?: string;
   property1?: RadiocardgroupVariant;
   options?: string[];
   selectedIndex?: number | null;
+  optionStatuses?: RadiocardgroupOptionStatus[];
   onSelect?: (index: number) => void;
-}
-
-function RadioIcon({ checked }: { checked: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden className="shrink-0">
-      <circle cx="10" cy="10" r="8.5" stroke={checked ? 'var(--color-orange-5)' : 'var(--color-neutral-7)'} />
-      {checked ? <circle cx="10" cy="10" r="4" fill="var(--color-orange-5)" /> : null}
-    </svg>
-  );
-}
-
-function RadioRow({
-  label,
-  checked,
-  onClick,
-}: {
-  label: string;
-  checked: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={checked}
-      onClick={onClick}
-      className={cn('flex h-7 items-center gap-2 text-left', onClick && 'cursor-pointer')}
-    >
-      <RadioIcon checked={checked} />
-      <span className={cn('typo-body-xsmall', checked ? 'text-neutral-10' : 'text-neutral-7')}>{label}</span>
-    </button>
-  );
 }
 
 export default function Radiocardgroup({
@@ -47,6 +18,7 @@ export default function Radiocardgroup({
   property1 = 'Default',
   options = ['옵션', '옵션', '옵션'],
   selectedIndex,
+  optionStatuses,
   onSelect,
 }: RadiocardgroupProps) {
   const resolvedSelectedIndex = selectedIndex ?? (property1 === 'filled' ? 1 : null);
@@ -60,14 +32,21 @@ export default function Radiocardgroup({
       )}
     >
       <div className="flex w-[317px] flex-col gap-[9px]">
-        {options.map((option, index) => (
-          <RadioRow
-            key={`${option}-${index}`}
-            label={option}
-            checked={resolvedSelectedIndex === index}
-            onClick={onSelect ? () => onSelect(index) : undefined}
-          />
-        ))}
+        {options.map((option, index) => {
+          const isDisabled = optionStatuses?.[index] === 'disabled';
+          const isChecked = resolvedSelectedIndex === index;
+          const status = isDisabled ? 'disabled' : isChecked ? 'checked' : 'unchecked';
+
+          return (
+            <RadioButton
+              key={`${option}-${index}`}
+              label={option}
+              status={status}
+              className="h-7"
+              onChange={!isDisabled && onSelect ? () => onSelect(index) : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );

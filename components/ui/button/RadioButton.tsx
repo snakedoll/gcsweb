@@ -1,10 +1,10 @@
 interface RadioButtonProps {
-  checked: boolean;
+  checked?: boolean;
   onChange?: () => void;
   label?: string;
   disabled?: boolean;
+  status?: 'checked' | 'unchecked' | 'disabled';
   className?: string;
-  /** Figma 5118-14157: 20px circle, 2px border, 10px inner dot when checked */
   name?: string;
   value?: string | number;
 }
@@ -14,17 +14,24 @@ export default function RadioButton({
   onChange,
   label = '옵션',
   disabled = false,
+  status,
   className,
   name,
   value,
 }: RadioButtonProps) {
-  const labelColor = disabled ? 'text-neutral-7' : checked ? 'text-neutral-10' : 'text-neutral-7';
+  // Backward-compatible inference for existing call-sites.
+  const resolvedStatus: 'checked' | 'unchecked' | 'disabled' =
+    status ?? (disabled ? 'disabled' : checked ? 'checked' : 'unchecked');
+  const isChecked = resolvedStatus === 'checked';
+  const isDisabled = resolvedStatus === 'disabled';
+
+  const labelColor = isChecked ? 'text-neutral-10' : 'text-neutral-7';
 
   return (
     <label
       className={[
-        'inline-flex min-h-[44px] items-center gap-3',
-        disabled ? 'cursor-default opacity-60' : 'cursor-pointer',
+        'inline-flex h-7 items-center gap-2',
+        isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
         className ?? '',
       ]
         .join(' ')
@@ -33,25 +40,18 @@ export default function RadioButton({
       <span
         className={[
           'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2',
-          checked ? 'border-orange-5' : 'border-neutral-5',
-          disabled && 'border-neutral-5',
+          isChecked ? 'border-orange-5' : isDisabled ? 'border-transparent' : 'border-neutral-7',
         ].join(' ')}
         aria-hidden="true"
       >
-        {checked ? (
-          <span
-            className={[
-              'h-2.5 w-2.5 rounded-full',
-              disabled ? 'bg-neutral-6' : 'bg-orange-5',
-            ].join(' ')}
-          />
-        ) : null}
+        {isDisabled ? <span className="h-2.5 w-2.5 rounded-full bg-neutral-6" /> : null}
+        {!isDisabled && isChecked ? <span className="h-2.5 w-2.5 rounded-full bg-orange-5" /> : null}
       </span>
-      {label ? <span className={['typo-body-small', labelColor].join(' ')}>{label}</span> : null}
+      {label ? <span className={['typo-body-xsmall', labelColor].join(' ')}>{label}</span> : null}
       <input
         type="radio"
-        checked={checked}
-        disabled={disabled}
+        checked={isChecked}
+        disabled={isDisabled}
         onChange={() => onChange?.()}
         name={name}
         value={value}
@@ -61,4 +61,3 @@ export default function RadioButton({
     </label>
   );
 }
-

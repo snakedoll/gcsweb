@@ -513,8 +513,11 @@ export default function AdminRegisterRequestStep3Page() {
     const commonRequired =
       Boolean(step1Draft.teamId?.trim()) &&
       Boolean(step1Draft.teamName?.trim()) &&
+      (step1Draft.teamName?.trim().length ?? 0) <= 17 &&
       Boolean(step1Draft.name?.trim()) &&
+      (step1Draft.name?.trim().length ?? 0) <= 13 &&
       Boolean(step1Draft.description?.trim()) &&
+      (step1Draft.description?.trim().length ?? 0) <= 17 &&
       [0, 1, 2].includes(Number(step1Draft.type)) &&
       [0, 1].includes(Number(step1Draft.receiveMethod)) &&
       Boolean(step1Draft.salesStartDate) &&
