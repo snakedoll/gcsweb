@@ -14,6 +14,10 @@ function mapStatus(product: any) {
   return 'AVAILABLE';
 }
 
+function toTypeGroup(type: number | null | undefined): 0 | 1 {
+  return type === 0 ? 0 : 1;
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -97,8 +101,8 @@ export async function GET(request: Request) {
         quantity: r.quantity,
         isLiked: Boolean(p?.id && likeSet.has(p.id)),
         status: mapStatus(p),
-        type: p?.type ?? 0,
-        receiveMethod: p?.type === 1 ? 1 : (p?.receiveMethod ?? 0),
+        type: toTypeGroup(p?.type ?? null),
+        receiveMethod: toTypeGroup(p?.type ?? null) === 1 ? 1 : (p?.receiveMethod ?? 0),
       };
     });
 

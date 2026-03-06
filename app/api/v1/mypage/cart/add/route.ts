@@ -3,10 +3,15 @@ import { getServerSession } from 'next-auth';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { getSaleStatusByDate } from '@/lib/sale-date';
 
 function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === undefined || value === null) return Prisma.JsonNull;
   return value as Prisma.InputJsonValue;
+}
+
+function toTypeGroup(type: number): 0 | 1 {
+  return type === 0 ? 0 : 1;
 }
 
 export async function POST(request: Request) {
@@ -33,12 +38,25 @@ export async function POST(request: Request) {
     }
 
     // 상품 존재 확인
-    const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, type: true, price: true, status: true } });
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        type: true,
+        price: true,
+        status: true,
+        isPublic: true,
+        isAdminApproved: true,
+        salesStartDate: true,
+        salesEndDate: true,
+      },
+    });
     if (!product) {
       return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_FOUND', message: '상품을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    if (product.status !== 1) {
+    const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
+    if (!product.isPublic || !product.isAdminApproved || saleStatus !== 'active') {
       return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_AVAILABLE', message: '현재 판매 중인 상품이 아닙니다.' }, { status: 400 });
     }
 
@@ -53,8 +71,9 @@ export async function POST(request: Request) {
       select: { product: { select: { type: true } } },
     });
 
-    const existingTypes = new Set(existingCartItems.map((item) => item.product.type));
-    if (existingTypes.size > 0 && !existingTypes.has(product.type)) {
+    const existingTypeGroups = new Set(existingCartItems.map((item) => toTypeGroup(item.product.type)));
+    const targetTypeGroup = toTypeGroup(product.type);
+    if (existingTypeGroups.size > 0 && !existingTypeGroups.has(targetTypeGroup)) {
       return NextResponse.json(
         {
           status: 'error',

@@ -16,6 +16,7 @@ type ProductType = 0 | 1 | 2;
 type ReceiveMethod = 0 | 1;
 type SheetMode = 'none' | 'cart' | 'order';
 type SheetSubmitMode = 'cart' | 'order';
+type ConflictGuardMode = 'fund' | 'type';
 const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
 
 interface PendingSheetAction {
@@ -24,6 +25,7 @@ interface PendingSheetAction {
   optionData: Array<{ name: string; value: string; additionalPrice: number }>;
   skipAchievedCheck?: boolean;
   skipFundConflictCheck?: boolean;
+  skipTypeConflictCheck?: boolean;
 }
 
 interface ProductOptionValue {
@@ -104,6 +106,11 @@ function getDdayPresentation(status: SaleStatus): { color: ProductDDayColor; tex
     return { color: 'Gray', text: '진행예정' };
   }
   return { color: 'Gray', text: '진행완료' };
+}
+
+function toTypeGroup(type: ProductType | number | null | undefined): 0 | 1 | null {
+  if (typeof type !== 'number') return null;
+  return type === 0 ? 0 : 1;
 }
 
 function NeutralHeartIcon({ liked }: { liked: boolean }) {
@@ -190,6 +197,7 @@ export default function ShopDetailPage() {
   const [showLoginOrderModal, setShowLoginOrderModal] = useState(false);
   const [showFundAchievedModal, setShowFundAchievedModal] = useState(false);
   const [showFundConflictModal, setShowFundConflictModal] = useState(false);
+  const [conflictGuardMode, setConflictGuardMode] = useState<ConflictGuardMode>('fund');
   const [pendingSheetAction, setPendingSheetAction] = useState<PendingSheetAction | null>(null);
   const [openOptionIndex, setOpenOptionIndex] = useState<number | null>(null);
   const [selectedOptionValues, setSelectedOptionValues] = useState<Array<string | null>>([]);
@@ -325,6 +333,7 @@ export default function ShopDetailPage() {
     setShowLoginOrderModal(false);
     setShowFundAchievedModal(false);
     setShowFundConflictModal(false);
+    setConflictGuardMode('fund');
     setPendingSheetAction(null);
   }, [product?.id, sheetOptions.length]);
 
@@ -345,22 +354,26 @@ export default function ShopDetailPage() {
   const fetchCartItemsForGuard = async () => {
     const res = await fetch('/api/v1/mypage/cart/list?page=1&size=100', { cache: 'no-store' });
     if (res.status === 401) {
-      return { unauthorized: true as const, items: [] as Array<{ cartItemId: number; productId: string | null }> };
+      return {
+        unauthorized: true as const,
+        items: [] as Array<{ cartItemId: string; productId: string | null; type: ProductType | null }>,
+      };
     }
     const json = (await res.json().catch(() => ({}))) as {
       status?: string;
-      data?: { cartItems?: Array<{ cartItemId?: number; productId?: string | null }> };
+      data?: { cartItems?: Array<{ cartItemId?: string; productId?: string | null; type?: number | null }> };
     };
     const items = (json?.data?.cartItems ?? [])
-      .filter((item) => typeof item.cartItemId === 'number')
+      .filter((item) => typeof item.cartItemId === 'string' && item.cartItemId.trim().length > 0)
       .map((item) => ({
-        cartItemId: item.cartItemId as number,
+        cartItemId: item.cartItemId as string,
         productId: item.productId ?? null,
+        type: typeof item.type === 'number' ? (item.type as ProductType) : null,
       }));
     return { unauthorized: false as const, items };
   };
 
-  const clearCartItemsForFundGuard = async (cartItemIds: number[]) => {
+  const clearCartItemsForFundGuard = async (cartItemIds: string[]) => {
     if (cartItemIds.length === 0) return true;
     const res = await fetch('/api/v1/mypage/cart/delete', {
       method: 'DELETE',
@@ -379,10 +392,10 @@ export default function ShopDetailPage() {
     if (target.type === 0) {
       return target.receiveMethod === 0 ? `/shop/orders${query}` : `/shop/orders/pickup${query}`;
     }
-    if (target.type === 1) {
+    if (target.type === 1 || target.type === 2) {
       return `/shop/orders/buynow${query}`;
     }
-    return '/cart';
+    return '/shop/orders/buynow';
   };
 
   const buildGuestOrderItems = (action: PendingSheetAction) => {
@@ -487,17 +500,36 @@ export default function ShopDetailPage() {
       return;
     }
 
-    if (!action.skipFundConflictCheck && product.type === 0) {
-      const cartSnapshot = await fetchCartItemsForGuard();
-      if (cartSnapshot.unauthorized) {
+    let cartSnapshot: Awaited<ReturnType<typeof fetchCartItemsForGuard>> | null = null;
+    if (!action.skipTypeConflictCheck || (!action.skipFundConflictCheck && product.type === 0)) {
+      cartSnapshot = await fetchCartItemsForGuard();
+    }
+
+    if (cartSnapshot && cartSnapshot.unauthorized) {
+      setPendingSheetAction(action);
+      setShowLoginOrderModal(true);
+      return;
+    }
+
+    if (!action.skipTypeConflictCheck && cartSnapshot) {
+      const targetTypeGroup = toTypeGroup(product.type);
+      const hasDifferentType = cartSnapshot.items.some((item) => {
+        const itemTypeGroup = toTypeGroup(item.type);
+        return itemTypeGroup !== null && targetTypeGroup !== null && itemTypeGroup !== targetTypeGroup;
+      });
+      if (hasDifferentType) {
         setPendingSheetAction(action);
-        setShowLoginOrderModal(true);
+        setConflictGuardMode('type');
+        setShowFundConflictModal(true);
         return;
       }
+    }
 
+    if (!action.skipFundConflictCheck && product.type === 0 && cartSnapshot) {
       const hasOtherProduct = cartSnapshot.items.some((item) => item.productId && item.productId !== product.id);
       if (hasOtherProduct) {
         setPendingSheetAction(action);
+        setConflictGuardMode('fund');
         setShowFundConflictModal(true);
         return;
       }
@@ -649,7 +681,14 @@ export default function ShopDetailPage() {
     }
 
     const deleteTargets = cartSnapshot.items
-      .filter((item) => item.productId && item.productId !== product.id)
+      .filter((item) => {
+        if (conflictGuardMode === 'fund') {
+          return item.productId && item.productId !== product.id;
+        }
+        const itemTypeGroup = toTypeGroup(item.type);
+        const targetTypeGroup = toTypeGroup(product.type);
+        return itemTypeGroup !== null && targetTypeGroup !== null && itemTypeGroup !== targetTypeGroup;
+      })
       .map((item) => item.cartItemId);
 
     const deleted = await clearCartItemsForFundGuard(deleteTargets);
@@ -662,6 +701,7 @@ export default function ShopDetailPage() {
     await submitWithGuards({
       ...pendingSheetAction,
       skipFundConflictCheck: true,
+      skipTypeConflictCheck: true,
     });
   };
 
@@ -822,11 +862,16 @@ export default function ShopDetailPage() {
             <Modal
               variant="Default"
               className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
-              title={'Fund 상품은 동일한 상품만 주문할 수 있습니다.\n기존 장바구니 상품을 삭제하고 담을까요?'}
+              title={
+                conflictGuardMode === 'fund'
+                  ? 'Fund 상품은 동일한 상품만 주문할 수 있습니다.\n기존 장바구니 상품을 삭제하고 담을까요?'
+                  : '상품 유형이 다른 상품은 동시에 담을 수 없습니다.\n기존 장바구니 상품을 삭제하고 주문할까요?'
+              }
               cancelText="취소"
               confirmText="담기"
               onCancel={() => {
                 setShowFundConflictModal(false);
+                setConflictGuardMode('fund');
                 setPendingSheetAction(null);
               }}
               onConfirm={() => {
