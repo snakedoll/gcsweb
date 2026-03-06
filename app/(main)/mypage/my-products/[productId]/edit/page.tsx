@@ -667,18 +667,31 @@ export default function NewProductPage() {
 
   const isBuyNowStep2Valid = useMemo(() => {
     return newProductStep2BuyNowSchema.safeParse(step2BuyNowForm.getValues()).success;
-  }, [step2BuyNowForm]);
+  }, [step2BuyNowForm, buyNowPrice]);
 
   const isFundStep2Valid = useMemo(() => {
     if (isFundDelivery) {
       return newProductStep2DeliverySchema.safeParse(step2DeliveryForm.getValues()).success;
     }
     return newProductStep2PickupSchema.safeParse(step2PickupForm.getValues()).success;
-  }, [isFundDelivery, step2DeliveryForm, step2PickupForm]);
+  }, [
+    isFundDelivery,
+    step2DeliveryForm,
+    step2PickupForm,
+    deliveryGoalAmount,
+    productionStartStr,
+    productionEndStr,
+    deliveryStartStr,
+    deliveryEndStr,
+    pickupGoalAmount,
+    pickupStartStr,
+    pickupEndStr,
+    pickupLocation,
+  ]);
 
   const isFundStep3Valid = useMemo(() => {
     return newProductStep2BuyNowSchema.safeParse(step3FundForm.getValues()).success;
-  }, [step3FundForm]);
+  }, [step3FundForm, fundPrice]);
 
   const isBuyNowRegistrationEnabled = !isSubmittingRegistration && isStep1RequiredValid && hasRequiredImages && isBuyNowStep2Valid;
   const isFundRegistrationEnabled =

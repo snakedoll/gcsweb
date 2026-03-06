@@ -241,6 +241,11 @@ export default function AdminRegisterRequestStep1Page() {
 
   const handleTypeChange = (index: number) => {
     const nextType: ProductType = index === 0 ? 0 : index === 1 ? 1 : 2;
+    if (nextType === 1) {
+      // Buy Now is pickup-only by design.
+      updateDraft({ type: nextType, receiveMethod: 1 });
+      return;
+    }
     updateDraft({ type: nextType });
   };
 
@@ -301,7 +306,7 @@ export default function AdminRegisterRequestStep1Page() {
   };
 
   const handleNext = () => {
-    if (!step1Draft || nameOverLimit) return;
+    if (!step1Draft || hasLengthError) return;
 
     if (step1Draft.type === 0) {
       router.push(`/admin/product/request/register/${requestId}/step-2`);
@@ -372,6 +377,7 @@ export default function AdminRegisterRequestStep1Page() {
                 helperText={nameOverLimit ? '글자수는 13자 이내로 작성해주세요' : undefined}
                 inputProps={{
                   value: step1Draft.name,
+                  maxLength: PRODUCT_NAME_MAX_LENGTH,
                   onChange: (e) => updateDraft({ name: e.target.value }),
                 }}
               />
@@ -385,6 +391,7 @@ export default function AdminRegisterRequestStep1Page() {
                 helperText={descriptionOverLimit ? '글자수는 17자 이내로 작성해주세요' : undefined}
                 inputProps={{
                   value: step1Draft.description,
+                  maxLength: PRODUCT_DESCRIPTION_MAX_LENGTH,
                   onChange: (e) => updateDraft({ description: e.target.value }),
                 }}
               />
@@ -401,20 +408,49 @@ export default function AdminRegisterRequestStep1Page() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="space-y-1">
+              {step1Draft.type === 0 ? (
+                <div className="space-y-2">
                   <div className="flex items-center gap-1">
                     <p className="typo-body-small-bold text-neutral-10">수령 방식</p>
                     <span className="typo-body-xsmall-bold text-danger">*</span>
                   </div>
-                  <p className="text-[11px] leading-[1.5] text-neutral-8">Buy Now는 현장 수령만 가능합니다.</p>
+                  <Radiocardgroup
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={step1Draft.receiveMethod === 0 ? 0 : 1}
+                    onSelect={handleReceiveMethodChange}
+                  />
                 </div>
-                <Radiocardgroup
-                  options={['택배 배송', '현장 수령']}
-                  selectedIndex={step1Draft.receiveMethod === 0 ? 0 : 1}
-                  onSelect={handleReceiveMethodChange}
-                />
-              </div>
+              ) : step1Draft.type === 1 ? (
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <p className="typo-body-small-bold text-neutral-10">수령 방식</p>
+                      <span className="typo-body-xsmall-bold text-danger">*</span>
+                    </div>
+                    <p className="text-[11px] leading-[1.5] text-neutral-8">Buy Now는 현장 수령만 가능합니다.</p>
+                  </div>
+                  <Radiocardgroup
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={1}
+                    optionStatuses={['disabled', 'default']}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <p className="typo-body-small-bold text-neutral-10">수령 방식</p>
+                      <span className="typo-body-xsmall-bold text-danger">*</span>
+                    </div>
+                    <p className="text-[11px] leading-[1.5] text-neutral-8">Partner Up은 수령 방식 선택이 불가능 합니다.</p>
+                  </div>
+                  <Radiocardgroup
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={null}
+                    optionStatuses={['disabled', 'disabled']}
+                  />
+                </div>
+              )}
 
               <DateRangeInput
                 title="예상 판매 기간"
