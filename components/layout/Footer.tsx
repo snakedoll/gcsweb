@@ -12,7 +12,7 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-neutral-3 text-left">
-      <div className="mx-auto max-w-[375px] px-[21px] py-[21px]">
+      <div className="mx-auto max-w-[375px] px-[21px] pt-[21px] pb-4">
         <section className="mb-[45px]">
           <h2 className="mb-2 text-[17px] font-bold leading-[1.5] text-neutral-10">고객지원</h2>
           <ul className="space-y-3 text-[13px] leading-[1.5] tracking-[-0.26px] text-neutral-7">

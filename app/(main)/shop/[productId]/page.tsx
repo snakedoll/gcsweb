@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -737,60 +737,70 @@ export default function ShopDetailPage() {
           ) : null}
         </main>
 
-        {!loading && !errorMessage && product ? (
+        {!loading && !errorMessage && product && isSheetOpen && canUseCartSheet ? (
+          <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-[375px] -translate-x-1/2 overflow-hidden rounded-t-[30px] bg-neutral-3">
+            <BottomSheet
+              className="w-full pb-0"
+              variant={cartSheetVariant}
+              options={sheetOptions}
+              selectedValues={selectedOptionValues}
+              openOptionIndex={openOptionIndex}
+              quantity={sheetQuantity}
+              totalPriceText={formatWon(cartTotalPrice)}
+              onOptionToggle={handleOptionToggle}
+              onOptionSelect={handleOptionSelect}
+              onQuantityChange={(next) => setSheetQuantity(Math.max(1, next))}
+            />
+            <div className="border-t border-neutral-4 px-5 py-[13px]">
+              <div className={cn('flex w-full items-center', isPartnerUp ? 'gap-[23px]' : 'gap-5')}>
+                <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="찜" onClick={handleToggleLike} disabled={togglingLike}>
+                  <NeutralHeartIcon liked={product.isLiked} />
+                </button>
+                {!isPartnerUp ? (
+                  <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="장바구니" onClick={handleOpenCartSheet}>
+                    <NeutralCartIcon active={isCartSheetOpen} />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet}
+                  disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled : orderDisabled || addingCart}
+                  className={cn(
+                    'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
+                    isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
+                  )}
+                >
+                  {isSheetOpen ? (sheetMode === 'cart' ? '장바구니에 담기' : '주문하기') : '주문하기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {!loading && !errorMessage && product && !(isSheetOpen && canUseCartSheet) ? (
           <div className="sticky bottom-0 z-20 border-t border-neutral-4 bg-neutral-3 px-5 py-[13px]">
             <div className={cn('mx-auto flex w-full max-w-[375px] items-center', isPartnerUp ? 'gap-[23px]' : 'gap-5')}>
               <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="찜" onClick={handleToggleLike} disabled={togglingLike}>
                 <NeutralHeartIcon liked={product.isLiked} />
               </button>
-
               {!isPartnerUp ? (
-                <button
-                  type="button"
-                  className="inline-flex h-6 w-6 items-center justify-center"
-                  aria-label="장바구니"
-                  onClick={handleOpenCartSheet}
-                >
+                <button type="button" className="inline-flex h-6 w-6 items-center justify-center" aria-label="장바구니" onClick={handleOpenCartSheet}>
                   <NeutralCartIcon active={isCartSheetOpen} />
                 </button>
               ) : null}
-
               <button
                 type="button"
-                onClick={
-                  isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet
-                }
+                onClick={isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet}
                 disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled : orderDisabled || addingCart}
                 className={cn(
                   'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
-                  isSheetOpen
-                    ? !isAllOptionsSelected || addingCart || orderDisabled
-                      ? 'cursor-not-allowed bg-orange-3'
-                      : 'cursor-pointer bg-orange-5'
-                    : orderDisabled || addingCart
-                      ? 'cursor-not-allowed bg-orange-3'
-                      : 'cursor-pointer bg-orange-5'
+                  isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
                 )}
               >
                 {isSheetOpen ? (sheetMode === 'cart' ? '장바구니에 담기' : '주문하기') : '주문하기'}
               </button>
             </div>
           </div>
-        ) : null}
-
-        {!loading && !errorMessage && product && isSheetOpen && canUseCartSheet ? (
-          <BottomSheet
-            className="fixed bottom-[74px] left-1/2 z-30 -translate-x-1/2"
-            variant={cartSheetVariant}
-            options={sheetOptions}
-            selectedValues={selectedOptionValues}
-            openOptionIndex={openOptionIndex}
-            quantity={sheetQuantity}
-            totalPriceText={formatWon(cartTotalPrice)}
-            onOptionToggle={handleOptionToggle}
-            onOptionSelect={handleOptionSelect}
-            onQuantityChange={(next) => setSheetQuantity(Math.max(1, next))}
-          />
         ) : null}
 
         {showCartAddedModal ? (

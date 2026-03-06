@@ -1,4 +1,4 @@
-﻿import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import Dropdown from '@/components/ui/button/Dropdown';
 
 export type BottomSheetVariant = '미선택' | '선택중' | '선택' | '주문 불가';
@@ -63,7 +63,7 @@ export default function BottomSheet({
   const canDecrease = quantity > 1;
 
   return (
-    <div className={cn('w-[375px] overflow-hidden rounded-t-[30px] bg-neutral-3 pb-5', className)}>
+    <div className={cn('w-[375px] overflow-hidden rounded-t-[30px] bg-neutral-3 pb-4', className)}>
       <div className="px-5">
         <div className="flex h-6 items-center justify-center bg-white">
           <span className="h-1 w-11 rounded bg-[#DEDEDE]" />
