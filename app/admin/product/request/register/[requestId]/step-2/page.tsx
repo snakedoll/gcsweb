@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
-import PriceInput from '@/components/ui/admin/product/PriceInput';
-import Daterangepicker from '@/components/ui/admin/product/Daterangepicker';
+import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
 import TextField from '@/components/ui/common/TextField';
 
 type ProductType = 0 | 1 | 2;
@@ -31,6 +30,11 @@ type RegisterRequestDetailResponse = {
   };
 };
 
+type Step1Draft = {
+  type?: ProductType;
+  receiveMethod?: ReceiveMethod;
+};
+
 function toDateOnly(value: string | null | undefined) {
   if (!value) return '';
   const date = new Date(value);
@@ -41,39 +45,43 @@ function toDateOnly(value: string | null | undefined) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function Step2DateField({
-  title,
-  startLabel,
-  endLabel,
-  startValue,
-  endValue,
+function digitsOnly(value: string) {
+  return value.replace(/[^\d]/g, '');
+}
+
+function formatNumber(value: string) {
+  const digits = digitsOnly(value);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+}
+
+function NumberEditor({
+  value,
+  onChange,
 }: {
-  title: string;
-  startLabel: string;
-  endLabel: string;
-  startValue: string;
-  endValue: string;
+  value: string;
+  onChange: (next: string) => void;
 }) {
+  const isFilled = Boolean(digitsOnly(value));
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1">
-        <p className="typo-body-small-bold text-neutral-10">{title}</p>
-        <span className="typo-body-xsmall-bold text-danger">*</span>
+    <div
+      className={`flex h-10 w-[163px] items-center rounded-lg border bg-neutral-2 px-[13px] py-[10px] ${
+        isFilled ? 'border-neutral-6' : 'border-neutral-4'
+      }`}
+    >
+      <div className="flex h-5 w-[137px] items-center border-b border-neutral-5">
+        <input
+          value={value}
+          onChange={(e) => onChange(formatNumber(e.target.value))}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="0"
+          className={`w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${
+            isFilled ? 'text-black' : 'text-neutral-7'
+          }`}
+        />
+        <span className="ml-auto w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
       </div>
-      <Daterangepicker
-        start={{
-          label: startLabel,
-          suffix: '부터',
-          value: startValue,
-          variant: 'filled',
-        }}
-        end={{
-          label: endLabel,
-          suffix: '까지',
-          value: endValue,
-          variant: 'filled',
-        }}
-      />
     </div>
   );
 }
@@ -111,13 +119,27 @@ export default function AdminRegisterRequestStep2Page() {
         if (!item) throw new Error('등록 요청 정보를 찾을 수 없습니다.');
         if (cancelled) return;
 
-        if (item.type !== 0) {
+        let step1Draft: Step1Draft | null = null;
+        if (typeof window !== 'undefined') {
+          const step1Raw = window.sessionStorage.getItem(`register-request-step1:${requestId}`);
+          if (step1Raw) {
+            try {
+              step1Draft = JSON.parse(step1Raw) as Step1Draft;
+            } catch {
+              step1Draft = null;
+            }
+          }
+        }
+
+        const effectiveType = step1Draft?.type ?? item.type;
+        const effectiveReceiveMethod = step1Draft?.receiveMethod ?? item.receiveMethod;
+        if (effectiveType !== 0) {
           router.replace(`/admin/product/request/register/${requestId}/step-3`);
           return;
         }
 
-        setMode(item.receiveMethod === 1 ? 'pickup' : 'parcel');
-        setGoalAmount(String(item.goalAmount ?? 0));
+        setMode(effectiveReceiveMethod === 1 ? 'pickup' : 'parcel');
+        setGoalAmount(formatNumber(String(item.goalAmount ?? 0)) || '0');
         setProductionStartDate(toDateOnly(item.productionStartDate));
         setProductionEndDate(toDateOnly(item.productionEndDate));
         setDeliveryStartDate(toDateOnly(item.deliveryStartDate));
@@ -199,21 +221,6 @@ export default function AdminRegisterRequestStep2Page() {
   ]);
 
   const handleNext = () => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(
-        `register-request-step2:${requestId}`,
-        JSON.stringify({
-          goalAmount,
-          productionStartDate: mode === 'parcel' ? productionStartDate : null,
-          productionEndDate: mode === 'parcel' ? productionEndDate : null,
-          deliveryStartDate: mode === 'parcel' ? deliveryStartDate : null,
-          deliveryEndDate: mode === 'parcel' ? deliveryEndDate : null,
-          pickupStartDate: mode === 'pickup' ? pickupStartDate : null,
-          pickupEndDate: mode === 'pickup' ? pickupEndDate : null,
-          pickupLocation: mode === 'pickup' ? pickupLocation : null,
-        })
-      );
-    }
     router.push(`/admin/product/request/register/${requestId}/step-3`);
   };
 
@@ -221,7 +228,7 @@ export default function AdminRegisterRequestStep2Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" onBack={() => router.push(`/admin/product/request/register/${requestId}`)} />
+          <NavBar variant="title-back" title="상품 등록" onBack={() => router.push(`/admin/product/request/register/${requestId}`)} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -247,36 +254,45 @@ export default function AdminRegisterRequestStep2Page() {
                     <p className="typo-body-small-bold text-neutral-10">목표 금액</p>
                     <span className="typo-body-xsmall-bold text-danger">*</span>
                   </div>
-                  <p className="text-[11px] leading-[1.5] text-neutral-8">목표 금액이 없다면 0원으로 입력해주세요.</p>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">목표 금액이 없다면 0원으로 입력해 주세요.</p>
                 </div>
-                <PriceInput property1="filled" value={goalAmount} suffix="원" />
+                <NumberEditor value={goalAmount} onChange={(next) => setGoalAmount(next || '0')} />
               </div>
 
               {mode === 'parcel' ? (
                 <>
-                  <Step2DateField
+                  <DateRangeInput
                     title="예상 제작 기간"
+                    required
                     startLabel="제작 시작일"
                     endLabel="제작 종료일"
                     startValue={productionStartDate}
                     endValue={productionEndDate}
+                    onChangeStart={setProductionStartDate}
+                    onChangeEnd={setProductionEndDate}
                   />
-                  <Step2DateField
+                  <DateRangeInput
                     title="예상 배송 기간"
+                    required
                     startLabel="배송 시작일"
                     endLabel="배송 종료일"
                     startValue={deliveryStartDate}
                     endValue={deliveryEndDate}
+                    onChangeStart={setDeliveryStartDate}
+                    onChangeEnd={setDeliveryEndDate}
                   />
                 </>
               ) : (
                 <>
-                  <Step2DateField
+                  <DateRangeInput
                     title="예상 수령 기간"
+                    required
                     startLabel="수령 시작일"
                     endLabel="수령 종료일"
                     startValue={pickupStartDate}
                     endValue={pickupEndDate}
+                    onChangeStart={setPickupStartDate}
+                    onChangeEnd={setPickupEndDate}
                   />
 
                   <TextField
@@ -284,10 +300,10 @@ export default function AdminRegisterRequestStep2Page() {
                     label="수령 장소"
                     showStar
                     state={pickupLocation ? 'filled' : 'default'}
-                    subtext='미정인 경우, “미정”으로 입력해 주세요.'
+                    subtext="미정일 경우, 추후 안내로 입력해 주세요."
                     inputProps={{
                       value: pickupLocation,
-                      readOnly: true,
+                      onChange: (e) => setPickupLocation(e.target.value),
                     }}
                   />
                 </>
@@ -315,7 +331,7 @@ export default function AdminRegisterRequestStep2Page() {
                 <span className="typo-body-small-bold text-neutral-2">다음</span>
               </button>
             </div>
-            <p className="typo-body-xsmall text-neutral-8">다음으로 넘어가도 현재의 내용은 저장됩니다.</p>
+            <p className="typo-body-xsmall text-neutral-8">다음으로 넘어가도 현재 입력 내용은 저장됩니다.</p>
           </div>
         </div>
       </div>
@@ -326,7 +342,7 @@ export default function AdminRegisterRequestStep2Page() {
             <div className="flex w-[287px] flex-col gap-[30px]">
               <div className="flex w-full flex-col items-center justify-center gap-1">
                 <p className="w-[265px] text-center typo-heading-xxsmall text-neutral-12">작성을 취소하시겠습니까?</p>
-                <p className="w-[265px] text-center typo-body-xsmall text-neutral-12">지금까지 작성한 글은 저장되지 않습니다.</p>
+                <p className="w-[265px] text-center typo-body-xsmall text-neutral-12">지금까지 작성된 글은 저장되지 않습니다.</p>
               </div>
               <div className="flex w-full items-end gap-[14px]">
                 <button

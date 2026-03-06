@@ -514,6 +514,7 @@ export default function AdminRegisterRequestStep3Page() {
       Boolean(step1Draft.teamId?.trim()) &&
       Boolean(step1Draft.teamName?.trim()) &&
       Boolean(step1Draft.name?.trim()) &&
+      (step1Draft.name?.trim().length ?? 0) <= 13 &&
       Boolean(step1Draft.description?.trim()) &&
       [0, 1, 2].includes(Number(step1Draft.type)) &&
       [0, 1].includes(Number(step1Draft.receiveMethod)) &&
