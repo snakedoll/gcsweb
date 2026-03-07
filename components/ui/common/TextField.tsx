@@ -91,15 +91,29 @@ export default function TextField({
       return <span className="typo-body-xsmall text-neutral-7">{timeText}</span>;
     }
     if (isError) {
-      return <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />;
+      return (
+        <Image
+          src="/assets/icons/filled/Filled/Danger.svg"
+          alt=""
+          width={20}
+          height={20}
+          style={{ filter: 'invert(16%) sepia(99%) saturate(5838%) hue-rotate(358deg) brightness(94%) contrast(90%)' }}
+        />
+      );
     }
     if (isSuccess) {
-      return <Image src="/assets/icons/icon-check-success.svg" alt="" width={20} height={20} />;
+      return (
+        <div className="flex h-5 w-5 items-center justify-center rounded-[4px] bg-[#20A05C]">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.5 6.5L4.5 8.5L9.5 3.5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      );
     }
     if (isType) {
       return <Image src="/assets/icons/icon-clear.svg" alt="" width={20} height={20} />;
     }
-    return <Image src="/assets/icons/icon-eye-hide.svg" alt="" width={20} height={20} />;
+    return null;
   };
 
   const captionText = caption ?? helperText;

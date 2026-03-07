@@ -8,7 +8,7 @@ export const loginSchema = z.object({
   password: z
     .string()
     .min(8, '비밀번호는 8자 이상이어야 합니다.')
-    .regex(/^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d]+$/, '비밀번호는 영문과 숫자를 포함해야 합니다.'),
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/, '비밀번호는 영문, 숫자를 포함하여 8~20자로 입력해주세요.'),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -32,8 +32,8 @@ export const registerSchema = z
       .string()
       .min(8, '비밀번호는 8자 이상이어야 합니다.')
       .regex(
-        /^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d]+$/,
-        '비밀번호는 영문과 숫자를 포함해야 합니다.'
+        /^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/,
+        '비밀번호는 영문, 숫자를 포함하여 8~20자로 입력해주세요.'
       ),
     confirmPassword: z.string(),
     verificationCode: z

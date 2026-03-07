@@ -29,7 +29,6 @@ function LoginContent() {
   const resetSuccess = searchParams.get('reset') === 'success';
 
   const [loginUiState, setLoginUiState] = useState<LoginUiState>('default');
-  const [showPassword, setShowPassword] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -66,7 +65,6 @@ function LoginContent() {
         setLoginUiState('default');
         setFailedAttempts(0);
         setLockedUntilMs(null);
-        setShowPassword(false);
         setFocusedField(null);
         setRememberEmail(false);
         reset({
@@ -224,14 +222,13 @@ function LoginContent() {
                   onFocus: () => setFocusedField('email'),
                   disabled: isBlockedState,
                 }}
-                rightSlot={isWarningState ? <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} /> : undefined}
                 caption={isWarningState ? warningCaption : isBlockedState ? blockedCaption : undefined}
                 captionClassName={cn('typo-body-xsmall', isBlockedState ? 'text-orange-5' : 'text-danger')}
               />
 
               <TextField
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type="password"
                 label="비밀번호"
                 placeholder="비밀번호를 입력해주세요."
                 state={getFieldState('password', passwordValue.trim().length > 0)}
@@ -243,25 +240,6 @@ function LoginContent() {
                   onFocus: () => setFocusedField('password'),
                   disabled: isBlockedState,
                 }}
-                rightSlot={
-                  isWarningState ? (
-                    <Image src="/assets/icons/icon-danger.svg" alt="" width={20} height={20} />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
-                      disabled={isBlockedState}
-                    >
-                      <Image
-                        src={showPassword ? '/assets/icons/icon-eye-show.svg' : '/assets/icons/icon-eye-hide.svg'}
-                        alt=""
-                        width={20}
-                        height={20}
-                      />
-                    </button>
-                  )
-                }
                 caption={isWarningState ? warningCaption : isBlockedState ? blockedCaption : undefined}
                 captionClassName={cn('typo-body-xsmall', isBlockedState ? 'text-orange-5' : 'text-danger')}
               />

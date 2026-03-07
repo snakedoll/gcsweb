@@ -23,6 +23,9 @@ export async function GET(request: Request) {
       select: {
         id: true,
         nickname: true,
+        email: true,
+        name: true,
+        phone: true,
         profileImage: true,
         memberType: true,
         _count: {
@@ -63,6 +66,11 @@ export async function GET(request: Request) {
       data: {
         userId: user.id,
         name: user.nickname ?? '',
+        user: {
+          name: user.name ?? '',
+          phone: user.phone ?? '',
+          email: user.email ?? '',
+        },
         profileImageUrl: user.profileImage ?? null,
         memberType: user.memberType,
         role,

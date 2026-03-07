@@ -1,4 +1,4 @@
-@import url('https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css');
+@import url("https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css");
 
 @tailwind base;
 @tailwind components;
@@ -107,15 +107,22 @@ body {
   .typo-body-xsmall {
     @apply text-[13px] font-normal leading-[150%] tracking-[-0.02em];
   }
+
+  .typo-body-xxsmall {
+    @apply text-[11px] font-normal leading-[150%] tracking-[0];
+  }
 }
 
 /* react-datepicker: 앱 테마(주황) 적용 */
 .gcs-datepicker-calendar.react-datepicker .react-datepicker__day--selected,
-.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--keyboard-selected {
+.gcs-datepicker-calendar.react-datepicker
+  .react-datepicker__day--keyboard-selected {
   background-color: var(--color-orange-5);
 }
-.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--selected:hover,
-.gcs-datepicker-calendar.react-datepicker .react-datepicker__day--keyboard-selected:hover {
+.gcs-datepicker-calendar.react-datepicker
+  .react-datepicker__day--selected:hover,
+.gcs-datepicker-calendar.react-datepicker
+  .react-datepicker__day--keyboard-selected:hover {
   background-color: var(--color-orange-6);
 }
 .gcs-datepicker-calendar.react-datepicker .react-datepicker__header {

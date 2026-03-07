@@ -25,10 +25,7 @@ function isEmail(value: unknown): value is string {
 function isStrongPassword(value: unknown): value is string {
   return (
     typeof value === 'string' &&
-    value.length >= 8 &&
-    /[A-Za-z]/.test(value) &&
-    /\d/.test(value) &&
-    /^[A-Za-z\d]+$/.test(value)
+    /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/.test(value)
   );
 }
 
