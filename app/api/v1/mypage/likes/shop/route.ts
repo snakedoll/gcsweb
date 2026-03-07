@@ -3,12 +3,39 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { getSaleStatusByDate } from '@/lib/sale-date';
 
 export const dynamic = 'force-dynamic';
 
-function mapStatus(status: number) {
-  // Normalize to API spec strings
-  return status === 1 ? 'AVAILABLE' : 'SOLD_OUT';
+function mapStatus(product: any) {
+  if (product == null) return 'SOLD_OUT';
+  
+  // 관리자 승인이 안 되었거나 비공개면 판매 종료로 처리
+  if (!product.isAdminApproved || !product.isPublic) {
+    return 'SALES_ENDED';
+  }
+
+  const now = new Date();
+  const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate, now);
+  
+  if (saleStatus !== 'active') {
+    return 'SALES_ENDED';
+  }
+
+  if (product.status === 2) {
+    return 'SOLD_OUT';
+  }
+
+  return 'AVAILABLE';
+}
+
+function getFundingStatusText(product: any) {
+  const now = new Date();
+  const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate, now);
+  
+  if (saleStatus === 'scheduled') return '진행예정';
+  if (saleStatus === 'active') return '진행중';
+  return '진행완료';
 }
 
 export async function GET(request: Request) {
@@ -67,6 +94,10 @@ export async function GET(request: Request) {
             name: true,
             type: true,
             status: true,
+            salesStartDate: true,
+            salesEndDate: true,
+            isAdminApproved: true,
+            isPublic: true,
             team: { select: { teamName: true } },
             images: { select: { thumbnailImgUrl: true }, take: 1 },
           },
@@ -83,9 +114,9 @@ export async function GET(request: Request) {
         teamName: p.team?.teamName ?? null,
         name: p.name,
         thumbnailUrl: normalizeImageUrl((p.images && p.images[0]?.thumbnailImgUrl) ?? null),
-        status: mapStatus(p.status ?? 0),
+        status: mapStatus(p),
         type: p.type ?? 0,
-        fundingStatus: p.status === 0 ? '진행예정' : p.status === 1 ? '진행중' : '진행완료',
+        fundingStatus: getFundingStatusText(p),
       }));
 
     const hasNext = products.length > size;

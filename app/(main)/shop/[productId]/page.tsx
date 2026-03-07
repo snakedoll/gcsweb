@@ -860,13 +860,14 @@ export default function ShopDetailPage() {
         {showFundConflictModal ? (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
             <Modal
-              variant="Default"
+              variant="Large"
               className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
               title={
                 conflictGuardMode === 'fund'
-                  ? 'Fund 상품은 동일한 상품만 주문할 수 있습니다.\n기존 장바구니 상품을 삭제하고 담을까요?'
-                  : '상품 유형이 다른 상품은 동시에 담을 수 없습니다.\n기존 장바구니 상품을 삭제하고 주문할까요?'
+                  ? 'Fund 상품은 동일 상품만 담을 수 있습니다.'
+                  : '상품 유형이 다른 상품은 동시에 담을 수 없습니다.'
               }
+              description="선택하신 상품을 장바구니에 담으면 이전에 담은 상품은 삭제됩니다."
               cancelText="취소"
               confirmText="담기"
               onCancel={() => {

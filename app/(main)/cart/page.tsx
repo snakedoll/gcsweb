@@ -364,7 +364,7 @@ export default function CartPage() {
       const res = await fetch('/api/v1/mypage/cart/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartId }),
+        body: JSON.stringify({ cartItemIds: [cartId] }),
       });
       if (!res.ok) {
         console.error('Failed to delete item:', res.statusText);
@@ -377,9 +377,23 @@ export default function CartPage() {
   // API: 선택한 항목 삭제
   const deleteSelectedItems = async () => {
     const itemsToDelete = items.filter((i) => checkedIds.has(i.id));
-    for (const item of itemsToDelete) {
-      await deleteCartItem(item.id);
+    const cartItemIds = itemsToDelete.map((i) => i.id);
+    
+    if (cartItemIds.length === 0) return;
+
+    try {
+      const res = await fetch('/api/v1/mypage/cart/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartItemIds }),
+      });
+      if (!res.ok) {
+        console.error('Failed to delete items:', res.statusText);
+      }
+    } catch (err) {
+      console.error('Delete items error:', err);
     }
+
     // UI 업데이트
     setItems((prev) => prev.filter((i) => !checkedIds.has(i.id)));
     setCheckedIds(new Set());

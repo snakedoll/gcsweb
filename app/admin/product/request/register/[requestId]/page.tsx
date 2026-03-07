@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { shift } from '@floating-ui/react-dom';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import { ko } from 'date-fns/locale';
+import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import Radiocardgroup from '@/components/ui/admin/product/Radiocardgroup';
@@ -471,51 +469,16 @@ export default function AdminRegisterRequestStep1Page() {
                 </div>
               )}
 
-              <section>
-                <label className="typo-body-small-bold text-neutral-10">
-                  예상 판매 기간 <span className="typo-body-xsmall-bold text-danger">*</span>
-                </label>
-                <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <DatePicker
-                      selected={salesStartDate}
-                      onChange={(date: Date | null) => {
-                        const value = date ? format(date, 'yyyy-MM-dd') : '';
-                        updateDraft({ salesStartDate: value });
-                        if (salesEndDate && date && salesEndDate < date) {
-                          updateDraft({ salesEndDate: value });
-                        }
-                      }}
-                      minDate={today}
-                      locale={ko}
-                      dateFormat="yyyy-MM-dd"
-                      placeholderText="YYYY-MM-DD"
-                      popperPlacement="bottom-start"
-                      popperModifiers={[shift({ padding: 8 })]}
-                      className="h-12 w-full min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12"
-                      calendarClassName="gcs-datepicker-calendar"
-                    />
-                  </div>
-                  <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
-                  <div className="min-w-0 flex-1">
-                    <DatePicker
-                      selected={salesEndDate}
-                      onChange={(date: Date | null) =>
-                        updateDraft({ salesEndDate: date ? format(date, 'yyyy-MM-dd') : '' })
-                      }
-                      minDate={salesStartDate ?? today}
-                      locale={ko}
-                      dateFormat="yyyy-MM-dd"
-                      placeholderText="YYYY-MM-DD"
-                      popperPlacement="bottom-start"
-                      popperModifiers={[shift({ padding: 8 })]}
-                      className="h-12 w-full min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12"
-                      calendarClassName="gcs-datepicker-calendar"
-                    />
-                  </div>
-                  <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
-                </div>
-              </section>
+              <DateRangeInput
+                title="예상 판매 기간"
+                required
+                startLabel="판매 시작일"
+                endLabel="판매 종료일"
+                startValue={step1Draft.salesStartDate}
+                endValue={step1Draft.salesEndDate}
+                onChangeStart={(v) => updateDraft({ salesStartDate: v })}
+                onChangeEnd={(v) => updateDraft({ salesEndDate: v })}
+              />
 
               <div className="flex w-full flex-col gap-2">
                 <div className="space-y-1">

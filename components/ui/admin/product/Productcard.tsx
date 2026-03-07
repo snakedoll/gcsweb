@@ -113,8 +113,8 @@ function ProductContext({
       onClick={onCardClick}
       className={cn('flex w-full items-center justify-between text-left', onCardClick ? 'cursor-pointer' : 'cursor-default')}
     >
-      <div className="relative h-[125px] w-[102px] overflow-hidden rounded bg-neutral-4">
-        {imageSrc ? <Image src={imageSrc} alt="" fill unoptimized sizes="102px" className="object-cover" /> : null}
+      <div className="relative h-[125px] w-[100px] overflow-hidden rounded bg-neutral-4">
+        {imageSrc ? <Image src={imageSrc} alt="" fill unoptimized sizes="100px" className="object-cover" /> : null}
       </div>
 
       <div className="w-[205px] pl-3">

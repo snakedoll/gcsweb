@@ -26,10 +26,10 @@ function ProjectCard({ item }: { item: ScrapProject }) {
     <Link href={linkUrl} className="flex items-start gap-[15px] w-[343px] px-0 py-0 self-center">
       <div
         className="relative shrink-0 rounded-[5.333px] overflow-hidden bg-[#dddcdb]"
-        style={{ width: 100, height: 125 }}
+        style={{ width: 64, height: 80 }}
       >
         {item.thumbnailUrl ? (
-          <Image src={item.thumbnailUrl} alt={item.title} fill className="object-cover" sizes="100px" />
+          <Image src={item.thumbnailUrl} alt={item.title} fill className="object-cover" sizes="64px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -41,7 +41,7 @@ function ProjectCard({ item }: { item: ScrapProject }) {
         )}
       </div>
 
-      <div className="flex flex-1 items-center min-w-0 min-h-[125px] py-2">
+      <div className="flex flex-1 items-center min-w-0 min-h-[80px] py-2">
         <div className="flex flex-1 flex-col gap-[12px] min-w-0">
           <div className="flex flex-col gap-1">
             <p className="text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#1a1918] truncate">

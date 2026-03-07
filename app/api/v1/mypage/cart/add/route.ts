@@ -60,6 +60,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_AVAILABLE', message: '현재 판매 중인 상품이 아닙니다.' }, { status: 400 });
     }
 
+    if (product.status === 2) {
+      return NextResponse.json({ status: 'error', code: 'PRODUCT_SOLD_OUT', message: '품절된 상품입니다.' }, { status: 400 });
+    }
+
     // 유저의 장바구니 조회 또는 생성
     let cart = await prisma.cart.findFirst({ where: { userId: user.id } });
     if (!cart) {

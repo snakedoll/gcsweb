@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
+import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
+import TextField from '@/components/ui/common/TextField';
 
 type ProductType = 0 | 1 | 2;
 
@@ -24,6 +26,16 @@ type UpdateRequestDetailResponse = {
     };
   };
 };
+
+function toDateOnly(value: string | null | undefined) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 export default function AdminUpdateRequestStep2Page() {
   const router = useRouter();
@@ -73,12 +85,12 @@ export default function AdminUpdateRequestStep2Page() {
         }
 
         setGoalAmount(String(item.goalAmount ?? ''));
-        setProdStart(item.productionStartDate?.split('T')[0] ?? '');
-        setProdEnd(item.productionEndDate?.split('T')[0] ?? '');
-        setDelivStart(item.deliveryStartDate?.split('T')[0] ?? '');
-        setDelivEnd(item.deliveryEndDate?.split('T')[0] ?? '');
-        setPickupStart(item.pickupStartDate?.split('T')[0] ?? '');
-        setPickupEnd(item.pickupEndDate?.split('T')[0] ?? '');
+        setProdStart(toDateOnly(item.productionStartDate));
+        setProdEnd(toDateOnly(item.productionEndDate));
+        setDelivStart(toDateOnly(item.deliveryStartDate));
+        setDelivEnd(toDateOnly(item.deliveryEndDate));
+        setPickupStart(toDateOnly(item.pickupStartDate));
+        setPickupEnd(toDateOnly(item.pickupEndDate));
         setPickupLoc(item.pickupLocation ?? '');
 
         setLoadError(null);
@@ -112,56 +124,80 @@ export default function AdminUpdateRequestStep2Page() {
             </div>
           </div>
 
-          <div className="px-4 flex flex-col gap-6">
+          <div className="px-4 flex flex-col gap-6 pb-4">
             <p className="typo-body-small-bold text-neutral-12">펀딩 및 일정 정보</p>
 
-            {/* 목표 수량 */}
+            {/* 목표 금액/수량 */}
             <div className="flex flex-col gap-2">
-              <p className="typo-body-xsmall-bold text-neutral-10 text-[13px]">목표 수량</p>
-              <div className="flex h-10 items-center rounded-lg border border-neutral-6 bg-neutral-1 px-3">
+              <div className="flex items-center gap-1">
+                <p className="typo-body-small-bold text-neutral-10 text-[13px]">목표 금액/수량</p>
+                <span className="typo-body-xsmall-bold text-danger">*</span>
+              </div>
+              <p className="text-[11px] leading-[1.5] text-neutral-8">목표 금액이 없다면 0원으로 입력해 주세요.</p>
+              <div className="flex h-10 w-[163px] items-center rounded-lg border border-neutral-6 bg-neutral-1 px-3">
                 <input
                   type="text"
                   value={goalAmount}
                   onChange={(e) => setGoalAmount(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full bg-transparent text-[13px] text-neutral-12 outline-none"
-                  placeholder="예) 100"
+                  className="w-full bg-transparent typo-body-xsmall text-neutral-12 outline-none"
+                  placeholder="0"
                 />
-                <span className="ml-1 text-[13px] text-neutral-7">개</span>
+                <span className="ml-1 typo-body-xsmall text-neutral-7">원</span>
               </div>
             </div>
 
-            {/* 제작 기간 */}
-            <div className="flex flex-col gap-2">
-              <p className="typo-body-xsmall-bold text-neutral-10 text-[13px]">제작 기간</p>
-              <div className="flex items-center gap-2">
-                <input type="date" value={prodStart} onChange={(e) => setProdStart(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-                <span className="text-neutral-6">~</span>
-                <input type="date" value={prodEnd} onChange={(e) => setProdEnd(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-              </div>
-            </div>
+            {/* 예상 제작 기간 */}
+            <DateRangeInput
+              title="예상 제작 기간"
+              required
+              startLabel="제작 시작일"
+              endLabel="제작 종료일"
+              startValue={prodStart}
+              endValue={prodEnd}
+              onChangeStart={setProdStart}
+              onChangeEnd={setProdEnd}
+            />
 
-            {/* 배송 기간 */}
-            <div className="flex flex-col gap-2">
-              <p className="typo-body-xsmall-bold text-neutral-10 text-[13px]">배송 기간</p>
-              <div className="flex items-center gap-2">
-                <input type="date" value={delivStart} onChange={(e) => setDelivStart(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-                <span className="text-neutral-6">~</span>
-                <input type="date" value={delivEnd} onChange={(e) => setDelivEnd(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-              </div>
-            </div>
+            {/* 예상 배송 기간 */}
+            <DateRangeInput
+              title="예상 배송 기간"
+              required
+              startLabel="배송 시작일"
+              endLabel="배송 종료일"
+              startValue={delivStart}
+              endValue={delivEnd}
+              onChangeStart={setDelivStart}
+              onChangeEnd={setDelivEnd}
+            />
 
-            {/* 픽업 기간 */}
-            <div className="flex flex-col gap-2">
-              <p className="typo-body-xsmall-bold text-neutral-10 text-[13px]">현장 수령 및 픽업 기간</p>
-              <div className="flex items-center gap-2">
-                <input type="date" value={pickupStart} onChange={(e) => setPickupStart(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-                <span className="text-neutral-6">~</span>
-                <input type="date" value={pickupEnd} onChange={(e) => setPickupEnd(e.target.value)} className="flex-1 rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" />
-              </div>
-              <input type="text" value={pickupLoc} onChange={(e) => setPickupLoc(e.target.value)} className="w-full rounded-lg border border-neutral-6 bg-neutral-1 p-2 text-[13px]" placeholder="수령 장소 입력" />
+            {/* 예상 수령 기간 */}
+            <div className="flex flex-col gap-5">
+              <DateRangeInput
+                title="예상 수령 기간"
+                required
+                startLabel="수령 시작일"
+                endLabel="수령 종료일"
+                startValue={pickupStart}
+                endValue={pickupEnd}
+                onChangeStart={setPickupStart}
+                onChangeEnd={setPickupEnd}
+              />
+
+              <TextField
+                id="update-request-pickup-location"
+                label="수령 장소"
+                showStar
+                state={pickupLoc ? 'filled' : 'default'}
+                subtext="미정일 경우, 추후 안내로 입력해 주세요."
+                inputProps={{
+                  value: pickupLoc,
+                  onChange: (e) => setPickupLoc(e.target.value),
+                }}
+              />
             </div>
           </div>
         </div>
+
 
         <div className="flex gap-[10px] items-center px-4 pb-[71px] pt-[23px]">
           <button

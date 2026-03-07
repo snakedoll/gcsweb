@@ -3,14 +3,31 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { getSaleStatusByDate } from '@/lib/sale-date';
 
 export const dynamic = 'force-dynamic';
 
 function mapStatus(product: any) {
   if (product == null) return 'SOLD_OUT';
-  if (typeof product.status === 'number' && product.status !== 1) {
+  
+  // 관리자 승인이 안 되었거나 비공개면 판매 종료로 처리
+  if (!product.isAdminApproved || !product.isPublic) {
     return 'SALES_ENDED';
   }
+
+  const now = new Date();
+  const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate, now);
+  
+  // 판매 기간이 아니면(예정 or 완료) 판매 종료로 처리
+  if (saleStatus !== 'active') {
+    return 'SALES_ENDED';
+  }
+
+  // 명시적으로 품절 상태(2)인 경우 처리 (현재 GCS 관례가 있다면)
+  if (product.status === 2) {
+    return 'SOLD_OUT';
+  }
+
   return 'AVAILABLE';
 }
 
@@ -54,6 +71,10 @@ export async function GET(request: Request) {
             name: true,
             status: true,
             type: true,
+            salesStartDate: true,
+            salesEndDate: true,
+            isAdminApproved: true,
+            isPublic: true,
             receiveMethod: true,
             price: true,
             team: { select: { teamName: true } },

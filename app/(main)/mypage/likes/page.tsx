@@ -51,10 +51,10 @@ function ProductCard({ product }: { product: LikedProduct }) {
       {/* 썸네일: 고정 너비 + 4:5 비율 (Figma: 120×150 scale) */}
       <div
         className="relative shrink-0 rounded-[5.333px] overflow-hidden bg-[#dddcdb]"
-        style={{ width: 100, height: 125 }}
+        style={{ width: 64, height: 80 }}
       >
         {product.thumbnailUrl ? (
-          <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" sizes="100px" />
+          <Image src={product.thumbnailUrl} alt={product.name} fill className="object-cover" sizes="64px" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

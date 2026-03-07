@@ -6,9 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import TextField from '@/components/ui/common/TextField';
-import DaterangepickerVariation, {
-  type DaterangepickerVariationVariant,
-} from '@/components/ui/admin/product/DaterangepickerVariation';
+import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
 import { cn } from '@/lib/utils';
 import AdminImage from '@/components/ui/admin/product/Image';
 
@@ -117,49 +115,6 @@ function RadioCardGroup({
   );
 }
 
-function SalesDateRange({
-  startDate,
-  endDate,
-}: {
-  startDate: string;
-  endDate: string;
-}) {
-  function getVariant(text: string): DaterangepickerVariationVariant {
-    if (text.trim()) return 'filled';
-    return 'Default';
-  }
-
-  return (
-    <div className="flex w-full flex-col gap-2">
-      <div className="flex items-center gap-1 leading-[1.5]">
-        <p className="typo-body-small-bold text-neutral-12">예상 판매 기간</p>
-        <span className="typo-body-xsmall-bold text-danger">*</span>
-      </div>
-      <div className="flex h-16 w-full items-center justify-between">
-        <div className="flex w-[158px] flex-col gap-1">
-          <p className="typo-body-xsmall text-neutral-8">판매 시작일</p>
-          <div className="flex items-center gap-[7px]">
-            <DaterangepickerVariation
-              property1={getVariant(startDate)}
-              value={startDate || 'YYYY-MM-DD'}
-            />
-            <span className="typo-body-small-bold text-neutral-13">부터</span>
-          </div>
-        </div>
-        <div className="flex w-[158px] flex-col gap-1">
-          <p className="typo-body-xsmall text-neutral-8">판매 종료일</p>
-          <div className="flex items-center gap-[7px]">
-            <DaterangepickerVariation
-              property1={getVariant(endDate)}
-              value={endDate || 'YYYY-MM-DD'}
-            />
-            <span className="typo-body-small-bold text-neutral-13">까지</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function AdminUpdateRequestStep1Page() {
   const router = useRouter();
@@ -330,9 +285,15 @@ export default function AdminUpdateRequestStep1Page() {
                   onChange={(v) => setReceiveMethod(v as ReceiveMethod)}
                 />
 
-                <SalesDateRange
-                  startDate={salesStartDate}
-                  endDate={salesEndDate}
+                <DateRangeInput
+                  title="예상 판매 기간"
+                  required
+                  startLabel="판매 시작일"
+                  endLabel="판매 종료일"
+                  startValue={salesStartDate}
+                  endValue={salesEndDate}
+                  onChangeStart={setSalesStartDate}
+                  onChangeEnd={setSalesEndDate}
                 />
 
                 {/* 썸네일 이미지 */}
