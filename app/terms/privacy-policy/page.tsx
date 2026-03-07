@@ -1,4 +1,44 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import TermsDetailLayout from '@/app/terms/TermsDetailLayout';
+
+export default function PrivacyPolicyPage() {
+  const [termsText, setTermsText] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        const res = await fetch('/api/v1/terms?type=privacy');
+        const json = await res.json();
+        if (json.status === 'success' && json.data.length > 0) {
+          const joined = json.data
+            .map((item: any) => {
+              const parts = [];
+              if (item.mainTitle) parts.push(item.mainTitle);
+              if (item.subTitle) parts.push(item.subTitle);
+              if (item.body) parts.push(item.body);
+              return parts.join('\n');
+            })
+            .join('\n\n');
+          setTermsText(joined);
+        } else {
+          setTermsText(PRIVACY_POLICY);
+        }
+      } catch (e) {
+        setTermsText(PRIVACY_POLICY);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTerms();
+  }, []);
+
+  if (loading) return null;
+
+  return <TermsDetailLayout title="개인정보처리방침" text={termsText} />;
+}
 
 const PRIVACY_POLICY = `제1장 개인정보처리방침의 기본사항
 
@@ -116,7 +156,7 @@ const PRIVACY_POLICY = `제1장 개인정보처리방침의 기본사항
 - 소비자 불만·분쟁 처리 기록: 3년
 
 제11조 파기 절차 및 방법
-1. 보유 기간 경과 또는 목적 달성 시 지체 없이 파기합니다.
+1. 보유 기간 경경과 또는 목적 달성 시 지체 없이 파기합니다.
 2. 전자적 파일은 복구 불가능한 방법으로 삭제합니다.
 3. 출력물은 분쇄 또는 소각합니다.
 
@@ -144,7 +184,3 @@ const PRIVACY_POLICY = `제1장 개인정보처리방침의 기본사항
 - 접근 권한 최소화
 - 정기적 직원 교육
 - 운영자 비밀번호 정기 갱신`;
-
-export default function PrivacyPolicyPage() {
-  return <TermsDetailLayout title="개인정보처리방침" text={PRIVACY_POLICY} />;
-}

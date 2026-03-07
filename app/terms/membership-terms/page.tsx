@@ -1,4 +1,44 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import TermsDetailLayout from '@/app/terms/TermsDetailLayout';
+
+export default function MembershipTermsPage() {
+  const [termsText, setTermsText] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        const res = await fetch('/api/v1/terms?type=homepage');
+        const json = await res.json();
+        if (json.status === 'success' && json.data.length > 0) {
+          const joined = json.data
+            .map((item: any) => {
+              const parts = [];
+              if (item.mainTitle) parts.push(item.mainTitle);
+              if (item.subTitle) parts.push(item.subTitle);
+              if (item.body) parts.push(item.body);
+              return parts.join('\n');
+            })
+            .join('\n\n');
+          setTermsText(joined);
+        } else {
+          setTermsText(MEMBERSHIP_TERMS);
+        }
+      } catch (e) {
+        setTermsText(MEMBERSHIP_TERMS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTerms();
+  }, []);
+
+  if (loading) return null;
+
+  return <TermsDetailLayout title="홈페이지 이용약관" text={termsText} />;
+}
 
 const MEMBERSHIP_TERMS = `제1장 총칙
 
@@ -167,7 +207,3 @@ const MEMBERSHIP_TERMS = `제1장 총칙
 5. 회원 간 또는 제3자와의 분쟁에 대해 책임을 지지 않습니다.
 6. 서비스 매개 거래로 인한 손해에 대해 책임을 지지 않습니다.
 7. 관리자가 통제할 수 없는 불가항력적 사유로 인한 손해에 대해 책임을 지지 않습니다.`;
-
-export default function MembershipTermsPage() {
-  return <TermsDetailLayout title="홈페이지 이용약관" text={MEMBERSHIP_TERMS} />;
-}

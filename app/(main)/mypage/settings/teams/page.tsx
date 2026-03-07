@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 interface TeamMember {
   role: string;
@@ -30,7 +31,9 @@ function formatPhoneNumber(phone: string) {
   return phone;
 }
 
-function TeamInfoCard({ team }: { team: TeamData }) {
+function TeamInfoCard({ team, isAdmin }: { team: TeamData; isAdmin: boolean }) {
+  const router = useRouter();
+  
   return (
     <div className="flex w-full flex-col rounded-[8px] bg-neutral-1 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)] overflow-hidden">
       <div className="flex items-start justify-between p-4">
@@ -38,9 +41,15 @@ function TeamInfoCard({ team }: { team: TeamData }) {
           <p className="typo-heading-xxsmall text-neutral-12">{team.name}</p>
           <p className="typo-body-xsmall text-neutral-7">{team.type}</p>
         </div>
-        <button type="button" className="h-6 w-6">
-          <Image src="/assets/icons/filled/Filled/Edit 2.svg" alt="수정" width={24} height={24} />
-        </button>
+        {isAdmin && (
+          <button 
+            type="button" 
+            className="h-6 w-6"
+            onClick={() => router.push(`/admin/team/${team.id}/edit`)}
+          >
+            <Image src="/assets/icons/filled/Filled/Edit 2.svg" alt="수정" width={24} height={24} />
+          </button>
+        )}
       </div>
       
       <div className="h-px w-full bg-neutral-3" />
@@ -75,8 +84,11 @@ function TeamInfoCard({ team }: { team: TeamData }) {
 
 export default function TeamInfoPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState<TeamData[]>([]);
+
+  const isAdmin = session?.user?.role === 'admin';
 
   useEffect(() => {
     (async () => {
@@ -120,7 +132,7 @@ export default function TeamInfoPage() {
         ) : (
           <div className="flex flex-col gap-5">
             {teams.map(team => (
-              <TeamInfoCard key={team.id} team={team} />
+              <TeamInfoCard key={team.id} team={team} isAdmin={isAdmin} />
             ))}
           </div>
         )}

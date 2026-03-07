@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { NavBar } from '@/components/layout';
@@ -37,9 +37,54 @@ export default function AdminTermsPage() {
     privacy: [{ id: Math.random().toString(36).substring(2, 9), mainTitle: '', subTitle: '', body: '' }],
     service: [{ id: Math.random().toString(36).substring(2, 9), mainTitle: '', subTitle: '', body: '' }],
   });
+  const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  // Fetch all terms on mount
+  useEffect(() => {
+    const fetchTerms = async () => {
+      try {
+        const res = await fetch('/api/v1/terms');
+        if (!res.ok) throw new Error('Fetch failed');
+        const json = await res.json();
+        
+        if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+          const grouped: Record<TermType, TermCardData[]> = {
+            homepage: [],
+            privacy: [],
+            service: [],
+          };
+          json.data.forEach((item: any) => {
+            if (grouped[item.type as TermType]) {
+              grouped[item.type as TermType].push({
+                id: item.id,
+                mainTitle: item.mainTitle,
+                subTitle: item.subTitle || '',
+                body: item.body,
+              });
+            }
+          });
+          
+          // Ensure at least one empty card if none exist for a type
+          Object.keys(grouped).forEach((key) => {
+            const k = key as TermType;
+            if (grouped[k].length === 0) {
+              grouped[k].push({ id: Math.random().toString(36).substring(2, 9), mainTitle: '', subTitle: '', body: '' });
+            }
+          });
+          
+          setTermsData(grouped);
+        }
+      } catch (e) {
+        console.error('Failed to fetch terms:', e);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+    fetchTerms();
+  }, []);
 
   const handleAddCard = () => {
     setTermsData((prev) => ({
@@ -69,12 +114,32 @@ export default function AdminTermsPage() {
 
   const handleSave = async () => {
     setLoading(true);
-    // API call simulation
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/v1/admin/terms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: activeTab,
+          terms: termsData[activeTab].map((card) => ({
+            mainTitle: card.mainTitle,
+            subTitle: card.subTitle,
+            body: card.body,
+          })),
+        }),
+      });
+      const json = await res.json();
+      
+      if (json.status === 'success') {
+        setShowConfirmModal(false);
+        setShowSuccessModal(true);
+      } else {
+        alert(json.message || '저장에 실패했습니다.');
+      }
+    } catch (e) {
+      alert('서버 오류가 발생했습니다.');
+    } finally {
       setLoading(false);
-      setShowConfirmModal(false);
-      setShowSuccessModal(true);
-    }, 500);
+    }
   };
 
   return (
@@ -210,8 +275,18 @@ export default function AdminTermsPage() {
             variant="one button"
             title="저장이 완료되었습니다."
             confirmText="확인"
-            onConfirm={() => setShowSuccessModal(false)}
+            onConfirm={() => {
+              setShowSuccessModal(false);
+              // Refresh data to get permanent IDs
+              window.location.reload();
+            }}
           />
+        </div>
+      )}
+
+      {isInitialLoading && (
+        <div className="fixed inset-0 z-40 bg-white/50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-5"></div>
         </div>
       )}
     </div>
