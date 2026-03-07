@@ -299,6 +299,7 @@ export default function AdminRegisterRequestStep2Page() {
                     id="register-request-step2-pickup-location"
                     label="수령 장소"
                     showStar
+                    placeholder="예) 동국대학교 학술관K127"
                     state={pickupLocation ? 'filled' : 'default'}
                     subtext="미정일 경우, 추후 안내로 입력해 주세요."
                     inputProps={{
