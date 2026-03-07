@@ -1,44 +1,17 @@
-import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+import { shift } from '@floating-ui/react-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ko } from 'date-fns/locale';
 
-type SingleDateInputProps = {
-  label: string;
-  suffix: string;
-  value: string;
-  onChange: (next: string) => void;
-  placeholder?: string;
-};
-
-function SingleDateInput({
-  label,
-  suffix,
-  value,
-  onChange,
-  placeholder = 'YYYY-MM-DD',
-}: SingleDateInputProps) {
-  return (
-    <div className="flex h-16 w-[158px] flex-col gap-1">
-      <p className="h-5 typo-body-xsmall text-neutral-8">{label}</p>
-      <div className="flex items-center gap-[7px]">
-        <label
-          className={cn(
-            'relative inline-flex h-10 w-[125px] items-center justify-center rounded-lg border bg-neutral-2 px-[14px] py-2',
-            value ? 'border-neutral-6' : 'border-neutral-4'
-          )}
-        >
-          <span className={cn('typo-body-small', value ? 'text-neutral-12' : 'text-neutral-7')}>
-            {value || placeholder}
-          </span>
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          />
-        </label>
-        <p className="typo-heading-xxsmall text-neutral-13">{suffix}</p>
-      </div>
-    </div>
-  );
+function parseOrNull(dateStr: string): Date | null {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  try {
+    const date = parseISO(`${dateStr}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
 }
 
 type DateRangeInputProps = {
@@ -64,6 +37,11 @@ export default function DateRangeInput({
   onChangeStart,
   onChangeEnd,
 }: DateRangeInputProps) {
+  const startDate = parseOrNull(startValue);
+  const endDate = parseOrNull(endValue);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return (
     <div className="space-y-2">
       <div className="space-y-1">
@@ -73,9 +51,46 @@ export default function DateRangeInput({
         </div>
         {helperText ? <p className="text-[11px] leading-[1.5] text-neutral-8">{helperText}</p> : null}
       </div>
-      <div className="flex h-16 w-full items-center justify-between">
-        <SingleDateInput label={startLabel} suffix="부터" value={startValue} onChange={onChangeStart} />
-        <SingleDateInput label={endLabel} suffix="까지" value={endValue} onChange={onChangeEnd} />
+
+      <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <DatePicker
+            selected={startDate}
+            onChange={(date: Date | null) => {
+              const value = date ? format(date, 'yyyy-MM-dd') : '';
+              onChangeStart(value);
+              if (endDate && date && endDate < date) {
+                onChangeEnd(value);
+              }
+            }}
+            minDate={today}
+            locale={ko}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="YYYY-MM-DD"
+            popperPlacement="bottom-start"
+            popperModifiers={[shift({ padding: 8 })]}
+            className="h-12 w-full min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12"
+            calendarClassName="gcs-datepicker-calendar"
+            name={startLabel}
+          />
+        </div>
+        <span className="shrink-0 typo-body-small-bold text-neutral-8">부터</span>
+        <div className="min-w-0 flex-1">
+          <DatePicker
+            selected={endDate}
+            onChange={(date: Date | null) => onChangeEnd(date ? format(date, 'yyyy-MM-dd') : '')}
+            minDate={startDate ?? today}
+            locale={ko}
+            dateFormat="yyyy-MM-dd"
+            placeholderText="YYYY-MM-DD"
+            popperPlacement="bottom-start"
+            popperModifiers={[shift({ padding: 8 })]}
+            className="h-12 w-full min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12"
+            calendarClassName="gcs-datepicker-calendar"
+            name={endLabel}
+          />
+        </div>
+        <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
       </div>
     </div>
   );
