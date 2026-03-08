@@ -117,13 +117,18 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
 
         <div className="flex-1 min-h-0 rounded-t-[12px] bg-white px-4 pb-5 pt-5">
           <div className="h-full min-h-0 overflow-y-auto pr-1">
-            <div className="space-y-3 break-keep text-neutral-8">
-              {parseBodyBlocks(text).map((block, blockIndex) => {
+            <div className="break-keep text-neutral-9">
+              {parseBodyBlocks(text).map((block, blockIndex, allBlocks) => {
+                const isFirst = blockIndex === 0;
+                const prevBlock = blockIndex > 0 ? allBlocks[blockIndex - 1] : null;
+
                 if (block.type === 'chapter') {
                   return (
                     <h2
                       key={`chapter-${blockIndex}`}
-                      className="typo-heading-small pt-2 text-[19px] leading-[1.55] tracking-[-0.38px] text-neutral-10"
+                      className={`flex h-[29px] items-center justify-start text-[19px] font-bold leading-[1.55] text-neutral-9 ${
+                        !isFirst ? 'mt-12' : ''
+                      }`}
                     >
                       {block.text}
                     </h2>
@@ -134,7 +139,9 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
                   return (
                     <h3
                       key={`article-${blockIndex}`}
-                      className="typo-heading-xxsmall pt-2 text-[15px] leading-[1.5] text-neutral-10"
+                      className={`text-[15px] font-bold leading-[1.5] text-neutral-9 ${
+                        prevBlock?.type === 'chapter' ? 'mt-6' : 'mt-3'
+                      }`}
                     >
                       {block.text}
                     </h3>
@@ -143,7 +150,12 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
 
                 if (block.type === 'paragraph') {
                   return (
-                    <p key={`p-${blockIndex}`} className="typo-body-xsmall leading-[1.6] tracking-[-0.26px] text-neutral-8">
+                    <p
+                      key={`p-${blockIndex}`}
+                      className={`text-[13px] font-normal leading-[1.5] tracking-[-0.26px] text-neutral-9 ${
+                        prevBlock?.type === 'article' || prevBlock?.type === 'paragraph' ? 'mt-3' : 'mt-3'
+                      }`}
+                    >
                       {block.text}
                     </p>
                   );
@@ -153,7 +165,7 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
                   return (
                     <ul
                       key={`ul-${blockIndex}`}
-                      className="typo-body-xsmall list-disc space-y-1.5 pl-5 leading-[1.6] tracking-[-0.26px]"
+                      className="mt-3 list-disc space-y-1.5 pl-5 text-[13px] font-normal leading-[1.5] tracking-[-0.26px] text-neutral-9"
                     >
                       {block.items.map((item, itemIndex) => (
                         <li key={`ul-${blockIndex}-${itemIndex}`}>{item}</li>
@@ -165,13 +177,13 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
                 return (
                   <ol
                     key={`ol-${blockIndex}`}
-                    className="typo-body-xsmall list-decimal space-y-2 pl-5 leading-[1.6] tracking-[-0.26px]"
+                    className="mt-3 list-decimal space-y-2 pl-5 text-[13px] font-normal leading-[1.5] tracking-[-0.26px] text-neutral-9"
                   >
                     {block.items.map((item, itemIndex) => (
                       <li key={`ol-${blockIndex}-${itemIndex}`}>
                         <p>{item.text}</p>
                         {item.bullets.length > 0 ? (
-                          <ul className="list-disc space-y-1.5 pl-5 pt-1">
+                          <ul className="mt-1 list-disc space-y-1.5 pl-5">
                             {item.bullets.map((bullet, bulletIndex) => (
                               <li key={`ol-${blockIndex}-${itemIndex}-b-${bulletIndex}`}>{bullet}</li>
                             ))}
