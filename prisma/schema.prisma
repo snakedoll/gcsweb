@@ -92,7 +92,6 @@ model Product {
   pickupStartDate     DateTime?
   pickupEndDate       DateTime?
   pickupLocation      String?
-  reservedAmount      Int                    @default(0)
   isHome              Boolean                @default(false)
   isAdminApproved     Boolean                @default(false)
   publicAt            DateTime?
