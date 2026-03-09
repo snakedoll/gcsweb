@@ -111,6 +111,7 @@ function ShopOrdersPageContent() {
   const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
   const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
+  const [billingKey, setBillingKey] = useState('');
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
 
   const selectedCartItemIds = useMemo(() => {
@@ -221,6 +222,7 @@ function ShopOrdersPageContent() {
         cardCompany: paymentMethod === 0 ? cardCompany : null,
         bankCode: paymentMethod === 1 ? bankCode : null,
         easyPayProvider: null,
+        ...(paymentMethod === 0 && billingKey.trim() ? { billingKey: billingKey.trim() } : {}),
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -247,7 +249,8 @@ function ShopOrdersPageContent() {
         setConfirmedPaymentAmount(paymentAmount);
       }
 
-      window.alert('주문이 생성되었습니다.');
+      const paymentConfirmed = json?.data?.paymentConfirmed === true;
+      window.alert(paymentConfirmed ? '주문 및 결제가 완료되었습니다.' : '주문이 생성되었습니다.');
       router.push('/mypage');
     } finally {
       setIsSubmitting(false);
@@ -377,15 +380,24 @@ function ShopOrdersPageContent() {
           </div>
 
           {paymentMethod === 0 ? (
-            <Dropdown
-              label=""
-              size="m"
-              state={cardCompany === null ? 'default' : 'selected'}
-              placeholder="카드 선택"
-              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
-              items={CARD_COMPANY_ITEMS}
-              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
-            />
+            <>
+              <Dropdown
+                label=""
+                size="m"
+                state={cardCompany === null ? 'default' : 'selected'}
+                placeholder="카드 선택"
+                value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+                items={CARD_COMPANY_ITEMS}
+                onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+              />
+              <TextField
+                id="billing-key"
+                label="빌링키 (선택, 테스트용)"
+                state={billingKey ? 'filled' : 'default'}
+                placeholder="카드 등록 후 발급된 빌링키"
+                inputProps={{ value: billingKey, onChange: (e) => setBillingKey(e.target.value) }}
+              />
+            </>
           ) : null}
 
           {paymentMethod === 1 ? (

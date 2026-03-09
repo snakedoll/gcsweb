@@ -1,0 +1,71 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { chargeWithBillingKey } from '@/lib/payment/hecto';
+
+function jsonError(status: number, code: string, message: string) {
+  return NextResponse.json({ status: 'error', code, message }, { status });
+}
+
+type Params = { params: { orderId: string } };
+
+/** Fund 주문 빌링키 결제 실행. 주문 생성 후 별도로 결제할 때 호출 */
+export async function POST(request: Request, { params }: Params) {
+  try {
+    const orderId = params.orderId;
+    if (!orderId || typeof orderId !== 'string') {
+      return jsonError(400, 'INVALID_INPUT', 'orderId is required.');
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const billingKey = typeof body.billingKey === 'string' ? body.billingKey.trim() : '';
+    if (!billingKey) {
+      return jsonError(400, 'INVALID_INPUT', 'billingKey is required.');
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        productType: 0,
+        paymentStatus: 0,
+      },
+      select: {
+        id: true,
+        paymentAmount: true,
+        ordererName: true,
+        ordererPhone: true,
+      },
+    });
+
+    if (!order) {
+      return jsonError(404, 'ORDER_NOT_FOUND', 'order not found or not eligible for payment.');
+    }
+
+    const result = await chargeWithBillingKey({
+      orderId: order.id,
+      billingKey,
+      amount: order.paymentAmount,
+      customerName: order.ordererName,
+      customerMobile: order.ordererPhone ?? undefined,
+    });
+
+    if (!result.success) {
+      return NextResponse.json({
+        status: 'success',
+        data: { paymentConfirmed: false, code: result.code, message: result.message },
+      });
+    }
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: 1 },
+    });
+
+    return NextResponse.json({
+      status: 'success',
+      data: { paymentConfirmed: true, transactionId: result.transactionId },
+    });
+  } catch (error) {
+    console.error('Hecto payment error:', error);
+    return jsonError(500, 'SERVER_ERROR', 'server internal error.');
+  }
+}

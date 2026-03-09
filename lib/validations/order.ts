@@ -31,6 +31,7 @@ export const createOrderSchema = z
     bankCode: BankCodeSchema.optional().nullable(),
     easyPayProvider: EasyPayProviderSchema.optional().nullable(),
     isPolicyAgreed: z.boolean().optional(),
+    billingKey: z.string().trim().min(1).optional(), // Fund 카드 결제 시 빌링키 (헥토)
     items: z.array(OrderItemSchema).min(1, 'at least one order item is required.'),
   })
   .superRefine((data, ctx) => {

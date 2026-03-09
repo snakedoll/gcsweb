@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { chargeWithBillingKey } from '@/lib/payment/hecto';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -306,13 +307,34 @@ export async function POST(request: Request) {
       return { order, items: createdItems };
     });
 
+    let paymentConfirmed = false;
+    if (isFund && data.billingKey?.trim()) {
+      const chargeResult = await chargeWithBillingKey({
+        orderId: created.order.id,
+        billingKey: data.billingKey.trim(),
+        amount: created.order.paymentAmount,
+        customerName: created.order.ordererName,
+        customerMobile: created.order.ordererPhone ?? undefined,
+      });
+      if (chargeResult.success) {
+        await prisma.order.update({
+          where: { id: created.order.id },
+          data: { paymentStatus: 1 },
+        });
+        paymentConfirmed = true;
+      }
+    }
+
+    const orderPayload = {
+      ...created.order,
+      paymentStatus: paymentConfirmed ? 1 : created.order.paymentStatus,
+      items: created.items,
+    };
     return NextResponse.json({
       status: 'success',
       data: {
-        order: {
-          ...created.order,
-          items: created.items,
-        },
+        order: orderPayload,
+        ...(isFund && data.billingKey?.trim() ? { paymentConfirmed } : {}),
       },
     });
   } catch (error) {

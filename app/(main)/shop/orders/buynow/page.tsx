@@ -218,8 +218,13 @@ function ShopOrdersBuyNowPageContent() {
         return;
       }
 
-      window.alert('주문이 생성되었습니다.');
-      router.push('/mypage');
+      const orderId = json?.data?.order?.id;
+      if (orderId) {
+        router.push(`/shop/orders/buynow/pay?orderId=${orderId}`);
+      } else {
+        window.alert('주문이 생성되었습니다.');
+        router.push('/mypage');
+      }
     } finally {
       setIsSubmitting(false);
     }
