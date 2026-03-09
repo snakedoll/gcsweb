@@ -115,7 +115,6 @@ function ShopOrdersPageContent() {
   const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
   const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
-  const [billingKey, setBillingKey] = useState('');
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
   const openAddressSearch = () => {
     const Postcode = typeof window !== 'undefined' && (window.kakao?.Postcode ?? window.daum?.Postcode);
@@ -231,6 +230,39 @@ function ShopOrdersPageContent() {
     setIsSubmitting(true);
 
     try {
+      let billingKey = '';
+      if (paymentMethod === 0) {
+        const configRes = await fetch('/api/v1/payment/portone/billing-config');
+        const configJson = await configRes.json().catch(() => ({}));
+        if (configJson?.status !== 'success' || !configJson?.data?.storeId || !configJson?.data?.channelKey) {
+          setSubmitError('결제 설정을 불러올 수 없습니다.');
+          return;
+        }
+        try {
+          const issueRes = await PortOne.requestIssueBillingKey({
+            storeId: configJson.data.storeId,
+            channelKey: configJson.data.channelKey,
+            billingKeyMethod: 'CARD',
+          });
+          if (!issueRes) {
+            setSubmitError('카드 등록에 실패했습니다.');
+            return;
+          }
+          if (issueRes.code != null) {
+            setSubmitError(issueRes.message ?? '카드 등록에 실패했습니다.');
+            return;
+          }
+          if (!issueRes.billingKey) {
+            setSubmitError('카드 등록에 실패했습니다.');
+            return;
+          }
+          billingKey = issueRes.billingKey;
+        } catch (err) {
+          setSubmitError(err instanceof Error ? err.message : '카드 등록에 실패했습니다.');
+          return;
+        }
+      }
+
       const payload = {
         productType: 0 as const,
         receiveMethod: 0 as const,
@@ -246,7 +278,7 @@ function ShopOrdersPageContent() {
         cardCompany: paymentMethod === 0 ? cardCompany : null,
         bankCode: paymentMethod === 1 ? bankCode : null,
         easyPayProvider: null,
-        ...(paymentMethod === 0 && billingKey.trim() ? { billingKey: billingKey.trim() } : {}),
+        ...(paymentMethod === 0 && billingKey ? { billingKey } : {}),
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -405,59 +437,15 @@ function ShopOrdersPageContent() {
           </div>
 
           {paymentMethod === 0 ? (
-            <>
-              <Dropdown
-                label=""
-                size="m"
-                state={cardCompany === null ? 'default' : 'selected'}
-                placeholder="카드 선택"
-                value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
-                items={CARD_COMPANY_ITEMS}
-                onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
-              />
-              <div className="space-y-2">
-                <Button
-                  size="s"
-                  color="white"
-                  status="default"
-                  onClick={async () => {
-                    const res = await fetch('/api/v1/payment/portone/billing-config');
-                    const json = await res.json().catch(() => ({}));
-                    if (json?.status !== 'success' || !json?.data?.storeId || !json?.data?.channelKey) {
-                      window.alert('결제 설정을 불러올 수 없습니다.');
-                      return;
-                    }
-                    try {
-                      const issueRes = await PortOne.requestIssueBillingKey({
-                        storeId: json.data.storeId,
-                        channelKey: json.data.channelKey,
-                        billingKeyMethod: 'CARD',
-                      });
-                      if (!issueRes) return;
-                      if (issueRes.code != null) {
-                        window.alert(issueRes.message ?? '카드 등록에 실패했습니다.');
-                        return;
-                      }
-                      if (issueRes.billingKey) {
-                        setBillingKey(issueRes.billingKey);
-                        window.alert('카드가 등록되었습니다.');
-                      }
-                    } catch (err) {
-                      window.alert(err instanceof Error ? err.message : '카드 등록에 실패했습니다.');
-                    }
-                  }}
-                >
-                  카드 등록
-                </Button>
-                <TextField
-                  id="billing-key"
-                  label="빌링키"
-                  state={billingKey ? 'filled' : 'default'}
-                  placeholder="카드 등록 버튼으로 발급"
-                  inputProps={{ value: billingKey, onChange: (e) => setBillingKey(e.target.value) }}
-                />
-              </div>
-            </>
+            <Dropdown
+              label=""
+              size="m"
+              state={cardCompany === null ? 'default' : 'selected'}
+              placeholder="카드 선택"
+              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+              items={CARD_COMPANY_ITEMS}
+              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+            />
           ) : null}
 
           {paymentMethod === 1 ? (
