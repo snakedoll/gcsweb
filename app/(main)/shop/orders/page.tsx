@@ -48,6 +48,14 @@ const TAG_BASE_CLASS =
 const CARD_COMPANY_ITEMS = [
   { label: '비씨', value: '0' },
   { label: '우리', value: '1' },
+  { label: '삼성', value: '2' },
+  { label: '현대', value: '3' },
+  { label: '롯데', value: '4' },
+  { label: '하나', value: '5' },
+  { label: '국민', value: '6' },
+  { label: 'NH', value: '7' },
+  { label: '신한', value: '8' },
+  { label: '씨티', value: '9' },
 ];
 
 const BANK_CODE_ITEMS = [
@@ -113,7 +121,7 @@ function ShopOrdersPageContent() {
   const [addressDetail, setAddressDetail] = useState('');
   const [deliveryMessage, setDeliveryMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
-  const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
+  const [cardCompany, setCardCompany] = useState<number | null>(null);
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
   const openAddressSearch = () => {
@@ -220,7 +228,6 @@ function ShopOrdersPageContent() {
     zipCode.trim().length > 0 &&
     addressMain.trim().length > 0 &&
     addressDetail.trim().length > 0 &&
-    deliveryMessage.trim().length > 0 &&
     ((paymentMethod === 0 && cardCompany !== null) || (paymentMethod === 1 && bankCode !== null));
 
   const handleSubmit = async () => {
@@ -400,7 +407,7 @@ function ShopOrdersPageContent() {
             <TextField
               id="delivery-message"
               label=""
-              placeholder="배송 메세지를 입력하세요."
+              placeholder="배송 메시지 (선택)"
               inputProps={{ value: deliveryMessage, onChange: (e) => setDeliveryMessage(e.target.value) }}
             />
           </div>
@@ -444,7 +451,7 @@ function ShopOrdersPageContent() {
               placeholder="카드 선택"
               value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
               items={CARD_COMPANY_ITEMS}
-              onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
+              onSelect={(value) => setCardCompany(Number(value))}
             />
           ) : null}
 

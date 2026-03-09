@@ -3,7 +3,10 @@ import { z } from 'zod';
 const ProductTypeSchema = z.union([z.literal(0), z.literal(1)]); // fund | buy now
 const ReceiveMethodSchema = z.union([z.literal(0), z.literal(1)]); // delivery | pickup
 const PaymentMethodSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]); // card | virtual account | easy pay
-const CardCompanySchema = z.union([z.literal(0), z.literal(1)]); // bc | woori
+const CardCompanySchema = z.union([
+  z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4),
+  z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9),
+]); // bc | woori | samsung | hyundai | lotte | hana | kookmin | nh | shinhan | citi
 const BankCodeSchema = z.union([z.literal(0), z.literal(1)]); // ibk | shinhan
 const EasyPayProviderSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]); // kakao | naver | toss
 
@@ -78,13 +81,6 @@ export const createOrderSchema = z
           code: z.ZodIssueCode.custom,
           path: ['deliveryAddressDetail'],
           message: 'deliveryAddressDetail is required for fund delivery.',
-        });
-      }
-      if (!data.deliveryMessage) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['deliveryMessage'],
-          message: 'deliveryMessage is required for fund delivery.',
         });
       }
     }
