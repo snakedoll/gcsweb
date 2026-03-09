@@ -295,7 +295,14 @@ export async function POST(request: Request) {
           if (!value) continue;
           const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
           await tx.productOptionValue.create({
-            data: { optionId: optionRow.id, value, additionalPrice },
+            data: {
+              optionId: optionRow.id,
+              productId: createdProduct.id,
+              productName: createdProduct.name,
+              optionName,
+              value,
+              additionalPrice,
+            },
           });
         }
       }
@@ -349,7 +356,14 @@ export async function POST(request: Request) {
           if (!value) continue;
           const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
           await tx.productUpdateRequestOptionValue.create({
-            data: { optionId: reqOption.id, value, additionalPrice },
+            data: {
+              optionId: reqOption.id,
+              productId: requestRow.productId,
+              productName: requestRow.name,
+              optionName,
+              value,
+              additionalPrice,
+            },
           });
         }
       }

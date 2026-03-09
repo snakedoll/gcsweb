@@ -297,6 +297,9 @@ export async function PATCH(
             await tx.productOptionValue.create({
               data: {
                 optionId: createdOption.id,
+                productId: requestRow.productId,
+                productName: requestRow.name,
+                optionName: option.optionName,
                 value: val.value,
                 additionalPrice: val.additionalPrice,
               },
