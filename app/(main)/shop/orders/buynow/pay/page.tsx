@@ -62,13 +62,13 @@ function PayContent() {
             data.buyerTel && {
               customer: {
                 fullName: data.buyerName,
-                mobilePhoneNumber: data.buyerTel,
+                phoneNumber: data.buyerTel,
               },
             }),
         });
 
-        if (response.code != null) {
-          setError(response.message ?? '결제 요청에 실패했습니다.');
+        if (response?.code != null) {
+          setError(response?.message ?? '결제 요청에 실패했습니다.');
           triggered.current = false;
         }
       } catch (err) {

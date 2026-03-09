@@ -409,6 +409,7 @@ function ShopOrdersPageContent() {
                         channelKey: json.data.channelKey,
                         billingKeyMethod: 'CARD',
                       });
+                      if (!issueRes) return;
                       if (issueRes.code != null) {
                         window.alert(issueRes.message ?? '카드 등록에 실패했습니다.');
                         return;
