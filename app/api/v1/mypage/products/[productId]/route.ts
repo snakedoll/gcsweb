@@ -374,7 +374,14 @@ export async function PATCH(
           if (!value) continue;
           const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
           await tx.productUpdateRequestOptionValue.create({
-            data: { optionId: reqOption.id, value, additionalPrice },
+            data: {
+              optionId: reqOption.id,
+              productId: createdRequest.productId,
+              productName: createdRequest.name,
+              optionName,
+              value,
+              additionalPrice,
+            },
           });
         }
       }

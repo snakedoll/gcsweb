@@ -128,12 +128,17 @@ model ProductOption {
 model ProductOptionValue {
   id              String        @id @default(cuid())
   optionId        String
+  productId       String
+  productName     String
+  optionName      String
   value           String
   additionalPrice Int           @default(0)
   option          ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
   @@index([optionId])
+  @@index([productId])
+  @@index([productId, optionName])
 }
 
 model ProductVariant {
@@ -227,12 +232,17 @@ model ProductUpdateRequestOption {
 model ProductUpdateRequestOptionValue {
   id              String                     @id @default(cuid())
   optionId        String
+  productId       String
+  productName     String
+  optionName      String
   value           String
   additionalPrice Int                        @default(0)
   option          ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
   @@index([optionId])
+  @@index([productId])
+  @@index([productId, optionName])
 }
 
 model Order {
