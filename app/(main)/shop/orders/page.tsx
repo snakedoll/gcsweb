@@ -1,6 +1,5 @@
 'use client';
 
-import * as PortOne from '@portone/browser-sdk/v2';
 import Script from 'next/script';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -237,39 +236,6 @@ function ShopOrdersPageContent() {
     setIsSubmitting(true);
 
     try {
-      let billingKey = '';
-      if (paymentMethod === 0) {
-        const configRes = await fetch('/api/v1/payment/portone/billing-config');
-        const configJson = await configRes.json().catch(() => ({}));
-        if (configJson?.status !== 'success' || !configJson?.data?.storeId || !configJson?.data?.channelKey) {
-          setSubmitError('결제 설정을 불러올 수 없습니다.');
-          return;
-        }
-        try {
-          const issueRes = await PortOne.requestIssueBillingKey({
-            storeId: configJson.data.storeId,
-            channelKey: configJson.data.channelKey,
-            billingKeyMethod: 'CARD',
-          });
-          if (!issueRes) {
-            setSubmitError('카드 등록에 실패했습니다.');
-            return;
-          }
-          if (issueRes.code != null) {
-            setSubmitError(issueRes.message ?? '카드 등록에 실패했습니다.');
-            return;
-          }
-          if (!issueRes.billingKey) {
-            setSubmitError('카드 등록에 실패했습니다.');
-            return;
-          }
-          billingKey = issueRes.billingKey;
-        } catch (err) {
-          setSubmitError(err instanceof Error ? err.message : '카드 등록에 실패했습니다.');
-          return;
-        }
-      }
-
       const payload = {
         productType: 0 as const,
         receiveMethod: 0 as const,
@@ -285,7 +251,6 @@ function ShopOrdersPageContent() {
         cardCompany: paymentMethod === 0 ? cardCompany : null,
         bankCode: paymentMethod === 1 ? bankCode : null,
         easyPayProvider: null,
-        ...(paymentMethod === 0 && billingKey ? { billingKey } : {}),
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -307,14 +272,22 @@ function ShopOrdersPageContent() {
         return;
       }
 
+      const orderId = json?.data?.order?.id as string | undefined;
       const paymentAmount = Number(json?.data?.order?.paymentAmount);
       if (Number.isFinite(paymentAmount)) {
         setConfirmedPaymentAmount(paymentAmount);
       }
 
-      const paymentConfirmed = json?.data?.paymentConfirmed === true;
-      window.alert(paymentConfirmed ? '주문 및 결제가 완료되었습니다.' : '주문이 생성되었습니다.');
-      router.push('/mypage');
+      if (paymentMethod === 0) {
+        if (!orderId) {
+          setSubmitError('주문 생성 응답이 올바르지 않습니다.');
+          return;
+        }
+        router.push(`/shop/orders/buynow/pay?orderId=${encodeURIComponent(orderId)}`);
+      } else {
+        window.alert('주문이 생성되었습니다.');
+        router.push('/mypage');
+      }
     } finally {
       setIsSubmitting(false);
     }

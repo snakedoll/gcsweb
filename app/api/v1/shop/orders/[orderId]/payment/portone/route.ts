@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import {
-  getPortonePaymentConfig,
-  isPortoneConfigured,
-} from '@/lib/payment/portone';
+import { getPortonePaymentConfig, isPortoneConfigured } from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -30,13 +27,10 @@ export async function GET(
     }
 
     const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        productType: 1,
-        paymentStatus: 0,
-      },
+      where: { id: orderId, productType: { in: [0, 1] }, paymentStatus: 0 },
       select: {
         id: true,
+        productType: true,
         paymentAmount: true,
         ordererName: true,
         ordererPhone: true,
@@ -55,7 +49,8 @@ export async function GET(
 
     const { storeId, channelKey } = getPortonePaymentConfig();
     const goodname =
-      order.items[0]?.product?.name?.slice(0, 80) ?? 'Buy Now 주문';
+      order.items[0]?.product?.name?.slice(0, 80) ??
+      (order.productType === 0 ? 'Fund 주문' : 'Buy Now 주문');
 
     const baseUrl =
       process.env.NEXTAUTH_URL ??

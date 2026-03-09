@@ -21,7 +21,7 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     const order = await prisma.order.findFirst({
-      where: { id: orderId, productType: 1 },
+      where: { id: orderId, productType: { in: [0, 1] } },
       select: { id: true, paymentAmount: true, paymentStatus: true },
     });
 
