@@ -36,8 +36,9 @@ export function getPortoneBillingChannelKey(): string {
 
 /**
  * 결제 단건 조회 (검증용)
+ * merchant_uid(주문ID)로 조회. PortOne API: GET /payments/find/{merchant_uid}/{payment_status}
  */
-export async function getPayment(paymentId: string): Promise<{
+export async function getPayment(merchantUid: string): Promise<{
   success: boolean;
   status?: string;
   amount?: { total: number };
@@ -49,9 +50,10 @@ export async function getPayment(paymentId: string): Promise<{
     return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_API_SECRET 미설정' };
   }
 
-  const res = await fetch(`${API_BASE}/payments/${encodeURIComponent(paymentId)}`, {
-    headers: { Authorization: `PortOne ${secret}` },
-  });
+  const res = await fetch(
+    `${API_BASE}/payments/find/${encodeURIComponent(merchantUid)}/paid`,
+    { headers: { Authorization: `PortOne ${secret}` } },
+  );
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -62,10 +64,27 @@ export async function getPayment(paymentId: string): Promise<{
     };
   }
 
+  if (data?.code != null && data.code !== 0) {
+    return {
+      success: false,
+      code: String(data.code),
+      message: data?.message ?? '결제 조회 실패',
+    };
+  }
+
+  const payload = data?.response ?? data;
+  if (!payload) {
+    return { success: false, code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다.' };
+  }
+
+  const amountVal = payload.amount;
+  const total =
+    typeof amountVal === 'number' ? amountVal : amountVal?.total;
+
   return {
     success: true,
-    status: data?.status,
-    amount: data?.amount,
+    status: payload.status,
+    amount: total != null ? { total } : undefined,
   };
 }
 

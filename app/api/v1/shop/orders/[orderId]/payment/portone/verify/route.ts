@@ -60,7 +60,10 @@ export async function POST(_request: Request, { params }: Params) {
       });
     }
 
-    if (payment.status === 'PAID' || payment.status === 'VIRTUAL_ACCOUNT_ISSUED') {
+    const paid =
+      payment.status?.toUpperCase() === 'PAID' ||
+      payment.status?.toUpperCase() === 'VIRTUAL_ACCOUNT_ISSUED';
+    if (paid) {
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 1 },
@@ -70,7 +73,7 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({
       status: 'success',
       data: {
-        verified: payment.status === 'PAID' || payment.status === 'VIRTUAL_ACCOUNT_ISSUED',
+        verified: paid,
         status: payment.status,
       },
     });

@@ -1,12 +1,15 @@
 'use client';
 
 import * as PortOne from '@portone/browser-sdk/v2';
+import Script from 'next/script';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
 import Dropdown from '@/components/ui/button/Dropdown';
+
+const POSTCODE_SCRIPT = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
 
 type CartApiItem = {
   cartItemId: string;
@@ -114,6 +117,26 @@ function ShopOrdersPageContent() {
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [billingKey, setBillingKey] = useState('');
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
+  const openAddressSearch = () => {
+    const Postcode = typeof window !== 'undefined' && (window.kakao?.Postcode ?? window.daum?.Postcode);
+    if (!Postcode) {
+      window.alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    new Postcode({
+      oncomplete(data: { zonecode: string; roadAddress: string; jibunAddress: string; userSelectedType: string; bname?: string; buildingName?: string; apartment?: string }) {
+        setZipCode(data.zonecode);
+        let addr = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+        let extra = '';
+        if (data.userSelectedType === 'R') {
+          if (data.bname && /[동|로|가]$/g.test(data.bname)) extra += data.bname;
+          if (data.buildingName && data.apartment === 'Y') extra += (extra ? ', ' : '') + data.buildingName;
+          if (extra) addr += ` (${extra})`;
+        }
+        setAddressMain(addr);
+      },
+    }).open();
+  };
 
   const selectedCartItemIds = useMemo(() => {
     const raw = searchParams.get('cartItemIds')?.trim();
@@ -283,6 +306,7 @@ function ShopOrdersPageContent() {
 
   return (
     <div className="min-h-screen w-full bg-neutral-3">
+      <Script src={POSTCODE_SCRIPT} strategy="lazyOnload" />
       <NavBar variant="title-back" title="주문하기" />
 
       <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[25px]">
@@ -322,7 +346,7 @@ function ShopOrdersPageContent() {
                   inputProps={{ value: zipCode, onChange: (e) => setZipCode(e.target.value) }}
                 />
               </div>
-              <Button size="s" color="black" className="h-[39px] w-auto px-5">
+              <Button size="s" color="black" className="h-[39px] w-auto px-5" onClick={openAddressSearch}>
                 검색
               </Button>
             </div>
