@@ -357,6 +357,7 @@ export async function PATCH(
         const createdOption = await tx.productOption.create({
           data: {
             productId: requestRow.productId,
+            productName: name.trim(),
             optionName: option.name,
           },
         });
@@ -410,6 +411,7 @@ export async function PATCH(
         const createdReqOption = await tx.productUpdateRequestOption.create({
           data: {
             productUpdateRequestId: requestId,
+            productName: name.trim(),
             optionName: option.name,
           },
         });

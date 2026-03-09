@@ -365,7 +365,7 @@ export async function PATCH(
         if (!optionName) continue;
 
         const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: createdRequest.id, optionName },
+          data: { productUpdateRequestId: createdRequest.id, productName: createdRequest.name, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];

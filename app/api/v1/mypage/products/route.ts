@@ -286,7 +286,7 @@ export async function POST(request: Request) {
         if (!optionName) continue;
 
         const optionRow = await tx.productOption.create({
-          data: { productId: createdProduct.id, optionName },
+          data: { productId: createdProduct.id, productName: createdProduct.name, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];
@@ -340,7 +340,7 @@ export async function POST(request: Request) {
         if (!optionName) continue;
 
         const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: requestRow.id, optionName },
+          data: { productUpdateRequestId: requestRow.id, productName: requestRow.name, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];
