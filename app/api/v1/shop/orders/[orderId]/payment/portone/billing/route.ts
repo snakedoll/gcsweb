@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { chargeWithBillingKey } from '@/lib/payment/hecto';
+import { chargeWithBillingKey } from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -8,7 +8,7 @@ function jsonError(status: number, code: string, message: string) {
 
 type Params = { params: { orderId: string } };
 
-/** Fund 주문 빌링키 결제 실행. 주문 생성 후 별도로 결제할 때 호출 */
+/** Fund 주문 빌링키 결제 (포트원) */
 export async function POST(request: Request, { params }: Params) {
   try {
     const orderId = params.orderId;
@@ -33,17 +33,26 @@ export async function POST(request: Request, { params }: Params) {
         paymentAmount: true,
         ordererName: true,
         ordererPhone: true,
+        items: {
+          take: 1,
+          select: {
+            product: { select: { name: true } },
+          },
+        },
       },
     });
 
     if (!order) {
-      return jsonError(404, 'ORDER_NOT_FOUND', 'order not found or not eligible for payment.');
+      return jsonError(404, 'ORDER_NOT_FOUND', 'order not found or not eligible.');
     }
 
+    const goodname = order.items[0]?.product?.name?.slice(0, 80) ?? 'Fund 주문';
+
     const result = await chargeWithBillingKey({
-      orderId: order.id,
+      paymentId: order.id,
       billingKey,
-      amount: order.paymentAmount,
+      orderName: goodname,
+      totalAmount: order.paymentAmount,
       customerName: order.ordererName,
       customerMobile: order.ordererPhone ?? undefined,
     });
@@ -51,7 +60,11 @@ export async function POST(request: Request, { params }: Params) {
     if (!result.success) {
       return NextResponse.json({
         status: 'success',
-        data: { paymentConfirmed: false, code: result.code, message: result.message },
+        data: {
+          paymentConfirmed: false,
+          code: result.code,
+          message: result.message,
+        },
       });
     }
 
@@ -62,10 +75,10 @@ export async function POST(request: Request, { params }: Params) {
 
     return NextResponse.json({
       status: 'success',
-      data: { paymentConfirmed: true, transactionId: result.transactionId },
+      data: { paymentConfirmed: true },
     });
   } catch (error) {
-    console.error('Hecto payment error:', error);
+    console.error('PortOne billing error:', error);
     return jsonError(500, 'SERVER_ERROR', 'server internal error.');
   }
 }

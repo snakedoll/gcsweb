@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
 import { getSaleStatusByDate } from '@/lib/sale-date';
-import { chargeWithBillingKey } from '@/lib/payment/hecto';
+import { chargeWithBillingKey } from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -310,9 +310,10 @@ export async function POST(request: Request) {
     let paymentConfirmed = false;
     if (isFund && data.billingKey?.trim()) {
       const chargeResult = await chargeWithBillingKey({
-        orderId: created.order.id,
+        paymentId: created.order.id,
         billingKey: data.billingKey.trim(),
-        amount: created.order.paymentAmount,
+        orderName: 'Fund 주문',
+        totalAmount: created.order.paymentAmount,
         customerName: created.order.ordererName,
         customerMobile: created.order.ordererPhone ?? undefined,
       });

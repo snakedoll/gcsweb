@@ -1,5 +1,6 @@
 'use client';
 
+import * as PortOne from '@portone/browser-sdk/v2';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -8,14 +9,14 @@ function PayContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const [error, setError] = useState<string | null>(null);
-  const submitted = useRef(false);
+  const triggered = useRef(false);
 
   useEffect(() => {
-    if (!orderId || submitted.current) return;
+    if (!orderId || triggered.current) return;
 
     let cancelled = false;
     (async () => {
-      const res = await fetch(`/api/v1/shop/orders/${orderId}/payment/inicis`);
+      const res = await fetch(`/api/v1/shop/orders/${orderId}/payment/portone`);
       const json = await res.json().catch(() => ({}));
       if (cancelled) return;
 
@@ -24,32 +25,56 @@ function PayContent() {
         return;
       }
 
-      const { gatewayUrl, params } = json.data as {
-        gatewayUrl: string;
-        params: Record<string, string>;
+      const data = json.data as {
+        storeId: string;
+        channelKey: string;
+        paymentId: string;
+        orderName: string;
+        totalAmount: number;
+        currency: string;
+        payMethod: string;
+        redirectUrl: string;
+        buyerName?: string;
+        buyerTel?: string;
       };
 
-      if (!gatewayUrl || !params) {
+      if (!data.storeId || !data.channelKey || !data.paymentId) {
         setError('결제 정보가 올바르지 않습니다.');
         return;
       }
 
-      submitted.current = true;
+      triggered.current = true;
 
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = gatewayUrl;
-      form.acceptCharset = 'ISO-8859-1';
-      Object.entries(params).forEach(([key, value]) => {
-        if (value == null) return;
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(value);
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
+      const redirectFull = `${data.redirectUrl}?orderId=${orderId}`;
+
+      try {
+        const response = await PortOne.requestPayment({
+          storeId: data.storeId,
+          channelKey: data.channelKey,
+          paymentId: data.paymentId,
+          orderName: data.orderName,
+          totalAmount: data.totalAmount,
+          currency: data.currency as 'CURRENCY_KRW',
+          payMethod: data.payMethod as 'CARD',
+          redirectUrl: redirectFull,
+          forceRedirect: true,
+          ...(data.buyerName &&
+            data.buyerTel && {
+              customer: {
+                fullName: data.buyerName,
+                mobilePhoneNumber: data.buyerTel,
+              },
+            }),
+        });
+
+        if (response.code != null) {
+          setError(response.message ?? '결제 요청에 실패했습니다.');
+          triggered.current = false;
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '결제창 호출에 실패했습니다.');
+        triggered.current = false;
+      }
     })();
 
     return () => { cancelled = true; };
@@ -72,7 +97,7 @@ function PayContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-3">
-      <p className="typo-body-small text-neutral-9">결제 페이지로 이동 중입니다…</p>
+      <p className="typo-body-small text-neutral-9">결제창을 여는 중입니다…</p>
     </div>
   );
 }

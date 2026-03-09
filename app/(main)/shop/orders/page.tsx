@@ -1,5 +1,6 @@
 'use client';
 
+import * as PortOne from '@portone/browser-sdk/v2';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
@@ -390,13 +391,47 @@ function ShopOrdersPageContent() {
                 items={CARD_COMPANY_ITEMS}
                 onSelect={(value) => setCardCompany(Number(value) as 0 | 1)}
               />
-              <TextField
-                id="billing-key"
-                label="빌링키 (선택, 테스트용)"
-                state={billingKey ? 'filled' : 'default'}
-                placeholder="카드 등록 후 발급된 빌링키"
-                inputProps={{ value: billingKey, onChange: (e) => setBillingKey(e.target.value) }}
-              />
+              <div className="space-y-2">
+                <Button
+                  size="s"
+                  color="white"
+                  status="default"
+                  onClick={async () => {
+                    const res = await fetch('/api/v1/payment/portone/billing-config');
+                    const json = await res.json().catch(() => ({}));
+                    if (json?.status !== 'success' || !json?.data?.storeId || !json?.data?.channelKey) {
+                      window.alert('결제 설정을 불러올 수 없습니다.');
+                      return;
+                    }
+                    try {
+                      const issueRes = await PortOne.requestIssueBillingKey({
+                        storeId: json.data.storeId,
+                        channelKey: json.data.channelKey,
+                        billingKeyMethod: 'CARD',
+                      });
+                      if (issueRes.code != null) {
+                        window.alert(issueRes.message ?? '카드 등록에 실패했습니다.');
+                        return;
+                      }
+                      if (issueRes.billingKey) {
+                        setBillingKey(issueRes.billingKey);
+                        window.alert('카드가 등록되었습니다.');
+                      }
+                    } catch (err) {
+                      window.alert(err instanceof Error ? err.message : '카드 등록에 실패했습니다.');
+                    }
+                  }}
+                >
+                  카드 등록
+                </Button>
+                <TextField
+                  id="billing-key"
+                  label="빌링키"
+                  state={billingKey ? 'filled' : 'default'}
+                  placeholder="카드 등록 버튼으로 발급"
+                  inputProps={{ value: billingKey, onChange: (e) => setBillingKey(e.target.value) }}
+                />
+              </div>
             </>
           ) : null}
 
