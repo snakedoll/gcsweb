@@ -106,20 +106,20 @@ model Product {
   reviews             Review[]
   scraps              Scrap[]
 
+  @@unique([id, name])
   @@index([teamId])
   @@index([type])
   @@index([status])
   @@index([isPublic])
-  @@unique([id, name])
 }
 
 model ProductOption {
-  id         String               @id @default(cuid())
-  productId  String
+  id          String               @id @default(cuid())
+  productId   String
+  optionName  String
   productName String
-  optionName String
-  product    Product              @relation(fields: [productId, productName], references: [id, name], onDelete: Cascade, onUpdate: Cascade)
-  values     ProductOptionValue[]
+  product     Product              @relation(fields: [productId, productName], references: [id, name], onDelete: Cascade)
+  values      ProductOptionValue[]
 
   @@unique([productId, optionName])
   @@index([productId])
@@ -128,11 +128,11 @@ model ProductOption {
 model ProductOptionValue {
   id              String        @id @default(cuid())
   optionId        String
+  value           String
+  additionalPrice Int           @default(0)
   productId       String
   productName     String
   optionName      String
-  value           String
-  additionalPrice Int           @default(0)
   option          ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
@@ -196,12 +196,12 @@ model ProductUpdateRequest {
   images              ProductUpdateRequestImage[]
   options             ProductUpdateRequestOption[]
 
+  @@unique([id, name])
   @@index([productId])
   @@index([requestedByUserId])
   @@index([teamId])
   @@index([requestType])
   @@index([requestedAt])
-  @@unique([id, name])
 }
 
 model ProductUpdateRequestImage {
@@ -220,9 +220,9 @@ model ProductUpdateRequestImage {
 model ProductUpdateRequestOption {
   id                     String                            @id @default(cuid())
   productUpdateRequestId String
-  productName            String
   optionName             String
-  productUpdateRequest   ProductUpdateRequest              @relation(fields: [productUpdateRequestId, productName], references: [id, name], onDelete: Cascade, onUpdate: Cascade)
+  productName            String
+  productUpdateRequest   ProductUpdateRequest              @relation(fields: [productUpdateRequestId, productName], references: [id, name], onDelete: Cascade, map: "ProductUpdateRequestOption_productUpdateRequestId_productName_f")
   values                 ProductUpdateRequestOptionValue[]
 
   @@unique([productUpdateRequestId, optionName])
@@ -232,11 +232,11 @@ model ProductUpdateRequestOption {
 model ProductUpdateRequestOptionValue {
   id              String                     @id @default(cuid())
   optionId        String
+  value           String
+  additionalPrice Int                        @default(0)
   productId       String
   productName     String
   optionName      String
-  value           String
-  additionalPrice Int                        @default(0)
   option          ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
   @@unique([optionId, value])
@@ -561,21 +561,21 @@ model CartItem {
   @@index([productId])
 }
 
-enum SignupMethod {
-  EMAIL
-  KAKAO
-}
-
 model Term {
   id        String   @id @default(cuid())
-  type      String // 'homepage' | 'privacy' | 'service'
+  type      String
   mainTitle String
   subTitle  String?
-  body      String   @db.Text
+  body      String
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([order])
+}
+
+enum SignupMethod {
+  EMAIL
+  KAKAO
 }
