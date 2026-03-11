@@ -154,15 +154,15 @@ export default function AdminTermsPage() {
 
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col px-4 pt-6 pb-8">
         {/* Info Box */}
-        <div className="mb-5 flex gap-2 rounded-[8px] bg-neutral-1 p-4">
+        <div className="mb-5 flex gap-2 rounded-[8px] bg-neutral-4 border border-neutral-4 p-4 items-center">
           <Image
-            src="/assets/icons/filled/Filled/Info circle.svg"
+            src="/assets/icons/light/info-circle.svg"
             alt="info"
             width={20}
             height={20}
             className="shrink-0"
           />
-          <p className="typo-body-xsmall text-neutral-10">{INFO_MESSAGES[activeTab]}</p>
+          <p className="typo-body-xsmall text-neutral-10 tracking-[-0.26px]">{INFO_MESSAGES[activeTab]}</p>
         </div>
 
         {/* Term Cards */}
@@ -180,7 +180,7 @@ export default function AdminTermsPage() {
                     onClick={() => handleRemoveCard(card.id)}
                     className="p-1 transition-transform active:scale-90"
                   >
-                    <Image src="/assets/icons/filled/Filled/Close.svg" alt="remove" width={24} height={24} />
+                    <Image src="/assets/icons/additional/Close.svg" alt="remove" width={24} height={24} />
                   </button>
                 )}
               </div>

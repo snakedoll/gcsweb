@@ -116,7 +116,7 @@ export default function TermsDetailLayout({ title, text }: TermsDetailLayoutProp
         <NavBar variant="title-back" title={title} />
 
         <div className="flex-1 min-h-0 rounded-t-[12px] bg-white px-4 pb-5 pt-5">
-          <div className="h-full min-h-0 overflow-y-auto pr-1">
+          <div className="h-full min-h-0 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-[2px] [&::-webkit-scrollbar-thumb]:bg-[#d9d9d9]">
             <div className="break-keep text-neutral-9">
               {parseBodyBlocks(text).map((block, blockIndex, allBlocks) => {
                 const isFirst = blockIndex === 0;
