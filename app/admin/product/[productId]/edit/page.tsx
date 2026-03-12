@@ -488,7 +488,30 @@ export default function AdminProductEditPage() {
               <TextField id="name" label="상품명" showStar state="filled" inputProps={{ value: name, onChange: (e) => setName(e.target.value) }} />
               <TextField id="desc" label="상품 설명" showStar state="filled" inputProps={{ value: description, onChange: (e) => setDescription(e.target.value) }} />
               <section className="space-y-2"><div className="flex items-center gap-1"><p className="typo-body-small-bold text-neutral-10">상품 유형</p><span className="typo-body-xsmall-bold text-danger">*</span></div><Radiocardgroup className="w-full" options={['Fund', 'Buy Now', 'Partner Up']} selectedIndex={type === 0 ? 0 : type === 1 ? 1 : 2} onSelect={onTypeSelect} /></section>
-              <section className="space-y-2">{type === 0 ? <Radiocardgroup className="w-full" options={['택배 배송', '현장 수령']} selectedIndex={receiveMethod === 0 ? 0 : 1} onSelect={(i) => setReceiveMethod(i === 0 ? 0 : 1)} /> : <Radiocardgroup className="w-full" options={['택배 배송', '현장 수령']} selectedIndex={type === 1 ? 1 : null} optionStatuses={['disabled', 'disabled']} />}</section>
+              <section className="space-y-2">
+                {type === 0 ? (
+                  <Radiocardgroup
+                    className="w-full"
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={receiveMethod === 0 ? 0 : 1}
+                    onSelect={(i) => setReceiveMethod(i === 0 ? 0 : 1)}
+                  />
+                ) : type === 1 ? (
+                  <Radiocardgroup
+                    className="w-full"
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={1}
+                    optionStatuses={['disabled', 'default']}
+                  />
+                ) : (
+                  <Radiocardgroup
+                    className="w-full"
+                    options={['택배 배송', '현장 수령']}
+                    selectedIndex={null}
+                    optionStatuses={['disabled', 'disabled']}
+                  />
+                )}
+              </section>
               <DatePair startLabel="판매 시작일" endLabel="판매 종료일" startValue={salesStartDate} endValue={salesEndDate} onChangeStart={setSalesStartDate} onChangeEnd={setSalesEndDate} />
               <div className="flex gap-[5px]">{thumbnailUrl ? <ProductImage property1="Default" src={thumbnailUrl} onRemove={() => setThumbnailUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => thumbInputRef.current?.click()} />}</div>
               <div className="flex gap-[5px]">{detailImageUrls.map((src, i) => <ProductImage key={`${src}-${i}`} property1="Default" src={src} onRemove={() => setDetailImageUrls((prev) => prev.filter((_, idx) => idx !== i))} />)}{detailImageUrls.length < DETAIL_IMAGE_MAX ? <ProductImage property1={detailImageUrls.length ? 'add' : 'empty'} countText={`${detailImageUrls.length}/${DETAIL_IMAGE_MAX}`} onClick={() => detailInputRef.current?.click()} /> : null}</div>
