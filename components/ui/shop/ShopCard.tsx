@@ -36,9 +36,9 @@ export default function ShopCard({
   const isAchieved = isFund && (statusLabel === '달성' || clampedPercent >= 100);
 
   return (
-    <div className={cn('flex w-[375px] items-center justify-center bg-white px-4 py-[23px]', className)}>
+    <div className={cn('flex w-full items-center justify-center bg-white px-4 py-[23px]', className)}>
       <article className="flex w-[343px] flex-col gap-[13px]">
-        <div className="relative h-[430px] w-full overflow-hidden rounded-xl">
+        <div className="relative h-[430px] w-full overflow-hidden rounded-[12px]">
           <Image src={imageSrc} alt={title} fill className="object-cover" />
         </div>
 
