@@ -230,12 +230,17 @@ export async function PATCH(
     const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
 
     const trimmedDetails = trimStringArray(detailImageUrls);
+    const validReceiveMethod =
+      (type === 0 && [0, 1].includes(receiveMethod)) ||
+      (type === 1 && receiveMethod === 1) ||
+      (type === 2 && receiveMethod === null);
+
     if (
       !isNonEmptyString(teamId) ||
       !isNonEmptyString(name) ||
       typeof description !== 'string' ||
       ![0, 1, 2].includes(type) ||
-      ![0, 1].includes(receiveMethod) ||
+      !validReceiveMethod ||
       !isNonEmptyString(thumbnailUrl) ||
       !trimmedDetails ||
       typeof isPublic !== 'boolean' ||
@@ -275,6 +280,7 @@ export async function PATCH(
       return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
     }
 
+    let resolvedReceiveMethod: number | null = receiveMethod;
     let resolvedGoalAmount: number | null = null;
     let resolvedProductionStart: Date | null = null;
     let resolvedProductionEnd: Date | null = null;
@@ -307,6 +313,10 @@ export async function PATCH(
           return jsonError(400, 'INVALID_DATE_RANGE', '판매기간/제작기간/배송기간/수령기간 범위 오류');
         }
       }
+    } else if (type === 1) {
+      resolvedReceiveMethod = 1;
+    } else {
+      resolvedReceiveMethod = null;
     }
 
     const team = await prisma.team.findUnique({

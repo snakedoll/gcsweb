@@ -174,7 +174,7 @@ export async function PATCH(
       name?: string;
       description?: string;
       type?: number;
-      receiveMethod?: number;
+      receiveMethod?: number | null;
       salesStartDate?: string;
       salesEndDate?: string;
       goalAmount?: number;
@@ -286,8 +286,9 @@ export async function PATCH(
       );
     }
 
-    const receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
+    let receiveMethodResolved: number | null = null;
     if (type === 0) {
+      receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
       if (receiveMethodResolved === 0) {
         if (
           !parseDate(productionStartDate) ||
@@ -312,6 +313,10 @@ export async function PATCH(
           );
         }
       }
+    } else if (type === 1) {
+      receiveMethodResolved = 1;
+    } else {
+      receiveMethodResolved = null;
     }
 
     const goalAmountNum =
@@ -347,7 +352,7 @@ export async function PATCH(
           pickupStartDate: parseDate(pickupStartDate) ?? undefined,
           pickupEndDate: parseDate(pickupEndDate) ?? undefined,
           pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
+          receiveMethod: receiveMethodResolved,
         },
       });
 

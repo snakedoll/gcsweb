@@ -37,7 +37,7 @@ export async function PATCH(
 
     const productId = isNonEmptyString(params?.id) ? params.id.trim() : '';
     if (!productId) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -68,7 +68,7 @@ export async function PATCH(
 
     const parsedOptions = parseAdminOptionsInput(options);
     if (!parsedOptions.ok) {
-      return jsonError(400, 'INVALID_OPTION_INPUT', '옵션 구조 오류(중복 옵션명/중복 옵션값/추가금액 음수 등)');
+      return jsonError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
     }
 
     const parsedDetailImageUrls = trimStringArray(detailImageUrls);
@@ -89,7 +89,7 @@ export async function PATCH(
       !parsedUpdatedAt ||
       !validRange(parsedSalesStartDate, parsedSalesEndDate)
     ) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const step2Keys = [
@@ -103,7 +103,7 @@ export async function PATCH(
       'pickupLocation',
     ];
 
-    let resolvedReceiveMethod = 0;
+    let resolvedReceiveMethod: number | null = 0;
     let resolvedGoalAmount: number | null = null;
     let resolvedProductionStartDate: Date | null = null;
     let resolvedProductionEndDate: Date | null = null;
@@ -115,10 +115,10 @@ export async function PATCH(
 
     if (type === 0) {
       if (!isNonNegativeInt(receiveMethod) || ![0, 1].includes(receiveMethod)) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       if (!isNonNegativeInt(goalAmount)) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
 
       resolvedReceiveMethod = receiveMethod;
@@ -131,7 +131,7 @@ export async function PATCH(
         resolvedDeliveryEndDate = parseDateTime(deliveryEndDate);
 
         if (!validRange(resolvedProductionStartDate, resolvedProductionEndDate) || !validRange(resolvedDeliveryStartDate, resolvedDeliveryEndDate)) {
-          return jsonError(400, 'INVALID_DATE_RANGE', '판매/제작/배송/수령 기간 범위 오류');
+          return jsonError(400, 'INVALID_DATE_RANGE', 'Invalid date range.');
         }
       }
 
@@ -141,26 +141,25 @@ export async function PATCH(
         resolvedPickupLocation = isNonEmptyString(pickupLocation) ? pickupLocation.trim() : null;
 
         if (!validRange(resolvedPickupStartDate, resolvedPickupEndDate) || !resolvedPickupLocation) {
-          return jsonError(400, 'INVALID_DATE_RANGE', '판매/제작/배송/수령 기간 범위 오류');
+          return jsonError(400, 'INVALID_DATE_RANGE', 'Invalid date range.');
         }
       }
     } else if (type === 1) {
       if (receiveMethod !== 1) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       if (step2Keys.some((key) => hasOwn(body, key))) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       resolvedReceiveMethod = 1;
     } else {
       if (receiveMethod !== null) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       if (step2Keys.some((key) => hasOwn(body, key))) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
-      // PartnerUp은 명세상 수령방식 null 고정이지만 DB 스키마는 Int non-null.
-      resolvedReceiveMethod = 0;
+      resolvedReceiveMethod = null;
     }
 
     const normalizedThumbnailUrl = normalizeImageUrl(thumbnailUrl.trim());
@@ -170,7 +169,7 @@ export async function PATCH(
       .filter((url): url is string => typeof url === 'string' && url.trim().length > 0);
 
     if (!normalizedThumbnailUrl || !normalizedNoticeImgUrl || normalizedDetailImageUrls.length === 0) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락 또는 타입/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const [team, product] = await Promise.all([
@@ -183,19 +182,16 @@ export async function PATCH(
         select: {
           id: true,
           updatedAt: true,
-          isHome: true,
-          isAdminApproved: true,
-          isPublic: true,
         },
       }),
     ]);
 
     if (!team || !product) {
-      return jsonError(404, 'NOT_FOUND', '상품 또는 판매팀을 찾을 수 없음');
+      return jsonError(404, 'NOT_FOUND', 'Product or team not found.');
     }
 
     if (product.updatedAt.getTime() !== parsedUpdatedAt.getTime()) {
-      return jsonError(409, 'CONFLICT', '이미 다른 변경사항이 반영되었습니다. 새로고침 후 다시 시도해주세요.');
+      return jsonError(409, 'CONFLICT', 'The product was already updated by another user.');
     }
 
     const safeName = name.trim();
@@ -270,7 +266,7 @@ export async function PATCH(
           name: updatedProduct.name,
           description: updatedProduct.description,
           type: updatedProduct.type,
-          receiveMethod: updatedProduct.type === 2 ? null : updatedProduct.receiveMethod,
+          receiveMethod: updatedProduct.receiveMethod,
           salesStartDate: updatedProduct.salesStartDate,
           salesEndDate: updatedProduct.salesEndDate,
           images: {
@@ -300,6 +296,6 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Admin product update error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
   }
 }

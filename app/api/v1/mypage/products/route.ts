@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       name?: string;
       description?: string;
       type?: number;
-      receiveMethod?: number;
+      receiveMethod?: number | null;
       salesStartDate?: string;
       salesEndDate?: string;
       goalAmount?: number;
@@ -204,8 +204,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
+    let receiveMethodResolved: number | null = null;
     if (type === 0) {
+      receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
       if (receiveMethodResolved === 0) {
         if (
           !parseDate(productionStartDate) ||
@@ -230,6 +231,10 @@ export async function POST(request: Request) {
           );
         }
       }
+    } else if (type === 1) {
+      receiveMethodResolved = 1;
+    } else {
+      receiveMethodResolved = null;
     }
 
     const goalAmountNum = typeof goalAmount === 'number' ? goalAmount : typeof goalAmount === 'string' ? Number(goalAmount) : NaN;
@@ -253,7 +258,7 @@ export async function POST(request: Request) {
       pickupStartDate: parseDate(pickupStartDate) ?? undefined,
       pickupEndDate: parseDate(pickupEndDate) ?? undefined,
       pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-      receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
+      receiveMethod: receiveMethodResolved,
       isPublic: false,
       likeCount: 0,
       viewCount: 0,
@@ -328,7 +333,7 @@ export async function POST(request: Request) {
           pickupStartDate: parseDate(pickupStartDate) ?? undefined,
           pickupEndDate: parseDate(pickupEndDate) ?? undefined,
           pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
+          receiveMethod: receiveMethodResolved,
         },
       });
 
