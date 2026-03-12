@@ -27,6 +27,128 @@ function trimStringArray(input: unknown): string[] | null {
   return values.length === input.length && values.length > 0 ? values : null;
 }
 
+export async function GET(
+  _request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return auth.response;
+
+    const productId = isNonEmptyString(params?.id) ? params.id.trim() : '';
+    if (!productId) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        teamId: true,
+        name: true,
+        description: true,
+        type: true,
+        receiveMethod: true,
+        salesStartDate: true,
+        salesEndDate: true,
+        price: true,
+        goalAmount: true,
+        productionStartDate: true,
+        productionEndDate: true,
+        deliveryStartDate: true,
+        deliveryEndDate: true,
+        pickupStartDate: true,
+        pickupEndDate: true,
+        pickupLocation: true,
+        updatedAt: true,
+        team: {
+          select: {
+            teamName: true,
+          },
+        },
+        images: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            thumbnailImgUrl: true,
+            detailImgUrl: true,
+            noticeImgUrl: true,
+          },
+        },
+        options: {
+          orderBy: { id: 'asc' },
+          select: {
+            optionName: true,
+            values: {
+              orderBy: { id: 'asc' },
+              select: {
+                value: true,
+                additionalPrice: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!product) {
+      return jsonError(404, 'NOT_FOUND', 'Product not found.');
+    }
+
+    const image = product.images?.[0];
+
+    const thumbnailUrl = normalizeImageUrl(image?.thumbnailImgUrl ?? '');
+    const noticeImgUrl = normalizeImageUrl(image?.noticeImgUrl ?? '');
+    const detailImageUrls = Array.isArray(image?.detailImgUrl)
+      ? image.detailImgUrl
+          .map((url) => normalizeImageUrl(url))
+          .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+      : [];
+
+    return NextResponse.json({
+      status: 'success',
+      data: {
+        product: {
+          id: product.id,
+          teamId: product.teamId,
+          teamName: product.team?.teamName ?? '',
+          name: product.name,
+          description: product.description,
+          type: product.type,
+          receiveMethod: product.receiveMethod,
+          salesStartDate: product.salesStartDate,
+          salesEndDate: product.salesEndDate,
+          images: {
+            thumbnailUrl: thumbnailUrl ?? '',
+            detailImageUrls,
+            noticeImgUrl: noticeImgUrl ?? '',
+          },
+          goalAmount: product.goalAmount,
+          productionStartDate: product.productionStartDate,
+          productionEndDate: product.productionEndDate,
+          deliveryStartDate: product.deliveryStartDate,
+          deliveryEndDate: product.deliveryEndDate,
+          pickupStartDate: product.pickupStartDate,
+          pickupEndDate: product.pickupEndDate,
+          pickupLocation: product.pickupLocation,
+          price: product.price,
+          options: (product.options ?? []).map((option) => ({
+            name: option.optionName,
+            values: (option.values ?? []).map((value) => ({
+              value: value.value,
+              additionalPrice: value.additionalPrice,
+            })),
+          })),
+          updatedAt: product.updatedAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Admin product update detail error:', error);
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
