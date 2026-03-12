@@ -1503,7 +1503,7 @@ export default function NewProductPage() {
                 수령 장소 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                미정인 경우, &quot;미정&quot;으로 입력해 주세요.
+                미정인 경우, &quot;추후 안내&quot;로 입력해 주세요.
               </p>
               <input
                 {...registerStep2Pickup('pickupLocation')}
