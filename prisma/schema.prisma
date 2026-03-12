@@ -81,7 +81,7 @@ model Product {
   salesEndDate        DateTime
   productionStartDate DateTime?
   deliveryStartDate   DateTime?
-  receiveMethod       Int                    @default(0)
+  receiveMethod       Int?
   isPublic            Boolean                @default(false)
   likeCount           Int                    @default(0)
   viewCount           Int                    @default(0)
@@ -187,7 +187,7 @@ model ProductUpdateRequest {
   pickupStartDate     DateTime?
   pickupEndDate       DateTime?
   pickupLocation      String?
-  receiveMethod       Int                          @default(0)
+  receiveMethod       Int?
   requestedAt         DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   product             Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)

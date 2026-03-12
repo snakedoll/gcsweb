@@ -230,12 +230,17 @@ export async function PATCH(
     const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
 
     const trimmedDetails = trimStringArray(detailImageUrls);
+    const validReceiveMethod =
+      (type === 0 && [0, 1].includes(receiveMethod)) ||
+      (type === 1 && receiveMethod === 1) ||
+      (type === 2 && receiveMethod === null);
+
     if (
       !isNonEmptyString(teamId) ||
       !isNonEmptyString(name) ||
       typeof description !== 'string' ||
       ![0, 1, 2].includes(type) ||
-      ![0, 1].includes(receiveMethod) ||
+      !validReceiveMethod ||
       !isNonEmptyString(thumbnailUrl) ||
       !trimmedDetails ||
       typeof isPublic !== 'boolean' ||

@@ -174,7 +174,7 @@ export async function PATCH(
       name?: string;
       description?: string;
       type?: number;
-      receiveMethod?: number;
+      receiveMethod?: number | null;
       salesStartDate?: string;
       salesEndDate?: string;
       goalAmount?: number;
@@ -286,9 +286,14 @@ export async function PATCH(
       );
     }
 
-    const receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
     if (type === 0) {
-      if (receiveMethodResolved === 0) {
+      if (!(receiveMethod === 0 || receiveMethod === 1)) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
+          { status: 400 }
+        );
+      }
+      if (receiveMethod === 0) {
         if (
           !parseDate(productionStartDate) ||
           !parseDate(productionEndDate) ||
@@ -311,6 +316,20 @@ export async function PATCH(
             { status: 400 }
           );
         }
+      }
+    } else if (type === 1) {
+      if (receiveMethod !== 1) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (receiveMethod !== null) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
+          { status: 400 }
+        );
       }
     }
 
@@ -347,7 +366,7 @@ export async function PATCH(
           pickupStartDate: parseDate(pickupStartDate) ?? undefined,
           pickupEndDate: parseDate(pickupEndDate) ?? undefined,
           pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod: typeof receiveMethod === 'number' && [0, 1].includes(receiveMethod) ? receiveMethod : 0,
+          receiveMethod,
         },
       });
 
