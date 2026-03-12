@@ -209,8 +209,8 @@ export async function POST(request: Request) {
       }
     }
 
-    if (isFund && data.paymentMethod === 2) {
-      return jsonError(400, 'INVALID_PAYMENT_METHOD', 'easy pay is not allowed for fund.');
+    if (isFund && (data.paymentMethod === 2 || data.paymentMethod === 3)) {
+      return jsonError(400, 'INVALID_PAYMENT_METHOD', 'this payment method is not allowed for fund.');
     }
 
     if ((isBuyNow || isFundPickup) && data.isPolicyAgreed !== true) {
@@ -257,7 +257,7 @@ export async function POST(request: Request) {
           cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
           bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
           easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
-          paymentStatus: 0,
+          paymentStatus: data.paymentMethod === 3 ? 1 : 0,
           fulfillmentStatus: null,
           paymentAmount,
         },

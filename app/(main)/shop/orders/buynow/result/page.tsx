@@ -9,6 +9,7 @@ function ResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId') ?? searchParams.get('paymentId');
+  const isCounterPay = searchParams.get('counterPay') === '1';
   const portoneCode = searchParams.get('code');
   const portoneMessage = searchParams.get('message');
   const [status, setStatus] = useState<'loading' | 'success' | 'fail'>('loading');
@@ -18,6 +19,12 @@ function ResultContent() {
     if (!orderId) {
       setStatus('fail');
       setMessage('주문 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (isCounterPay) {
+      setStatus('success');
+      setMessage('COUNTER_PAY_COMPLETED');
       return;
     }
 
@@ -48,7 +55,7 @@ function ResultContent() {
     return () => {
       cancelled = true;
     };
-  }, [orderId, portoneCode, portoneMessage]);
+  }, [isCounterPay, orderId, portoneCode, portoneMessage]);
 
   if (status === 'loading') {
     return (

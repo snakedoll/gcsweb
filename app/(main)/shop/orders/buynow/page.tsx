@@ -95,7 +95,7 @@ function ShopOrdersBuyNowPageContent() {
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [ordererName, setOrdererName] = useState('');
   const [ordererPhone, setOrdererPhone] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<0 | 1 | 2>(2);
+  const [paymentMethod, setPaymentMethod] = useState<0 | 1 | 2 | 3>(2);
   const [cardCompany, setCardCompany] = useState<0 | 1 | null>(null);
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [easyPayProvider, setEasyPayProvider] = useState<0 | 1 | 2 | null>(null);
@@ -180,7 +180,8 @@ function ShopOrdersBuyNowPageContent() {
     ordererPhone.trim().length > 0 &&
     ((paymentMethod === 0 && cardCompany !== null) ||
       (paymentMethod === 1 && bankCode !== null) ||
-      (paymentMethod === 2 && easyPayProvider !== null)) &&
+      (paymentMethod === 2 && easyPayProvider !== null) ||
+      paymentMethod === 3) &&
     isAgreed;
 
   const handleSubmit = async () => {
@@ -220,7 +221,11 @@ function ShopOrdersBuyNowPageContent() {
 
       const orderId = json?.data?.order?.id;
       if (orderId) {
-        router.push(`/shop/orders/buynow/pay?orderId=${orderId}`);
+        if (paymentMethod === 3) {
+          router.push(`/shop/orders/buynow/result?orderId=${orderId}&counterPay=1`);
+        } else {
+          router.push(`/shop/orders/buynow/pay?orderId=${orderId}`);
+        }
       } else {
         window.alert('주문이 생성되었습니다.');
         router.push('/mypage');
@@ -333,6 +338,20 @@ function ShopOrdersBuyNowPageContent() {
                 }}
               >
                 가상계좌
+              </Button>
+              <Button
+                size="s"
+                color={paymentMethod === 3 ? 'orange' : 'white'}
+                status="default"
+                className="w-auto min-w-[120px]"
+                onClick={() => {
+                  setPaymentMethod(3);
+                  setCardCompany(null);
+                  setBankCode(null);
+                  setEasyPayProvider(null);
+                }}
+              >
+                카운터에서 결제
               </Button>
             </div>
           </div>

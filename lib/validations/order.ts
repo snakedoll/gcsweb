@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const ProductTypeSchema = z.union([z.literal(0), z.literal(1)]); // fund | buy now
 const ReceiveMethodSchema = z.union([z.literal(0), z.literal(1)]); // delivery | pickup
-const PaymentMethodSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]); // card | virtual account | easy pay
+const PaymentMethodSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]); // card | virtual account | easy pay | pay at counter
 const CardCompanySchema = z.union([
   z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4),
   z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9),
@@ -85,7 +85,7 @@ export const createOrderSchema = z
       }
     }
 
-    if (isFund && data.paymentMethod === 2) {
+    if (isFund && (data.paymentMethod === 2 || data.paymentMethod === 3)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['paymentMethod'],
@@ -179,6 +179,37 @@ export const createOrderSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['bankCode'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
+    }
+
+    if (data.paymentMethod === 3) {
+      if (!isBuyNow) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['paymentMethod'],
+          message: 'INVALID_PAYMENT_METHOD',
+        });
+      }
+      if (data.cardCompany !== null && data.cardCompany !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['cardCompany'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
+      if (data.bankCode !== null && data.bankCode !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bankCode'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
+      if (data.easyPayProvider !== null && data.easyPayProvider !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['easyPayProvider'],
           message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
         });
       }
