@@ -90,7 +90,6 @@ const KR = {
   imageUploadFail: '\uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
   invalidProductId: '\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 \uC0C1\uD488 ID\uC785\uB2C8\uB2E4.',
   fetchProductFail: '\uC0C1\uD488 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.',
-  optionNameRequired: '\uC635\uC158\uBA85\uC740 \uBE44\uC6CC\uB458 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
   optionNameDuplicate: '\uC635\uC158\uBA85\uC740 \uC911\uBCF5\uB420 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
   optionValueRequired: '\uC635\uC158\uAC12\uC740 \uBE44\uC6CC\uB458 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
   optionValueDuplicate: '\uAC19\uC740 \uC635\uC158 \uB0B4 \uC635\uC158\uAC12\uC740 \uC911\uBCF5\uB420 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
@@ -151,13 +150,17 @@ function formatNumber(value: string) {
 }
 
 function normalizeOptions(options: OptionItem[]): ProductDraftComparable['options'] {
-  return options.map((o) => ({
-    name: o.optionName.trim(),
-    values: o.values.map((v) => ({
-      value: v.value.trim(),
-      additionalPrice: Number.isFinite(v.extraPrice) ? Math.max(0, Math.trunc(v.extraPrice)) : 0,
-    })),
-  }));
+  return options
+    .map((o) => ({
+      name: o.optionName.trim(),
+      values: o.values
+        .map((v) => ({
+          value: v.value.trim(),
+          additionalPrice: Number.isFinite(v.extraPrice) ? Math.max(0, Math.trunc(v.extraPrice)) : 0,
+        }))
+        .filter((v) => v.value.length > 0),
+    }))
+    .filter((o) => o.name.length > 0);
 }
 
 function toDateInput(value?: string | null) {
@@ -476,31 +479,29 @@ export default function AdminProductEditPage() {
     return JSON.stringify(currentComparable) !== initialSnapshot;
   }, [currentComparable, initialSnapshot]);
 
+  const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
+
   const optionValidationError = useMemo(() => {
     const optionNames = new Set<string>();
-    for (const option of options) {
-      const optionName = option.optionName.trim();
-      if (optionName) {
-        if (optionNames.has(optionName)) return KR.optionNameDuplicate;
-        optionNames.add(optionName);
-      }
+    for (const option of normalizedOptions) {
+      const optionName = option.name.trim();
+      if (optionNames.has(optionName)) return KR.optionNameDuplicate;
+      optionNames.add(optionName);
 
       const values = new Set<string>();
       for (const item of option.values) {
-        const v = item.value.trim();
-        if (!v) return KR.optionValueRequired;
-        if (values.has(v)) return KR.optionValueDuplicate;
-        values.add(v);
-        if (!Number.isInteger(item.extraPrice) || item.extraPrice < 0) return KR.optionPriceInvalid;
+        if (values.has(item.value)) return KR.optionValueDuplicate;
+        values.add(item.value);
+        if (!Number.isInteger(item.additionalPrice) || item.additionalPrice < 0) return KR.optionPriceInvalid;
       }
     }
     return null;
-  }, [options]);
+  }, [normalizedOptions]);
 
   const canSubmit = useMemo(() => {
     const hasRequiredInputs = isStep1Complete && isStep2Complete && !optionValidationError;
-    return currentStep === 3 && hasChanges && hasRequiredInputs && !isSubmitting && !uploading.thumbnail && !uploading.detail && !uploading.notice;
-  }, [currentStep, hasChanges, isStep1Complete, isStep2Complete, optionValidationError, isSubmitting, uploading.thumbnail, uploading.detail, uploading.notice]);
+    return hasChanges && hasRequiredInputs && !isSubmitting && !uploading.thumbnail && !uploading.detail && !uploading.notice;
+  }, [hasChanges, isStep1Complete, isStep2Complete, optionValidationError, isSubmitting, uploading.thumbnail, uploading.detail, uploading.notice]);
 
   const progress: [StepProgressStatus, StepProgressStatus, StepProgressStatus] = useMemo(() => {
     if (currentStep === 1) return ['current', 'upcoming', 'upcoming'];
@@ -641,10 +642,7 @@ export default function AdminProductEditPage() {
       detailImageUrls,
       noticeImgUrl,
       price,
-      options: options.map((o) => ({
-        name: o.optionName.trim(),
-        values: o.values.map((v) => ({ value: v.value.trim(), additionalPrice: v.extraPrice })),
-      })),
+      options: normalizedOptions,
       updatedAt,
     };
 
