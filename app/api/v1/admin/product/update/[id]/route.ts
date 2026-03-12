@@ -103,7 +103,6 @@ export async function PATCH(
       'pickupLocation',
     ];
 
-    let resolvedReceiveMethod: number | null = 0;
     let resolvedGoalAmount: number | null = null;
     let resolvedProductionStartDate: Date | null = null;
     let resolvedProductionEndDate: Date | null = null;
@@ -121,7 +120,6 @@ export async function PATCH(
         return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
 
-      resolvedReceiveMethod = receiveMethod;
       resolvedGoalAmount = goalAmount;
 
       if (receiveMethod === 0) {
@@ -151,7 +149,6 @@ export async function PATCH(
       if (step2Keys.some((key) => hasOwn(body, key))) {
         return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
-      resolvedReceiveMethod = 1;
     } else {
       if (receiveMethod !== null) {
         return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
@@ -159,7 +156,6 @@ export async function PATCH(
       if (step2Keys.some((key) => hasOwn(body, key))) {
         return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
-      resolvedReceiveMethod = null;
     }
 
     const normalizedThumbnailUrl = normalizeImageUrl(thumbnailUrl.trim());
@@ -205,18 +201,18 @@ export async function PATCH(
           name: safeName,
           description: safeDescription,
           type,
-          receiveMethod: resolvedReceiveMethod,
+          receiveMethod,
           salesStartDate: parsedSalesStartDate!,
           salesEndDate: parsedSalesEndDate!,
           price,
           goalAmount: type === 0 ? resolvedGoalAmount : null,
-          productionStartDate: type === 0 && resolvedReceiveMethod === 0 ? resolvedProductionStartDate : null,
-          productionEndDate: type === 0 && resolvedReceiveMethod === 0 ? resolvedProductionEndDate : null,
-          deliveryStartDate: type === 0 && resolvedReceiveMethod === 0 ? resolvedDeliveryStartDate : null,
-          deliveryEndDate: type === 0 && resolvedReceiveMethod === 0 ? resolvedDeliveryEndDate : null,
-          pickupStartDate: type === 0 && resolvedReceiveMethod === 1 ? resolvedPickupStartDate : null,
-          pickupEndDate: type === 0 && resolvedReceiveMethod === 1 ? resolvedPickupEndDate : null,
-          pickupLocation: type === 0 && resolvedReceiveMethod === 1 ? resolvedPickupLocation : null,
+          productionStartDate: type === 0 && receiveMethod === 0 ? resolvedProductionStartDate : null,
+          productionEndDate: type === 0 && receiveMethod === 0 ? resolvedProductionEndDate : null,
+          deliveryStartDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryStartDate : null,
+          deliveryEndDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryEndDate : null,
+          pickupStartDate: type === 0 && receiveMethod === 1 ? resolvedPickupStartDate : null,
+          pickupEndDate: type === 0 && receiveMethod === 1 ? resolvedPickupEndDate : null,
+          pickupLocation: type === 0 && receiveMethod === 1 ? resolvedPickupLocation : null,
         },
       });
 

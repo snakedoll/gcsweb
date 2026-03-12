@@ -204,10 +204,14 @@ export async function POST(request: Request) {
       );
     }
 
-    let receiveMethodResolved: number | null = null;
     if (type === 0) {
-      receiveMethodResolved = typeof receiveMethod === 'number' && receiveMethod === 1 ? 1 : 0;
-      if (receiveMethodResolved === 0) {
+      if (!(receiveMethod === 0 || receiveMethod === 1)) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
+          { status: 400 }
+        );
+      }
+      if (receiveMethod === 0) {
         if (
           !parseDate(productionStartDate) ||
           !parseDate(productionEndDate) ||
@@ -232,9 +236,19 @@ export async function POST(request: Request) {
         }
       }
     } else if (type === 1) {
-      receiveMethodResolved = 1;
+      if (receiveMethod !== 1) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
+          { status: 400 }
+        );
+      }
     } else {
-      receiveMethodResolved = null;
+      if (receiveMethod !== null) {
+        return NextResponse.json(
+          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
+          { status: 400 }
+        );
+      }
     }
 
     const goalAmountNum = typeof goalAmount === 'number' ? goalAmount : typeof goalAmount === 'string' ? Number(goalAmount) : NaN;
@@ -258,7 +272,7 @@ export async function POST(request: Request) {
       pickupStartDate: parseDate(pickupStartDate) ?? undefined,
       pickupEndDate: parseDate(pickupEndDate) ?? undefined,
       pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-      receiveMethod: receiveMethodResolved,
+      receiveMethod,
       isPublic: false,
       likeCount: 0,
       viewCount: 0,
@@ -333,7 +347,7 @@ export async function POST(request: Request) {
           pickupStartDate: parseDate(pickupStartDate) ?? undefined,
           pickupEndDate: parseDate(pickupEndDate) ?? undefined,
           pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod: receiveMethodResolved,
+          receiveMethod,
         },
       });
 
