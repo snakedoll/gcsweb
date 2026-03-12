@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import SearchBar from '@/components/ui/common/SearchBar';
 import Productcard from '@/components/ui/admin/product/Productcard';
 import Filter from '@/components/ui/admin/product/Filter';
+import ToastMessage from '@/components/ui/common/ToastMessage';
 
 type ProductType = 0 | 1 | 2;
 type ProductTabKey = 'all' | 'fund' | 'buyNow' | 'partnerUp';
@@ -104,12 +105,28 @@ function RequestSummaryBox({
 
 export default function AdminProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<ProductTabKey>('all');
   const [products, setProducts] = useState<AdminProductItem[]>([]);
   const [summary, setSummary] = useState({ registerRequestCount: 0, updateRequestCount: 0 });
   const [listLoading, setListLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const toast = searchParams.get('toast');
+    if (toast === 'updated') {
+      setToastMessage('상품글이 수정되었습니다.');
+      router.replace('/admin/product');
+    }
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,7 +180,6 @@ export default function AdminProductPage() {
   }, [activeTab, products, search]);
 
   const updateProductFlag = async (productId: string, key: 'isHome' | 'isPublic', value: boolean) => {
-    // 1. Optimistic UI update
     setProducts((prev) => prev.map((item) => (item.id === productId ? { ...item, [key]: value } : item)));
 
     try {
@@ -178,13 +194,11 @@ export default function AdminProductPage() {
       }
     } catch (error) {
       console.error('Failed to update product flag:', error);
-      // Rollback on failure
       setProducts((prev) => prev.map((item) => (item.id === productId ? { ...item, [key]: !value } : item)));
     }
   };
 
   const updateProductLike = async (productId: string) => {
-    // 1. Optimistic Update
     setProducts((prev) =>
       prev.map((item) =>
         item.id === productId
@@ -206,7 +220,6 @@ export default function AdminProductPage() {
         throw new Error(json.message ?? '좋아요 상태를 변경하지 못했습니다.');
       }
 
-      // 2. Refresh with server data (optional)
       const isLiked = json.data?.isLiked;
       if (isLiked !== undefined) {
         setProducts((prev) =>
@@ -217,7 +230,6 @@ export default function AdminProductPage() {
       }
     } catch (error: any) {
       console.error('Failed to update product like:', error);
-      // 3. Rollback
       setProducts((prev) =>
         prev.map((item) =>
           item.id === productId
@@ -235,7 +247,13 @@ export default function AdminProductPage() {
 
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
-      <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
+      <div className="mx-auto w-full max-w-[375px] bg-neutral-3 relative">
+        {toastMessage ? (
+          <div className="pointer-events-none fixed left-0 right-0 top-[34px] z-50 mx-auto w-full max-w-[375px] px-4">
+            <ToastMessage message={toastMessage} />
+          </div>
+        ) : null}
+
         <NavBar variant="title-back" title="상품글 관리" onBack={() => router.push('/admin')} />
 
         <main className="pb-8">
@@ -305,6 +323,7 @@ export default function AdminProductPage() {
                       publicChecked={Boolean(product.isPublic)}
                       onHomeExposeChange={(checked) => updateProductFlag(product.id, 'isHome', checked)}
                       onPublicChange={(checked) => updateProductFlag(product.id, 'isPublic', checked)}
+                      onCardClick={() => router.push(`/admin/product/${product.id}/edit`)}
                     />
                   );
                 })}
