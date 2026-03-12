@@ -31,6 +31,7 @@ export async function GET(
       select: {
         id: true,
         productType: true,
+        paymentMethod: true,
         paymentAmount: true,
         ordererName: true,
         ordererPhone: true,
@@ -45,6 +46,10 @@ export async function GET(
 
     if (!order) {
       return jsonError(404, 'ORDER_NOT_FOUND', 'order not found or not eligible.');
+    }
+
+    if (order.paymentMethod === 3) {
+      return jsonError(400, 'COUNTER_PAYMENT_NOT_SUPPORTED', 'counter payment does not require PortOne payment.');
     }
 
     const { storeId, channelKey } = getPortonePaymentConfig();
