@@ -72,8 +72,8 @@ export default function AdminTeamCreatePage() {
   const [teamName, setTeamName] = useState("");
   const [accountImage, setAccountImage] = useState<File | null>(null);
   const [accountImageUrl, setAccountImageUrl] = useState<string>("");
-  const [memberIds, setMemberIds] = useState<string[]>(meId ? [meId] : []);
-  const [leaderId, setLeaderId] = useState<string | null>(meId ?? null);
+  const [memberIds, setMemberIds] = useState<string[]>([]);
+  const [leaderId, setLeaderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [iconColor, setIconColor] = useState<string>("#FF7A00");
 
