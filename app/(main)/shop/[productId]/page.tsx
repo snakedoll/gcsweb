@@ -167,11 +167,11 @@ function DateBlock({
 }) {
   return (
     <div className="flex w-full flex-col gap-2">
-      <div className="flex w-full items-center gap-2">
+      <div className={cn('flex w-full items-center', dday ? 'gap-2' : '')}>
         <p className="typo-heading-xxsmall text-neutral-12">{label}</p>
         {dday ? <ProductDDay color={dday.color} text={dday.text} /> : null}
       </div>
-      <div className="flex h-[31px] w-full items-center rounded-[8px] bg-neutral-1 px-[11px]">
+      <div className="flex h-[31px] w-full items-start rounded-[8px] bg-neutral-1 px-[11px] pt-[4px]">
         <p className="typo-body-xsmall text-neutral-9">{value}</p>
       </div>
     </div>
@@ -250,6 +250,10 @@ export default function ShopDetailPage() {
     if (!product) return getDdayPresentation('completed');
     return getDdayPresentation(saleStatus);
   }, [product, saleStatus]);
+  const nonFundDday = useMemo<{ color: ProductDDayColor; text: string }>(
+    () => ({ color: 'Gray', text: dday.text }),
+    [dday.text]
+  );
 
   const progressPercent = useMemo(() => {
     if (!product || product.type !== 0) return 0;
@@ -745,7 +749,7 @@ export default function ShopDetailPage() {
                 progressPercent={progressPercent}
               />
 
-              <section className="flex flex-col gap-[26px] px-4 py-0">
+              <section className="mt-[40px] flex flex-col gap-[26px] px-4 py-0">
                 {product.type === 0 ? (
                   <>
                     <DateBlock label="펀딩 기간" value={formatDateRange(product.salesStartDate, product.salesEndDate)} dday={dday} />
@@ -762,14 +766,27 @@ export default function ShopDetailPage() {
                     )}
                   </>
                 ) : (
-                  <DateBlock label="판매 기간" value={formatDateRange(product.salesStartDate, product.salesEndDate)} dday={dday} />
+                  <DateBlock
+                    label="판매 기간"
+                    value={formatDateRange(product.salesStartDate, product.salesEndDate)}
+                    dday={nonFundDday}
+                  />
                 )}
               </section>
 
               <section className="mt-[60px] flex flex-col">
                 {product.detailImageUrls.map((url, index) => (
-                  <div key={`${url}-${index}`} className="relative w-full">
-                    <Image src={url} alt={`상품 상세 이미지 ${index + 1}`} width={375} height={529} className="h-auto w-full object-cover" />
+                  <div
+                    key={`${url}-${index}`}
+                    className={cn('relative w-full', product.type === 0 ? '' : 'h-[529px] overflow-hidden')}
+                  >
+                    <Image
+                      src={url}
+                      alt={`상품 상세 이미지 ${index + 1}`}
+                      width={375}
+                      height={529}
+                      className={cn('w-full object-cover', product.type === 0 ? 'h-auto' : 'h-[529px]')}
+                    />
                   </div>
                 ))}
               </section>
