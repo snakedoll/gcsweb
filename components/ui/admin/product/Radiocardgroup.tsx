@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import RadioButton from '@/components/ui/button/RadioButton';
 
 type RadiocardgroupVariant = 'Default' | 'filled';
-type RadiocardgroupOptionStatus = 'default' | 'disabled';
+type RadiocardgroupOptionStatus = 'default' | 'disabled' | 'checked';
 
 interface RadiocardgroupProps {
   className?: string;
@@ -33,8 +33,10 @@ export default function Radiocardgroup({
     >
       <div className="flex w-[317px] flex-col gap-[9px]">
         {options.map((option, index) => {
-          const isDisabled = optionStatuses?.[index] === 'disabled';
-          const isChecked = resolvedSelectedIndex === index;
+          const optionStatus = optionStatuses?.[index];
+          const isDisabled = optionStatus === 'disabled';
+          const isCheckedByStatus = optionStatus === 'checked';
+          const isChecked = isCheckedByStatus || resolvedSelectedIndex === index;
           const status = isDisabled ? 'disabled' : isChecked ? 'checked' : 'unchecked';
 
           return (

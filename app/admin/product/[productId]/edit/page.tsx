@@ -1,14 +1,13 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress, { type StepProgressStatus } from '@/components/ui/admin/product/StepProgress';
 import TextField from '@/components/ui/common/TextField';
 import Modal from '@/components/ui/common/Modal';
 import Radiocardgroup from '@/components/ui/admin/product/Radiocardgroup';
-import DaterangepickerVariation from '@/components/ui/admin/product/DaterangepickerVariation';
+import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
 import ProductImage from '@/components/ui/admin/product/Image';
 
 type ProductType = 0 | 1 | 2;
@@ -19,6 +18,32 @@ type OptionItem = {
   id: string;
   optionName: string;
   values: Array<{ id: string; value: string; extraPrice: number }>;
+};
+
+type ProductDraftComparable = {
+  teamId: string;
+  name: string;
+  description: string;
+  type: ProductType;
+  receiveMethod: ReceiveMethod;
+  salesStartDate: string;
+  salesEndDate: string;
+  thumbnailUrl: string;
+  detailImageUrls: string[];
+  noticeImgUrl: string;
+  price: number;
+  goalAmount: number | null;
+  productionStartDate: string | null;
+  productionEndDate: string | null;
+  deliveryStartDate: string | null;
+  deliveryEndDate: string | null;
+  pickupStartDate: string | null;
+  pickupEndDate: string | null;
+  pickupLocation: string | null;
+  options: Array<{
+    name: string;
+    values: Array<{ value: string; additionalPrice: number }>;
+  }>;
 };
 
 type ProductDetailResponse = {
@@ -58,6 +83,83 @@ type ProductDetailResponse = {
 
 const DETAIL_IMAGE_MAX = 10;
 
+const KR = {
+  previous: '\uC774\uC804',
+  next: '\uB2E4\uC74C',
+  won: '\uC6D0',
+  imageUploadFail: '\uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
+  invalidProductId: '\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 \uC0C1\uD488 ID\uC785\uB2C8\uB2E4.',
+  fetchProductFail: '\uC0C1\uD488 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.',
+  optionNameRequired: '\uC635\uC158\uBA85\uC740 \uBE44\uC6CC\uB458 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
+  optionNameDuplicate: '\uC635\uC158\uBA85\uC740 \uC911\uBCF5\uB420 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
+  optionValueRequired: '\uC635\uC158\uAC12\uC740 \uBE44\uC6CC\uB458 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
+  optionValueDuplicate: '\uAC19\uC740 \uC635\uC158 \uB0B4 \uC635\uC158\uAC12\uC740 \uC911\uBCF5\uB420 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.',
+  optionPriceInvalid: '\uCD94\uAC00\uAE08\uC561\uC740 0 \uC774\uC0C1 \uC815\uC218\uC5EC\uC57C \uD569\uB2C8\uB2E4.',
+  thumbnailUploadFail: '\uC378\uB124\uC77C \uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
+  detailUploadFail: '\uC0C1\uC138 \uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
+  noticeUploadFail: '\uC0C1\uD488 \uC815\uBCF4 \uACE0\uC2DC \uC774\uBBF8\uC9C0 \uC5C5\uB85C\uB4DC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
+  dateInvalid: '\uB0A0\uC9DC \uD615\uC2DD\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.',
+  conflict: '\uC774\uBBF8 \uB2E4\uB978 \uBCC0\uACBD\uC0AC\uD56D\uC774 \uBC18\uC601\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C\uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.',
+  updateFail: '\uC0C1\uD488 \uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.',
+  editProduct: '\uC0C1\uD488 \uC218\uC815',
+  salesTeam: '\uD310\uB9E4\uD300',
+  productName: '\uC0C1\uD488\uBA85',
+  productDesc: '\uC0C1\uD488 \uC124\uBA85',
+  productType: '\uC0C1\uD488 \uC720\uD615',
+  parcel: '\uD0DD\uBC30 \uBC30\uC1A1',
+  pickup: '\uD604\uC7A5 \uC218\uB839',
+  salesPeriod: '\uD310\uB9E4 \uAE30\uAC04',
+  salesStart: '\uD310\uB9E4 \uC2DC\uC791\uC77C',
+  salesEnd: '\uD310\uB9E4 \uC885\uB8CC\uC77C',
+  goalAmount: '\uBAA9\uD45C \uAE08\uC561',
+  goalAmountHelp: '\uBAA9\uD45C \uAE08\uC561\uC774 \uC5C6\uB2E4\uBA74 0\uC6D0\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.',
+  productionPeriod: '\uC81C\uC791 \uAE30\uAC04',
+  productionStart: '\uC81C\uC791 \uC2DC\uC791\uC77C',
+  productionEnd: '\uC81C\uC791 \uC885\uB8CC\uC77C',
+  deliveryPeriod: '\uBC30\uC1A1 \uAE30\uAC04',
+  deliveryStart: '\uBC30\uC1A1 \uC2DC\uC791\uC77C',
+  deliveryEnd: '\uBC30\uC1A1 \uC885\uB8CC\uC77C',
+  pickupPeriod: '\uC218\uB839 \uAE30\uAC04',
+  pickupStart: '\uC218\uB839 \uC2DC\uC791\uC77C',
+  pickupEnd: '\uC218\uB839 \uC885\uB8CC\uC77C',
+  pickupLocation: '\uC218\uB839 \uC7A5\uC18C',
+  pickupLocationSubtext: '\uBBF8\uC815\uC778 \uACBD\uC6B0, \uCD94\uD6C4 \uC548\uB0B4\uBB38\uAD6C\uB85C \uC785\uB825\uD574 \uC8FC\uC138\uC694.',
+  pickupLocationPlaceholder: '\uC608) \uB3D9\uAD6D\uB300\uD559\uAD50 \uD559\uC220\uAD00 K127',
+  option: '\uC635\uC158',
+  optionName: '\uC635\uC158\uBA85',
+  optionValue: '\uC635\uC158\uAC12',
+  additionalPrice: '\uCD94\uAC00 \uAE08\uC561',
+  optionNamePlaceholder: '\uC608) \uD504\uB9B0\uD305',
+  optionValuePlaceholder: '\uC608) BLACK',
+  optionOptionalHelp: '\uC635\uC158 \uCD94\uAC00\uB294 \uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4.',
+  optionAdd: '\uC635\uC158 \uCD94\uAC00',
+  edit: '\uC218\uC815',
+  cancel: '\uCDE8\uC18C',
+  confirm: '\uD655\uC778',
+  editing: '\uC218\uC815 \uC911...',
+  editModalTitle: '\uC0C1\uD488\uAE00\uC744 \uC218\uC815\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?',
+};
+
+function digitsOnly(value: string) {
+  return value.replace(/[^\d]/g, '');
+}
+
+function formatNumber(value: string) {
+  const digits = digitsOnly(value);
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+}
+
+function normalizeOptions(options: OptionItem[]): ProductDraftComparable['options'] {
+  return options.map((o) => ({
+    name: o.optionName.trim(),
+    values: o.values.map((v) => ({
+      value: v.value.trim(),
+      additionalPrice: Number.isFinite(v.extraPrice) ? Math.max(0, Math.trunc(v.extraPrice)) : 0,
+    })),
+  }));
+}
+
 function toDateInput(value?: string | null) {
   if (!value) return '';
   const d = new Date(value);
@@ -65,20 +167,21 @@ function toDateInput(value?: string | null) {
   return d.toISOString().slice(0, 10);
 }
 
-function toIsoDate(value: string, end = false) {
+function toIso(value: string, endOfDay = false) {
   const v = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
-  return `${v}T${end ? '23:59:59.000' : '00:00:00.000'}Z`;
+  return `${v}T${endOfDay ? '23:59:59.000' : '00:00:00.000'}Z`;
 }
 
 async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'PRODUCT_NOTICE') {
   const form = new FormData();
   form.append('image', file);
   form.append('usage', usage);
+
   const res = await fetch('/api/v1/images', { method: 'POST', body: form });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json?.status !== 'success' || !json?.data?.imageUrl) {
-    throw new Error(json?.message ?? '이미지 업로드에 실패했습니다.');
+    throw new Error(json?.message ?? KR.imageUploadFail);
   }
   return String(json.data.imageUrl);
 }
@@ -92,86 +195,68 @@ function ArrowButton({
   onClick: () => void;
   disabled?: boolean;
 }) {
+  const iconColorClass = disabled ? 'text-neutral-6' : 'text-neutral-10';
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-[55px] w-[37px] items-center justify-center rounded-[8px] bg-[#e9ded2] disabled:cursor-not-allowed disabled:opacity-50"
-      aria-label={direction === 'left' ? '이전' : '다음'}
+      className="flex h-[55px] w-[37px] items-center justify-center rounded-[8px] bg-[#e9ded2] disabled:cursor-not-allowed"
+      aria-label={direction === 'left' ? KR.previous : KR.next}
     >
-      {direction === 'left' ? (
-        <NextImage src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
-      ) : (
-        <NextImage src="/assets/icons/icon-right.svg" alt="" width={6} height={12} />
-      )}
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`${iconColorClass} ${direction === 'left' ? 'rotate-180' : ''}`}
+        aria-hidden
+      >
+        <path
+          d="M9 19L14.3306 12.7809C14.7158 12.3316 14.7158 11.6684 14.3306 11.2191L9 5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
     </button>
   );
 }
 
 function PriceField({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const isFilled = value > 0;
   return (
     <div className="flex h-10 w-[163px] items-center rounded-[8px] border border-neutral-4 bg-neutral-2 px-[13px] py-[10px]">
-      <div className="flex h-5 w-[137px] items-center border-b border-neutral-4">
+      <div className="flex h-5 w-[137px] items-center border-b border-neutral-5">
         <input
-          value={String(value)}
-          onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
-          className="w-[125px] bg-transparent typo-body-xsmall text-neutral-7 outline-none"
+          value={value > 0 ? formatNumber(String(value)) : ''}
+          onChange={(e) => onChange(Math.max(0, Number(digitsOnly(e.target.value) || 0)))}
+          placeholder="0"
+          inputMode="numeric"
+          className={`w-[125px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${isFilled ? 'text-black' : 'text-neutral-7'}`}
         />
-        <span className="w-[12px] text-right typo-body-xsmall text-neutral-7">원</span>
+        <span className="w-[12px] text-right typo-body-xsmall text-neutral-7">{KR.won}</span>
       </div>
     </div>
   );
 }
 
-function DatePair({
-  startLabel,
-  endLabel,
-  startValue,
-  endValue,
-  onChangeStart,
-  onChangeEnd,
-}: {
-  startLabel: string;
-  endLabel: string;
-  startValue: string;
-  endValue: string;
-  onChangeStart: (v: string) => void;
-  onChangeEnd: (v: string) => void;
-}) {
+function CloseIcon({ size = 20 }: { size?: number }) {
   return (
-    <div className="flex h-16 w-full items-center justify-between">
-      <div className="flex h-16 w-[158px] flex-col gap-1">
-        <p className="typo-body-xsmall text-neutral-8">{startLabel}</p>
-        <div className="flex items-center gap-[7px]">
-          <div className="relative">
-            <DaterangepickerVariation property1={startValue ? 'filled' : 'Default'} value={startValue || undefined} />
-            <input
-              value={startValue}
-              onChange={(e) => onChangeStart(e.target.value)}
-              placeholder="YYYY-MM-DD"
-              className="absolute inset-0 bg-transparent px-[14px] typo-body-small text-neutral-12 outline-none"
-            />
-          </div>
-          <p className="typo-heading-xxsmall text-neutral-13">부터</p>
-        </div>
-      </div>
-      <div className="flex h-16 w-[158px] flex-col gap-1">
-        <p className="typo-body-xsmall text-neutral-8">{endLabel}</p>
-        <div className="flex items-center gap-[7px]">
-          <div className="relative">
-            <DaterangepickerVariation property1={endValue ? 'filled' : 'Default'} value={endValue || undefined} />
-            <input
-              value={endValue}
-              onChange={(e) => onChangeEnd(e.target.value)}
-              placeholder="YYYY-MM-DD"
-              className="absolute inset-0 bg-transparent px-[14px] typo-body-small text-neutral-12 outline-none"
-            />
-          </div>
-          <p className="typo-heading-xxsmall text-neutral-13">까지</p>
-        </div>
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path d="M5.5 5.5L14.5 14.5M14.5 5.5L5.5 14.5" stroke="#999694" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlusPillIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="6" fill="#A9A6A3" />
+      <path d="M12 8V16M8 12H16" stroke="white" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -187,7 +272,6 @@ export default function AdminProductEditPage() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState({ thumbnail: false, detail: false, notice: false });
 
   const [teamId, setTeamId] = useState('');
   const [teamName, setTeamName] = useState('');
@@ -201,6 +285,7 @@ export default function AdminProductEditPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [detailImageUrls, setDetailImageUrls] = useState<string[]>([]);
   const [noticeImgUrl, setNoticeImgUrl] = useState('');
+
   const [goalAmount, setGoalAmount] = useState(0);
   const [productionStartDate, setProductionStartDate] = useState('');
   const [productionEndDate, setProductionEndDate] = useState('');
@@ -209,8 +294,11 @@ export default function AdminProductEditPage() {
   const [pickupStartDate, setPickupStartDate] = useState('');
   const [pickupEndDate, setPickupEndDate] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
+
   const [price, setPrice] = useState(0);
   const [options, setOptions] = useState<OptionItem[]>([]);
+  const [uploading, setUploading] = useState({ thumbnail: false, detail: false, notice: false });
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 
   const thumbInputRef = useRef<HTMLInputElement | null>(null);
   const detailInputRef = useRef<HTMLInputElement | null>(null);
@@ -218,20 +306,53 @@ export default function AdminProductEditPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setInitialSnapshot(null);
+
     (async () => {
       if (!productId) {
-        setErrorMessage('유효하지 않은 상품 ID입니다.');
+        setErrorMessage(KR.invalidProductId);
         setLoading(false);
         return;
       }
+
       try {
         const res = await fetch(`/api/v1/admin/product/update/${productId}`, { cache: 'no-store' });
         const json = (await res.json().catch(() => ({}))) as ProductDetailResponse;
         if (!res.ok || json.status !== 'success' || !json.data?.product) {
-          throw new Error(json.message ?? '상품 정보를 불러오지 못했습니다.');
+          throw new Error(json.message ?? KR.fetchProductFail);
         }
+
         if (cancelled) return;
         const p = json.data.product;
+        const initialComparable: ProductDraftComparable = {
+          teamId: p.teamId,
+          name: p.name.trim(),
+          description: p.description.trim(),
+          type: p.type,
+          receiveMethod: p.receiveMethod,
+          salesStartDate: toDateInput(p.salesStartDate),
+          salesEndDate: toDateInput(p.salesEndDate),
+          thumbnailUrl: p.images.thumbnailUrl || '',
+          detailImageUrls: Array.isArray(p.images.detailImageUrls) ? p.images.detailImageUrls : [],
+          noticeImgUrl: p.images.noticeImgUrl || '',
+          price: p.price ?? 0,
+          goalAmount: p.type === 0 ? (p.goalAmount ?? 0) : null,
+          productionStartDate: p.type === 0 && p.receiveMethod === 0 ? toDateInput(p.productionStartDate) : null,
+          productionEndDate: p.type === 0 && p.receiveMethod === 0 ? toDateInput(p.productionEndDate) : null,
+          deliveryStartDate: p.type === 0 && p.receiveMethod === 0 ? toDateInput(p.deliveryStartDate) : null,
+          deliveryEndDate: p.type === 0 && p.receiveMethod === 0 ? toDateInput(p.deliveryEndDate) : null,
+          pickupStartDate: p.type === 0 && p.receiveMethod === 1 ? toDateInput(p.pickupStartDate) : null,
+          pickupEndDate: p.type === 0 && p.receiveMethod === 1 ? toDateInput(p.pickupEndDate) : null,
+          pickupLocation: p.type === 0 && p.receiveMethod === 1 ? (p.pickupLocation ?? '') : null,
+          options: (p.options ?? []).map((opt) => ({
+            name: opt.name.trim(),
+            values: (opt.values ?? []).map((v) => ({
+              value: v.value.trim(),
+              additionalPrice: Number(v.additionalPrice ?? 0),
+            })),
+          })),
+        };
+
         setTeamId(p.teamId);
         setTeamName(p.teamName);
         setUpdatedAt(p.updatedAt);
@@ -258,18 +379,21 @@ export default function AdminProductEditPage() {
             id: `opt-${oi}-${Date.now()}`,
             optionName: opt.name,
             values: (opt.values ?? []).map((v, vi) => ({
-              id: `val-${oi}-${vi}-${Date.now()}`,
+              id: `opt-${oi}-val-${vi}-${Date.now()}`,
               value: v.value,
               extraPrice: v.additionalPrice,
             })),
           }))
         );
+        setInitialSnapshot(JSON.stringify(initialComparable));
+        setErrorMessage(null);
       } catch (error: any) {
-        if (!cancelled) setErrorMessage(error?.message ?? '상품 정보를 불러오지 못했습니다.');
+        if (!cancelled) setErrorMessage(error?.message ?? KR.fetchProductFail);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -285,6 +409,7 @@ export default function AdminProductEditPage() {
       thumbnailUrl.trim() &&
       detailImageUrls.length > 0 &&
       noticeImgUrl.trim();
+
     if (!common) return false;
     if (type === 0) return receiveMethod === 0 || receiveMethod === 1;
     if (type === 1) return receiveMethod === 1;
@@ -299,58 +424,128 @@ export default function AdminProductEditPage() {
     return false;
   }, [type, receiveMethod, goalAmount, productionStartDate, productionEndDate, deliveryStartDate, deliveryEndDate, pickupStartDate, pickupEndDate, pickupLocation]);
 
-  const optionError = useMemo(() => {
-    const nameSet = new Set<string>();
-    for (const opt of options) {
-      const n = opt.optionName.trim();
-      if (!n) return '옵션명은 비워둘 수 없습니다.';
-      if (nameSet.has(n)) return '옵션명은 중복될 수 없습니다.';
-      nameSet.add(n);
-      const valueSet = new Set<string>();
-      for (const v of opt.values) {
-        const value = v.value.trim();
-        if (!value) return '옵션값은 비워둘 수 없습니다.';
-        if (valueSet.has(value)) return '동일 옵션 내 옵션값은 중복될 수 없습니다.';
-        valueSet.add(value);
-        if (!Number.isInteger(v.extraPrice) || v.extraPrice < 0) return '추가금액은 0 이상 정수여야 합니다.';
+  const currentComparable = useMemo<ProductDraftComparable>(
+    () => ({
+      teamId: teamId.trim(),
+      name: name.trim(),
+      description: description.trim(),
+      type,
+      receiveMethod,
+      salesStartDate: salesStartDate.trim(),
+      salesEndDate: salesEndDate.trim(),
+      thumbnailUrl: thumbnailUrl.trim(),
+      detailImageUrls,
+      noticeImgUrl: noticeImgUrl.trim(),
+      price: Number.isFinite(price) ? Math.max(0, Math.trunc(price)) : 0,
+      goalAmount: type === 0 ? Math.max(0, Math.trunc(goalAmount)) : null,
+      productionStartDate: type === 0 && receiveMethod === 0 ? productionStartDate.trim() : null,
+      productionEndDate: type === 0 && receiveMethod === 0 ? productionEndDate.trim() : null,
+      deliveryStartDate: type === 0 && receiveMethod === 0 ? deliveryStartDate.trim() : null,
+      deliveryEndDate: type === 0 && receiveMethod === 0 ? deliveryEndDate.trim() : null,
+      pickupStartDate: type === 0 && receiveMethod === 1 ? pickupStartDate.trim() : null,
+      pickupEndDate: type === 0 && receiveMethod === 1 ? pickupEndDate.trim() : null,
+      pickupLocation: type === 0 && receiveMethod === 1 ? pickupLocation.trim() : null,
+      options: normalizeOptions(options),
+    }),
+    [
+      teamId,
+      name,
+      description,
+      type,
+      receiveMethod,
+      salesStartDate,
+      salesEndDate,
+      thumbnailUrl,
+      detailImageUrls,
+      noticeImgUrl,
+      price,
+      goalAmount,
+      productionStartDate,
+      productionEndDate,
+      deliveryStartDate,
+      deliveryEndDate,
+      pickupStartDate,
+      pickupEndDate,
+      pickupLocation,
+      options,
+    ]
+  );
+
+  const hasChanges = useMemo(() => {
+    if (!initialSnapshot) return false;
+    return JSON.stringify(currentComparable) !== initialSnapshot;
+  }, [currentComparable, initialSnapshot]);
+
+  const optionValidationError = useMemo(() => {
+    const optionNames = new Set<string>();
+    for (const option of options) {
+      const optionName = option.optionName.trim();
+      if (optionName) {
+        if (optionNames.has(optionName)) return KR.optionNameDuplicate;
+        optionNames.add(optionName);
+      }
+
+      const values = new Set<string>();
+      for (const item of option.values) {
+        const v = item.value.trim();
+        if (!v) return KR.optionValueRequired;
+        if (values.has(v)) return KR.optionValueDuplicate;
+        values.add(v);
+        if (!Number.isInteger(item.extraPrice) || item.extraPrice < 0) return KR.optionPriceInvalid;
       }
     }
     return null;
   }, [options]);
 
-  const isStep3Complete = useMemo(() => price >= 0 && !optionError, [price, optionError]);
+  const canSubmit = useMemo(() => {
+    const hasRequiredInputs = isStep1Complete && isStep2Complete && !optionValidationError;
+    return currentStep === 3 && hasChanges && hasRequiredInputs && !isSubmitting && !uploading.thumbnail && !uploading.detail && !uploading.notice;
+  }, [currentStep, hasChanges, isStep1Complete, isStep2Complete, optionValidationError, isSubmitting, uploading.thumbnail, uploading.detail, uploading.notice]);
 
   const progress: [StepProgressStatus, StepProgressStatus, StepProgressStatus] = useMemo(() => {
     if (currentStep === 1) return ['current', 'upcoming', 'upcoming'];
     if (currentStep === 2) return [isStep1Complete ? 'complete' : 'current', 'current', 'upcoming'];
-    const second: StepProgressStatus = type === 0 ? (isStep2Complete ? 'complete' : 'current') : 'skipped';
-    return [isStep1Complete ? 'complete' : 'current', second, 'current'];
+    return [isStep1Complete ? 'complete' : 'current', type === 0 ? (isStep2Complete ? 'complete' : 'current') : 'skipped', 'current'];
   }, [currentStep, isStep1Complete, isStep2Complete, type]);
 
   const onTypeSelect = (index: number) => {
-    const next: ProductType = index === 0 ? 0 : index === 1 ? 1 : 2;
-    setType(next);
-    if (next === 1) setReceiveMethod(1);
-    if (next === 2) setReceiveMethod(null);
-    if (next === 0 && receiveMethod === null) setReceiveMethod(0);
+    const nextType: ProductType = index === 0 ? 0 : index === 1 ? 1 : 2;
+    setType(nextType);
+
+    if (nextType === 1) {
+      setReceiveMethod(1);
+    } else if (nextType === 2) {
+      setReceiveMethod(null);
+    } else if (receiveMethod === null) {
+      setReceiveMethod(0);
+    }
+
+    if (nextType !== 0) {
+      setGoalAmount(0);
+      setProductionStartDate('');
+      setProductionEndDate('');
+      setDeliveryStartDate('');
+      setDeliveryEndDate('');
+      setPickupStartDate('');
+      setPickupEndDate('');
+      setPickupLocation('');
+    }
   };
 
-  const addOption = () => setOptions((prev) => [...prev, { id: `opt-${Date.now()}`, optionName: '', values: [{ id: `val-${Date.now()}`, value: '', extraPrice: 0 }] }]);
-  const removeOption = (optionId: string) => setOptions((prev) => prev.filter((o) => o.id !== optionId));
-  const addOptionValue = (optionId: string) => setOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, values: [...o.values, { id: `val-${Date.now()}`, value: '', extraPrice: 0 }] } : o)));
-  const removeOptionValue = (optionId: string, valueId: string) => setOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o)));
-  const updateOptionName = (optionId: string, value: string) => setOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, optionName: value } : o)));
-  const updateOptionValue = (optionId: string, valueId: string, field: 'value' | 'extraPrice', value: string) =>
-    setOptions((prev) =>
-      prev.map((o) =>
-        o.id === optionId
-          ? {
-              ...o,
-              values: o.values.map((v) => (v.id === valueId ? { ...v, [field]: field === 'extraPrice' ? Math.max(0, Number(value || 0)) : value } : v)),
-            }
-          : o
-      )
-    );
+  const onReceiveMethodSelect = (index: number) => {
+    const next: ReceiveMethod = index === 0 ? 0 : 1;
+    setReceiveMethod(next);
+    if (next === 0) {
+      setPickupStartDate('');
+      setPickupEndDate('');
+      setPickupLocation('');
+    } else {
+      setProductionStartDate('');
+      setProductionEndDate('');
+      setDeliveryStartDate('');
+      setDeliveryEndDate('');
+    }
+  };
 
   const goNext = () => {
     if (currentStep === 1) return setCurrentStep(type === 0 ? 2 : 3);
@@ -358,16 +553,35 @@ export default function AdminProductEditPage() {
   };
 
   const goPrev = () => {
-    if (currentStep === 1) return router.push('/admin/product');
     if (currentStep === 2) return setCurrentStep(1);
     if (currentStep === 3) return setCurrentStep(type === 0 ? 2 : 1);
   };
+
+  const addOption = () =>
+    setOptions((prev) => {
+      if (prev.length >= 2) return prev;
+      return [...prev, { id: `opt-${Date.now()}`, optionName: '', values: [{ id: `val-${Date.now()}`, value: '', extraPrice: 0 }] }];
+    });
+  const removeOption = (optionId: string) => setOptions((prev) => prev.filter((opt) => opt.id !== optionId));
+  const addOptionValue = (optionId: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, values: [...opt.values, { id: `val-${Date.now()}`, value: '', extraPrice: 0 }] } : opt)));
+  const removeOptionValue = (optionId: string, valueId: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, values: opt.values.filter((v) => v.id !== valueId) } : opt)));
+  const updateOptionName = (optionId: string, value: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, optionName: value } : opt)));
+  const updateOptionValue = (optionId: string, valueId: string, field: 'value' | 'extraPrice', value: string) =>
+    setOptions((prev) =>
+      prev.map((opt) =>
+        opt.id === optionId
+          ? { ...opt, values: opt.values.map((v) => (v.id === valueId ? { ...v, [field]: field === 'extraPrice' ? Math.max(0, Number(value || 0)) : value } : v)) }
+          : opt
+      )
+    );
 
   const handleUploadThumb = async (file: File | null) => {
     if (!file) return;
     setUploading((prev) => ({ ...prev, thumbnail: true }));
     try {
       setThumbnailUrl(await uploadProductImage(file, 'PRODUCT_THUMBNAIL'));
+    } catch (error: any) {
+      alert(error?.message ?? KR.thumbnailUploadFail);
     } finally {
       setUploading((prev) => ({ ...prev, thumbnail: false }));
     }
@@ -376,12 +590,13 @@ export default function AdminProductEditPage() {
   const handleUploadDetail = async (files: FileList | null) => {
     if (!files?.length) return;
     const remains = Math.max(0, DETAIL_IMAGE_MAX - detailImageUrls.length);
-    if (remains === 0) return;
+    if (!remains) return;
     setUploading((prev) => ({ ...prev, detail: true }));
     try {
-      const targets = Array.from(files).slice(0, remains);
-      const uploaded = await Promise.all(targets.map((f) => uploadProductImage(f, 'PRODUCT_DETAIL')));
+      const uploaded = await Promise.all(Array.from(files).slice(0, remains).map((f) => uploadProductImage(f, 'PRODUCT_DETAIL')));
       setDetailImageUrls((prev) => [...prev, ...uploaded]);
+    } catch (error: any) {
+      alert(error?.message ?? KR.detailUploadFail);
     } finally {
       setUploading((prev) => ({ ...prev, detail: false }));
     }
@@ -392,27 +607,24 @@ export default function AdminProductEditPage() {
     setUploading((prev) => ({ ...prev, notice: true }));
     try {
       setNoticeImgUrl(await uploadProductImage(file, 'PRODUCT_NOTICE'));
+    } catch (error: any) {
+      alert(error?.message ?? KR.noticeUploadFail);
     } finally {
       setUploading((prev) => ({ ...prev, notice: false }));
     }
   };
 
   const handleEditClick = () => {
-    if (currentStep !== 3) return;
+    if (!canSubmit) return;
     setSubmitError(null);
     setShowUpdateModal(true);
   };
 
   const handleConfirmUpdate = async () => {
-    if (!isStep1Complete || !isStep2Complete || !isStep3Complete) {
-      setSubmitError('필수값을 확인해주세요.');
-      setShowUpdateModal(false);
-      return;
-    }
-    const salesStart = toIsoDate(salesStartDate);
-    const salesEnd = toIsoDate(salesEndDate, true);
+    const salesStart = toIso(salesStartDate);
+    const salesEnd = toIso(salesEndDate, true);
     if (!salesStart || !salesEnd || !updatedAt) {
-      setSubmitError('날짜 형식을 확인해주세요.');
+      setSubmitError(KR.dateInvalid);
       setShowUpdateModal(false);
       return;
     }
@@ -439,13 +651,13 @@ export default function AdminProductEditPage() {
     if (type === 0) {
       body.goalAmount = goalAmount;
       if (receiveMethod === 0) {
-        body.productionStartDate = toIsoDate(productionStartDate);
-        body.productionEndDate = toIsoDate(productionEndDate, true);
-        body.deliveryStartDate = toIsoDate(deliveryStartDate);
-        body.deliveryEndDate = toIsoDate(deliveryEndDate, true);
+        body.productionStartDate = toIso(productionStartDate);
+        body.productionEndDate = toIso(productionEndDate, true);
+        body.deliveryStartDate = toIso(deliveryStartDate);
+        body.deliveryEndDate = toIso(deliveryEndDate, true);
       } else if (receiveMethod === 1) {
-        body.pickupStartDate = toIsoDate(pickupStartDate);
-        body.pickupEndDate = toIsoDate(pickupEndDate, true);
+        body.pickupStartDate = toIso(pickupStartDate);
+        body.pickupEndDate = toIso(pickupEndDate, true);
         body.pickupLocation = pickupLocation.trim();
       }
     }
@@ -460,13 +672,13 @@ export default function AdminProductEditPage() {
       const json = await res.json().catch(() => ({} as any));
       if (!res.ok || json?.status !== 'success') {
         if (res.status === 409 || json?.code === 'CONFLICT') {
-          throw new Error('이미 다른 변경사항이 반영되었습니다. 새로고침 후 다시 시도해주세요.');
+          throw new Error(KR.conflict);
         }
-        throw new Error(json?.message ?? '상품 수정에 실패했습니다.');
+        throw new Error(json?.message ?? KR.updateFail);
       }
       router.push('/admin/product?toast=updated');
     } catch (error: any) {
-      setSubmitError(error?.message ?? '상품 수정에 실패했습니다.');
+      setSubmitError(error?.message ?? KR.updateFail);
       setIsSubmitting(false);
       setShowUpdateModal(false);
     }
@@ -478,59 +690,122 @@ export default function AdminProductEditPage() {
   return (
     <div className="min-h-screen bg-neutral-3">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
-        <NavBar variant="title-back-trash" title="상품 수정" onBack={() => router.push('/admin/product')} />
-        <div className="flex items-center justify-center px-[148px] py-[14px]"><div className="flex items-center gap-[14px]"><StepProgress status={progress[0]} /><StepProgress status={progress[1]} /><StepProgress status={progress[2]} /></div></div>
+        <NavBar variant="title-back-trash" title={KR.editProduct} onBack={() => router.push('/admin/product')} />
+
+        <div className="flex items-center justify-center px-[148px] py-[14px]">
+          <div className="flex items-center gap-[14px]">
+            <StepProgress status={progress[0]} />
+            <StepProgress status={progress[1]} />
+            <StepProgress status={progress[2]} />
+          </div>
+        </div>
 
         <main className="flex-1 overflow-y-auto px-4">
           {currentStep === 1 ? (
             <div className="flex flex-col gap-5">
-              <TextField id="team" label="판매팀" showStar state="disabled" inputProps={{ value: teamName, readOnly: true }} />
-              <TextField id="name" label="상품명" showStar state="filled" inputProps={{ value: name, onChange: (e) => setName(e.target.value) }} />
-              <TextField id="desc" label="상품 설명" showStar state="filled" inputProps={{ value: description, onChange: (e) => setDescription(e.target.value) }} />
-              <section className="space-y-2"><div className="flex items-center gap-1"><p className="typo-body-small-bold text-neutral-10">상품 유형</p><span className="typo-body-xsmall-bold text-danger">*</span></div><Radiocardgroup className="w-full" options={['Fund', 'Buy Now', 'Partner Up']} selectedIndex={type === 0 ? 0 : type === 1 ? 1 : 2} onSelect={onTypeSelect} /></section>
+              <TextField id="team" label={KR.salesTeam} showStar state="disabled" inputProps={{ value: teamName, readOnly: true }} />
+              <TextField id="name" label={KR.productName} showStar state="filled" inputProps={{ value: name, onChange: (e) => setName(e.target.value) }} />
+              <TextField id="desc" label={KR.productDesc} showStar state="filled" inputProps={{ value: description, onChange: (e) => setDescription(e.target.value) }} />
+
+              <section className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <p className="typo-body-small-bold text-neutral-10">{KR.productType}</p>
+                  <span className="typo-body-xsmall-bold text-danger">*</span>
+                </div>
+                <Radiocardgroup className="w-full" options={['Fund', 'Buy Now', 'Partner Up']} selectedIndex={type === 0 ? 0 : type === 1 ? 1 : 2} onSelect={onTypeSelect} />
+              </section>
+
               <section className="space-y-2">
                 {type === 0 ? (
-                  <Radiocardgroup
-                    className="w-full"
-                    options={['택배 배송', '현장 수령']}
-                    selectedIndex={receiveMethod === 0 ? 0 : 1}
-                    onSelect={(i) => setReceiveMethod(i === 0 ? 0 : 1)}
-                  />
+                  <Radiocardgroup className="w-full" options={[KR.parcel, KR.pickup]} selectedIndex={receiveMethod === 0 ? 0 : 1} onSelect={onReceiveMethodSelect} />
                 ) : type === 1 ? (
-                  <Radiocardgroup
-                    className="w-full"
-                    options={['택배 배송', '현장 수령']}
-                    selectedIndex={1}
-                    optionStatuses={['disabled', 'default']}
-                  />
+                  <Radiocardgroup className="w-full" options={[KR.parcel, KR.pickup]} selectedIndex={1} optionStatuses={['disabled', 'checked']} />
                 ) : (
-                  <Radiocardgroup
-                    className="w-full"
-                    options={['택배 배송', '현장 수령']}
-                    selectedIndex={null}
-                    optionStatuses={['disabled', 'disabled']}
-                  />
+                  <Radiocardgroup className="w-full" options={[KR.parcel, KR.pickup]} selectedIndex={null} optionStatuses={['disabled', 'disabled']} />
                 )}
               </section>
-              <DatePair startLabel="판매 시작일" endLabel="판매 종료일" startValue={salesStartDate} endValue={salesEndDate} onChangeStart={setSalesStartDate} onChangeEnd={setSalesEndDate} />
-              <div className="flex gap-[5px]">{thumbnailUrl ? <ProductImage property1="Default" src={thumbnailUrl} onRemove={() => setThumbnailUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => thumbInputRef.current?.click()} />}</div>
-              <div className="flex gap-[5px]">{detailImageUrls.map((src, i) => <ProductImage key={`${src}-${i}`} property1="Default" src={src} onRemove={() => setDetailImageUrls((prev) => prev.filter((_, idx) => idx !== i))} />)}{detailImageUrls.length < DETAIL_IMAGE_MAX ? <ProductImage property1={detailImageUrls.length ? 'add' : 'empty'} countText={`${detailImageUrls.length}/${DETAIL_IMAGE_MAX}`} onClick={() => detailInputRef.current?.click()} /> : null}</div>
-              <div className="flex gap-[5px]">{noticeImgUrl ? <ProductImage property1="Default" src={noticeImgUrl} onRemove={() => setNoticeImgUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => noticeInputRef.current?.click()} />}</div>
+
+              <DateRangeInput
+                title={KR.salesPeriod}
+                required
+                startLabel={KR.salesStart}
+                endLabel={KR.salesEnd}
+                startValue={salesStartDate}
+                endValue={salesEndDate}
+                onChangeStart={setSalesStartDate}
+                onChangeEnd={setSalesEndDate}
+              />
+
+              <div className="flex gap-[5px]">
+                {thumbnailUrl ? <ProductImage property1="Default" src={thumbnailUrl} onRemove={() => setThumbnailUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => thumbInputRef.current?.click()} />}
+              </div>
+              <div className="flex gap-[5px]">
+                {detailImageUrls.map((src, i) => <ProductImage key={`${src}-${i}`} property1="Default" src={src} onRemove={() => setDetailImageUrls((prev) => prev.filter((_, idx) => idx !== i))} />)}
+                {detailImageUrls.length < DETAIL_IMAGE_MAX ? <ProductImage property1={detailImageUrls.length ? 'add' : 'empty'} countText={`${detailImageUrls.length}/${DETAIL_IMAGE_MAX}`} onClick={() => detailInputRef.current?.click()} /> : null}
+              </div>
+              <div className="flex gap-[5px]">
+                {noticeImgUrl ? <ProductImage property1="Default" src={noticeImgUrl} onRemove={() => setNoticeImgUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => noticeInputRef.current?.click()} />}
+              </div>
             </div>
           ) : null}
 
           {currentStep === 2 && type === 0 ? (
             <div className="flex flex-col gap-5">
-              <PriceField value={goalAmount} onChange={setGoalAmount} />
+              <section className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <p className="typo-body-small-bold text-neutral-12">{KR.goalAmount}</p>
+                    <span className="typo-body-xsmall-bold text-danger">*</span>
+                  </div>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">{KR.goalAmountHelp}</p>
+                </div>
+                <PriceField value={goalAmount} onChange={setGoalAmount} />
+              </section>
+
               {receiveMethod === 0 ? (
                 <>
-                  <DatePair startLabel="제작 시작일" endLabel="제작 종료일" startValue={productionStartDate} endValue={productionEndDate} onChangeStart={setProductionStartDate} onChangeEnd={setProductionEndDate} />
-                  <DatePair startLabel="배송 시작일" endLabel="배송 종료일" startValue={deliveryStartDate} endValue={deliveryEndDate} onChangeStart={setDeliveryStartDate} onChangeEnd={setDeliveryEndDate} />
+                  <DateRangeInput
+                    title={KR.productionPeriod}
+                    required
+                    startLabel={KR.productionStart}
+                    endLabel={KR.productionEnd}
+                    startValue={productionStartDate}
+                    endValue={productionEndDate}
+                    onChangeStart={setProductionStartDate}
+                    onChangeEnd={setProductionEndDate}
+                  />
+                  <DateRangeInput
+                    title={KR.deliveryPeriod}
+                    required
+                    startLabel={KR.deliveryStart}
+                    endLabel={KR.deliveryEnd}
+                    startValue={deliveryStartDate}
+                    endValue={deliveryEndDate}
+                    onChangeStart={setDeliveryStartDate}
+                    onChangeEnd={setDeliveryEndDate}
+                  />
                 </>
               ) : (
                 <>
-                  <DatePair startLabel="수령 시작일" endLabel="수령 종료일" startValue={pickupStartDate} endValue={pickupEndDate} onChangeStart={setPickupStartDate} onChangeEnd={setPickupEndDate} />
-                  <TextField id="pickupLocation" label="수령 장소" showStar state="filled" inputProps={{ value: pickupLocation, onChange: (e) => setPickupLocation(e.target.value) }} />
+                  <DateRangeInput
+                    title={KR.pickupPeriod}
+                    required
+                    startLabel={KR.pickupStart}
+                    endLabel={KR.pickupEnd}
+                    startValue={pickupStartDate}
+                    endValue={pickupEndDate}
+                    onChangeStart={setPickupStartDate}
+                    onChangeEnd={setPickupEndDate}
+                  />
+                  <TextField
+                    id="pickupLocation"
+                    label={KR.pickupLocation}
+                    showStar
+                    subtext={KR.pickupLocationSubtext}
+                    placeholder={KR.pickupLocationPlaceholder}
+                    state={pickupLocation.trim().length > 0 ? 'filled' : 'default'}
+                    inputProps={{ value: pickupLocation, onChange: (e) => setPickupLocation(e.target.value) }}
+                  />
                 </>
               )}
             </div>
@@ -538,25 +813,93 @@ export default function AdminProductEditPage() {
 
           {currentStep === 3 ? (
             <div className="flex flex-col gap-5">
-              <PriceField value={price} onChange={setPrice} />
-              {options.map((opt, idx) => (
-                <div key={opt.id} className="w-full rounded-[8px] bg-neutral-1 px-[15px] py-[11px]">
-                  <div className="flex items-center justify-between"><p className="typo-heading-xxsmall text-black">{`옵션 ${idx + 1}`}</p><button type="button" onClick={() => removeOption(opt.id)}><span className="text-neutral-7">×</span></button></div>
-                  <input value={opt.optionName} onChange={(e) => updateOptionName(opt.id, e.target.value)} className="mt-2 h-10 w-full rounded-[8px] border border-neutral-6 bg-neutral-2 px-3 typo-body-xsmall text-neutral-12 outline-none" />
-                  {opt.values.map((v) => (
-                    <div key={v.id} className="mt-2 flex h-10 items-center rounded-[8px] border border-neutral-6 bg-neutral-2 pl-[10px] pr-[5px]">
-                      <input value={v.value} onChange={(e) => updateOptionValue(opt.id, v.id, 'value', e.target.value)} className="w-[111px] bg-transparent typo-body-xsmall text-neutral-12 outline-none" />
-                      <span className="h-5 w-px bg-neutral-5" />
-                      <input value={String(v.extraPrice)} onChange={(e) => updateOptionValue(opt.id, v.id, 'extraPrice', e.target.value)} className="ml-2 w-[95px] bg-transparent text-right typo-body-xsmall text-neutral-12 outline-none" />
-                      <span className="ml-1 w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
-                      <button type="button" className="ml-auto" onClick={() => removeOptionValue(opt.id, v.id)}>×</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => addOptionValue(opt.id)} className="mx-auto mt-2 inline-flex h-6 w-6 items-center justify-center rounded-[6px] bg-neutral-7 text-neutral-1">+</button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <p className="typo-body-small-bold text-neutral-10">{'\uAC00\uACA9'}</p>
+                  <span className="typo-body-xsmall-bold text-danger">*</span>
                 </div>
-              ))}
-              <button type="button" onClick={addOption} className="h-11 w-full rounded-[8px] bg-[#e9ded2] typo-body-small-bold text-neutral-10">옵션 추가</button>
-              {optionError ? <p className="typo-body-xsmall text-danger">{optionError}</p> : null}
+                <PriceField value={price} onChange={setPrice} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <p className="typo-body-small-bold text-neutral-10">{KR.option}</p>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">{KR.optionOptionalHelp}</p>
+                </div>
+
+                {options.map((opt, idx) => (
+                  <div key={opt.id} className="w-full rounded-[8px] bg-neutral-1 px-[15px] py-[11px]">
+                    <div className="flex flex-col items-center gap-[14px]">
+                      <div className="flex w-full flex-col gap-[14px]">
+                        <div className="flex items-center justify-between">
+                          <p className="typo-heading-xxsmall text-black">{`${KR.option} ${idx + 1}`}</p>
+                          <button type="button" className="inline-flex h-5 w-5 items-center justify-center" onClick={() => removeOption(opt.id)} aria-label={`${KR.option} 삭제`}>
+                            <CloseIcon />
+                          </button>
+                        </div>
+
+                        <div className="flex w-full flex-col gap-3">
+                          <div className="flex w-full flex-col gap-1">
+                            <p className="typo-body-xsmall text-neutral-9">{KR.optionName}</p>
+                            <div className={`flex h-10 items-center rounded-lg border bg-neutral-2 px-3 ${opt.optionName.trim() ? 'border-neutral-6' : 'border-neutral-5'}`}>
+                              <input
+                                value={opt.optionName}
+                                onChange={(e) => updateOptionName(opt.id, e.target.value)}
+                                placeholder={KR.optionNamePlaceholder}
+                                className={`w-full bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${opt.optionName.trim() ? 'text-neutral-12' : 'text-neutral-7'}`}
+                              />
+                            </div>
+                          </div>
+
+                          {opt.values.map((v) => (
+                            <div key={v.id} className="flex w-full flex-col gap-1">
+                              <div className="flex items-center justify-between typo-body-xsmall text-neutral-9">
+                                <span>{KR.optionValue}</span>
+                                <span>{KR.additionalPrice}</span>
+                              </div>
+                              <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 py-2 pl-[10px] pr-[5px]">
+                                <div className="flex w-[260px] items-center justify-between">
+                                  <input
+                                    value={v.value}
+                                    onChange={(e) => updateOptionValue(opt.id, v.id, 'value', e.target.value)}
+                                    placeholder={KR.optionValuePlaceholder}
+                                    className={`w-[111px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${v.value.trim() ? 'text-neutral-12' : 'text-neutral-7'}`}
+                                  />
+                                  <span className="h-5 w-px bg-neutral-5" />
+                                  <span className="flex w-[111px] items-center border-b border-neutral-5">
+                                    <input
+                                      value={v.extraPrice > 0 ? formatNumber(String(v.extraPrice)) : ''}
+                                      onChange={(e) => updateOptionValue(opt.id, v.id, 'extraPrice', digitsOnly(e.target.value))}
+                                      inputMode="numeric"
+                                      placeholder="0"
+                                      className={`w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${v.extraPrice > 0 ? 'text-neutral-12' : 'text-neutral-7'}`}
+                                    />
+                                    <span className="w-[10px] text-right typo-body-xsmall text-neutral-7">{KR.won}</span>
+                                  </span>
+                                </div>
+                                <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" onClick={() => removeOptionValue(opt.id, v.id)} aria-label={`${KR.optionValue} 삭제`}>
+                                  <CloseIcon size={17} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button type="button" className="inline-flex h-6 w-6 items-center justify-center" onClick={() => addOptionValue(opt.id)} aria-label={`${KR.optionValue} 추가`}>
+                        <PlusPillIcon />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {options.length < 2 ? (
+                  <button type="button" onClick={addOption} className="h-10 w-full rounded-[8px] bg-[#e9ded2] typo-body-xsmall-bold text-neutral-10">
+                    {KR.optionAdd}
+                  </button>
+                ) : null}
+              </div>
+              {optionValidationError ? <p className="typo-body-xsmall text-danger">{optionValidationError}</p> : null}
               {submitError ? <p className="typo-body-xsmall text-danger">{submitError}</p> : null}
             </div>
           ) : null}
@@ -564,8 +907,15 @@ export default function AdminProductEditPage() {
 
         <footer className="px-4 pb-8 pt-[17px]">
           <div className="flex items-start gap-[10px]">
-            <ArrowButton direction="left" onClick={goPrev} />
-            <button type="button" onClick={handleEditClick} disabled={currentStep !== 3 || isSubmitting || uploading.thumbnail || uploading.detail || uploading.notice} className="flex min-h-[55px] flex-1 items-center justify-center rounded-[8px] bg-orange-5 typo-body-small-bold text-neutral-2 disabled:cursor-not-allowed disabled:bg-orange-4">수정</button>
+            <ArrowButton direction="left" onClick={goPrev} disabled={currentStep === 1} />
+            <button
+              type="button"
+              onClick={handleEditClick}
+              disabled={!canSubmit}
+              className="flex min-h-[55px] flex-1 items-center justify-center rounded-[8px] bg-orange-5 typo-body-small-bold text-neutral-2 disabled:cursor-not-allowed disabled:bg-orange-4"
+            >
+              {KR.edit}
+            </button>
             <ArrowButton direction="right" onClick={goNext} disabled={currentStep === 3} />
           </div>
         </footer>
@@ -578,10 +928,10 @@ export default function AdminProductEditPage() {
       {showUpdateModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-8">
           <Modal
-            className="w-[311px] px-6 pt-8 pb-5"
-            title="상품글을 수정하시겠습니까?"
-            cancelText="취소"
-            confirmText={isSubmitting ? '수정 중...' : '확인'}
+            className="w-[311px] px-6 pb-5 pt-8"
+            title={KR.editModalTitle}
+            cancelText={KR.cancel}
+            confirmText={isSubmitting ? KR.editing : KR.confirm}
             disabled={isSubmitting}
             onCancel={() => setShowUpdateModal(false)}
             onConfirm={() => void handleConfirmUpdate()}
