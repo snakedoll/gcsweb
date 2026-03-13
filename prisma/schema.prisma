@@ -72,29 +72,30 @@ model Product {
   teamId              String
   name                String
   description         String
-  type                Int                    @default(0)
-  status              Int                    @default(0)
+  type                Int                    @default(0) // 0: Fund, 1: Buy Now, 2: Partner Up
+  receiveMethod       Int?                   // Fund(0): 0=?앸같諛곗넚, 1=?꾩옣?섎졊 | Buy Now(1): 1 | Partner Up(2): null
+  salesStartDate      DateTime               // required for all types (0/1/2)
+  salesEndDate        DateTime               // required for all types (0/1/2)
+  goalAmount          Int?                   // required when type=0(Fund), otherwise null
+  productionStartDate DateTime?              // required when type=0 and receiveMethod=0(delivery), otherwise null
+  productionEndDate   DateTime?              // required when type=0 and receiveMethod=0(delivery), otherwise null
+  deliveryStartDate   DateTime?              // required when type=0 and receiveMethod=0(delivery), otherwise null
+  deliveryEndDate     DateTime?              // required when type=0 and receiveMethod=0(delivery), otherwise null
+  pickupStartDate     DateTime?              // required when type=0 and receiveMethod=1(pickup), otherwise null
+  pickupEndDate       DateTime?              // required when type=0 and receiveMethod=1(pickup), otherwise null
+  pickupLocation      String?                // required when type=0 and receiveMethod=1(pickup), otherwise null
   price               Int
-  goalAmount          Int?
+  status              Int                    @default(0) // 0: 진행예정(scheduled), 1: 진행중(active), 2: 진행완료(completed)
   currentAmount       Int                    @default(0)
-  salesStartDate      DateTime
-  salesEndDate        DateTime
-  productionStartDate DateTime?
-  deliveryStartDate   DateTime?
-  receiveMethod       Int?
+  isAdminApproved     Boolean                @default(false)
+  isHome              Boolean                @default(false)
+  isSoldOut           Boolean                @default(false) // 관리자 수동 
   isPublic            Boolean                @default(false)
-  likeCount           Int                    @default(0)
-  viewCount           Int                    @default(0)
+  publicAt            DateTime?
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
-  productionEndDate   DateTime?
-  deliveryEndDate     DateTime?
-  pickupStartDate     DateTime?
-  pickupEndDate       DateTime?
-  pickupLocation      String?
-  isHome              Boolean                @default(false)
-  isAdminApproved     Boolean                @default(false)
-  publicAt            DateTime?
+  likeCount           Int                    @default(0)
+  viewCount           Int                    @default(0)
   cartItems           CartItem[]
   likes               Like[]
   orderItems          OrderItem[]
@@ -174,16 +175,16 @@ model ProductUpdateRequest {
   type                Int                          @default(0)
   status              Int                          @default(0)
   price               Int
-  goalAmount          Int?
-  salesStartDate      DateTime
-  salesEndDate        DateTime
-  productionStartDate DateTime?
-  productionEndDate   DateTime?
-  deliveryStartDate   DateTime?
-  deliveryEndDate     DateTime?
-  pickupStartDate     DateTime?
-  pickupEndDate       DateTime?
-  pickupLocation      String?
+  goalAmount          Int?                   // type=0(Fund)?먯꽌 ?ъ슜, type=1/2??null
+  salesStartDate      DateTime               // 紐⑤뱺 type(0/1/2) ?꾩닔
+  salesEndDate        DateTime               // 紐⑤뱺 type(0/1/2) ?꾩닔
+  productionStartDate DateTime?              // type=0 && receiveMethod=0(?앸같諛곗넚)?????꾩닔, 洹???null
+  productionEndDate   DateTime?              // type=0 && receiveMethod=0(?앸같諛곗넚)?????꾩닔, 洹???null
+  deliveryStartDate   DateTime?              // type=0 && receiveMethod=0(?앸같諛곗넚)?????꾩닔, 洹???null
+  deliveryEndDate     DateTime?              // type=0 && receiveMethod=0(?앸같諛곗넚)?????꾩닔, 洹???null
+  pickupStartDate     DateTime?              // type=0 && receiveMethod=1(?꾩옣?섎졊)?????꾩닔, 洹???null
+  pickupEndDate       DateTime?              // type=0 && receiveMethod=1(?꾩옣?섎졊)?????꾩닔, 洹???null
+  pickupLocation      String?                // type=0 && receiveMethod=1(?꾩옣?섎졊)?????꾩닔, 洹???null
   receiveMethod       Int?
   requestedAt         DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
