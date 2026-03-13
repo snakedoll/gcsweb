@@ -106,7 +106,6 @@ model Product {
   reviews             Review[]
   scraps              Scrap[]
 
-  @@unique([id, name])
   @@index([teamId])
   @@index([type])
   @@index([status])
@@ -114,12 +113,11 @@ model Product {
 }
 
 model ProductOption {
-  id          String               @id @default(cuid())
-  productId   String
-  optionName  String
-  productName String
-  product     Product              @relation(fields: [productId, productName], references: [id, name], onDelete: Cascade)
-  values      ProductOptionValue[]
+  id         String               @id @default(cuid())
+  productId  String
+  optionName String
+  product    Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values     ProductOptionValue[]
 
   @@unique([productId, optionName])
   @@index([productId])
@@ -131,7 +129,6 @@ model ProductOptionValue {
   value           String
   additionalPrice Int           @default(0)
   productId       String
-  productName     String
   optionName      String
   option          ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
@@ -196,7 +193,6 @@ model ProductUpdateRequest {
   images              ProductUpdateRequestImage[]
   options             ProductUpdateRequestOption[]
 
-  @@unique([id, name])
   @@index([productId])
   @@index([requestedByUserId])
   @@index([teamId])
@@ -218,11 +214,10 @@ model ProductUpdateRequestImage {
 }
 
 model ProductUpdateRequestOption {
-  id                     String                            @id @default(cuid())
+  id                     String                        @id @default(cuid())
   productUpdateRequestId String
   optionName             String
-  productName            String
-  productUpdateRequest   ProductUpdateRequest              @relation(fields: [productUpdateRequestId, productName], references: [id, name], onDelete: Cascade, map: "ProductUpdateRequestOption_productUpdateRequestId_productName_f")
+  productUpdateRequest   ProductUpdateRequest          @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
   values                 ProductUpdateRequestOptionValue[]
 
   @@unique([productUpdateRequestId, optionName])
@@ -235,7 +230,6 @@ model ProductUpdateRequestOptionValue {
   value           String
   additionalPrice Int                        @default(0)
   productId       String
-  productName     String
   optionName      String
   option          ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 

@@ -305,7 +305,7 @@ export async function POST(request: Request) {
         if (!optionName) continue;
 
         const optionRow = await tx.productOption.create({
-          data: { productId: createdProduct.id, productName: createdProduct.name, optionName },
+          data: { productId: createdProduct.id, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];
@@ -317,7 +317,6 @@ export async function POST(request: Request) {
             data: {
               optionId: optionRow.id,
               productId: createdProduct.id,
-              productName: createdProduct.name,
               optionName,
               value,
               additionalPrice,
@@ -366,7 +365,7 @@ export async function POST(request: Request) {
         if (!optionName) continue;
 
         const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: requestRow.id, productName: requestRow.name, optionName },
+          data: { productUpdateRequestId: requestRow.id, optionName },
         });
 
         const values = Array.isArray(opt.values) ? opt.values : [];
@@ -378,7 +377,6 @@ export async function POST(request: Request) {
             data: {
               optionId: reqOption.id,
               productId: requestRow.productId,
-              productName: requestRow.name,
               optionName,
               value,
               additionalPrice,
