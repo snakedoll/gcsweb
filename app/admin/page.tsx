@@ -92,7 +92,7 @@ export default function AdminPage() {
             items={[
               { label: '상품글 관리', href: '/admin/product' },
               { label: 'Fund | 주문 관리', href: '#' },
-              { label: 'Buy Now | 현장 관리', href: '#' },
+              { label: 'Buy Now | 현장 관리', href: '/admin/onsite' },
               { label: '상품 리뷰 관리', href: '#' },
             ]}
           />

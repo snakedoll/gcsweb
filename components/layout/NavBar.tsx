@@ -22,6 +22,7 @@ interface NavBarProps {
   homeHref?: string;
   onBack?: () => void;
   onTrash?: () => void;
+  rightElement?: React.ReactNode;
 }
 
 export default function NavBar({
@@ -32,6 +33,7 @@ export default function NavBar({
   homeHref = '/',
   onBack,
   onTrash,
+  rightElement,
 }: NavBarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
@@ -98,16 +100,20 @@ export default function NavBar({
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
         <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
-          <button
-            type="button"
-            aria-label="뒤로가기"
-            onClick={handleBack}
-            className="inline-flex h-6 w-3 items-center justify-center"
-          >
-            <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
-          </button>
+          <div className="flex w-6 items-center justify-start">
+            <button
+              type="button"
+              aria-label="뒤로가기"
+              onClick={handleBack}
+              className="inline-flex h-6 w-3 items-center justify-center"
+            >
+              <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
+            </button>
+          </div>
           <p className="typo-heading-xxsmall text-neutral-12">{title}</p>
-          <span className="inline-flex h-6 w-3 opacity-0" aria-hidden />
+          <div className="flex w-6 items-center justify-end">
+            {rightElement ?? <span className="w-3 opacity-0" aria-hidden />}
+          </div>
         </div>
       </div>
     );

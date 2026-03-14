@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type TagColor = 'white-gray' | 'orange';
+type TagColor = 'white-gray' | 'orange' | 'solid-orange';
 
 interface TagProps {
   color?: TagColor;
@@ -10,8 +10,11 @@ interface TagProps {
   className?: string;
 }
 
-function LocationIcon({ tone }: { tone: 'dark' | 'orange' }) {
-  const color = tone === 'orange' ? 'var(--color-orange-7)' : 'var(--color-neutral-10)';
+function LocationIcon({ tone }: { tone: 'dark' | 'orange' | 'white' }) {
+  const color = 
+    tone === 'orange' ? 'var(--color-orange-7)' : 
+    tone === 'white' ? '#FFFFFF' :
+    'var(--color-neutral-10)';
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <path
@@ -34,18 +37,21 @@ export default function Tag({
   className,
 }: TagProps) {
   const isOrange = color === 'orange';
+  const isSolidOrange = color === 'solid-orange';
 
   return (
     <div
       className={cn(
         'inline-flex items-center justify-center gap-1 rounded-lg px-2 py-0.5',
-        isOrange ? 'bg-orange-3 text-orange-7' : 'bg-neutral-4 text-neutral-10',
+        isSolidOrange ? 'bg-[#F8A376] text-white' : 
+        isOrange ? 'bg-orange-3 text-orange-7' : 
+        'bg-neutral-4 text-neutral-10',
         className
       )}
     >
-      {iconLeft ? <LocationIcon tone={isOrange ? 'orange' : 'dark'} /> : null}
-      <span className="typo-body-xsmall">{contents}</span>
-      {iconRight ? <LocationIcon tone={isOrange ? 'orange' : 'dark'} /> : null}
+      {iconLeft ? <LocationIcon tone={isSolidOrange ? 'white' : isOrange ? 'orange' : 'dark'} /> : null}
+      <span className="text-[13px] font-pretendard leading-[1.5]">{contents}</span>
+      {iconRight ? <LocationIcon tone={isSolidOrange ? 'white' : isOrange ? 'orange' : 'dark'} /> : null}
     </div>
   );
 }
