@@ -652,16 +652,6 @@ export default function CartPage() {
             </div>
           )}
 
-          {/* 주문하기 버튼 (하단 시트 없을 때) */}
-          {items.length > 0 && (
-            <button
-              className={`w-full text-[15px] font-bold leading-[1.5] py-4 rounded-lg flex items-center justify-center ${hasSelected ? 'bg-[#3f3835] text-[#fdfdfd] cursor-pointer' : 'bg-[#DDDCDB] text-[#999694] cursor-not-allowed'}`}
-              disabled={!hasSelected}
-              onClick={handleOrderSelected}
-            >
-              {'주문하기'}
-            </button>
-          )}
         </div>
 
       </div>
