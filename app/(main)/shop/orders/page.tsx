@@ -278,16 +278,12 @@ function ShopOrdersPageContent() {
         setConfirmedPaymentAmount(paymentAmount);
       }
 
-      if (paymentMethod === 0) {
-        if (!orderId) {
-          setSubmitError('주문 생성 응답이 올바르지 않습니다.');
-          return;
-        }
-        router.push(`/shop/orders/buynow/pay?orderId=${encodeURIComponent(orderId)}`);
-      } else {
-        window.alert('주문이 생성되었습니다.');
-        router.push('/mypage');
+      if (!orderId) {
+        setSubmitError('주문 생성 응답이 올바르지 않습니다.');
+        return;
       }
+      window.alert('주문이 생성되었습니다.');
+      router.push('/mypage');
     } finally {
       setIsSubmitting(false);
     }
