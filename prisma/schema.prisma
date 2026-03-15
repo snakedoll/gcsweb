@@ -260,6 +260,7 @@ model Order {
   paymentStatus         Int         @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int
+  billingKey            String?
   cardCompany           Int?
   bankCode              Int?
   easyPayProvider       Int?

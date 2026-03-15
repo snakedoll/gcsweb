@@ -5,7 +5,6 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
 import { getSaleStatusByDate } from '@/lib/sale-date';
-import { chargeWithBillingKey } from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -212,6 +211,10 @@ export async function POST(request: Request) {
     if (isFund && (data.paymentMethod === 2 || data.paymentMethod === 3)) {
       return jsonError(400, 'INVALID_PAYMENT_METHOD', 'this payment method is not allowed for fund.');
     }
+    const normalizedBillingKey = data.billingKey?.trim() ?? '';
+    if (isFund && data.paymentMethod === 0 && !normalizedBillingKey) {
+      return jsonError(400, 'BILLING_KEY_REQUIRED', 'billingKey is required for fund card payment.');
+    }
 
     if ((isBuyNow || isFundPickup) && data.isPolicyAgreed !== true) {
       return jsonError(400, 'POLICY_AGREEMENT_REQUIRED', 'policy agreement is required.');
@@ -254,6 +257,7 @@ export async function POST(request: Request) {
           ordererName,
           ordererPhone,
           paymentMethod: data.paymentMethod,
+          billingKey: isFund && data.paymentMethod === 0 ? normalizedBillingKey : null,
           cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
           bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
           easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
@@ -274,6 +278,7 @@ export async function POST(request: Request) {
           ordererName: true,
           ordererPhone: true,
           paymentMethod: true,
+          billingKey: true,
           cardCompany: true,
           bankCode: true,
           easyPayProvider: true,
@@ -307,35 +312,14 @@ export async function POST(request: Request) {
       return { order, items: createdItems };
     });
 
-    let paymentConfirmed = false;
-    if (isFund && data.billingKey?.trim()) {
-      const chargeResult = await chargeWithBillingKey({
-        paymentId: created.order.id,
-        billingKey: data.billingKey.trim(),
-        orderName: 'Fund 주문',
-        totalAmount: created.order.paymentAmount,
-        customerName: created.order.ordererName,
-        customerMobile: created.order.ordererPhone ?? undefined,
-      });
-      if (chargeResult.success) {
-        await prisma.order.update({
-          where: { id: created.order.id },
-          data: { paymentStatus: 1 },
-        });
-        paymentConfirmed = true;
-      }
-    }
-
     const orderPayload = {
       ...created.order,
-      paymentStatus: paymentConfirmed ? 1 : created.order.paymentStatus,
       items: created.items,
     };
     return NextResponse.json({
       status: 'success',
       data: {
         order: orderPayload,
-        ...(isFund && data.billingKey?.trim() ? { paymentConfirmed } : {}),
       },
     });
   } catch (error) {

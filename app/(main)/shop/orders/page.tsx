@@ -1,5 +1,6 @@
 'use client';
 
+import * as PortOne from '@portone/browser-sdk/v2';
 import Script from 'next/script';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -122,6 +123,8 @@ function ShopOrdersPageContent() {
   const [paymentMethod, setPaymentMethod] = useState<0 | 1>(0);
   const [cardCompany, setCardCompany] = useState<number | null>(null);
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
+  const [billingKey, setBillingKey] = useState<string | null>(null);
+  const [isIssuingBillingKey, setIsIssuingBillingKey] = useState(false);
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
   const openAddressSearch = () => {
     const Postcode = typeof window !== 'undefined' && (window.kakao?.Postcode ?? window.daum?.Postcode);
@@ -227,7 +230,61 @@ function ShopOrdersPageContent() {
     zipCode.trim().length > 0 &&
     addressMain.trim().length > 0 &&
     addressDetail.trim().length > 0 &&
-    ((paymentMethod === 0 && cardCompany !== null) || (paymentMethod === 1 && bankCode !== null));
+    ((paymentMethod === 0 && cardCompany !== null && Boolean(billingKey)) || (paymentMethod === 1 && bankCode !== null));
+
+  const handleIssueBillingKey = async () => {
+    if (isIssuingBillingKey) return;
+    setSubmitError(null);
+    setIsIssuingBillingKey(true);
+    try {
+      const configRes = await fetch('/api/v1/payment/portone/billing-config', { cache: 'no-store' });
+      const configJson = await configRes.json().catch(() => ({}));
+      if (!configRes.ok || configJson?.status !== 'success') {
+        setSubmitError(configJson?.message ?? '빌링키 설정 정보를 불러오지 못했습니다.');
+        return;
+      }
+
+      const data = configJson.data as {
+        storeId?: string;
+        channelKey?: string;
+      };
+      if (!data?.storeId || !data?.channelKey) {
+        setSubmitError('빌링키 설정 값이 올바르지 않습니다.');
+        return;
+      }
+
+      const issueId = `fund-billing-${Date.now()}`;
+      const response = await (PortOne as any).requestIssueBillingKey({
+        storeId: data.storeId,
+        channelKey: data.channelKey,
+        issueId,
+        billingKeyMethod: 'CARD',
+        issueName: 'Fund 카드 등록',
+        customer: {
+          fullName: receiverName.trim() || undefined,
+          phoneNumber: receiverPhone.trim() || undefined,
+        },
+      });
+
+      if (response?.code != null) {
+        setSubmitError(response?.message ?? '빌링키 발급에 실패했습니다.');
+        return;
+      }
+
+      const issuedKey = typeof response?.billingKey === 'string' ? response.billingKey.trim() : '';
+      if (!issuedKey) {
+        setSubmitError('빌링키 발급 응답이 올바르지 않습니다.');
+        return;
+      }
+
+      setBillingKey(issuedKey);
+      window.alert('카드 등록이 완료되었습니다.');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '빌링키 발급에 실패했습니다.');
+    } finally {
+      setIsIssuingBillingKey(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!isPayEnabled || isSubmitting) return;
@@ -248,6 +305,7 @@ function ShopOrdersPageContent() {
         ordererName: receiverName.trim(),
         ordererPhone: receiverPhone.trim(),
         paymentMethod,
+        billingKey: paymentMethod === 0 ? billingKey : undefined,
         cardCompany: paymentMethod === 0 ? cardCompany : null,
         bankCode: paymentMethod === 1 ? bankCode : null,
         easyPayProvider: null,
@@ -413,15 +471,26 @@ function ShopOrdersPageContent() {
           </div>
 
           {paymentMethod === 0 ? (
-            <Dropdown
-              label=""
-              size="m"
-              state={cardCompany === null ? 'default' : 'selected'}
-              placeholder="카드 선택"
-              value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
-              items={CARD_COMPANY_ITEMS}
-              onSelect={(value) => setCardCompany(Number(value))}
-            />
+            <div className="space-y-3">
+              <Dropdown
+                label=""
+                size="m"
+                state={cardCompany === null ? 'default' : 'selected'}
+                placeholder="카드 선택"
+                value={cardCompany === null ? undefined : CARD_COMPANY_ITEMS.find((x) => x.value === String(cardCompany))?.label}
+                items={CARD_COMPANY_ITEMS}
+                onSelect={(value) => setCardCompany(Number(value))}
+              />
+              <Button
+                size="s"
+                color={billingKey ? 'orange' : 'black'}
+                className="h-[39px] w-auto px-5"
+                onClick={handleIssueBillingKey}
+                disabled={isIssuingBillingKey}
+              >
+                {isIssuingBillingKey ? '카드 등록 중...' : billingKey ? '카드 등록 완료' : '카드 등록'}
+              </Button>
+            </div>
           ) : null}
 
           {paymentMethod === 1 ? (
