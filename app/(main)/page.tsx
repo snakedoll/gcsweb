@@ -1,13 +1,31 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BottomTabBar, Footer, NavBar } from '@/components/layout';
+import { useRouter } from 'next/navigation';
 
 const heroImage = 'https://www.figma.com/api/mcp/asset/1a720de9-5732-4c38-ae25-95524116dcf8';
-const buyNowImage = 'https://www.figma.com/api/mcp/asset/72665abd-f79d-4bc3-94f9-8df2cbcfea9b';
-const fundImage = 'https://www.figma.com/api/mcp/asset/9983a939-eee0-4ed8-8d6b-dcd56141bc90';
 const instagramIcon = 'https://www.figma.com/api/mcp/asset/a756b379-dc78-4e02-a871-1c61f7baef6a';
+
+type HomeBuyNowProduct = {
+  id: string;
+  name: string;
+  teamName: string;
+  salesEndDate: string;
+  thumbnailUrl: string;
+};
+
+type HomeFundProduct = {
+  id: string;
+  name: string;
+  teamName: string;
+  salesEndDate: string;
+  currentAmount: number;
+  goalAmount: number;
+  thumbnailUrl: string;
+};
 
 function SectionTitle({ title, href }: { title: string; href: string }) {
   return (
@@ -23,14 +41,16 @@ function ProductCard({
   title,
   subtitle,
   badge,
+  onClick,
 }: {
   image: string;
   title: string;
   subtitle: string;
   badge: string;
+  onClick?: () => void;
 }) {
   return (
-    <article className="w-[269px] shrink-0">
+    <article className={`w-[269px] shrink-0 ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={image} alt={title} className="aspect-[1080/1350] w-full rounded-[8px] object-cover shadow-[0_0_5px_0_rgba(0,0,0,0.2)]" />
       <div className="mt-4 flex flex-col gap-2">
@@ -47,29 +67,175 @@ function ProductCard({
   );
 }
 
-function SlideCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <button
-        type="button"
-        aria-label="이전"
-        className="inline-flex h-6 w-6 items-center justify-center text-neutral-6"
-      >
-        <span className="text-[28px] leading-none">{'‹'}</span>
-      </button>
-      {children}
-      <button
-        type="button"
-        aria-label="다음"
-        className="inline-flex h-6 w-6 items-center justify-center text-[#FAC0A1]"
-      >
-        <span className="text-[28px] leading-none">{'›'}</span>
-      </button>
-    </div>
-  );
-}
-
 export default function HomePage() {
+  const router = useRouter();
+  const [buyNowProducts, setBuyNowProducts] = useState<HomeBuyNowProduct[]>([]);
+  const [buyNowIndex, setBuyNowIndex] = useState(0);
+  const [isBuyNowAnimating, setIsBuyNowAnimating] = useState(false);
+  const [buyNowDirection, setBuyNowDirection] = useState<1 | -1>(1);
+  const [fundProducts, setFundProducts] = useState<HomeFundProduct[]>([]);
+  const [fundIndex, setFundIndex] = useState(0);
+  const [isFundAnimating, setIsFundAnimating] = useState(false);
+  const [fundDirection, setFundDirection] = useState<1 | -1>(1);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/home/buynow', { cache: 'no-store' });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || json?.status !== 'success') {
+          setBuyNowProducts([]);
+          return;
+        }
+        const rows = (json?.data?.products ?? []) as HomeBuyNowProduct[];
+        setBuyNowProducts(rows);
+      } catch {
+        if (cancelled) return;
+        setBuyNowProducts([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/home/fund', { cache: 'no-store' });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok || json?.status !== 'success') {
+          setFundProducts([]);
+          return;
+        }
+        const rows = (json?.data?.products ?? []) as HomeFundProduct[];
+        setFundProducts(rows);
+      } catch {
+        if (cancelled) return;
+        setFundProducts([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (buyNowProducts.length <= 1) return;
+    const timer = setInterval(() => {
+      moveBuyNow(1);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [buyNowProducts.length, isBuyNowAnimating]);
+
+  useEffect(() => {
+    if (fundProducts.length <= 1) return;
+    const timer = setInterval(() => {
+      moveFund(1);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [fundProducts.length, isFundAnimating]);
+
+  useEffect(() => {
+    if (buyNowProducts.length === 0) return;
+    buyNowProducts.forEach((product) => {
+      if (!product.thumbnailUrl) return;
+      const preloadedImage = new window.Image();
+      preloadedImage.src = product.thumbnailUrl;
+    });
+  }, [buyNowProducts]);
+
+  useEffect(() => {
+    if (fundProducts.length === 0) return;
+    fundProducts.forEach((product) => {
+      if (!product.thumbnailUrl) return;
+      const preloadedImage = new window.Image();
+      preloadedImage.src = product.thumbnailUrl;
+    });
+  }, [fundProducts]);
+
+  useEffect(() => {
+    if (buyNowProducts.length === 0 && buyNowIndex !== 0) {
+      setBuyNowIndex(0);
+      return;
+    }
+    if (buyNowIndex >= buyNowProducts.length && buyNowProducts.length > 0) {
+      setBuyNowIndex(0);
+    }
+  }, [buyNowIndex, buyNowProducts.length]);
+
+  useEffect(() => {
+    if (fundProducts.length === 0 && fundIndex !== 0) {
+      setFundIndex(0);
+      return;
+    }
+    if (fundIndex >= fundProducts.length && fundProducts.length > 0) {
+      setFundIndex(0);
+    }
+  }, [fundIndex, fundProducts.length]);
+
+  const getDDayBadge = (product: { salesEndDate: string } | null) => {
+    if (!product) return 'D-0';
+    const end = new Date(product.salesEndDate);
+    const now = new Date();
+    const diffMs = end.getTime() - now.getTime();
+    const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    return diffDays === 0 ? 'D-day' : `D-${diffDays}`;
+  };
+
+  const activeBuyNow = buyNowProducts[buyNowIndex] ?? null;
+  const leftBuyNow =
+    buyNowProducts.length > 0
+      ? buyNowProducts[(buyNowIndex - 1 + buyNowProducts.length) % buyNowProducts.length]
+      : null;
+  const rightBuyNow =
+    buyNowProducts.length > 0
+      ? buyNowProducts[(buyNowIndex + 1) % buyNowProducts.length]
+      : null;
+
+  const moveBuyNow = (dir: -1 | 1) => {
+    if (buyNowProducts.length <= 1 || isBuyNowAnimating) return;
+    setBuyNowDirection(dir);
+    setIsBuyNowAnimating(true);
+    window.setTimeout(() => {
+      setBuyNowIndex((prev) => (prev + dir + buyNowProducts.length) % buyNowProducts.length);
+      setIsBuyNowAnimating(false);
+    }, 420);
+  };
+
+  const activeFund = fundProducts[fundIndex] ?? null;
+  const leftFund =
+    fundProducts.length > 0
+      ? fundProducts[(fundIndex - 1 + fundProducts.length) % fundProducts.length]
+      : null;
+  const rightFund =
+    fundProducts.length > 0
+      ? fundProducts[(fundIndex + 1) % fundProducts.length]
+      : null;
+
+  const moveFund = (dir: -1 | 1) => {
+    if (fundProducts.length <= 1 || isFundAnimating) return;
+    setFundDirection(dir);
+    setIsFundAnimating(true);
+    window.setTimeout(() => {
+      setFundIndex((prev) => (prev + dir + fundProducts.length) % fundProducts.length);
+      setIsFundAnimating(false);
+    }, 420);
+  };
+
+  const fundPercent =
+    activeFund && activeFund.goalAmount > 0
+      ? Math.max(0, Math.min(100, Math.round((activeFund.currentAmount / activeFund.goalAmount) * 100)))
+      : 0;
+  const fundStatusLabel = fundPercent >= 100 ? '달성' : '미달성';
+  const fundAmountLabel = `${(activeFund?.currentAmount ?? 0).toLocaleString()}원`;
+
   return (
     <div className="min-h-screen bg-neutral-3">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
@@ -103,9 +269,65 @@ export default function HomePage() {
           </div>
           <section className="bg-neutral-2 px-4 pb-7 pt-6">
             <div>
-              <SlideCard>
-                <ProductCard image={buyNowImage} badge="D-5" title="염소 후드집업" subtitle="팀 이름" />
-              </SlideCard>
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  aria-label="이전"
+                  className="inline-flex h-6 w-6 items-center justify-center text-neutral-6"
+                  onClick={() => moveBuyNow(-1)}
+                  disabled={buyNowProducts.length <= 1 || isBuyNowAnimating}
+                >
+                  <span className="text-[28px] leading-none">{'‹'}</span>
+                </button>
+
+                {activeBuyNow ? (
+                  <div className="w-[269px] overflow-hidden">
+                    <div
+                      className="flex will-change-transform"
+                      style={{
+                        transform: isBuyNowAnimating
+                          ? `translateX(${buyNowDirection === 1 ? -538 : 0}px)`
+                          : 'translateX(-269px)',
+                        transition: isBuyNowAnimating ? 'transform 420ms ease' : 'none',
+                      }}
+                    >
+                      <ProductCard
+                        image={leftBuyNow?.thumbnailUrl ?? ''}
+                        badge={getDDayBadge(leftBuyNow)}
+                        title={leftBuyNow?.name ?? ''}
+                        subtitle={leftBuyNow?.teamName ?? ''}
+                      />
+                      <ProductCard
+                        image={activeBuyNow.thumbnailUrl}
+                        badge={getDDayBadge(activeBuyNow)}
+                        title={activeBuyNow.name}
+                        subtitle={activeBuyNow.teamName}
+                        onClick={() => router.push(`/shop/${activeBuyNow.id}`)}
+                      />
+                      <ProductCard
+                        image={rightBuyNow?.thumbnailUrl ?? ''}
+                        badge={getDDayBadge(rightBuyNow)}
+                        title={rightBuyNow?.name ?? ''}
+                        subtitle={rightBuyNow?.teamName ?? ''}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-[269px] rounded-[8px] bg-neutral-2 py-16 text-center">
+                    <p className="typo-body-small text-neutral-7">홈에 노출된 Buy Now 상품이 없습니다.</p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  aria-label="다음"
+                  className="inline-flex h-6 w-6 items-center justify-center text-[#FAC0A1]"
+                  onClick={() => moveBuyNow(1)}
+                  disabled={buyNowProducts.length <= 1 || isBuyNowAnimating}
+                >
+                  <span className="text-[28px] leading-none">{'›'}</span>
+                </button>
+              </div>
             </div>
           </section>
 
@@ -114,19 +336,75 @@ export default function HomePage() {
           </div>
           <section className="bg-neutral-2 px-4 pb-7 pt-6">
             <div>
-              <SlideCard>
-                <ProductCard image={fundImage} badge="D-5" title="염소 후드집업" subtitle="팀 이름" />
-              </SlideCard>
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  aria-label="이전"
+                  className="inline-flex h-6 w-6 items-center justify-center text-neutral-6"
+                  onClick={() => moveFund(-1)}
+                  disabled={fundProducts.length <= 1 || isFundAnimating}
+                >
+                  <span className="text-[28px] leading-none">{'‹'}</span>
+                </button>
+
+                {activeFund ? (
+                  <div className="w-[269px] overflow-hidden">
+                    <div
+                      className="flex will-change-transform"
+                      style={{
+                        transform: isFundAnimating
+                          ? `translateX(${fundDirection === 1 ? -538 : 0}px)`
+                          : 'translateX(-269px)',
+                        transition: isFundAnimating ? 'transform 420ms ease' : 'none',
+                      }}
+                    >
+                      <ProductCard
+                        image={leftFund?.thumbnailUrl ?? ''}
+                        badge={getDDayBadge(leftFund)}
+                        title={leftFund?.name ?? ''}
+                        subtitle={leftFund?.teamName ?? ''}
+                      />
+                      <ProductCard
+                        image={activeFund.thumbnailUrl}
+                        badge={getDDayBadge(activeFund)}
+                        title={activeFund.name}
+                        subtitle={activeFund.teamName}
+                        onClick={() => router.push(`/shop/${activeFund.id}`)}
+                      />
+                      <ProductCard
+                        image={rightFund?.thumbnailUrl ?? ''}
+                        badge={getDDayBadge(rightFund)}
+                        title={rightFund?.name ?? ''}
+                        subtitle={rightFund?.teamName ?? ''}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-[269px] rounded-[8px] bg-neutral-2 py-16 text-center">
+                    <p className="typo-body-small text-neutral-7">홈에 노출된 Fund 상품이 없습니다.</p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  aria-label="다음"
+                  className="inline-flex h-6 w-6 items-center justify-center text-[#FAC0A1]"
+                  onClick={() => moveFund(1)}
+                  disabled={fundProducts.length <= 1 || isFundAnimating}
+                >
+                  <span className="text-[28px] leading-none">{'›'}</span>
+                </button>
+              </div>
               <div className="mx-auto mt-3 w-[269px]">
                 <div className="mb-[10px] flex items-center justify-between text-[13px] text-neutral-8 tracking-[-0.26px]">
                   <div className="flex items-center gap-[6px]">
-                    <span className="inline-flex h-[17px] items-center rounded-[4px] bg-neutral-5 px-[5px] text-[11px] text-neutral-9">미달성</span>
-                    <span>70%</span>
+                    <span className="inline-flex h-[17px] items-center rounded-[4px] bg-neutral-5 px-[5px] text-[11px] text-neutral-9">{fundStatusLabel}</span>
+                    <span>{fundPercent}%</span>
                   </div>
-                  <span>570,000원</span>
+                  <span>{fundAmountLabel}</span>
                 </div>
                 <div className="h-[7px] rounded-[3.5px] border border-neutral-5 bg-[#f8f6f4]">
-                  <div className="h-full w-[70%] rounded-[3.5px] bg-[#efddc9]" />
+                  <div className="h-full rounded-[3.5px] bg-[#efddc9]" style={{ width: `${fundPercent}%` }} />
                 </div>
               </div>
             </div>
