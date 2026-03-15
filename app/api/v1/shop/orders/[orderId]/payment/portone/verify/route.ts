@@ -38,6 +38,14 @@ export async function POST(_request: Request, { params }: Params) {
 
     const payment = await getPayment(orderId);
     if (!payment.success || !payment.amount || !payment.status) {
+      console.error('[PortOne][verify] Verification lookup failed', {
+        orderId,
+        paymentSuccess: payment.success,
+        paymentStatus: payment.status ?? null,
+        amountTotal: payment.amount?.total ?? null,
+        code: payment.code ?? null,
+        message: payment.message ?? null,
+      });
       return NextResponse.json({
         status: 'success',
         data: {
@@ -51,6 +59,12 @@ export async function POST(_request: Request, { params }: Params) {
     const expectedTotal = order.paymentAmount;
     const actualTotal = payment.amount?.total ?? 0;
     if (actualTotal !== expectedTotal) {
+      console.error('[PortOne][verify] Amount mismatch', {
+        orderId,
+        expectedTotal,
+        actualTotal,
+        paymentStatus: payment.status,
+      });
       return NextResponse.json({
         status: 'success',
         data: {
@@ -67,6 +81,11 @@ export async function POST(_request: Request, { params }: Params) {
       await prisma.order.update({
         where: { id: orderId },
         data: { paymentStatus: 1 },
+      });
+    } else {
+      console.warn('[PortOne][verify] Payment not yet paid', {
+        orderId,
+        paymentStatus: payment.status,
       });
     }
 

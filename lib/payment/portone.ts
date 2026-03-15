@@ -56,6 +56,12 @@ export async function getPayment(merchantUid: string): Promise<{
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    console.error('[PortOne][getPayment] HTTP error', {
+      paymentId: merchantUid,
+      status: res.status,
+      code: data?.code ?? null,
+      message: data?.message ?? null,
+    });
     return {
       success: false,
       code: data?.code ?? 'API_ERROR',
@@ -64,6 +70,11 @@ export async function getPayment(merchantUid: string): Promise<{
   }
 
   if (data?.code != null && data.code !== 0) {
+    console.error('[PortOne][getPayment] API error payload', {
+      paymentId: merchantUid,
+      code: data?.code ?? null,
+      message: data?.message ?? null,
+    });
     return {
       success: false,
       code: String(data.code),
@@ -73,6 +84,9 @@ export async function getPayment(merchantUid: string): Promise<{
 
   const payload = data?.response ?? data;
   if (!payload) {
+    console.error('[PortOne][getPayment] Empty payload', {
+      paymentId: merchantUid,
+    });
     return { success: false, code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다.' };
   }
 
