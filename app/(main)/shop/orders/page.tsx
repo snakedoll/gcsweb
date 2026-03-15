@@ -288,7 +288,7 @@ function ShopOrdersPageContent() {
       }
       imp.init(data.impCode);
 
-      const issueId = `fund-billing-${Date.now()}`;
+      const issueId = `fund${Date.now()}`;
       const response = await new Promise<{
         success?: boolean;
         customer_uid?: string;
@@ -302,6 +302,7 @@ function ShopOrdersPageContent() {
             customer_uid: issueId,
             merchant_uid: `fund-billing-merchant-${Date.now()}`,
             name: 'Fund 카드 등록',
+            buyer_email: 'no-reply@gcsweb.kr',
             buyer_name: receiverName.trim() || undefined,
             buyer_tel: receiverPhone.trim() || undefined,
           },
