@@ -10,6 +10,7 @@ import Dropdown from '@/components/ui/button/Dropdown';
 
 const POSTCODE_SCRIPT = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
 const IAMPORT_V1_SCRIPT = 'https://cdn.iamport.kr/v1/iamport.js';
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 declare global {
   interface Window {
@@ -141,6 +142,7 @@ function ShopOrdersPageContent() {
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [billingKey, setBillingKey] = useState<string | null>(null);
   const [isIssuingBillingKey, setIsIssuingBillingKey] = useState(false);
+  const [isImpReady, setIsImpReady] = useState(false);
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
   const openAddressSearch = () => {
     const Postcode = typeof window !== 'undefined' && (window.kakao?.Postcode ?? window.daum?.Postcode);
@@ -172,6 +174,12 @@ function ShopOrdersPageContent() {
       .filter(Boolean);
     return ids.length > 0 ? new Set(ids) : null;
   }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.IMP) {
+      setIsImpReady(true);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -269,11 +277,16 @@ function ShopOrdersPageContent() {
         setSubmitError('Fund 카드 등록은 V1 채널 설정이 필요합니다.');
         return;
       }
-      if (!window.IMP) {
+      let imp = window.IMP;
+      for (let attempt = 0; !imp && attempt < 5; attempt += 1) {
+        await wait(300);
+        imp = window.IMP;
+      }
+      if (!imp) {
         setSubmitError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
         return;
       }
-      window.IMP.init(data.impCode);
+      imp.init(data.impCode);
 
       const issueId = `fund-billing-${Date.now()}`;
       const response = await new Promise<{
@@ -281,7 +294,7 @@ function ShopOrdersPageContent() {
         customer_uid?: string;
         error_msg?: string;
       }>((resolve) => {
-        window.IMP?.request_pay(
+        imp.request_pay(
           {
             pg: data.billingPg,
             pay_method: 'card',
@@ -403,7 +416,12 @@ function ShopOrdersPageContent() {
   return (
     <div className="min-h-screen w-full bg-neutral-3">
       <Script src={POSTCODE_SCRIPT} strategy="lazyOnload" />
-      <Script src={IAMPORT_V1_SCRIPT} strategy="beforeInteractive" />
+      <Script
+        src={IAMPORT_V1_SCRIPT}
+        strategy="afterInteractive"
+        onLoad={() => setIsImpReady(true)}
+        onError={() => setIsImpReady(false)}
+      />
       <NavBar variant="title-back" title="주문하기" />
 
       <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[25px]">
@@ -517,9 +535,15 @@ function ShopOrdersPageContent() {
                 color={billingKey ? 'orange' : 'black'}
                 className="h-[39px] w-auto px-5"
                 onClick={handleIssueBillingKey}
-                disabled={isIssuingBillingKey}
+                disabled={isIssuingBillingKey || !isImpReady}
               >
-                {isIssuingBillingKey ? '카드 등록 중...' : billingKey ? '카드 등록 완료' : '카드 등록'}
+                {isIssuingBillingKey
+                  ? '카드 등록 중...'
+                  : !isImpReady
+                    ? '결제 모듈 로딩 중...'
+                    : billingKey
+                      ? '카드 등록 완료'
+                      : '카드 등록'}
               </Button>
             </div>
           ) : null}
