@@ -1,6 +1,5 @@
 'use client';
 
-import * as PortOne from '@portone/browser-sdk/v2';
 import Script from 'next/script';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +9,23 @@ import Button from '@/components/ui/button/Button';
 import Dropdown from '@/components/ui/button/Dropdown';
 
 const POSTCODE_SCRIPT = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+const IAMPORT_V1_SCRIPT = 'https://cdn.iamport.kr/v1/iamport.js';
+
+declare global {
+  interface Window {
+    IMP?: {
+      init: (impCode: string) => void;
+      request_pay: (
+        params: Record<string, unknown>,
+        callback: (rsp: {
+          success?: boolean;
+          customer_uid?: string;
+          error_msg?: string;
+        }) => void
+      ) => void;
+    };
+  }
+}
 
 type CartApiItem = {
   cartItemId: string;
@@ -245,33 +261,47 @@ function ShopOrdersPageContent() {
       }
 
       const data = configJson.data as {
-        storeId?: string;
-        channelKey?: string;
+        mode?: 'v1' | 'v2';
+        impCode?: string;
+        billingPg?: string;
       };
-      if (!data?.storeId || !data?.channelKey) {
-        setSubmitError('빌링키 설정 값이 올바르지 않습니다.');
+      if (data?.mode !== 'v1' || !data?.impCode || !data?.billingPg) {
+        setSubmitError('Fund 카드 등록은 V1 채널 설정이 필요합니다.');
         return;
       }
+      if (!window.IMP) {
+        setSubmitError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      window.IMP.init(data.impCode);
 
       const issueId = `fund-billing-${Date.now()}`;
-      const response = await (PortOne as any).requestIssueBillingKey({
-        storeId: data.storeId,
-        channelKey: data.channelKey,
-        issueId,
-        billingKeyMethod: 'CARD',
-        issueName: 'Fund 카드 등록',
-        customer: {
-          fullName: receiverName.trim() || undefined,
-          phoneNumber: receiverPhone.trim() || undefined,
-        },
+      const response = await new Promise<{
+        success?: boolean;
+        customer_uid?: string;
+        error_msg?: string;
+      }>((resolve) => {
+        window.IMP?.request_pay(
+          {
+            pg: data.billingPg,
+            pay_method: 'card',
+            amount: 0,
+            customer_uid: issueId,
+            merchant_uid: `fund-billing-merchant-${Date.now()}`,
+            name: 'Fund 카드 등록',
+            buyer_name: receiverName.trim() || undefined,
+            buyer_tel: receiverPhone.trim() || undefined,
+          },
+          resolve
+        );
       });
 
-      if (response?.code != null) {
-        setSubmitError(response?.message ?? '빌링키 발급에 실패했습니다.');
+      if (!response?.success) {
+        setSubmitError(response?.error_msg ?? '빌링키 발급에 실패했습니다.');
         return;
       }
 
-      const issuedKey = typeof response?.billingKey === 'string' ? response.billingKey.trim() : '';
+      const issuedKey = typeof response?.customer_uid === 'string' ? response.customer_uid.trim() : '';
       if (!issuedKey) {
         setSubmitError('빌링키 발급 응답이 올바르지 않습니다.');
         return;
@@ -373,6 +403,7 @@ function ShopOrdersPageContent() {
   return (
     <div className="min-h-screen w-full bg-neutral-3">
       <Script src={POSTCODE_SCRIPT} strategy="lazyOnload" />
+      <Script src={IAMPORT_V1_SCRIPT} strategy="beforeInteractive" />
       <NavBar variant="title-back" title="주문하기" />
 
       <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[25px]">

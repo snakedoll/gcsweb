@@ -6,6 +6,7 @@
  */
 
 const API_BASE = 'https://api.portone.io';
+const API_V1_BASE = 'https://api.iamport.kr';
 
 function getSecret(): string {
   return process.env.PORTONE_API_SECRET ?? '';
@@ -17,6 +18,8 @@ function getConfig() {
     channelKey: process.env.PORTONE_CHANNEL_KEY ?? '',
     billingChannelKey: process.env.PORTONE_BILLING_CHANNEL_KEY ?? '',
     apiSecret: getSecret(),
+    v1ApiKey: process.env.PORTONE_V1_API_KEY ?? '',
+    v1ApiSecret: process.env.PORTONE_V1_API_SECRET ?? '',
   };
 }
 
@@ -117,6 +120,53 @@ export async function chargeWithBillingKey(params: {
   code?: string;
   message?: string;
 }> {
+  const { v1ApiKey, v1ApiSecret } = getConfig();
+  if (v1ApiKey && v1ApiSecret) {
+    const tokenRes = await fetch(`${API_V1_BASE}/users/getToken`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imp_key: v1ApiKey,
+        imp_secret: v1ApiSecret,
+      }),
+    });
+    const tokenJson = await tokenRes.json().catch(() => ({}));
+    const accessToken = tokenJson?.response?.access_token as string | undefined;
+    if (!tokenRes.ok || !accessToken) {
+      return {
+        success: false,
+        code: tokenJson?.code ? String(tokenJson.code) : 'V1_TOKEN_ERROR',
+        message: tokenJson?.message ?? 'V1 access token 발급 실패',
+      };
+    }
+
+    const payRes = await fetch(`${API_V1_BASE}/subscribe/payments/again`, {
+      method: 'POST',
+      headers: {
+        Authorization: accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customer_uid: params.billingKey,
+        merchant_uid: params.paymentId,
+        amount: params.totalAmount,
+        name: params.orderName,
+        buyer_name: params.customerName,
+        buyer_tel: params.customerMobile?.replace(/\D/g, ''),
+      }),
+    });
+    const payJson = await payRes.json().catch(() => ({}));
+    const payCode = payJson?.code;
+    const payStatus = payJson?.response?.status as string | undefined;
+    const paid = payCode === 0 && payStatus === 'paid';
+    return {
+      success: paid,
+      status: payStatus,
+      code: paid ? undefined : (payCode != null ? String(payCode) : 'V1_PAYMENT_ERROR'),
+      message: paid ? undefined : (payJson?.message ?? 'V1 빌링 결제 실패'),
+    };
+  }
+
   const secret = getSecret();
   if (!secret) {
     return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_API_SECRET 미설정' };
