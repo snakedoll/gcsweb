@@ -9,24 +9,6 @@ import Button from '@/components/ui/button/Button';
 import Dropdown from '@/components/ui/button/Dropdown';
 
 const POSTCODE_SCRIPT = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-const IAMPORT_V1_SCRIPT = 'https://cdn.iamport.kr/v1/iamport.js';
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-declare global {
-  interface Window {
-    IMP?: {
-      init: (impCode: string) => void;
-      request_pay: (
-        params: Record<string, unknown>,
-        callback: (rsp: {
-          success?: boolean;
-          customer_uid?: string;
-          error_msg?: string;
-        }) => void
-      ) => void;
-    };
-  }
-}
 
 type CartApiItem = {
   cartItemId: string;
@@ -142,7 +124,10 @@ function ShopOrdersPageContent() {
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [billingKey, setBillingKey] = useState<string | null>(null);
   const [isIssuingBillingKey, setIsIssuingBillingKey] = useState(false);
-  const [isImpReady, setIsImpReady] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardBirth, setCardBirth] = useState('');
+  const [cardPwd2digit, setCardPwd2digit] = useState('');
   const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState<number | null>(null);
   const openAddressSearch = () => {
     const Postcode = typeof window !== 'undefined' && (window.kakao?.Postcode ?? window.daum?.Postcode);
@@ -174,12 +159,6 @@ function ShopOrdersPageContent() {
       .filter(Boolean);
     return ids.length > 0 ? new Set(ids) : null;
   }, [searchParams]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.IMP) {
-      setIsImpReady(true);
-    }
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -256,73 +235,50 @@ function ShopOrdersPageContent() {
     addressDetail.trim().length > 0 &&
     ((paymentMethod === 0 && cardCompany !== null && Boolean(billingKey)) || (paymentMethod === 1 && bankCode !== null));
 
+  const canRegisterCard =
+    paymentMethod === 0 &&
+    cardCompany !== null &&
+    cardNumber.replace(/\D/g, '').length >= 14 &&
+    cardExpiry.replace(/\D/g, '').length === 4 &&
+    cardBirth.replace(/\D/g, '').length === 6 &&
+    cardPwd2digit.replace(/\D/g, '').length === 2 &&
+    receiverName.trim().length > 0 &&
+    receiverPhone.trim().length > 0;
+
   const handleIssueBillingKey = async () => {
     if (isIssuingBillingKey) return;
     setSubmitError(null);
     setIsIssuingBillingKey(true);
     try {
-      const configRes = await fetch('/api/v1/payment/portone/billing-config', { cache: 'no-store' });
-      const configJson = await configRes.json().catch(() => ({}));
-      if (!configRes.ok || configJson?.status !== 'success') {
-        setSubmitError(configJson?.message ?? '빌링키 설정 정보를 불러오지 못했습니다.');
-        return;
-      }
-
-      const data = configJson.data as {
-        mode?: 'v1' | 'v2';
-        impCode?: string;
-        billingPg?: string;
-      };
-      if (data?.mode !== 'v1' || !data?.impCode || !data?.billingPg) {
-        setSubmitError('Fund 카드 등록은 V1 채널 설정이 필요합니다.');
-        return;
-      }
-      let imp = window.IMP;
-      for (let attempt = 0; !imp && attempt < 5; attempt += 1) {
-        await wait(300);
-        imp = window.IMP;
-      }
-      if (!imp) {
-        setSubmitError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-        return;
-      }
-      imp.init(data.impCode);
-
-      const issueId = `fund${Date.now()}`;
-      const response = await new Promise<{
-        success?: boolean;
-        customer_uid?: string;
-        error_msg?: string;
-      }>((resolve) => {
-        imp.request_pay(
-          {
-            pg: data.billingPg,
-            pay_method: 'card',
-            amount: 0,
-            customer_uid: issueId,
-            merchant_uid: `fund-billing-merchant-${Date.now()}`,
-            name: 'Fund 카드 등록',
-            buyer_email: 'no-reply@gcsweb.kr',
-            buyer_name: receiverName.trim() || undefined,
-            buyer_tel: receiverPhone.trim() || undefined,
-          },
-          resolve
-        );
+      const generatedCustomerUid = `fund-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const reserveRes = await fetch('/api/v1/fund/billing/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerUid: generatedCustomerUid,
+          cardNumber: cardNumber.trim(),
+          expiry: cardExpiry.trim(),
+          birth: cardBirth.trim(),
+          pwd2digit: cardPwd2digit.trim(),
+          buyerName: receiverName.trim(),
+          buyerTel: receiverPhone.trim(),
+          buyerEmail: 'no-reply@gcsweb.kr',
+        }),
       });
-
-      if (!response?.success) {
-        setSubmitError(response?.error_msg ?? '빌링키 발급에 실패했습니다.');
+      const reserveJson = await reserveRes.json().catch(() => ({}));
+      if (!reserveRes.ok || reserveJson?.status !== 'success') {
+        setSubmitError(reserveJson?.message ?? '카드 예약 등록에 실패했습니다.');
         return;
       }
 
-      const issuedKey = typeof response?.customer_uid === 'string' ? response.customer_uid.trim() : '';
+      const issuedKey = typeof reserveJson?.data?.customerUid === 'string' ? reserveJson.data.customerUid.trim() : '';
       if (!issuedKey) {
         setSubmitError('빌링키 발급 응답이 올바르지 않습니다.');
         return;
       }
 
       setBillingKey(issuedKey);
-      window.alert('카드 등록이 완료되었습니다.');
+      window.alert('카드 예약 등록이 완료되었습니다. 실제 결제는 만기 조건 충족 시 진행됩니다.');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '빌링키 발급에 실패했습니다.');
     } finally {
@@ -417,12 +373,6 @@ function ShopOrdersPageContent() {
   return (
     <div className="min-h-screen w-full bg-neutral-3">
       <Script src={POSTCODE_SCRIPT} strategy="lazyOnload" />
-      <Script
-        src={IAMPORT_V1_SCRIPT}
-        strategy="afterInteractive"
-        onLoad={() => setIsImpReady(true)}
-        onError={() => setIsImpReady(false)}
-      />
       <NavBar variant="title-back" title="주문하기" />
 
       <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[25px]">
@@ -531,21 +481,54 @@ function ShopOrdersPageContent() {
                 items={CARD_COMPANY_ITEMS}
                 onSelect={(value) => setCardCompany(Number(value))}
               />
+              <TextField
+                id="card-number"
+                label=""
+                placeholder="카드번호(숫자만)"
+                state={cardNumber ? 'filled' : 'default'}
+                inputProps={{ value: cardNumber, onChange: (e) => setCardNumber(e.target.value.replace(/[^\d]/g, '')) }}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <TextField
+                  id="card-expiry"
+                  label=""
+                  placeholder="유효기간(MMYY)"
+                  state={cardExpiry ? 'filled' : 'default'}
+                  inputProps={{ value: cardExpiry, onChange: (e) => setCardExpiry(e.target.value.replace(/[^\d]/g, '').slice(0, 4)) }}
+                />
+                <TextField
+                  id="card-birth"
+                  label=""
+                  placeholder="생년월일(YYMMDD)"
+                  state={cardBirth ? 'filled' : 'default'}
+                  inputProps={{ value: cardBirth, onChange: (e) => setCardBirth(e.target.value.replace(/[^\d]/g, '').slice(0, 6)) }}
+                />
+              </div>
+              <TextField
+                id="card-pwd2"
+                label=""
+                placeholder="카드 비밀번호 앞 2자리"
+                state={cardPwd2digit ? 'filled' : 'default'}
+                inputProps={{ value: cardPwd2digit, onChange: (e) => setCardPwd2digit(e.target.value.replace(/[^\d]/g, '').slice(0, 2)) }}
+              />
               <Button
                 size="s"
                 color={billingKey ? 'orange' : 'black'}
                 className="h-[39px] w-auto px-5"
                 onClick={handleIssueBillingKey}
-                disabled={isIssuingBillingKey || !isImpReady}
+                disabled={isIssuingBillingKey || !canRegisterCard}
               >
                 {isIssuingBillingKey
                   ? '카드 등록 중...'
-                  : !isImpReady
-                    ? '결제 모듈 로딩 중...'
+                  : !canRegisterCard
+                    ? '입력값 확인 중...'
                     : billingKey
                       ? '카드 등록 완료'
                       : '카드 등록'}
               </Button>
+              <p className="typo-body-xsmall text-neutral-9">
+                카드 등록 시 1원 승인 후 즉시 취소되며, 실제 결제는 만기 조건 충족 시 자동으로 진행됩니다.
+              </p>
             </div>
           ) : null}
 

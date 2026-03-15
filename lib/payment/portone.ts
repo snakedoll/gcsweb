@@ -23,6 +23,33 @@ function getConfig() {
   };
 }
 
+async function getV1AccessToken(): Promise<{ success: true; accessToken: string } | { success: false; code: string; message: string }> {
+  const { v1ApiKey, v1ApiSecret } = getConfig();
+  if (!v1ApiKey || !v1ApiSecret) {
+    return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_V1_API_KEY/SECRET 미설정' };
+  }
+
+  const tokenRes = await fetch(`${API_V1_BASE}/users/getToken`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      imp_key: v1ApiKey,
+      imp_secret: v1ApiSecret,
+    }),
+  });
+  const tokenJson = await tokenRes.json().catch(() => ({}));
+  const accessToken = tokenJson?.response?.access_token as string | undefined;
+  if (!tokenRes.ok || !accessToken) {
+    return {
+      success: false,
+      code: tokenJson?.code ? String(tokenJson.code) : 'V1_TOKEN_ERROR',
+      message: tokenJson?.message ?? 'V1 access token 발급 실패',
+    };
+  }
+
+  return { success: true, accessToken };
+}
+
 export function isPortoneConfigured(): boolean {
   const { storeId, channelKey, apiSecret } = getConfig();
   return Boolean(storeId && channelKey && apiSecret);
@@ -122,28 +149,15 @@ export async function chargeWithBillingKey(params: {
 }> {
   const { v1ApiKey, v1ApiSecret } = getConfig();
   if (v1ApiKey && v1ApiSecret) {
-    const tokenRes = await fetch(`${API_V1_BASE}/users/getToken`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imp_key: v1ApiKey,
-        imp_secret: v1ApiSecret,
-      }),
-    });
-    const tokenJson = await tokenRes.json().catch(() => ({}));
-    const accessToken = tokenJson?.response?.access_token as string | undefined;
-    if (!tokenRes.ok || !accessToken) {
-      return {
-        success: false,
-        code: tokenJson?.code ? String(tokenJson.code) : 'V1_TOKEN_ERROR',
-        message: tokenJson?.message ?? 'V1 access token 발급 실패',
-      };
+    const tokenResult = await getV1AccessToken();
+    if (!tokenResult.success) {
+      return tokenResult;
     }
 
     const payRes = await fetch(`${API_V1_BASE}/subscribe/payments/again`, {
       method: 'POST',
       headers: {
-        Authorization: accessToken,
+        Authorization: tokenResult.accessToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -213,4 +227,107 @@ export async function chargeWithBillingKey(params: {
     code: paid ? undefined : data?.code,
     message: paid ? undefined : data?.message ?? '결제 미완료',
   };
+}
+
+export async function issueBillingKeyWithOnetime(params: {
+  customerUid: string;
+  merchantUid: string;
+  cardNumber: string;
+  expiry: string;
+  birth: string;
+  pwd2digit: string;
+  buyerName?: string;
+  buyerTel?: string;
+  buyerEmail?: string;
+}): Promise<{
+  success: boolean;
+  impUid?: string;
+  customerUid?: string;
+  code?: string;
+  message?: string;
+}> {
+  const tokenResult = await getV1AccessToken();
+  if (!tokenResult.success) {
+    return tokenResult;
+  }
+
+  const onetimeRes = await fetch(`${API_V1_BASE}/subscribe/payments/onetime`, {
+    method: 'POST',
+    headers: {
+      Authorization: tokenResult.accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      customer_uid: params.customerUid,
+      merchant_uid: params.merchantUid,
+      amount: 1,
+      card_number: params.cardNumber.replace(/\D/g, ''),
+      expiry: params.expiry,
+      birth: params.birth,
+      pwd_2digit: params.pwd2digit,
+      buyer_name: params.buyerName,
+      buyer_tel: params.buyerTel?.replace(/\D/g, ''),
+      buyer_email: params.buyerEmail,
+      name: 'Fund 예약 결제 등록',
+    }),
+  });
+  const onetimeJson = await onetimeRes.json().catch(() => ({}));
+  const code = onetimeJson?.code;
+  const response = onetimeJson?.response ?? {};
+  const paid = code === 0 && response?.status === 'paid';
+  const impUid = typeof response?.imp_uid === 'string' ? response.imp_uid : undefined;
+  const customerUid = typeof response?.customer_uid === 'string' ? response.customer_uid : params.customerUid;
+  if (!onetimeRes.ok || !paid || !impUid) {
+    return {
+      success: false,
+      code: code != null ? String(code) : 'V1_ONETIME_ERROR',
+      message: onetimeJson?.message ?? 'V1 onetime 빌링키 발급 실패',
+    };
+  }
+
+  return {
+    success: true,
+    impUid,
+    customerUid,
+  };
+}
+
+export async function cancelV1Payment(params: {
+  impUid: string;
+  amount: number;
+  reason?: string;
+}): Promise<{
+  success: boolean;
+  code?: string;
+  message?: string;
+}> {
+  const tokenResult = await getV1AccessToken();
+  if (!tokenResult.success) {
+    return tokenResult;
+  }
+
+  const cancelRes = await fetch(`${API_V1_BASE}/payments/cancel`, {
+    method: 'POST',
+    headers: {
+      Authorization: tokenResult.accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      imp_uid: params.impUid,
+      amount: params.amount,
+      reason: params.reason ?? 'Fund 예약 결제 등록 즉시취소',
+      checksum: params.amount,
+    }),
+  });
+  const cancelJson = await cancelRes.json().catch(() => ({}));
+  const code = cancelJson?.code;
+  if (!cancelRes.ok || code !== 0) {
+    return {
+      success: false,
+      code: code != null ? String(code) : 'V1_CANCEL_ERROR',
+      message: cancelJson?.message ?? 'V1 결제 취소 실패',
+    };
+  }
+
+  return { success: true };
 }

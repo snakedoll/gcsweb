@@ -80,6 +80,7 @@ export async function POST(request: Request) {
         failed += 1;
         console.error('[FundAutoCharge] charge failed', {
           orderId: order.id,
+          hasBillingKey: Boolean(billingKey),
           code: result.code ?? null,
           message: result.message ?? null,
         });
