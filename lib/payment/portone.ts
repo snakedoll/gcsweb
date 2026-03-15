@@ -17,6 +17,7 @@ function getConfig() {
     storeId: process.env.PORTONE_STORE_ID ?? '',
     channelKey: process.env.PORTONE_CHANNEL_KEY ?? '',
     billingChannelKey: process.env.PORTONE_BILLING_CHANNEL_KEY ?? '',
+    billingPg: process.env.PORTONE_BILLING_PG ?? '',
     apiSecret: getSecret(),
     v1ApiKey: process.env.PORTONE_V1_API_KEY ?? '',
     v1ApiSecret: process.env.PORTONE_V1_API_SECRET ?? '',
@@ -246,6 +247,11 @@ export async function issueBillingKeyWithOnetime(params: {
   code?: string;
   message?: string;
 }> {
+  const { billingPg } = getConfig();
+  if (!billingPg) {
+    return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_BILLING_PG 미설정' };
+  }
+
   const tokenResult = await getV1AccessToken();
   if (!tokenResult.success) {
     return tokenResult;
@@ -258,6 +264,7 @@ export async function issueBillingKeyWithOnetime(params: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      pg: billingPg,
       customer_uid: params.customerUid,
       merchant_uid: params.merchantUid,
       amount: 1,
