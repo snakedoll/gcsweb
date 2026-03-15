@@ -36,7 +36,7 @@ export function getPortoneBillingChannelKey(): string {
 
 /**
  * 결제 단건 조회 (검증용)
- * merchant_uid(주문ID)로 조회. PortOne API: GET /payments/find/{merchant_uid}/{payment_status}
+ * paymentId(주문ID)로 조회. PortOne API: GET /payments/{paymentId}
  */
 export async function getPayment(merchantUid: string): Promise<{
   success: boolean;
@@ -50,10 +50,9 @@ export async function getPayment(merchantUid: string): Promise<{
     return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_API_SECRET 미설정' };
   }
 
-  const res = await fetch(
-    `${API_BASE}/payments/find/${encodeURIComponent(merchantUid)}/paid`,
-    { headers: { Authorization: `PortOne ${secret}` } },
-  );
+  const res = await fetch(`${API_BASE}/payments/${encodeURIComponent(merchantUid)}`, {
+    headers: { Authorization: `PortOne ${secret}` },
+  });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

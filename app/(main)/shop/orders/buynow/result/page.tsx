@@ -35,21 +35,34 @@ function ResultContent() {
     }
 
     let cancelled = false;
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     (async () => {
-      const res = await fetch(`/api/v1/shop/orders/${orderId}/payment/portone/verify`, {
-        method: 'POST',
-      });
-      const json = await res.json().catch(() => ({}));
-      if (cancelled) return;
+      let lastMessage = '결제가 완료되지 않았습니다.';
 
-      const verified = json?.data?.verified === true;
-      setStatus(verified ? 'success' : 'fail');
-      setMessage(
-        verified
-          ? '주문이 완료되었습니다.'
-          : json?.data?.message ?? '결제가 완료되지 않았습니다.',
-      );
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const res = await fetch(`/api/v1/shop/orders/${orderId}/payment/portone/verify`, {
+          method: 'POST',
+        });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+
+        const verified = json?.data?.verified === true;
+        if (verified) {
+          setStatus('success');
+          setMessage('주문이 완료되었습니다.');
+          return;
+        }
+
+        lastMessage = json?.data?.message ?? lastMessage;
+        if (attempt < 2) {
+          await delay(1200);
+        }
+      }
+
+      if (cancelled) return;
+      setStatus('fail');
+      setMessage(lastMessage);
     })();
 
     return () => {
