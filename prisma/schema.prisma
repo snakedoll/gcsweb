@@ -168,7 +168,7 @@ model ProductUpdateRequest {
   id                  String                       @id @default(cuid())
   productId           String
   requestType         Int  
-  requestedByUserId   String                        @default(0)
+  requestedByUserId   String
   teamId              String
   name                String
   description         String
