@@ -143,7 +143,7 @@ model ProductVariant {
   productId   String
   variantName String?
   optionSignature String   // 조합 고유키 (예: "color=black|size=m")
-  price       Int
+  unitPrice   Int
   isSoldOut   Boolean  @default(false) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

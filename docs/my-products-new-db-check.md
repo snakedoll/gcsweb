@@ -49,7 +49,7 @@
 | ERD ProductOption | 현재 Prisma | 비고 |
 |-------------------|-------------|------|
 | name, price, stock | ProductOption: optionName. ProductOptionValue: value, additionalPrice | 옵션명·값·추가가격 구조로 폼과 일치. 옵션별 price/stock은 Variant 쪽에 있음. |
-| - | ProductVariant (variantName, price, stock) | 옵션 조합별 가격·재고는 Variant로 저장 가능. |
+| - | ProductVariant (variantName, unitPrice, stock) | 옵션 조합별 가격·재고는 Variant로 저장 가능. |
 
 폼의 `options: [{ optionName, values: [{ value, extraPrice }] }]` → **ProductOption** + **ProductOptionValue**로 그대로 매핑 가능.
 
@@ -72,7 +72,7 @@ ERD의 Team에 isSalesTeam 등 팀 구분 필드 있음. 현재 스키마에 **i
 - **Product**: teamId, name, description, type, status(0), price, goalAmount, salesStartDate, salesEndDate, receiveMethod, productionStartDate, deliveryStartDate
 - **ProductOption** + **ProductOptionValue**: 상품 유형별 옵션(optionName, value, additionalPrice)
 - **ProductImage**: 썸네일 1장, 상세 이미지 배열
-- **ProductVariant**: 옵션 조합별 price/stock이 필요하면 추가 구현 가능
+- **ProductVariant**: 옵션 조합별 unitPrice/stock이 필요하면 추가 구현 가능
 
 즉, **Buy Now**와 **Fund 중 택배 배송(제작·배송 종료일 없이)** 까지는 현재 테이블만으로 등록 요청 데이터를 넣을 수 있음.
 
