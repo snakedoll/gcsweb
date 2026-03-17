@@ -479,7 +479,7 @@ export default function ShopDetailPage() {
     if (!product || addingCart || saleStatus !== 'active') return;
 
     if (!isAuthenticated) {
-      if (product.type === 1 && action.mode === 'order') {
+      if (product.type === 1) {
         const guestItems = buildGuestOrderItems(action);
         try {
           sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestItems));
@@ -579,10 +579,6 @@ export default function ShopDetailPage() {
 
   const handleOrder = async () => {
     if (!product || orderDisabled || addingCart) return;
-    if (product.type === 0 && !isAuthenticated) {
-      setShowLoginOrderModal(true);
-      return;
-    }
     if (product.isInCart) {
       router.push(resolveOrderPagePath(product));
       return;
