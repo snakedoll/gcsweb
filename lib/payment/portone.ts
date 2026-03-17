@@ -292,6 +292,14 @@ export async function issueBillingKeyWithOnetime(params: {
   const impUid = typeof response?.imp_uid === 'string' ? response.imp_uid : undefined;
   const customerUid = typeof response?.customer_uid === 'string' ? response.customer_uid : params.customerUid;
   if (!onetimeRes.ok || !paid || !impUid) {
+    console.error('[PortOne][issueBillingKeyWithOnetime] failure', {
+      httpStatus: onetimeRes.status,
+      code: code != null ? String(code) : null,
+      message: onetimeJson?.message ?? null,
+      expirySent: expiryForV1,
+      hasBirth: Boolean(params.birth),
+      pg: billingPg,
+    });
     return {
       success: false,
       code: code != null ? String(code) : 'V1_ONETIME_ERROR',
