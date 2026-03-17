@@ -143,13 +143,17 @@ model ProductVariant {
   id          String   @id @default(cuid())
   productId   String
   variantName String?
+  optionSignature String   // 조합 고유키 (예: "color=black|size=m")
   price       Int
-  stock       Int?
+  isSoldOut   Boolean  @default(false) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@unique([productId, optionSignature])
   @@index([productId])
+  @@index([productId, isSoldOut])
+  @@index([productId, status])
 }
 
 model ProductImage {
