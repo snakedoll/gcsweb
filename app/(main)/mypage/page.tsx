@@ -308,7 +308,6 @@ export default function MypagePage() {
           <MenuSection
             title="나의 판매 정보"
             items={[
-              { label: '창작자 가이드', href: '/mypage/creator-guide' },
               { label: '내가 등록한 상품', href: '/mypage/my-products' },
               { label: '나의 판매 활동', href: '/mypage/sales' },
             ]}
