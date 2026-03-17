@@ -38,6 +38,12 @@ interface ProductOption {
   values: ProductOptionValue[];
 }
 
+interface ProductVariantState {
+  id: string;
+  optionSignature: string;
+  isSoldOut: boolean;
+}
+
 interface ShopProductDetail {
   id: string;
   teamId: string;
@@ -63,6 +69,7 @@ interface ShopProductDetail {
   isInCart: boolean;
   price: number;
   options: ProductOption[];
+  variants: ProductVariantState[];
 }
 
 type ProductDetailResponse = {
@@ -176,6 +183,31 @@ function DateBlock({
       </div>
     </div>
   );
+}
+
+function parseVariantSignature(signature: string): Record<string, string> {
+  if (!signature || signature === '__default__' || signature === 'default') return {};
+
+  return signature.split('|').reduce<Record<string, string>>((acc, rawPart) => {
+    const part = rawPart.trim();
+    if (!part) return acc;
+    const equalIndex = part.indexOf('=');
+    if (equalIndex < 0) return acc;
+
+    const rawKey = part.slice(0, equalIndex);
+    const rawValue = part.slice(equalIndex + 1);
+    try {
+      const key = decodeURIComponent(rawKey).trim();
+      const value = decodeURIComponent(rawValue).trim();
+      if (key) acc[key] = value;
+      return acc;
+    } catch {
+      const key = rawKey.trim();
+      const value = rawValue.trim();
+      if (key) acc[key] = value;
+      return acc;
+    }
+  }, {});
 }
 
 export default function ShopDetailPage() {
@@ -315,6 +347,40 @@ export default function ShopDetailPage() {
     }, 0);
   }, [selectedOptionValues, sheetOptions]);
 
+  const selectedVariantIsSoldOut = useMemo(() => {
+    if (!product) return false;
+
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    if (variants.length === 0) return false;
+
+    // Single/default item: evaluate default variant directly.
+    if (requiredOptionIndexes.length === 0) {
+      const defaultVariant = variants.find(
+        (variant) => variant.optionSignature === '__default__' || variant.optionSignature === 'default'
+      );
+      return Boolean(defaultVariant?.isSoldOut);
+    }
+
+    if (!isAllOptionsSelected) return false;
+
+    const selectedMap = new Map<string, string>();
+    for (const index of requiredOptionIndexes) {
+      const option = sheetOptions[index];
+      const selected = selectedOptionValues[index];
+      if (!option?.name || !selected) return false;
+      selectedMap.set(option.name, selected);
+    }
+
+    const matched = variants.find((variant) => {
+      const parsed = parseVariantSignature(variant.optionSignature);
+      const keys = Object.keys(parsed);
+      if (keys.length !== selectedMap.size) return false;
+      return keys.every((key) => selectedMap.get(key) === parsed[key]);
+    });
+
+    return Boolean(matched?.isSoldOut);
+  }, [isAllOptionsSelected, product, requiredOptionIndexes, selectedOptionValues, sheetOptions]);
+
   const cartTotalPrice = useMemo(() => {
     if (!product) return 0;
     return Math.max(0, (product.price + selectedAdditionalAmount) * sheetQuantity);
@@ -322,10 +388,11 @@ export default function ShopDetailPage() {
 
   const cartSheetVariant = useMemo(() => {
     if (saleStatus !== 'active') return '주문 불가';
+    if (selectedVariantIsSoldOut) return '주문 불가';
     if (isAllOptionsSelected) return '선택';
     if (openOptionIndex !== null) return '선택중';
     return '미선택';
-  }, [isAllOptionsSelected, openOptionIndex, saleStatus]);
+  }, [isAllOptionsSelected, openOptionIndex, saleStatus, selectedVariantIsSoldOut]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -638,7 +705,7 @@ export default function ShopDetailPage() {
   };
 
   const handleAddToCart = async () => {
-    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active') return;
+    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active' || selectedVariantIsSoldOut) return;
     await submitWithGuards({
       mode: 'cart',
       quantity: sheetQuantity,
@@ -647,7 +714,7 @@ export default function ShopDetailPage() {
   };
 
   const handleOrderFromSheet = async () => {
-    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active') return;
+    if (!product || addingCart || !isAllOptionsSelected || saleStatus !== 'active' || selectedVariantIsSoldOut) return;
     await submitWithGuards({
       mode: 'order',
       quantity: sheetQuantity,
@@ -817,10 +884,10 @@ export default function ShopDetailPage() {
                 <button
                   type="button"
                   onClick={isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet}
-                  disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled : orderDisabled || addingCart}
+                  disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled || selectedVariantIsSoldOut : orderDisabled || addingCart}
                   className={cn(
                     'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
-                    isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
+                    isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled || selectedVariantIsSoldOut ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
                   )}
                 >
                   {isSheetOpen ? (sheetMode === 'cart' ? '장바구니에 담기' : '주문하기') : '주문하기'}
@@ -844,10 +911,10 @@ export default function ShopDetailPage() {
               <button
                 type="button"
                 onClick={isSheetOpen ? (sheetMode === 'cart' ? handleAddToCart : handleOrderFromSheet) : handleOpenOrderSheet}
-                disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled : orderDisabled || addingCart}
+                disabled={isSheetOpen ? !isAllOptionsSelected || addingCart || orderDisabled || selectedVariantIsSoldOut : orderDisabled || addingCart}
                 className={cn(
                   'h-[48px] min-w-0 flex-1 rounded-lg px-4 typo-body-small-bold text-neutral-2',
-                  isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
+                  isSheetOpen ? (!isAllOptionsSelected || addingCart || orderDisabled || selectedVariantIsSoldOut ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5') : orderDisabled || addingCart ? 'cursor-not-allowed bg-orange-3' : 'cursor-pointer bg-orange-5'
                 )}
               >
                 {isSheetOpen ? (sheetMode === 'cart' ? '장바구니에 담기' : '주문하기') : '주문하기'}
