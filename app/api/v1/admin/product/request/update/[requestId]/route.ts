@@ -241,9 +241,9 @@ export async function PATCH(
 
     // 승인: 수정 요청 내용을 기존 상품에 반영
     const image = requestRow.images?.[0] ?? null;
-    const normalizedOptions: VariantOptionInput[] = (requestRow.options ?? []).map((option) => ({
+    const normalizedOptions: VariantOptionInput[] = (requestRow.options ?? []).map((option: any) => ({
       name: option.optionName,
-      values: (option.values ?? []).map((value) => ({
+      values: (option.values ?? []).map((value: any) => ({
         value: value.value,
         additionalPrice: value.additionalPrice,
       })),
