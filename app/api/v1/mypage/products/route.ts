@@ -4,13 +4,13 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 
-/** 내가 속한 팀(팀장 또는 팀원)의 상품 목록 */
+/** ?닿? ?랁븳 ?(????먮뒗 ??????곹뭹 紐⑸줉 */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??' },
         { status: 401 }
       );
     }
@@ -60,7 +60,7 @@ export async function GET() {
   } catch (error) {
     console.error('My products list error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 'error', code: 'SERVER_ERROR', message: '?쒕쾭 ?대? ?ㅻ쪟' },
       { status: 500 }
     );
   }
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??' },
         { status: 401 }
       );
     }
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)는 필수입니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)???꾩닔?낅땲??' },
         { status: 400 }
       );
     }
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     });
     if (!team) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '해당 팀을 찾을 수 없습니다.' },
+        { status: 'error', code: 'NOT_FOUND', message: '?대떦 ???李얠쓣 ???놁뒿?덈떎.' },
         { status: 404 }
       );
     }
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
     const canCreate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canCreate) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '해당 팀에 상품을 등록할 권한이 없습니다.' },
+        { status: 'error', code: 'FORBIDDEN', message: '?대떦 ????곹뭹???깅줉??沅뚰븳???놁뒿?덈떎.' },
         { status: 403 }
       );
     }
@@ -164,14 +164,14 @@ export async function POST(request: Request) {
           : 0;
     if (priceNum < 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '가격은 0 이상이어야 합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '媛寃⑹? 0 ?댁긽?댁뼱???⑸땲??' },
         { status: 400 }
       );
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '썸네일 이미지 URL은 필수입니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?몃꽕???대?吏 URL? ?꾩닔?낅땲??' },
         { status: 400 }
       );
     }
@@ -184,13 +184,13 @@ export async function POST(request: Request) {
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
     if (!normalizedThumbnailImgUrl) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '유효한 썸네일 이미지 URL이 필요합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?좏슚???몃꽕???대?吏 URL???꾩슂?⑸땲??' },
         { status: 400 }
       );
     }
     if (detailUrls.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1개 이상 필요합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?곸꽭 ?대?吏??1媛??댁긽 ?꾩슂?⑸땲??' },
         { status: 400 }
       );
     }
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
     const salesEnd = parseDate(salesEndDate);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '판매 시작일/종료일을 올바르게 입력해 주세요.' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?먮ℓ ?쒖옉??醫낅즺?쇱쓣 ?щ컮瑜닿쾶 ?낅젰??二쇱꽭??' },
         { status: 400 }
       );
     }
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Fund ?곹뭹? ?섎졊諛⑹떇(0/1)???꾩슂?⑸땲??' },
           { status: 400 }
         );
       }
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
           !parseDate(deliveryEndDate)
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 제작 기간/배송 기간을 올바르게 입력해 주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: '?덉긽 ?쒖옉 湲곌컙/諛곗넚 湲곌컙???щ컮瑜닿쾶 ?낅젰??二쇱꽭??' },
             { status: 400 }
           );
         }
@@ -230,7 +230,7 @@ export async function POST(request: Request) {
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 수령 기간/수령 장소를 입력해 주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: '?덉긽 ?섎졊 湲곌컙/?섎졊 ?μ냼瑜??낅젰??二쇱꽭??' },
             { status: 400 }
           );
         }
@@ -238,14 +238,14 @@ export async function POST(request: Request) {
     } else if (type === 1) {
       if (receiveMethod !== 1) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow ?곹뭹? receiveMethod=1 ?댁뼱???⑸땲??' },
           { status: 400 }
         );
       }
     } else {
       if (receiveMethod !== null) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp ?곹뭹? receiveMethod=null ?댁뼱???⑸땲??' },
           { status: 400 }
         );
       }
@@ -334,7 +334,6 @@ export async function POST(request: Request) {
           name: name.trim(),
           description: typeof description === 'string' ? description.trim() : '',
           type,
-          status: 0,
           price: priceNum,
           goalAmount: resolvedGoalAmount,
           salesStartDate: salesStart,
@@ -392,14 +391,15 @@ export async function POST(request: Request) {
       status: 'success',
       data: {
         productId: product.id,
-        message: '등록 요청이 접수되었습니다. 관리자 확인 후 노출됩니다.',
+        message: '?깅줉 ?붿껌???묒닔?섏뿀?듬땲?? 愿由ъ옄 ?뺤씤 ???몄텧?⑸땲??',
       },
     });
   } catch (error) {
     console.error('Product registration error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 'error', code: 'SERVER_ERROR', message: '?쒕쾭 ?대? ?ㅻ쪟' },
       { status: 500 }
     );
   }
 }
+

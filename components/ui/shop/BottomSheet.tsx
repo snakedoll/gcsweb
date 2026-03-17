@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils';
 import Dropdown from '@/components/ui/button/Dropdown';
+import MinusIconButton from '@/components/ui/common/MinusIconButton';
+import PlusIconButton from '@/components/ui/common/PlusIconButton';
 
 export type BottomSheetVariant = '미선택' | '선택중' | '선택' | '주문 불가';
 
@@ -26,25 +28,6 @@ interface BottomSheetProps {
   onQuantityChange?: (next: number) => void;
 }
 
-function MinusIcon({ disabled }: { disabled: boolean }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="2" y="2" width="20" height="20" rx="5" stroke={disabled ? '#DDDCDB' : '#2F2824'} strokeWidth="1.5" />
-      <path d="M9 12H15" stroke={disabled ? '#DDDCDB' : '#2F2824'} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlusIcon({ disabled }: { disabled: boolean }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="2" y="2" width="20" height="20" rx="5" stroke={disabled ? '#DDDCDB' : '#2F2824'} strokeWidth="1.5" />
-      <path d="M9 12H15" stroke={disabled ? '#DDDCDB' : '#2F2824'} strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M12 9V15" stroke={disabled ? '#DDDCDB' : '#2F2824'} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export default function BottomSheet({
   className,
   variant = '미선택',
@@ -59,14 +42,18 @@ export default function BottomSheet({
 }: BottomSheetProps) {
   const isSelected = variant === '선택';
   const isOrderBlocked = variant === '주문 불가';
-
   const canDecrease = quantity > 1;
 
+  // Figma default states:
+  // - option 2개: 요약 미노출
+  // - option 1개/없음: 요약 노출
+  const shouldShowSummary = !isOrderBlocked && (isSelected || options.length <= 1);
+
   return (
-    <div className={cn('w-[375px] overflow-hidden rounded-t-[30px] bg-neutral-3 pb-4', className)}>
+    <div className={cn('w-[375px] overflow-hidden rounded-t-[30px] bg-neutral-3 pb-5', className)}>
       <div className="px-5">
-        <div className="flex h-6 items-center justify-center bg-white">
-          <span className="h-1 w-11 rounded bg-[#DEDEDE]" />
+        <div className="relative h-6 w-full opacity-40">
+          <span className="absolute left-1/2 top-2 h-1 w-11 -translate-x-1/2 rounded bg-[#414141]" />
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
@@ -102,7 +89,7 @@ export default function BottomSheet({
 
           {isOrderBlocked ? (
             <p className="typo-body-small whitespace-pre-line text-neutral-7">
-              사이트에서 주문이 불가한 상태입니다.{'\n'}현장 직원에게 문의하세요
+              사인에는 주문이 불가능한 상태입니다.{'\n'}현장 직원에게 문의하세요.
             </p>
           ) : (
             <div className="flex items-center gap-2">
@@ -113,11 +100,11 @@ export default function BottomSheet({
                 disabled={!canDecrease}
                 aria-label="수량 감소"
               >
-                <MinusIcon disabled={!canDecrease} />
+                <MinusIconButton disabled={!canDecrease} />
               </button>
 
-              <div className="flex h-[30px] w-[31px] items-center justify-center rounded-[8px] border border-neutral-5 bg-neutral-2">
-                <span className="typo-body-xsmall text-neutral-7">{quantity}</span>
+              <div className="flex h-[30px] w-[22px] items-center justify-center rounded-[8px] border border-neutral-6 bg-neutral-2 px-2 py-1">
+                <span className="typo-body-xsmall text-neutral-12">{quantity}</span>
               </div>
 
               <button
@@ -126,12 +113,12 @@ export default function BottomSheet({
                 onClick={() => onQuantityChange?.(quantity + 1)}
                 aria-label="수량 증가"
               >
-                <PlusIcon disabled={false} />
+                <PlusIconButton disabled={false} />
               </button>
             </div>
           )}
 
-          {isSelected ? (
+          {shouldShowSummary ? (
             <>
               <div className="border-t border-dashed border-neutral-5" />
               <div className="flex items-center justify-between">

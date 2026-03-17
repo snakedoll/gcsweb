@@ -73,39 +73,38 @@ model Product {
   name                String
   description         String
   type                Int                    @default(0)
+  receiveMethod       Int?
   status              Int                    @default(0)
-  price               Int
-  goalAmount          Int?
-  currentAmount       Int                    @default(0)
   salesStartDate      DateTime
   salesEndDate        DateTime
+  goalAmount          Int?
+  currentAmount       Int                    @default(0)
   productionStartDate DateTime?
+  productionEndDate   DateTime?
   deliveryStartDate   DateTime?
-  receiveMethod       Int?
+  deliveryEndDate     DateTime?
+  pickupStartDate     DateTime?
+  pickupEndDate       DateTime?
+  pickupLocation      String?
+  price               Int
+  options             ProductOption[]
   isPublic            Boolean                @default(false)
   likeCount           Int                    @default(0)
   viewCount           Int                    @default(0)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
-  productionEndDate   DateTime?
-  deliveryEndDate     DateTime?
-  pickupStartDate     DateTime?
-  pickupEndDate       DateTime?
-  pickupLocation      String?
   isHome              Boolean                @default(false)
   isAdminApproved     Boolean                @default(false)
   publicAt            DateTime?
-  isSoldOut           Boolean                @default(false)
   cartItems           CartItem[]
-  likes               Like[]
   orderItems          OrderItem[]
   team                Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images              ProductImage[]         @relation("ProductImages")
-  options             ProductOption[]
   updateRequests      ProductUpdateRequest[]
   variants            ProductVariant[]
-  reviews             Review[]
+  likes               Like[]
   scraps              Scrap[]
+  reviews             Review[]
 
   @@index([teamId])
   @@index([type])
@@ -143,13 +142,16 @@ model ProductVariant {
   id          String   @id @default(cuid())
   productId   String
   variantName String?
-  price       Int
-  stock       Int?
+  optionSignature String   // 조합 고유키 (예: "color=black|size=m")
+  unitPrice   Int
+  isSoldOut   Boolean  @default(false) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@unique([productId, optionSignature])
   @@index([productId])
+  @@index([productId, isSoldOut])
 }
 
 model ProductImage {
@@ -167,17 +169,16 @@ model ProductImage {
 model ProductUpdateRequest {
   id                  String                       @id @default(cuid())
   productId           String
+  requestType         Int  
   requestedByUserId   String
   teamId              String
-  requestType         Int                          @default(0)
   name                String
   description         String
   type                Int                          @default(0)
-  status              Int                          @default(0)
-  price               Int
-  goalAmount          Int?
+  receiveMethod       Int?
   salesStartDate      DateTime
   salesEndDate        DateTime
+  goalAmount          Int?
   productionStartDate DateTime?
   productionEndDate   DateTime?
   deliveryStartDate   DateTime?
@@ -185,14 +186,14 @@ model ProductUpdateRequest {
   pickupStartDate     DateTime?
   pickupEndDate       DateTime?
   pickupLocation      String?
-  receiveMethod       Int?
+  price               Int
+  options             ProductUpdateRequestOption[]
   requestedAt         DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   product             Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
   requestedBy         User                         @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
   team                Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images              ProductUpdateRequestImage[]
-  options             ProductUpdateRequestOption[]
 
   @@index([productId])
   @@index([requestedByUserId])

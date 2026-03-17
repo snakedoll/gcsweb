@@ -1,4 +1,4 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -354,7 +354,6 @@ export async function PATCH(
           name: name.trim(),
           description: typeof description === 'string' ? description.trim() : '',
           type,
-          status: 0,
           price: priceNum,
           goalAmount: resolvedGoalAmount,
           salesStartDate: salesStart,
@@ -423,3 +422,4 @@ export async function PATCH(
     );
   }
 }
+
