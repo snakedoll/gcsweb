@@ -156,14 +156,14 @@ export default function AdminUpdateRequestStep3Page() {
         const json = (await res.json().catch(() => ({}))) as UpdateRequestDetailResponse;
 
         if (!res.ok || json.status !== 'success') {
-          throw new Error(json.message ?? '?섏젙 ?붿껌 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??');
+          throw new Error(json.message ?? '수정 요청 정보를 불러오지 못했습니다.');
         }
 
         const item = json.data?.request;
         if (cancelled) return;
 
         if (!item) {
-          setLoadError('?섏젙 ?붿껌 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.');
+          setLoadError('수정 요청 정보를 찾을 수 없습니다.');
           return;
         }
 
@@ -173,7 +173,7 @@ export default function AdminUpdateRequestStep3Page() {
         setLoadError(null);
       } catch (error: any) {
         console.error(error);
-        if (!cancelled) setLoadError(error?.message ?? '?섏젙 ?붿껌 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??');
+        if (!cancelled) setLoadError(error?.message ?? '수정 요청 정보를 불러오지 못했습니다.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -196,12 +196,12 @@ export default function AdminUpdateRequestStep3Page() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.status !== 'success') {
-        throw new Error(json?.message ?? '?뱀씤 泥섎━???ㅽ뙣?덉뒿?덈떎.');
+        throw new Error(json?.message ?? '승인 처리에 실패했습니다.');
       }
 
       router.push('/admin/product/request/update?toast=approve');
     } catch (error: any) {
-      alert(error?.message ?? '?뱀씤 泥섎━???ㅽ뙣?덉뒿?덈떎.');
+      alert(error?.message ?? '승인 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
       setShowApproveModal(false);
@@ -220,12 +220,12 @@ export default function AdminUpdateRequestStep3Page() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.status !== 'success') {
-        throw new Error(json?.message ?? '嫄곕? 泥섎━???ㅽ뙣?덉뒿?덈떎.');
+        throw new Error(json?.message ?? '거절 처리에 실패했습니다.');
       }
 
       router.push('/admin/product/request/update?toast=reject');
     } catch (error: any) {
-      alert(error?.message ?? '嫄곕? 泥섎━???ㅽ뙣?덉뒿?덈떎.');
+      alert(error?.message ?? '거절 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
       setShowRejectModal(false);
@@ -236,9 +236,9 @@ export default function AdminUpdateRequestStep3Page() {
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="?곹뭹 ?섏젙" />
+          <NavBar variant="title-back" title="상품 수정" />
 
-          {/* 吏꾪뻾諛? Buy Now/Partner Up? 2?④퀎瑜??ㅽ궢??*/}
+          {/* 진행바: Buy Now/Partner Up은 2단계를 스킵 */}
           <div className="flex items-center justify-center py-[14px]">
             <div className="flex items-center gap-[14px]">
               <StepProgress status="complete" />
@@ -250,7 +250,7 @@ export default function AdminUpdateRequestStep3Page() {
           <div className="px-4">
             {loading ? (
               <div className="py-8 text-center">
-                <p className="typo-body-small text-neutral-8">?섏젙 ?붿껌 ?뺣낫瑜?遺덈윭?ㅻ뒗 以?..</p>
+                <p className="typo-body-small text-neutral-8">수정 요청 정보를 불러오는 중...</p>
               </div>
             ) : loadError ? (
               <div className="py-8 text-center">
@@ -258,7 +258,7 @@ export default function AdminUpdateRequestStep3Page() {
               </div>
             ) : (
               <div className="flex flex-col gap-5">
-                {/* 媛寃?*/}
+                {/* 가격 */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-1">
                     <p className="typo-body-small-bold text-neutral-12">가격</p>
@@ -275,11 +275,11 @@ export default function AdminUpdateRequestStep3Page() {
                   </div>
                 </div>
 
-                {/* ?듭뀡 */}
+                {/* 옵션 */}
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-col gap-0.5">
-                    <p className="typo-body-small-bold text-neutral-12">?듭뀡</p>
-                    <p className="text-[11px] text-neutral-8 font-normal">?듭뀡 異붽????좏깮 ?ы빆?낅땲??</p>
+                    <p className="typo-body-small-bold text-neutral-12">옵션</p>
+                    <p className="text-[11px] text-neutral-8 font-normal">옵션 추가는 선택 사항입니다.</p>
                   </div>
 
                   <div className="flex flex-col gap-4">
@@ -287,7 +287,7 @@ export default function AdminUpdateRequestStep3Page() {
                       <div key={opt.id} className="w-full rounded-xl bg-white p-4 shadow-[0_4px_8px_rgba(0,0,0,0.05)]">
                         <div className="flex flex-col gap-4">
                           <div className="flex items-center justify-between border-b border-transparent pb-1">
-                            <p className="text-[15px] font-bold text-black">?듭뀡 {optIdx + 1}</p>
+                            <p className="text-[15px] font-bold text-black">옵션 {optIdx + 1}</p>
                             <button
                               type="button"
                               onClick={() => {
@@ -301,7 +301,7 @@ export default function AdminUpdateRequestStep3Page() {
                           <div className="flex flex-col gap-1.5">
                             <OptionName
                               className="w-full"
-                              property1={
+                              variant={
                                 duplicateOptionNames.has(opt.name.trim())
                                   ? 'error'
                                   : focusedOptionNameId === opt.id
@@ -329,7 +329,7 @@ export default function AdminUpdateRequestStep3Page() {
                               <OptionVariation
                                 key={v.id}
                                 className="w-full"
-                                property1={
+                                variant={
                                   duplicateOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
                                     ? 'error'
                                     : focusedOptionValueId === v.id
@@ -360,11 +360,15 @@ export default function AdminUpdateRequestStep3Page() {
                                   },
                                   placeholder: '0',
                                 }}
-                                onRemove={() => {
-                                  const next = [...options];
-                                  next[optIdx].values.splice(vIdx, 1);
-                                  setOptions(next);
-                                }}
+                                onRemove={
+                                  opt.values.length > 1
+                                    ? () => {
+                                        const next = [...options];
+                                        next[optIdx].values.splice(vIdx, 1);
+                                        setOptions(next);
+                                      }
+                                    : undefined
+                                }
                               />
                             ))}
                             
@@ -442,7 +446,7 @@ export default function AdminUpdateRequestStep3Page() {
             disabled={actionLoading}
             className="flex h-[55px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-white shadow-sm"
           >
-            <span className="text-[15px] font-bold text-[#3F3835]">嫄곕?</span>
+            <span className="text-[15px] font-bold text-[#3F3835]">거절</span>
           </button>
           <button
             type="button"
@@ -457,10 +461,10 @@ export default function AdminUpdateRequestStep3Page() {
 
       {showApproveModal ? (
         <ConfirmModal
-          title="?섏젙 ?붿껌???뱀씤?섏떆寃좎뒿?덇퉴?"
-          description="?뱀씤 ???곹뭹 ?뺣낫媛 ?섏젙?⑸땲??"
+          title="수정 요청을 승인하시겠습니까?"
+          description="승인 시 상품 정보가 수정됩니다."
           confirmLabel="?뺤씤"
-          cancelLabel="痍⑥냼"
+          cancelLabel="취소"
           onConfirm={handleApproveConfirm}
           onCancel={() => setShowApproveModal(false)}
           confirmColor="orange"
@@ -469,10 +473,10 @@ export default function AdminUpdateRequestStep3Page() {
 
       {showRejectModal ? (
         <ConfirmModal
-          title="?섏젙 ?붿껌??嫄곕??섏떆寃좎뒿?덇퉴?"
-          description="嫄곕? ???섏젙 ?붿껌????젣?⑸땲??"
+          title="수정 요청을 거절하시겠습니까?"
+          description="거절 시 수정 요청은 삭제됩니다."
           confirmLabel="?뺤씤"
-          cancelLabel="痍⑥냼"
+          cancelLabel="취소"
           onConfirm={handleRejectConfirm}
           onCancel={() => setShowRejectModal(false)}
           confirmColor="orange"
@@ -497,3 +501,4 @@ function BackArrowIconV2() {
     </svg>
   );
 }
+

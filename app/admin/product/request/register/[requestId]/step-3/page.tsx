@@ -217,7 +217,7 @@ function ActionModal({
                 disabled={loading}
                 className="flex h-[47px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2"
               >
-                <span className="typo-body-small-bold text-neutral-10">이어쓰기</span>
+                <span className="typo-body-small-bold text-neutral-10">이어서 작성</span>
               </button>
               <button
                 type="button"
@@ -349,7 +349,7 @@ function OptionCardView({
           <div className="flex w-full flex-col gap-3">
             <OptionName
               className="w-full"
-              property1={
+              variant={
                 isDuplicateName ? 'error' : focusedNameId === card.id ? 'focus' : card.name.trim() ? 'filled' : 'Default'
               }
               value={card.name}
@@ -365,7 +365,7 @@ function OptionCardView({
               <OptionVariation
                 key={row.id}
                 className="w-full"
-                property1={
+                variant={
                   duplicateValues.has(row.value.trim())
                     ? 'error'
                     : focusedValueId === row.id
@@ -388,7 +388,7 @@ function OptionCardView({
                   inputMode: 'numeric',
                   placeholder: '0',
                 }}
-                onRemove={() => onRemoveRow(row.id)}
+                onRemove={card.rows.length > 1 ? () => onRemoveRow(row.id) : undefined}
               />
             ))}
           </div>
@@ -711,7 +711,7 @@ export default function AdminRegisterRequestStep3Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="상품글 등록" onBack={goToPreviousStep} />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={goToPreviousStep} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -778,7 +778,11 @@ export default function AdminRegisterRequestStep3Page() {
                       }
                       onRemoveRow={(rowId) =>
                         setCards((prev) =>
-                          prev.map((c) => (c.id === card.id ? { ...c, rows: c.rows.filter((r) => r.id !== rowId) } : c))
+                          prev.map((c) => {
+                            if (c.id !== card.id) return c;
+                            if (c.rows.length <= 1) return c;
+                            return { ...c, rows: c.rows.filter((r) => r.id !== rowId) };
+                          })
                         )
                       }
                       onAddRow={() =>
@@ -826,7 +830,7 @@ export default function AdminRegisterRequestStep3Page() {
                 disabled={loading || !!errorMessage || actionLoading}
                 className="flex h-[55px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2 disabled:cursor-not-allowed disabled:bg-neutral-3"
               >
-                <span className="typo-body-small-bold text-neutral-10">거절</span>
+                <span className="typo-body-small-bold text-neutral-10">거부</span>
               </button>
               <button
                 type="button"
@@ -865,3 +869,4 @@ export default function AdminRegisterRequestStep3Page() {
     </div>
   );
 }
+

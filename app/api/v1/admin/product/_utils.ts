@@ -66,6 +66,7 @@ export function parseAdminOptionsInput(
     const trimmedName = name.trim();
     if (optionNameSet.has(trimmedName)) return { ok: false };
     optionNameSet.add(trimmedName);
+    if (values.length < 1) return { ok: false };
 
     const parsedValues: Array<{ value: string; additionalPrice: number }> = [];
     const valueSet = new Set<string>();

@@ -594,7 +594,14 @@ export default function AdminProductEditPage() {
     });
   const removeOption = (optionId: string) => setOptions((prev) => prev.filter((opt) => opt.id !== optionId));
   const addOptionValue = (optionId: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, values: [...opt.values, { id: `val-${Date.now()}`, value: '', extraPrice: 0 }] } : opt)));
-  const removeOptionValue = (optionId: string, valueId: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, values: opt.values.filter((v) => v.id !== valueId) } : opt)));
+  const removeOptionValue = (optionId: string, valueId: string) =>
+    setOptions((prev) =>
+      prev.map((opt) => {
+        if (opt.id !== optionId) return opt;
+        if (opt.values.length <= 1) return opt;
+        return { ...opt, values: opt.values.filter((v) => v.id !== valueId) };
+      })
+    );
   const updateOptionName = (optionId: string, value: string) => setOptions((prev) => prev.map((opt) => (opt.id === optionId ? { ...opt, optionName: value } : opt)));
   const updateOptionValue = (optionId: string, valueId: string, field: 'value' | 'extraPrice', value: string) =>
     setOptions((prev) =>
@@ -868,7 +875,7 @@ export default function AdminProductEditPage() {
                         <div className="flex w-full flex-col gap-3">
                           <OptionName
                             className="w-full"
-                            property1={
+                            variant={
                               duplicateOptionNames.has(opt.optionName.trim())
                                 ? 'error'
                                 : focusedOptionNameId === opt.id
@@ -891,7 +898,7 @@ export default function AdminProductEditPage() {
                             <OptionVariation
                               key={v.id}
                               className="w-full"
-                              property1={
+                              variant={
                                 duplicateOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
                                   ? 'error'
                                   : focusedOptionValueId === v.id
@@ -914,7 +921,7 @@ export default function AdminProductEditPage() {
                                 onFocus: () => setFocusedOptionValueId(v.id),
                                 onBlur: () => setFocusedOptionValueId((prev) => (prev === v.id ? null : prev)),
                               }}
-                              onRemove={() => removeOptionValue(opt.id, v.id)}
+                              onRemove={opt.values.length > 1 ? () => removeOptionValue(opt.id, v.id) : undefined}
                             />
                           ))}
                         </div>

@@ -10,6 +10,37 @@ function parseDate(str: string | undefined): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
+function parseAndValidateOptions(options: unknown) {
+  if (options == null) return { ok: true as const, value: [] as Array<{ optionName: string; values: Array<{ value: string; extraPrice: number }> }> };
+  if (!Array.isArray(options)) return { ok: false as const };
+
+  const optionNameSet = new Set<string>();
+  const parsed: Array<{ optionName: string; values: Array<{ value: string; extraPrice: number }> }> = [];
+
+  for (const option of options) {
+    if (!option || typeof option !== 'object') return { ok: false as const };
+    const optionName = typeof (option as any).optionName === 'string' ? (option as any).optionName.trim() : '';
+    const values = (option as any).values;
+    if (!optionName || optionNameSet.has(optionName) || !Array.isArray(values) || values.length < 1) return { ok: false as const };
+    optionNameSet.add(optionName);
+
+    const parsedValues: Array<{ value: string; extraPrice: number }> = [];
+    const valueSet = new Set<string>();
+    for (const valueItem of values) {
+      if (!valueItem || typeof valueItem !== 'object') return { ok: false as const };
+      const value = typeof (valueItem as any).value === 'string' ? (valueItem as any).value.trim() : '';
+      const extraPrice = (valueItem as any).extraPrice;
+      if (!value || valueSet.has(value) || !Number.isInteger(extraPrice) || extraPrice < 0) return { ok: false as const };
+      valueSet.add(value);
+      parsedValues.push({ value, extraPrice });
+    }
+
+    parsed.push({ optionName, values: parsedValues });
+  }
+
+  return { ok: true as const, value: parsed };
+}
+
 function isValidProductId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -342,7 +373,14 @@ export async function PATCH(
     const resolvedGoalAmount =
       !Number.isNaN(goalAmountNum) && goalAmountNum >= 0 ? goalAmountNum : null;
 
-    const optionList = Array.isArray(options) ? options : [];
+    const parsedOptions = parseAndValidateOptions(options);
+    if (!parsedOptions.ok) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_OPTION_INPUT', message: '옵션 구조 오류' },
+        { status: 400 }
+      );
+    }
+    const optionList = parsedOptions.value;
 
     const requestRow = await prisma.$transaction(async (tx) => {
       const createdRequest = await tx.productUpdateRequest.create({
@@ -379,18 +417,14 @@ export async function PATCH(
       });
 
       for (const opt of optionList) {
-        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
-        if (!optionName) continue;
-
+        const optionName = opt.optionName;
         const reqOption = await tx.productUpdateRequestOption.create({
           data: { productUpdateRequestId: createdRequest.id, optionName },
         });
 
-        const values = Array.isArray(opt.values) ? opt.values : [];
-        for (const v of values) {
-          const value = typeof v?.value === 'string' ? v.value.trim() : '';
-          if (!value) continue;
-          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
+        for (const v of opt.values) {
+          const value = v.value;
+          const additionalPrice = v.extraPrice;
           await tx.productUpdateRequestOptionValue.create({
             data: {
               optionId: reqOption.id,

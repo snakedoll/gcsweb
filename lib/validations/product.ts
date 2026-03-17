@@ -46,7 +46,7 @@ const buyNowOptionValueSchema = z.object({
 });
 const buyNowOptionSchema = z.object({
   optionName: z.string(),
-  values: z.array(buyNowOptionValueSchema).default([]),
+  values: z.array(buyNowOptionValueSchema).min(1).default([]),
 });
 export const newProductStep2BuyNowSchema = z.object({
   price: z.coerce.number().min(0, '가격을 입력해주세요.'),

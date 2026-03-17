@@ -644,7 +644,11 @@ export default function NewProductPage() {
   };
   const removeFundStep3OptionValue = (optionId: string, valueId: string) => {
     setFundStep3Options((prev) =>
-      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+      prev.map((o) => {
+        if (o.id !== optionId) return o;
+        if (o.values.length <= 1) return o;
+        return { ...o, values: o.values.filter((v) => v.id !== valueId) };
+      })
     );
   };
   const updateFundStep3OptionName = (optionId: string, optionName: string) => {
@@ -785,7 +789,11 @@ export default function NewProductPage() {
   };
   const removeBuyNowOptionValue = (optionId: string, valueId: string) => {
     setBuyNowOptions((prev) =>
-      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+      prev.map((o) => {
+        if (o.id !== optionId) return o;
+        if (o.values.length <= 1) return o;
+        return { ...o, values: o.values.filter((v) => v.id !== valueId) };
+      })
     );
   };
   const updateBuyNowOptionName = (optionId: string, optionName: string) => {
@@ -1285,7 +1293,7 @@ export default function NewProductPage() {
                   <div className="space-y-3">
                     <OptionName
                       className="w-full"
-                      property1={
+                      variant={
                         duplicateBuyNowOptionNames.has(opt.optionName.trim())
                           ? 'error'
                           : focusedBuyNowOptionNameId === opt.id
@@ -1307,7 +1315,7 @@ export default function NewProductPage() {
                         <OptionVariation
                           key={v.id}
                           className="mt-1 w-full"
-                          property1={
+                          variant={
                             duplicateBuyNowOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
                               ? 'error'
                               : focusedBuyNowOptionValueId === v.id
@@ -1330,7 +1338,7 @@ export default function NewProductPage() {
                             value: v.extraPrice > 0 ? String(v.extraPrice) : '',
                             onChange: (e) => updateBuyNowOptionValue(opt.id, v.id, 'extraPrice', e.target.value),
                           }}
-                          onRemove={() => removeBuyNowOptionValue(opt.id, v.id)}
+                          onRemove={opt.values.length > 1 ? () => removeBuyNowOptionValue(opt.id, v.id) : undefined}
                         />
                       ))}
                       <button
@@ -1763,7 +1771,7 @@ export default function NewProductPage() {
                   <div className="space-y-3">
                     <OptionName
                       className="w-full"
-                      property1={
+                      variant={
                         duplicateFundOptionNames.has(opt.optionName.trim())
                           ? 'error'
                           : focusedFundOptionNameId === opt.id
@@ -1785,7 +1793,7 @@ export default function NewProductPage() {
                         <OptionVariation
                           key={v.id}
                           className="mt-1 w-full"
-                          property1={
+                          variant={
                             duplicateFundOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
                               ? 'error'
                               : focusedFundOptionValueId === v.id
@@ -1808,7 +1816,7 @@ export default function NewProductPage() {
                             value: v.extraPrice > 0 ? String(v.extraPrice) : '',
                             onChange: (e) => updateFundStep3OptionValue(opt.id, v.id, 'extraPrice', e.target.value),
                           }}
-                          onRemove={() => removeFundStep3OptionValue(opt.id, v.id)}
+                          onRemove={opt.values.length > 1 ? () => removeFundStep3OptionValue(opt.id, v.id) : undefined}
                         />
                       ))}
                       <button
@@ -1916,6 +1924,7 @@ export default function NewProductPage() {
     </div>
   );
 }
+
 
 
 

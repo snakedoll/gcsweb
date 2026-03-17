@@ -5,6 +5,7 @@ export type OptionVariationVariant = 'Default' | 'filled' | 'focus' | 'error';
 
 interface OptionVariationProps {
   className?: string;
+  variant?: OptionVariationVariant;
   property1?: OptionVariationVariant;
   optionLabel?: string;
   extraPrice?: string;
@@ -35,7 +36,8 @@ function DangerIcon() {
 
 export default function OptionVariation({
   className,
-  property1 = 'Default',
+  variant,
+  property1,
   optionLabel,
   extraPrice,
   optionPlaceholder = '예) BLACK',
@@ -44,9 +46,10 @@ export default function OptionVariation({
   priceInputProps,
   onRemove,
 }: OptionVariationProps) {
-  const isFilled = property1 === 'filled';
-  const isFocus = property1 === 'focus';
-  const isError = property1 === 'error';
+  const resolvedVariant = variant ?? property1 ?? 'Default';
+  const isFilled = resolvedVariant === 'filled';
+  const isFocus = resolvedVariant === 'focus';
+  const isError = resolvedVariant === 'error';
 
   const leftText = optionLabel ?? '';
   const priceText = extraPrice ?? '';
@@ -83,18 +86,21 @@ export default function OptionVariation({
 
           <span className="h-5 w-px bg-neutral-5" aria-hidden />
 
-          <span className="flex w-[111px] items-center border-b border-neutral-5 typo-body-xsmall">
+          <span className="relative flex w-[111px] items-center border-b border-neutral-5 typo-body-xsmall">
             {priceInputProps ? (
               <input
                 {...priceInputProps}
                 value={priceText}
                 placeholder={pricePlaceholder}
-                className={cn('w-[101px] bg-transparent outline-none placeholder:text-neutral-7', isFilled || isError ? 'text-neutral-12' : 'text-neutral-7')}
+                className={cn(
+                  'w-[101px] shrink-0 bg-transparent text-left outline-none placeholder:text-neutral-7',
+                  isFilled || isError ? 'text-neutral-12' : 'text-neutral-7'
+                )}
               />
             ) : (
               <span className={cn('w-[101px]', isFilled || isError ? 'text-neutral-12' : 'text-neutral-7')}>{priceText || pricePlaceholder}</span>
             )}
-            <span className="w-[10px] text-right text-neutral-7">원</span>
+            <span className="ml-auto w-[10px] shrink-0 text-right text-neutral-7">원</span>
           </span>
         </div>
 
