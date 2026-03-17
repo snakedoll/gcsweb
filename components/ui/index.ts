@@ -36,7 +36,7 @@ export { default as ProjectCard } from './admin/product/ProjectCard';
 export { default as ProductLike } from './admin/product/ProductLike';
 export { default as ProductOption } from './admin/product/ProductOption';
 export { default as Radiocardgroup } from './admin/product/Radiocardgroup';
-export { Matrix_Attribute_02, Matrix_Contents } from './admin/onsite';
+export { Matrix_Attribute_02, Matrix_Contents, Matrix_Contents_02 } from './admin/onsite';
 
 // Archive / Project
 export { default as ArchiveCard1 } from './archive/project/ArchiveCard1';
