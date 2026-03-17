@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
 function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === undefined || value === null) return Prisma.JsonNull;
@@ -49,6 +50,12 @@ export async function POST(request: Request) {
         isAdminApproved: true,
         salesStartDate: true,
         salesEndDate: true,
+        variants: {
+          select: {
+            optionSignature: true,
+            isSoldOut: true,
+          },
+        },
       },
     });
     if (!product) {
@@ -61,6 +68,9 @@ export async function POST(request: Request) {
     }
 
     if (product.status === 2) {
+      return NextResponse.json({ status: 'error', code: 'PRODUCT_SOLD_OUT', message: '품절된 상품입니다.' }, { status: 400 });
+    }
+    if (isMatchedVariantSoldOut(product.variants, optionData)) {
       return NextResponse.json({ status: 'error', code: 'PRODUCT_SOLD_OUT', message: '품절된 상품입니다.' }, { status: 400 });
     }
 

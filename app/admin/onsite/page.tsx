@@ -95,6 +95,10 @@ export default function AdminOnsitePage() {
         <TabBar
           activeKey={activeTab}
           onChange={(key) => {
+            if (key === 'inventory') {
+              router.push('/admin/onsite/inventory');
+              return;
+            }
             setActiveTab(key);
             setSearch(''); 
           }}

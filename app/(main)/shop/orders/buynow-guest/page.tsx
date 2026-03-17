@@ -21,6 +21,15 @@ type GuestOrderItem = {
   imageUrl: string;
 };
 
+type ProductVariantState = {
+  optionSignature: string;
+  isSoldOut: boolean;
+};
+
+type ProductDetailForSoldOutCheck = {
+  variants?: ProductVariantState[];
+};
+
 const TAG_BASE_CLASS =
   'inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7';
 const CARD_COMPANY_ITEMS = [
@@ -33,6 +42,58 @@ const BANK_CODE_ITEMS = [
 ];
 
 const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
+
+function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string }> {
+  if (!value || typeof value !== 'object') return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function parseVariantSignature(signature: string): Record<string, string> {
+  if (!signature || signature === '__default__' || signature === 'default') return {};
+  return signature.split('|').reduce<Record<string, string>>((acc, part) => {
+    const [rawKey, rawValue] = part.split('=');
+    if (!rawKey || rawValue == null) return acc;
+    try {
+      acc[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue);
+      return acc;
+    } catch {
+      acc[rawKey] = rawValue;
+      return acc;
+    }
+  }, {});
+}
+
+function toSelectedOptionMap(optionData: unknown): Record<string, string> {
+  const options = parseOptions(optionData);
+  return options.reduce<Record<string, string>>((acc, option) => {
+    const key = (option.optionName ?? '').trim();
+    const value = (option.optionValue ?? option.value ?? '').trim();
+    if (key && value) acc[key] = value;
+    return acc;
+  }, {});
+}
+
+function findMatchedVariant(
+  variants: ProductVariantState[],
+  selectedMap: Record<string, string>
+): ProductVariantState | null {
+  if (Object.keys(selectedMap).length === 0) {
+    return (
+      variants.find((variant) => variant.optionSignature === '__default__' || variant.optionSignature === 'default') ??
+      null
+    );
+  }
+
+  return (
+    variants.find((variant) => {
+      const parsed = parseVariantSignature(variant.optionSignature);
+      const parsedKeys = Object.keys(parsed);
+      const selectedKeys = Object.keys(selectedMap);
+      if (parsedKeys.length !== selectedKeys.length) return false;
+      return selectedKeys.every((key) => parsed[key] === selectedMap[key]);
+    }) ?? null
+  );
+}
 
 function OrderLineCard({ item }: { item: GuestOrderItem }) {
   return (
@@ -71,6 +132,7 @@ export default function ShopOrdersBuyNowGuestPage() {
   const [bankCode, setBankCode] = useState<0 | 1 | null>(null);
   const [easyPayProvider, setEasyPayProvider] = useState<0 | 1 | 2 | null>(null);
   const [isAgreed, setIsAgreed] = useState(false);
+  const [showSoldOutModal, setShowSoldOutModal] = useState(false);
 
   useEffect(() => {
     const loadItems = () => {
@@ -117,6 +179,30 @@ export default function ShopOrdersBuyNowGuestPage() {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
+      const productIds = Array.from(new Set(items.map((item) => item.productId).filter(Boolean)));
+      const productEntries = await Promise.all(
+        productIds.map(async (id) => {
+          const res = await fetch(`/api/v1/shop/products/${id}`, { cache: 'no-store' });
+          const json = await res.json().catch(() => ({}));
+          const product = json?.data?.product as ProductDetailForSoldOutCheck | undefined;
+          return [id, product ?? null] as const;
+        })
+      );
+      const productMap = new Map<string, ProductDetailForSoldOutCheck | null>(productEntries);
+
+      const hasSoldOut = items.some((item) => {
+        const product = productMap.get(item.productId);
+        if (!product?.variants || product.variants.length === 0) return false;
+        const selectedMap = toSelectedOptionMap(item.optionData);
+        const matched = findMatchedVariant(product.variants, selectedMap);
+        return Boolean(matched?.isSoldOut);
+      });
+
+      if (hasSoldOut) {
+        setShowSoldOutModal(true);
+        return;
+      }
+
       const payload = {
         productType: 1 as const,
         receiveMethod: 1 as const,
@@ -346,6 +432,28 @@ export default function ShopOrdersBuyNowGuestPage() {
           {submitError ? <p className="typo-body-xsmall text-red-600">{submitError}</p> : null}
         </section>
       </div>
+
+      {showSoldOutModal ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.3)] px-4">
+          <div className="w-[343px] rounded-[12px] bg-white px-7 pb-[23px] pt-10">
+            <div className="flex flex-col gap-[30px]">
+              <div className="flex w-full flex-col items-center gap-1 text-center">
+                <p className="w-[265px] typo-heading-xxsmall text-neutral-12">품절된 상품입니다.</p>
+                <p className="w-[265px] whitespace-pre-line typo-body-xsmall text-neutral-12">
+                  {'사이트에서 주문이 불가하므로,\n현장 직원에게 문의하세요'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSoldOutModal(false)}
+                className="h-[47px] w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

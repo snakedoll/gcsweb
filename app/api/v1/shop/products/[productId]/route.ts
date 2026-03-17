@@ -69,6 +69,13 @@ export async function GET(
             },
           },
         },
+        variants: {
+          select: {
+            id: true,
+            optionSignature: true,
+            isSoldOut: true,
+          },
+        },
       },
     });
 
@@ -179,6 +186,11 @@ export async function GET(
               value: value.value,
               additionalPrice: value.additionalPrice,
             })),
+          })),
+          variants: (product.variants ?? []).map((variant: any) => ({
+            id: variant.id,
+            optionSignature: variant.optionSignature,
+            isSoldOut: Boolean(variant.isSoldOut),
           })),
         },
       },

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -182,6 +183,12 @@ export async function POST(request: Request) {
         salesStartDate: true,
         salesEndDate: true,
         price: true,
+        variants: {
+          select: {
+            optionSignature: true,
+            isSoldOut: true,
+          },
+        },
       },
     });
 
@@ -225,6 +232,9 @@ export async function POST(request: Request) {
       const product = productMap.get(item.productId);
       if (!product) {
         throw new Error('PRODUCT_NOT_FOUND');
+      }
+      if (isMatchedVariantSoldOut(product.variants, item.optionData)) {
+        throw new Error('VARIANT_SOLD_OUT');
       }
       const unitPrice = product.price + extractAdditionalPrice(item.optionData);
       paymentAmount += unitPrice * item.quantity;
@@ -325,6 +335,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'PRODUCT_NOT_FOUND') {
       return jsonError(404, 'PRODUCT_NOT_FOUND', 'one or more products were not found.');
+    }
+    if (error instanceof Error && error.message === 'VARIANT_SOLD_OUT') {
+      return jsonError(409, 'INVALID_STATE', 'sold-out variants cannot be ordered.');
     }
 
     const message = error instanceof Error ? error.message : '';

@@ -4,10 +4,11 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
 export const dynamic = 'force-dynamic';
 
-function mapStatus(product: any) {
+function mapStatus(product: any, optionData: unknown) {
   if (product == null) return 'SOLD_OUT';
   
   // 관리자 승인이 안 되었거나 비공개면 판매 종료로 처리
@@ -25,6 +26,9 @@ function mapStatus(product: any) {
 
   // 명시적으로 품절 상태(2)인 경우 처리 (현재 GCS 관례가 있다면)
   if (product.status === 2) {
+    return 'SOLD_OUT';
+  }
+  if (isMatchedVariantSoldOut(product.variants ?? [], optionData)) {
     return 'SOLD_OUT';
   }
 
@@ -79,6 +83,12 @@ export async function GET(request: Request) {
             price: true,
             team: { select: { teamName: true } },
             images: { select: { thumbnailImgUrl: true }, take: 1 },
+            variants: {
+              select: {
+                optionSignature: true,
+                isSoldOut: true,
+              },
+            },
           },
         },
       },
@@ -121,7 +131,7 @@ export async function GET(request: Request) {
         price: r.price,
         quantity: r.quantity,
         isLiked: Boolean(p?.id && likeSet.has(p.id)),
-        status: mapStatus(p),
+        status: mapStatus(p, r.optionData),
         type: toTypeGroup(p?.type ?? null),
         receiveMethod: toTypeGroup(p?.type ?? null) === 1 ? 1 : (p?.receiveMethod ?? 0),
       };
