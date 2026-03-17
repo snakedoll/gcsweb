@@ -454,8 +454,26 @@ export default function CartPage() {
     deleteSelectedItems();
   }
 
-  function handleOrderSelected() {
+  async function handleOrderSelected() {
     if (!hasSelected) return;
+
+    try {
+      const res = await fetch('/api/v1/mypage/cart/list?page=1&size=100', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const latestItems = (json?.data?.cartItems ?? []) as Array<{ cartItemId?: string; status?: string }>;
+        const selectedIdSet = new Set(selectedActiveItems.map((item) => String(item.id)));
+        const hasUnavailable = latestItems.some(
+          (item) => item?.cartItemId && selectedIdSet.has(String(item.cartItemId)) && item?.status !== 'AVAILABLE'
+        );
+        if (hasUnavailable) {
+          setOrderWarningMessage('품절 또는 판매종료 상품이 포함되어 주문할 수 없습니다.');
+          return;
+        }
+      }
+    } catch (_) {
+      // no-op: keep previous flow when verification call fails
+    }
 
     const first = selectedActiveItems[0];
     if (!first) return;
