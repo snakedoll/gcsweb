@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import { cn } from '@/lib/utils';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
+import OptionName from '@/components/ui/admin/product/OptionName';
+import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 
 type ModalType = 'reject' | 'approve' | 'leave' | null;
 type ProductType = 0 | 1 | 2;
@@ -106,6 +108,30 @@ function formatNumber(value: string) {
   const digits = digitsOnly(value);
   if (!digits) return '';
   return Number(digits).toLocaleString('ko-KR');
+}
+
+function getDuplicateCardNames(cards: Array<{ name: string }>) {
+  const counts = new Map<string, number>();
+  for (const card of cards) {
+    const key = card.name.trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function getDuplicateRowValuesByCardId(cards: Array<{ id: string; rows: Array<{ value: string }> }>) {
+  const result = new Map<string, Set<string>>();
+  for (const card of cards) {
+    const counts = new Map<string, number>();
+    for (const row of card.rows) {
+      const key = row.value.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    result.set(card.id, new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key)));
+  }
+  return result;
 }
 
 function createOptionRow(seed: string): OptionRow {
@@ -277,6 +303,14 @@ function PriceEditor({ value, onChange }: { value: string; onChange: (next: stri
 function OptionCardView({
   card,
   index,
+  isDuplicateName,
+  duplicateValues,
+  focusedNameId,
+  focusedValueId,
+  onFocusName,
+  onBlurName,
+  onFocusValue,
+  onBlurValue,
   onChangeName,
   onChangeRowValue,
   onChangeRowPrice,
@@ -286,6 +320,14 @@ function OptionCardView({
 }: {
   card: OptionCard;
   index: number;
+  isDuplicateName: boolean;
+  duplicateValues: Set<string>;
+  focusedNameId: string | null;
+  focusedValueId: string | null;
+  onFocusName: (cardId: string) => void;
+  onBlurName: (cardId: string) => void;
+  onFocusValue: (rowId: string) => void;
+  onBlurValue: (rowId: string) => void;
   onChangeName: (next: string) => void;
   onChangeRowValue: (rowId: string, next: string) => void;
   onChangeRowPrice: (rowId: string, next: string) => void;
@@ -305,58 +347,49 @@ function OptionCardView({
           </div>
 
           <div className="flex w-full flex-col gap-3">
-            <div className="flex w-full flex-col gap-1">
-              <p className="typo-body-xsmall text-neutral-9">옵션명</p>
-              <div className={cn('flex h-10 items-center rounded-lg border bg-neutral-2 px-3', card.name.trim() ? 'border-neutral-6' : 'border-neutral-5')}>
-                <input
-                  value={card.name}
-                  onChange={(e) => onChangeName(e.target.value)}
-                  placeholder="예) 프린팅"
-                  className={cn(
-                    'w-full bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
-                    card.name.trim() ? 'text-neutral-12' : 'text-neutral-7'
-                  )}
-                />
-              </div>
-            </div>
+            <OptionName
+              className="w-full"
+              property1={
+                isDuplicateName ? 'error' : focusedNameId === card.id ? 'focus' : card.name.trim() ? 'filled' : 'Default'
+              }
+              value={card.name}
+              inputProps={{
+                value: card.name,
+                onChange: (e) => onChangeName(e.target.value),
+                onFocus: () => onFocusName(card.id),
+                onBlur: () => onBlurName(card.id),
+              }}
+            />
 
             {card.rows.map((row) => (
-              <div key={row.id} className="flex w-full flex-col gap-1">
-                <div className="flex items-center justify-between typo-body-xsmall text-neutral-9">
-                  <span>옵션값</span>
-                  <span>추가 금액</span>
-                </div>
-                <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 py-2 pl-[10px] pr-[5px]">
-                  <div className="flex w-[260px] items-center justify-between">
-                    <input
-                      value={row.value}
-                      onChange={(e) => onChangeRowValue(row.id, e.target.value)}
-                      placeholder="예) BLACK"
-                      className={cn(
-                        'w-[111px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
-                        row.value.trim() ? 'text-neutral-12' : 'text-neutral-7'
-                      )}
-                    />
-                    <span className="h-5 w-px bg-neutral-5" />
-                    <span className="flex w-[111px] items-center border-b border-neutral-5">
-                      <input
-                        value={row.additionalPrice}
-                        onChange={(e) => onChangeRowPrice(row.id, formatNumber(e.target.value))}
-                        inputMode="numeric"
-                        placeholder="0"
-                        className={cn(
-                          'w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
-                          digitsOnly(row.additionalPrice) ? 'text-neutral-12' : 'text-neutral-7'
-                        )}
-                      />
-                      <span className="w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
-                    </span>
-                  </div>
-                  <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" onClick={() => onRemoveRow(row.id)} aria-label="옵션값 제거">
-                    <CloseIcon size={17} />
-                  </button>
-                </div>
-              </div>
+              <OptionVariation
+                key={row.id}
+                className="w-full"
+                property1={
+                  duplicateValues.has(row.value.trim())
+                    ? 'error'
+                    : focusedValueId === row.id
+                      ? 'focus'
+                      : row.value.trim() || digitsOnly(row.additionalPrice)
+                        ? 'filled'
+                        : 'Default'
+                }
+                optionLabel={row.value}
+                extraPrice={digitsOnly(row.additionalPrice) ? row.additionalPrice : ''}
+                optionInputProps={{
+                  value: row.value,
+                  onChange: (e) => onChangeRowValue(row.id, e.target.value),
+                  onFocus: () => onFocusValue(row.id),
+                  onBlur: () => onBlurValue(row.id),
+                }}
+                priceInputProps={{
+                  value: digitsOnly(row.additionalPrice) ? row.additionalPrice : '',
+                  onChange: (e) => onChangeRowPrice(row.id, formatNumber(e.target.value)),
+                  inputMode: 'numeric',
+                  placeholder: '0',
+                }}
+                onRemove={() => onRemoveRow(row.id)}
+              />
             ))}
           </div>
         </div>
@@ -384,6 +417,8 @@ export default function AdminRegisterRequestStep3Page() {
   const [step2Draft, setStep2Draft] = useState<Step2Draft | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
   const [isPublic, setIsPublic] = useState(true);
+  const [focusedOptionNameId, setFocusedOptionNameId] = useState<string | null>(null);
+  const [focusedOptionValueId, setFocusedOptionValueId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -505,6 +540,8 @@ export default function AdminRegisterRequestStep3Page() {
 
   const canAddCard = cards.length < 2;
   const scrollOptionArea = cards.length >= 2;
+  const duplicateCardNames = useMemo(() => getDuplicateCardNames(cards), [cards]);
+  const duplicateRowValuesByCardId = useMemo(() => getDuplicateRowValuesByCardId(cards), [cards]);
 
   const registerEnabled = useMemo(() => {
     const hasPrice = digitsOnly(price).length > 0;
@@ -714,6 +751,14 @@ export default function AdminRegisterRequestStep3Page() {
                       key={card.id}
                       card={card}
                       index={idx}
+                      isDuplicateName={duplicateCardNames.has(card.name.trim())}
+                      duplicateValues={duplicateRowValuesByCardId.get(card.id) ?? new Set<string>()}
+                      focusedNameId={focusedOptionNameId}
+                      focusedValueId={focusedOptionValueId}
+                      onFocusName={(cardId) => setFocusedOptionNameId(cardId)}
+                      onBlurName={(cardId) => setFocusedOptionNameId((prev) => (prev === cardId ? null : prev))}
+                      onFocusValue={(rowId) => setFocusedOptionValueId(rowId)}
+                      onBlurValue={(rowId) => setFocusedOptionValueId((prev) => (prev === rowId ? null : prev))}
                       onChangeName={(next) => setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, name: next } : c)))}
                       onChangeRowValue={(rowId, next) =>
                         setCards((prev) =>

@@ -9,6 +9,8 @@ import Modal from '@/components/ui/common/Modal';
 import Radiocardgroup from '@/components/ui/admin/product/Radiocardgroup';
 import DateRangeInput from '@/components/ui/admin/product/DateRangeInput';
 import ProductImage from '@/components/ui/admin/product/Image';
+import OptionName from '@/components/ui/admin/product/OptionName';
+import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 
 type ProductType = 0 | 1 | 2;
 type ReceiveMethod = 0 | 1 | null;
@@ -302,6 +304,8 @@ export default function AdminProductEditPage() {
   const [options, setOptions] = useState<OptionItem[]>([]);
   const [uploading, setUploading] = useState({ thumbnail: false, detail: false, notice: false });
   const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
+  const [focusedOptionNameId, setFocusedOptionNameId] = useState<string | null>(null);
+  const [focusedOptionValueId, setFocusedOptionValueId] = useState<string | null>(null);
 
   const thumbInputRef = useRef<HTMLInputElement | null>(null);
   const detailInputRef = useRef<HTMLInputElement | null>(null);
@@ -480,6 +484,31 @@ export default function AdminProductEditPage() {
   }, [currentComparable, initialSnapshot]);
 
   const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
+
+  const duplicateOptionNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const option of options) {
+      const key = option.optionName.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+  }, [options]);
+
+  const duplicateOptionValuesByOptionId = useMemo(() => {
+    const duplicates = new Map<string, Set<string>>();
+    for (const option of options) {
+      const counts = new Map<string, number>();
+      for (const value of option.values) {
+        const key = value.value.trim();
+        if (!key) continue;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      const dupSet = new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+      duplicates.set(option.id, dupSet);
+    }
+    return duplicates;
+  }, [options]);
 
   const optionValidationError = useMemo(() => {
     const optionNames = new Set<string>();
@@ -837,49 +866,56 @@ export default function AdminProductEditPage() {
                         </div>
 
                         <div className="flex w-full flex-col gap-3">
-                          <div className="flex w-full flex-col gap-1">
-                            <p className="typo-body-xsmall text-neutral-9">{KR.optionName}</p>
-                            <div className={`flex h-10 items-center rounded-lg border bg-neutral-2 px-3 ${opt.optionName.trim() ? 'border-neutral-6' : 'border-neutral-5'}`}>
-                              <input
-                                value={opt.optionName}
-                                onChange={(e) => updateOptionName(opt.id, e.target.value)}
-                                placeholder={KR.optionNamePlaceholder}
-                                className={`w-full bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${opt.optionName.trim() ? 'text-neutral-12' : 'text-neutral-7'}`}
-                              />
-                            </div>
-                          </div>
+                          <OptionName
+                            className="w-full"
+                            property1={
+                              duplicateOptionNames.has(opt.optionName.trim())
+                                ? 'error'
+                                : focusedOptionNameId === opt.id
+                                  ? 'focus'
+                                  : opt.optionName.trim()
+                                    ? 'filled'
+                                    : 'Default'
+                            }
+                            label={KR.optionName}
+                            value={opt.optionName}
+                            placeholder={KR.optionNamePlaceholder}
+                            inputProps={{
+                              onChange: (e) => updateOptionName(opt.id, e.target.value),
+                              onFocus: () => setFocusedOptionNameId(opt.id),
+                              onBlur: () => setFocusedOptionNameId((prev) => (prev === opt.id ? null : prev)),
+                            }}
+                          />
 
                           {opt.values.map((v) => (
-                            <div key={v.id} className="flex w-full flex-col gap-1">
-                              <div className="flex items-center justify-between typo-body-xsmall text-neutral-9">
-                                <span>{KR.optionValue}</span>
-                                <span>{KR.additionalPrice}</span>
-                              </div>
-                              <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 py-2 pl-[10px] pr-[5px]">
-                                <div className="flex w-[260px] items-center justify-between">
-                                  <input
-                                    value={v.value}
-                                    onChange={(e) => updateOptionValue(opt.id, v.id, 'value', e.target.value)}
-                                    placeholder={KR.optionValuePlaceholder}
-                                    className={`w-[111px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${v.value.trim() ? 'text-neutral-12' : 'text-neutral-7'}`}
-                                  />
-                                  <span className="h-5 w-px bg-neutral-5" />
-                                  <span className="flex w-[111px] items-center border-b border-neutral-5">
-                                    <input
-                                      value={v.extraPrice > 0 ? formatNumber(String(v.extraPrice)) : ''}
-                                      onChange={(e) => updateOptionValue(opt.id, v.id, 'extraPrice', digitsOnly(e.target.value))}
-                                      inputMode="numeric"
-                                      placeholder="0"
-                                      className={`w-[101px] bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7 ${v.extraPrice > 0 ? 'text-neutral-12' : 'text-neutral-7'}`}
-                                    />
-                                    <span className="w-[10px] text-right typo-body-xsmall text-neutral-7">{KR.won}</span>
-                                  </span>
-                                </div>
-                                <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" onClick={() => removeOptionValue(opt.id, v.id)} aria-label={`${KR.optionValue} 삭제`}>
-                                  <CloseIcon size={17} />
-                                </button>
-                              </div>
-                            </div>
+                            <OptionVariation
+                              key={v.id}
+                              className="w-full"
+                              property1={
+                                duplicateOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
+                                  ? 'error'
+                                  : focusedOptionValueId === v.id
+                                    ? 'focus'
+                                    : v.value.trim() || v.extraPrice > 0
+                                      ? 'filled'
+                                      : 'Default'
+                              }
+                              optionLabel={v.value}
+                              extraPrice={v.extraPrice > 0 ? formatNumber(String(v.extraPrice)) : ''}
+                              optionPlaceholder={KR.optionValuePlaceholder}
+                              optionInputProps={{
+                                onChange: (e) => updateOptionValue(opt.id, v.id, 'value', e.target.value),
+                                onFocus: () => setFocusedOptionValueId(v.id),
+                                onBlur: () => setFocusedOptionValueId((prev) => (prev === v.id ? null : prev)),
+                              }}
+                              priceInputProps={{
+                                inputMode: 'numeric',
+                                onChange: (e) => updateOptionValue(opt.id, v.id, 'extraPrice', digitsOnly(e.target.value)),
+                                onFocus: () => setFocusedOptionValueId(v.id),
+                                onBlur: () => setFocusedOptionValueId((prev) => (prev === v.id ? null : prev)),
+                              }}
+                              onRemove={() => removeOptionValue(opt.id, v.id)}
+                            />
                           ))}
                         </div>
                       </div>

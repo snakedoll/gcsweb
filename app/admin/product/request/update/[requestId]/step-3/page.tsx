@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import { cn } from '@/lib/utils';
+import OptionName from '@/components/ui/admin/product/OptionName';
+import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 
 type ProductType = 0 | 1 | 2;
 const MAX_OPTION_CARD_COUNT = 2;
@@ -40,9 +42,34 @@ type UpdateRequestDetailResponse = {
   };
 };
 
-function formatWon(value: number | null | undefined) {
-  const safe = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
-  return `${safe.toLocaleString('ko-KR')}\uC6D0`;
+function formatNumber(value: string) {
+  const digits = value.replace(/[^\d]/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+}
+
+function getDuplicateOptionNames(options: Array<{ name: string }>) {
+  const counts = new Map<string, number>();
+  for (const option of options) {
+    const key = option.name.trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function getDuplicateOptionValuesByOptionId(options: Array<{ id: string; values: Array<{ value: string }> }>) {
+  const result = new Map<string, Set<string>>();
+  for (const option of options) {
+    const counts = new Map<string, number>();
+    for (const value of option.values) {
+      const key = value.value.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    result.set(option.id, new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key)));
+  }
+  return result;
 }
 
 function ConfirmModal({
@@ -110,7 +137,11 @@ export default function AdminUpdateRequestStep3Page() {
   const [price, setPrice] = useState('');
   const [options, setOptions] = useState<OptionGroup[]>([]);
   const [productType, setProductType] = useState<ProductType>(0);
+  const [focusedOptionNameId, setFocusedOptionNameId] = useState<string | null>(null);
+  const [focusedOptionValueId, setFocusedOptionValueId] = useState<string | null>(null);
   const canAddOptionCard = options.length < MAX_OPTION_CARD_COUNT;
+  const duplicateOptionNames = useMemo(() => getDuplicateOptionNames(options), [options]);
+  const duplicateOptionValuesByOptionId = useMemo(() => getDuplicateOptionValuesByOptionId(options), [options]);
 
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -268,71 +299,73 @@ export default function AdminUpdateRequestStep3Page() {
                           </div>
 
                           <div className="flex flex-col gap-1.5">
-                            <p className="text-[13px] text-neutral-9">옵션명</p>
-                            <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 px-3">
-                              <input
-                                type="text"
-                                value={opt.name}
-                                onChange={(e) => {
+                            <OptionName
+                              className="w-full"
+                              property1={
+                                duplicateOptionNames.has(opt.name.trim())
+                                  ? 'error'
+                                  : focusedOptionNameId === opt.id
+                                    ? 'focus'
+                                    : opt.name.trim()
+                                      ? 'filled'
+                                      : 'Default'
+                              }
+                              value={opt.name}
+                              inputProps={{
+                                value: opt.name,
+                                onChange: (e) => {
                                   const next = [...options];
                                   next[optIdx].name = e.target.value;
                                   setOptions(next);
-                                }}
-                                className="w-full bg-transparent text-[13px] text-neutral-12 outline-none"
-                                placeholder="\uC608) \uD504\uB9B0\uD305"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center text-[13px] text-neutral-9">
-                            <span className="w-1/2">옵션값</span>
-                            <span className="w-1/2">異붽? 湲덉븸</span>
+                                },
+                                onFocus: () => setFocusedOptionNameId(opt.id),
+                                onBlur: () => setFocusedOptionNameId((prev) => (prev === opt.id ? null : prev)),
+                              }}
+                            />
                           </div>
 
                           <div className="flex flex-col gap-2.5">
                             {opt.values.map((v, vIdx) => (
-                              <div key={v.id} className="flex h-10 items-center justify-between gap-[5px] rounded-lg border border-neutral-6 bg-neutral-1 px-2.5 py-1.5">
-                                <div className="flex flex-1 items-center gap-[10px]">
-                                  <input
-                                    type="text"
-                                    value={v.value}
-                                    onChange={(e) => {
-                                      const next = [...options];
-                                      next[optIdx].values[vIdx].value = e.target.value;
-                                      setOptions(next);
-                                    }}
-                                    className="w-[85px] bg-transparent text-[13px] text-neutral-12 outline-none"
-                                    placeholder="BLACK"
-                                  />
-                                  <div className="h-4 w-[1px] bg-neutral-5" />
-                                  <div className="flex flex-1 items-center border-b border-neutral-5">
-                                    <input
-                                      type="text"
-                                      value={v.additionalPrice ? v.additionalPrice.toLocaleString() : ''}
-                                      onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, '');
-                                        const next = [...options];
-                                        next[optIdx].values[vIdx].additionalPrice = val ? parseInt(val, 10) : 0;
-                                        setOptions(next);
-                                      }}
-                                      className="w-full bg-transparent text-left text-[13px] text-neutral-12 outline-none"
-                                      placeholder="0"
-                                    />
-                                    <span className="ml-1 shrink-0 text-[13px] text-neutral-7">원</span>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
+                              <OptionVariation
+                                key={v.id}
+                                className="w-full"
+                                property1={
+                                  duplicateOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
+                                    ? 'error'
+                                    : focusedOptionValueId === v.id
+                                      ? 'focus'
+                                      : v.value.trim() || v.additionalPrice > 0
+                                        ? 'filled'
+                                        : 'Default'
+                                }
+                                optionLabel={v.value}
+                                extraPrice={v.additionalPrice > 0 ? formatNumber(String(v.additionalPrice)) : ''}
+                                optionInputProps={{
+                                  value: v.value,
+                                  onChange: (e) => {
                                     const next = [...options];
-                                    next[optIdx].values.splice(vIdx, 1);
+                                    next[optIdx].values[vIdx].value = e.target.value;
                                     setOptions(next);
-                                  }}
-                                  className="shrink-0"
-                                >
-                                  <CloseIconV3 />
-                                </button>
-                              </div>
+                                  },
+                                  onFocus: () => setFocusedOptionValueId(v.id),
+                                  onBlur: () => setFocusedOptionValueId((prev) => (prev === v.id ? null : prev)),
+                                }}
+                                priceInputProps={{
+                                  value: v.additionalPrice > 0 ? formatNumber(String(v.additionalPrice)) : '',
+                                  onChange: (e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    const next = [...options];
+                                    next[optIdx].values[vIdx].additionalPrice = val ? parseInt(val, 10) : 0;
+                                    setOptions(next);
+                                  },
+                                  placeholder: '0',
+                                }}
+                                onRemove={() => {
+                                  const next = [...options];
+                                  next[optIdx].values.splice(vIdx, 1);
+                                  setOptions(next);
+                                }}
+                              />
                             ))}
                             
                             <div className="flex justify-center mt-1">
@@ -453,14 +486,6 @@ function CloseIconV2() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="M7 7L17 17M17 7L7 17" stroke="#999694" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CloseIconV3() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M7 7L17 17M17 7L7 17" stroke="#C7C5C4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
