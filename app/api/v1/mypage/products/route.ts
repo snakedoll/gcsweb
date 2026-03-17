@@ -1,4 +1,4 @@
-﻿import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -10,7 +10,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '???? ?????.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
         { status: 401 }
       );
     }
@@ -27,7 +27,10 @@ export async function GET() {
     }
 
     const products = await prisma.product.findMany({
-      where: { teamId: { in: teamIds } },
+      where: {
+        teamId: { in: teamIds },
+        isAdminApproved: true,
+      },
       include: {
         images: { take: 1, orderBy: { createdAt: 'asc' } },
         team: { select: { teamName: true } },
@@ -60,7 +63,7 @@ export async function GET() {
   } catch (error) {
     console.error('My products list error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '??뺤쒔 ??? ??살첒' },
+      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
       { status: 500 }
     );
   }
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '???? ?????.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
         { status: 401 }
       );
     }
@@ -160,7 +163,7 @@ export async function POST(request: Request) {
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)? ?????.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -171,7 +174,7 @@ export async function POST(request: Request) {
     });
     if (!team) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '?? ?? ?? ? ????.' },
+        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
         { status: 404 }
       );
     }
@@ -179,7 +182,7 @@ export async function POST(request: Request) {
     const canCreate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canCreate) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '해당 팀의 상품 등록 권한이 없습니다.' },
+        { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' },
         { status: 403 }
       );
     }
@@ -195,14 +198,14 @@ export async function POST(request: Request) {
           : 0;
     if (priceNum < 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '??? 0 ????? ???.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '??? ??? URL? ?????.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -215,13 +218,20 @@ export async function POST(request: Request) {
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
     if (!normalizedThumbnailImgUrl) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '??? ??? ??? URL? ?????.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
     if (detailUrls.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?? ???? 1? ?? ?????.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
+        { status: 400 }
+      );
+    }
+
+    if (normalizedNoticeImgUrl) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -230,7 +240,7 @@ export async function POST(request: Request) {
     const salesEnd = parseDate(salesEndDate);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?? ???/???? ???? ??? ???.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -238,7 +248,7 @@ export async function POST(request: Request) {
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
@@ -250,7 +260,7 @@ export async function POST(request: Request) {
           !parseDate(deliveryEndDate)
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '?? ?? ??/?? ??? ???? ??? ???.' },
+            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
             { status: 400 }
           );
         }
@@ -261,7 +271,7 @@ export async function POST(request: Request) {
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '?? ?? ??/?? ??? ??? ???.' },
+            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
             { status: 400 }
           );
         }
@@ -269,14 +279,14 @@ export async function POST(request: Request) {
     } else if (type === 1) {
       if (receiveMethod !== 1) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
     } else {
       if (receiveMethod !== null) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
@@ -312,7 +322,7 @@ export async function POST(request: Request) {
     const parsedOptions = parseAndValidateOptions(options);
     if (!parsedOptions.ok) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_OPTION_INPUT', message: '옵션 구조 오류' },
+        { status: 'error', code: 'INVALID_OPTION_INPUT', message: 'Invalid option payload.' },
         { status: 400 }
       );
     }
@@ -388,8 +398,8 @@ export async function POST(request: Request) {
           productUpdateRequestId: requestRow.id,
           thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
-          // Policy: register request can have null notice image before admin review.
-          noticeImgUrl: normalizedNoticeImgUrl ?? null,
+          // Policy: register request notice image must be null until admin approval.
+          noticeImgUrl: null,
         },
       });
 
@@ -431,7 +441,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Product registration error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '??뺤쒔 ??? ??살첒' },
+      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
       { status: 500 }
     );
   }

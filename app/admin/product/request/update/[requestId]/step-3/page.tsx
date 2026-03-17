@@ -436,7 +436,7 @@ export default function AdminUpdateRequestStep3Page() {
               }
             }}
             className="flex h-[55px] w-[37px] items-center justify-center rounded-lg bg-[#E9DED2]"
-            aria-label="?댁쟾"
+            aria-label="이전"
           >
             <BackArrowIconV2 />
           </button>
@@ -454,7 +454,7 @@ export default function AdminUpdateRequestStep3Page() {
             disabled={actionLoading}
             className="flex h-[55px] flex-1 items-center justify-center rounded-lg bg-orange-5 shadow-sm"
           >
-            <span className="text-[15px] font-bold text-white">?뱀씤</span>
+            <span className="text-[15px] font-bold text-white">승인</span>
           </button>
         </div>
       </div>
@@ -463,7 +463,7 @@ export default function AdminUpdateRequestStep3Page() {
         <ConfirmModal
           title="수정 요청을 승인하시겠습니까?"
           description="승인 시 상품 정보가 수정됩니다."
-          confirmLabel="?뺤씤"
+          confirmLabel="확인"
           cancelLabel="취소"
           onConfirm={handleApproveConfirm}
           onCancel={() => setShowApproveModal(false)}
@@ -475,7 +475,7 @@ export default function AdminUpdateRequestStep3Page() {
         <ConfirmModal
           title="수정 요청을 거절하시겠습니까?"
           description="거절 시 수정 요청은 삭제됩니다."
-          confirmLabel="?뺤씤"
+          confirmLabel="확인"
           cancelLabel="취소"
           onConfirm={handleRejectConfirm}
           onCancel={() => setShowRejectModal(false)}

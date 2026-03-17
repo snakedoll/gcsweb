@@ -43,11 +43,11 @@ async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PROD
   const res = await fetch('/api/v1/images', { method: 'POST', body: form });
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
-    throw new Error((j as { message?: string }).message || '??? ???? ??????.');
+    throw new Error((j as { message?: string }).message || '이미지 업로드에 실패했습니다.');
   }
   const data = (await res.json()) as { data?: { imageUrl?: string } };
   const url = data.data?.imageUrl;
-  if (!url) throw new Error('??? URL? ?? ?????.');
+  if (!url) throw new Error('이미지 URL을 받지 못했습니다.');
   return url;
 }
 
@@ -180,9 +180,9 @@ function TeamDropdown({
           </div>
           <ul className="max-h-44 overflow-y-auto py-1">
             {isLoading ? (
-              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">?? ?...</li>
+              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">로딩 중...</li>
             ) : filtered.length === 0 ? (
-              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">?깅줉????놁뒿?덈떎.</li>
+              <li className="px-4 py-3 typo-body-xsmall text-neutral-7">등록된 팀이 없습니다.</li>
             ) : (
               filtered.map((team) => (
                 <li key={team.id}>
@@ -209,7 +209,7 @@ function TeamDropdown({
   );
 }
 
-/** ?? ??: ??/??/?? ?? */
+/** 정사각형 단계 표시: 완료/현재/비활성 */
 function StepIndicator({ currentStep, totalSteps = 3 }: { currentStep: number; totalSteps?: number }) {
   const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
   return (
@@ -219,7 +219,7 @@ function StepIndicator({ currentStep, totalSteps = 3 }: { currentStep: number; t
       aria-valuenow={currentStep}
       aria-valuemin={1}
       aria-valuemax={totalSteps}
-      aria-label={`?깅줉 ?④퀎 ${currentStep} of ${totalSteps}`}
+      aria-label={`등록 단계 ${currentStep} of ${totalSteps}`}
     >
       {steps.map((step) => {
         const isCompleted = step < currentStep;
@@ -416,7 +416,7 @@ export default function NewProductPage() {
     if (data.type === 1) setCurrentStep(2);
     else if (data.type === 0) setCurrentStep(2);
     else if (data.type === 2) {
-      // Partner Up: ?깅줉?붿껌
+      // Partner Up: 등록요청
       router.push('/mypage/my-products');
     }
   };
@@ -505,12 +505,12 @@ export default function NewProductPage() {
       const res = await fetch('/api/v1/mypage/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
       if (!res.ok) {
-        setRegistrationError(json.message || json.data?.message || '?깅줉 ?붿껌??ㅽ뙣?덉뒿?덈떎.');
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
         return;
       }
       router.push('/mypage/my-products');
     } catch (e) {
-      setRegistrationError(e instanceof Error ? e.message : '?? ?? ? ??? ??????.');
+      setRegistrationError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setSubmittingRegistration(false);
     }
@@ -649,12 +649,12 @@ export default function NewProductPage() {
       const res = await fetch('/api/v1/mypage/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json = (await res.json().catch(() => ({}))) as { status?: string; message?: string; data?: { message?: string } };
       if (!res.ok) {
-        setRegistrationError(json.message || json.data?.message || '?깅줉 ?붿껌??ㅽ뙣?덉뒿?덈떎.');
+        setRegistrationError(json.message || json.data?.message || '등록 요청에 실패했습니다.');
         return;
       }
       router.push('/mypage/my-products');
     } catch (e) {
-      setRegistrationError(e instanceof Error ? e.message : '?? ?? ? ??? ??????.');
+      setRegistrationError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setSubmittingRegistration(false);
     }
@@ -702,7 +702,7 @@ export default function NewProductPage() {
   if (userLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="typo-body-xsmall text-neutral-7">?? ?...</p>
+        <p className="typo-body-xsmall text-neutral-7">로딩 중...</p>
       </div>
     );
   }
@@ -724,10 +724,10 @@ export default function NewProductPage() {
 
         {currentStep === 1 && (
         <form onSubmit={handleSubmit(onSubmitStep1)} className="min-w-0 space-y-5">
-          {/* ?먮ℓ? */}
+          {/* 판매팀 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?먮ℓ? <span className="text-orange-5">*</span>
+              판매팀 <span className="text-orange-5">*</span>
             </label>
             <div className="mt-1">
               <TeamDropdown
@@ -768,7 +768,7 @@ export default function NewProductPage() {
             </div>
             {(errors.name?.message || nameOverLimit) && (
               <p className="mt-1 typo-body-xsmall text-red-5" role="alert">
-                {nameOverLimit ? '???? 13? ??? ??????' : errors.name?.message}
+                {nameOverLimit ? '상품명은 13자 이하여야 합니다.' : errors.name?.message}
               </p>
             )}
           </section>
@@ -780,7 +780,7 @@ export default function NewProductPage() {
             </label>
             <input
               {...register('description')}
-              placeholder="?) ?? ?? ??? ???"
+              placeholder="예) 상품을 한 줄로 설명해 주세요"
               className="mt-1 h-12 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-4 typo-body-small text-neutral-12 placeholder:text-neutral-6"
             />
             {errors.description && (
@@ -828,20 +828,20 @@ export default function NewProductPage() {
             />
           </section>
 
-          {/* ?? ??: Fund=??, Buy Now=???? ??, Partner Up=???? */}
+          {/* 수령 방식: Fund=선택 가능, Buy Now=현장 수령, Partner Up=현장 수령 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?? ?? <span className="text-orange-5">*</span>
+              수령 방식 <span className="text-orange-5">*</span>
             </label>
             {productTypeWatch === 2 ? (
               <>
                 <p className="mt-1 typo-body-xsmall text-neutral-7">
-                  Partner Up? ?? ?? ??? ??????.
+                  Partner Up은 현장 수령만 가능합니다.
                 </p>
                 <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-3">
                   {[
-                    { value: 0, label: '?? ??' },
-                    { value: 1, label: '?꾩옣 ?섎졊' },
+                    { value: 0, label: '택배 배송' },
+                    { value: 1, label: '현장 수령' },
                   ].map((opt, i) => (
                     <div
                       key={opt.value}
@@ -863,14 +863,14 @@ export default function NewProductPage() {
             ) : productTypeWatch === 1 ? (
               <>
                 <p className="mt-1 typo-body-xsmall text-neutral-7">
-                  Buy Now? ?? ??? ?????.
+                  Buy Now는 현장 수령만 가능합니다.
                 </p>
                 <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
                   <div className="flex items-center px-4 py-3 opacity-60">
-                    <RadioButton checked={false} label="?? ??" disabled value={0} />
+                    <RadioButton checked={false} label="택배 배송" disabled value={0} />
                   </div>
                   <div className="pointer-events-none flex items-center border-t border-neutral-4 px-4 py-3">
-                    <RadioButton checked label="?꾩옣 ?섎졊" value={1} className="w-full" />
+                    <RadioButton checked label="현장 수령" value={1} className="w-full" />
                   </div>
                 </div>
               </>
@@ -881,8 +881,8 @@ export default function NewProductPage() {
                 render={({ field }) => (
                   <div className="mt-2 overflow-hidden rounded-lg border border-neutral-5 bg-neutral-1">
                     {[
-                      { value: 0, label: '?? ??' },
-                      { value: 1, label: '?꾩옣 ?섎졊' },
+                      { value: 0, label: '택배 배송' },
+                      { value: 1, label: '현장 수령' },
                     ].map((opt, i) => (
                       <div
                         key={opt.value}
@@ -910,10 +910,10 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* ?? ?? */}
+          {/* 판매 기간 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ?? ?? <span className="text-orange-5">*</span>
+              판매 기간 <span className="text-orange-5">*</span>
             </label>
             <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
               <div className="min-w-0 flex-1">
@@ -946,7 +946,7 @@ export default function NewProductPage() {
                   )}
                 />
               </div>
-              <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+              <span className="shrink-0 typo-body-small-bold text-neutral-8">~</span>
               <div className="min-w-0 flex-1">
                 <Controller
                   name="salesEndDate"
@@ -971,7 +971,7 @@ export default function NewProductPage() {
                   )}
                 />
               </div>
-              <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+              <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
             </div>
             {(errors.salesStartDate || errors.salesEndDate) && (
               <p className="mt-1 typo-body-xsmall text-red-5">
@@ -980,12 +980,12 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* ??? ??? */}
+          {/* 썸네일 이미지 */}
           <section>
             <label className="typo-body-small-bold text-neutral-12">
-              ??? ??? <span className="text-orange-5">*</span>
+              썸네일 이미지 <span className="text-orange-5">*</span>
             </label>
-            <p className="mt-1 typo-body-xsmall text-neutral-7">??? ???? ?? 1??? ??? ?????.</p>
+            <p className="mt-1 typo-body-xsmall text-neutral-7">대표 이미지는 최소 1장 등록해 주세요.</p>
             <input
               ref={thumbnailInputRef}
               type="file"
@@ -1018,7 +1018,7 @@ export default function NewProductPage() {
                   onClick={() => thumbnailInputRef.current?.click()}
                   className="flex h-24 w-24 min-w-[96px] cursor-pointer items-center justify-center rounded-lg border border-dashed border-neutral-5 typo-body-xsmall text-neutral-6 hover:bg-neutral-3"
                 >
-                  ??
+                  변경
                 </button>
               )}
             </div>
@@ -1030,7 +1030,7 @@ export default function NewProductPage() {
               상세페이지 이미지 <span className="text-orange-5">*</span>
             </label>
             <p className="mt-1 typo-body-xsmall text-neutral-7">
-              ?? ?? ??, ??? ??? ???? ???? ???. ????? ??? ??? ? ????.
+              최소 1장 이상 등록해 주세요. 드래그로 이미지 순서를 변경할 수 있습니다.
             </p>
             <input
               ref={detailInputRef}
@@ -1089,7 +1089,7 @@ export default function NewProductPage() {
                 </li>
               )}
             </ul>
-            <p className="mt-1 typo-body-xsmall text-neutral-7">?? {DETAIL_MAX}?, ???? ?? ??</p>
+            <p className="mt-1 typo-body-xsmall text-neutral-7">최대 {DETAIL_MAX}장, 드래그로 순서 변경</p>
           </section>
 
           <div className="pt-4">
@@ -1099,7 +1099,7 @@ export default function NewProductPage() {
               disabled={productTypeWatch === 2 ? !isPartnerUpRegistrationEnabled : isSubmitting || nameOverLimit}
               className="h-12 w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
             >
-              {productTypeWatch === 2 ? '?깅줉?붿껌' : '?ㅼ쓬'}
+              {productTypeWatch === 2 ? '등록요청' : '다음'}
             </button>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
               다음으로 넘어가도 현재 내용은 저장됩니다.
@@ -1110,10 +1110,10 @@ export default function NewProductPage() {
 
         {currentStep === 2 && isBuyNow && (
           <form onSubmit={handleSubmitStep2BuyNow(onSubmitStep2BuyNow)} className="min-w-0 space-y-5">
-            {/* ?? */}
+            {/* 가격 */}
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ??<span className="text-red-5">*</span>
+                가격<span className="text-red-5">*</span>
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <input
@@ -1126,7 +1126,7 @@ export default function NewProductPage() {
                     errorsStep2BuyNow.price ? 'border-red-5' : 'border-neutral-5'
                   )}
                 />
-                <span className="typo-body-xsmall text-neutral-7">?</span>
+                <span className="typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep2BuyNow.price && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2BuyNow.price.message}</p>
@@ -1233,7 +1233,7 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
@@ -1244,7 +1244,7 @@ export default function NewProductPage() {
                 }}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
-                {isSubmittingRegistration ? '?? ?...' : '?? ??'}
+                {isSubmittingRegistration ? '등록 중...' : '등록 요청'}
               </button>
             </div>
             {registrationError && (
@@ -1260,10 +1260,10 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep2Delivery(onSubmitStep2Delivery)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?? ?? <span className="text-red-5">*</span>
+                목표 금액 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                ?? ??? ??? 0?? ??? ???.
+                목표 금액이 없다면 0으로 입력해 주세요.
               </p>
               <div
                 className={cn(
@@ -1278,7 +1278,7 @@ export default function NewProductPage() {
                   min={0}
                   className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
                 />
-                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">?</span>
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep2Delivery.goalAmount && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Delivery.goalAmount.message}</p>
@@ -1287,7 +1287,7 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-12">
-                ?? ?? <span className="text-orange-5">*</span>
+                생산 기간 <span className="text-orange-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
                 <div className="min-w-0 flex-1">
@@ -1320,7 +1320,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">~</span>
                 <div className="min-w-0 flex-1">
                   <Controller
                     name="productionEndDate"
@@ -1345,7 +1345,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
               </div>
               {(errorsStep2Delivery.productionStartDate || errorsStep2Delivery.productionEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1357,7 +1357,7 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-12">
-                ?? ?? <span className="text-orange-5">*</span>
+                배송 기간 <span className="text-orange-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-center gap-2">
                 <div className="min-w-0 flex-1">
@@ -1390,7 +1390,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">~</span>
                 <div className="min-w-0 flex-1">
                   <Controller
                     name="deliveryEndDate"
@@ -1415,7 +1415,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 typo-body-small-bold text-neutral-8">??</span>
+                <span className="shrink-0 typo-body-small-bold text-neutral-8">까지</span>
               </div>
               {(errorsStep2Delivery.deliveryStartDate || errorsStep2Delivery.deliveryEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1431,14 +1431,14 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg border border-neutral-5 bg-neutral-1 typo-body-small-bold text-neutral-10"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
                 onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
-                ?ㅼ쓬
+                다음
               </button>
             </div>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-7">
@@ -1451,10 +1451,10 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep2Pickup(onSubmitStep2Pickup)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?? ?? <span className="text-red-5">*</span>
+                예상 수령 기간 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                ?? ??? ??? 0?? ??? ???.
+                목표 금액이 없다면 0으로 입력해 주세요.
               </p>
               <div
                 className={cn(
@@ -1469,7 +1469,7 @@ export default function NewProductPage() {
                   min={0}
                   className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
                 />
-                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">?</span>
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep2Pickup.goalAmount && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep2Pickup.goalAmount.message}</p>
@@ -1478,11 +1478,11 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?? ?? <span className="text-red-5">*</span>
+                수령 기간 <span className="text-red-5">*</span>
               </label>
               <div className="date-range-field mt-1 flex min-w-0 flex-nowrap items-start gap-2">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="typo-body-xsmall text-neutral-8">?? ???</p>
+                  <p className="typo-body-xsmall text-neutral-8">기간 시작일</p>
                   <Controller
                     name="pickupStartDate"
                     control={controlStep2Pickup}
@@ -1512,9 +1512,9 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">??</span>
+                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">~</span>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="typo-body-xsmall text-neutral-8">?? ???</p>
+                  <p className="typo-body-xsmall text-neutral-8">기간 종료일</p>
                   <Controller
                     name="pickupEndDate"
                     control={controlStep2Pickup}
@@ -1538,7 +1538,7 @@ export default function NewProductPage() {
                     )}
                   />
                 </div>
-                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">??</span>
+                <span className="shrink-0 pt-6 typo-body-small-bold text-neutral-12">까지</span>
               </div>
               {(errorsStep2Pickup.pickupStartDate || errorsStep2Pickup.pickupEndDate) && (
                 <p className="mt-1 typo-body-xsmall text-red-5">
@@ -1549,14 +1549,14 @@ export default function NewProductPage() {
 
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ?섎졊 ?μ냼 <span className="text-red-5">*</span>
+                수령 장소 <span className="text-red-5">*</span>
               </label>
               <p className="mt-1 typo-body-xsmall text-neutral-8">
-                ??? ??, &quot;?? ??&quot;? ??? ???.
+                미정인 경우, &quot;추후 안내&quot;로 입력해 주세요.
               </p>
               <input
                 {...registerStep2Pickup('pickupLocation')}
-                placeholder="?? ??? ??? ???"
+                placeholder="수령 장소를 입력해 주세요"
                 className={cn(
                   'mt-1 h-10 w-full rounded-lg border bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6',
                   errorsStep2Pickup.pickupLocation ? 'border-red-5' : 'border-neutral-5'
@@ -1573,14 +1573,14 @@ export default function NewProductPage() {
                 onClick={onBackToStep1}
                 className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
                 onClick={onMoveStep3WithoutValidation}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-50"
               >
-                ?ㅼ쓬
+                다음
               </button>
             </div>
             <p className="mt-2 text-center typo-body-xsmall text-neutral-8">
@@ -1593,7 +1593,7 @@ export default function NewProductPage() {
           <form onSubmit={handleSubmitStep3Fund(onSubmitStep3Fund)} className="min-w-0 space-y-5">
             <section>
               <label className="typo-body-small-bold text-neutral-10">
-                ??<span className="text-red-5">*</span>
+                가격<span className="text-red-5">*</span>
               </label>
               <div
                 className={cn(
@@ -1608,7 +1608,7 @@ export default function NewProductPage() {
                   min={0}
                   className="min-w-0 flex-1 border-0 bg-transparent p-0 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6 outline-none"
                 />
-                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">?</span>
+                <span className="ml-1 shrink-0 typo-body-xsmall text-neutral-7">원</span>
               </div>
               {errorsStep3Fund.price && (
                 <p className="mt-1 typo-body-xsmall text-red-5">{errorsStep3Fund.price.message}</p>
@@ -1711,7 +1711,7 @@ export default function NewProductPage() {
                 onClick={() => setCurrentStep(2)}
                 className="flex-1 h-12 rounded-lg bg-[#e9ded2] typo-body-small-bold text-neutral-12"
               >
-                ?댁쟾
+                이전
               </button>
               <button
                 type="button"
@@ -1722,7 +1722,7 @@ export default function NewProductPage() {
                 }}
                 className="flex-1 h-12 rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2 disabled:opacity-60"
               >
-                {isSubmittingRegistration ? '?? ?...' : '?? ??'}
+                {isSubmittingRegistration ? '등록 중...' : '등록 요청'}
               </button>
             </div>
             {registrationError && (
@@ -1734,12 +1734,12 @@ export default function NewProductPage() {
           </form>
         )}
 
-        {/* ?? ?? ?? ?? */}
+        {/* 등록 요청 확인 모달 */}
         {showRegistrationConfirmModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
             <button
               type="button"
-              aria-label="?? ??"
+              aria-label="모달 닫기"
               className="absolute inset-0 bg-neutral-12 opacity-70"
               onClick={() => {
                 setShowRegistrationConfirmModal(false);
@@ -1762,7 +1762,7 @@ export default function NewProductPage() {
                   }}
                   className="flex-1 rounded-lg border border-neutral-5 bg-neutral-2 py-3 typo-body-small-bold text-neutral-10"
                 >
-                  ??
+                  취소
                 </button>
                 <button
                   type="button"
@@ -1777,7 +1777,7 @@ export default function NewProductPage() {
                   }}
                   className="flex-1 rounded-lg bg-orange-5 py-3 typo-body-small-bold text-neutral-2"
                 >
-                  ?뺤씤
+                  확인
                 </button>
               </div>
             </div>

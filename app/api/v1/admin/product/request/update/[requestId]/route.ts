@@ -5,7 +5,7 @@ import { isNonEmptyString, jsonError, requireAdmin } from '../../../_utils';
 
 /**
  * GET /api/v1/admin/product/request/update/[requestId]
- * 수정 요청 상세 조회
+ * Fetch update request detail
  */
 export async function GET(
   _request: Request,
@@ -17,7 +17,7 @@ export async function GET(
 
     const requestId = isNonEmptyString(params?.requestId) ? params.requestId.trim() : '';
     if (!requestId) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const repo = prisma as any;
@@ -87,7 +87,7 @@ export async function GET(
     });
 
     if (!row) {
-      return jsonError(404, 'UPDATE_REQUEST_NOT_FOUND', '유효하지 않은 수정 요청이거나 이미 처리된 요청입니다.');
+      return jsonError(404, 'UPDATE_REQUEST_NOT_FOUND', 'Update request not found or already processed.');
     }
 
     const image = row.images?.[0] ?? null;
@@ -128,7 +128,7 @@ export async function GET(
               additionalPrice: value.additionalPrice,
             })),
           })),
-          // 기존 상품 정보 (비교용)
+          // Current product snapshot (for comparison)
           currentProduct: row.product ? {
             name: row.product.name,
             description: row.product.description,
@@ -146,13 +146,13 @@ export async function GET(
     });
   } catch (error) {
     console.error('Admin update request detail error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
 
 /**
  * PATCH /api/v1/admin/product/request/update/[requestId]
- * 수정 요청 승인 또는 거부
+ * Approve or reject update request
  */
 export async function PATCH(
   request: Request,
@@ -164,13 +164,13 @@ export async function PATCH(
 
     const requestId = isNonEmptyString(params?.requestId) ? params.requestId.trim() : '';
     if (!requestId) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const body = await request.json().catch(() => ({}));
     const action = (body as any)?.action;
     if (action !== 'approve' && action !== 'reject') {
-      return jsonError(400, 'INVALID_INPUT', 'action은 approve 또는 reject여야 합니다.');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const repo = prisma as any;
@@ -180,6 +180,12 @@ export async function PATCH(
       select: {
         id: true,
         productId: true,
+        product: {
+          select: {
+            isPublic: true,
+            isHome: true,
+          },
+        },
         teamId: true,
         name: true,
         description: true,
@@ -222,11 +228,11 @@ export async function PATCH(
     });
 
     if (!requestRow) {
-      return jsonError(404, 'UPDATE_REQUEST_NOT_FOUND', '유효하지 않은 수정 요청이거나 이미 처리된 요청입니다.');
+      return jsonError(404, 'UPDATE_REQUEST_NOT_FOUND', 'Update request not found or already processed.');
     }
 
     if (action === 'reject') {
-      // 거부: 수정 요청만 삭제 (기존 상품은 그대로 유지)
+      // Reject: delete only request payload, keep current product unchanged
       await prisma.$transaction(async (tx: any) => {
         await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
         await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
@@ -239,7 +245,7 @@ export async function PATCH(
       });
     }
 
-    // 승인: 수정 요청 내용을 기존 상품에 반영
+    // Approve: apply request payload to current product
     const image = requestRow.images?.[0] ?? null;
     const normalizedOptions: VariantOptionInput[] = (requestRow.options ?? []).map((option: any) => ({
       name: option.optionName,
@@ -250,7 +256,7 @@ export async function PATCH(
     }));
 
     await prisma.$transaction(async (tx: any) => {
-      // 상품 정보 업데이트
+      // Update product core fields
       await tx.product.update({
         where: { id: requestRow.productId },
         data: {
@@ -271,12 +277,16 @@ export async function PATCH(
           pickupEndDate: requestRow.pickupEndDate,
           pickupLocation: requestRow.pickupLocation,
           isAdminApproved: true,
-          isPublic: true,
-          isHome: false,
+          ...(requestRow.product
+            ? {
+                isPublic: requestRow.product.isPublic,
+                isHome: requestRow.product.isHome,
+              }
+            : {}),
         },
       });
 
-      // 이미지 업데이트
+      // Replace product images with approved request image set
       if (image) {
         await tx.productImage.deleteMany({ where: { productId: requestRow.productId } });
         await tx.productImage.create({
@@ -289,7 +299,7 @@ export async function PATCH(
         });
       }
 
-      // 옵션 업데이트
+      // Replace product options with approved request options
       await tx.productOption.deleteMany({ where: { productId: requestRow.productId } });
       for (const option of normalizedOptions) {
         const createdOption = await tx.productOption.create({
@@ -314,7 +324,7 @@ export async function PATCH(
 
       await syncProductVariants(tx, requestRow.productId, requestRow.price, normalizedOptions);
 
-      // 수정 요청 삭제
+      // Remove processed request payload
       await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
       await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
       await tx.productUpdateRequest.delete({ where: { id: requestId } });
@@ -330,6 +340,6 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Admin update request approve/reject error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
