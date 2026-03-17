@@ -11,8 +11,11 @@ export async function GET() {
 
   const teams = await prisma.team.findMany({
     where: {
-      userId: session.user.id,
-      accountUrl: { not: '' },
+      isSalesTeam: true,
+      OR: [
+        { userId: session.user.id },
+        { teamMember: { has: session.user.id } },
+      ],
     },
     select: { id: true, teamName: true },
     orderBy: { teamName: 'asc' },

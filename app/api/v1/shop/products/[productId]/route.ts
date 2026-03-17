@@ -52,7 +52,7 @@ export async function GET(
         price: true,
         team: { select: { teamName: true } },
         images: {
-          select: { thumbnailImgUrl: true, detailImgUrl: true },
+          select: { thumbnailImgUrl: true, detailImgUrl: true, noticeImgUrl: true },
           orderBy: { createdAt: 'asc' },
           take: 1,
         },
@@ -134,6 +134,10 @@ export async function GET(
           .map((url: string) => normalizeImageUrl(url))
           .filter((url: string | null): url is string => typeof url === 'string' && url.length > 0)
       : [];
+    const noticeImageUrl = normalizeImageUrl(image?.noticeImgUrl ?? null);
+    const mergedDetailImageUrls = noticeImageUrl
+      ? [...detailImageUrls, noticeImageUrl]
+      : detailImageUrls;
 
     return NextResponse.json({
       status: 'success',
@@ -146,7 +150,7 @@ export async function GET(
           name: product.name,
           description: product.description ?? '',
           thumbnailUrl,
-          detailImageUrls,
+          detailImageUrls: mergedDetailImageUrls,
           salesStartDate: product.salesStartDate,
           salesEndDate: product.salesEndDate,
           receiveMethod: product.receiveMethod,
