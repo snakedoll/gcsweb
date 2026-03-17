@@ -49,8 +49,8 @@
 
 ### 3) 관리자 승인 시
 - 고시이미지(필수값) 입력 + 필요시 요청본(`ProductUpdateRequest`) 수정
-- 승인 결과를 요청본에 반영
-- 요청본을 `Product`에 반영
+- 승인 결과를 요청본에 반영 
+- 요청본을 `Product`에 반영 (+Image, Option, OptionValue, Variant)
 - 처리 완료된 요청본은 삭제
 
 ### 4) 관리자 거부 시
@@ -71,7 +71,7 @@
 
 ### 3) 관리자 승인 시
 - 승인 결과를 요청본에 반영
-- 요청본을 `Product`에 반영
+- 요청본을 `Product`에 반영 (+Image, Option, OptionValue, Variant)
 - 처리 완료된 요청본은 삭제
 
 ### 4) 관리자 거부 시
