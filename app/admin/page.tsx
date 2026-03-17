@@ -91,8 +91,8 @@ export default function AdminPage() {
             title="판매 관리"
             items={[
               { label: '상품글 관리', href: '/admin/product' },
-              { label: 'Fund | 주문 관리', href: '#' },
-              { label: 'Buy Now | 현장 관리', href: '/admin/onsite' },
+              { label: 'Fund주문 관리', href: '#' },
+              { label: '현장판매 관리', href: '/admin/onsite' },
               { label: '상품 리뷰 관리', href: '#' },
             ]}
           />
@@ -115,16 +115,9 @@ export default function AdminPage() {
           />
 
           <AdminMenuSection
-            title="데이터"
-            items={[
-              { label: '사용자 통계', href: '#' },
-              { label: '매출 현황', href: '#' },
-            ]}
-          />
-
-          <AdminMenuSection
             title="설정"
             items={[
+              { label: '데이터', href: '#' },
               { label: '약관 관리', href: '/admin/terms' },
               { label: '삭제된 항목', href: '#' },
             ]}
