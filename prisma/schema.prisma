@@ -195,6 +195,7 @@ model ProductUpdateRequest {
   team                Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images              ProductUpdateRequestImage[]
 
+  @@unique([productId])
   @@index([productId])
   @@index([requestedByUserId])
   @@index([teamId])

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { syncProductVariants } from '@/lib/product-variant';
 import {
   isNonEmptyString,
   isNonNegativeInt,
@@ -32,11 +33,11 @@ export async function GET(
 
     const requestId = isNonEmptyString(params?.requestId) ? params.requestId.trim() : '';
     if (!requestId) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
-    // 등록 요청 상세: 요청본(ProductUpdateRequest)만 조회. 판매자가 등록신청 당시 기입한 값이 그대로 노출된다.
-    // 공개용 Product는 관리자 승인 시 반영되며, 승인 전까지 유저에게 보이는 값은 변경되지 않는다.
+    // Register request details: read from ProductUpdateRequest only.
+    // Public Product is updated only after admin approval.
     const repo = prisma as any;
     const row = await repo.productUpdateRequest.findFirst({
       where: { id: requestId, requestType: 0 },
@@ -88,7 +89,7 @@ export async function GET(
     });
 
     if (!row) {
-      return jsonError(404, 'REGISTER_REQUEST_NOT_FOUND', '유효하지 않은 등록 요청이거나 이미 처리된 요청입니다.');
+      return jsonError(404, 'REGISTER_REQUEST_NOT_FOUND', 'Register request not found or already processed.');
     }
 
     const image = row.images?.[0] ?? null;
@@ -141,7 +142,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Admin register request detail error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
 
@@ -155,13 +156,13 @@ export async function PATCH(
 
     const requestId = isNonEmptyString(params?.requestId) ? params.requestId.trim() : '';
     if (!requestId) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const body = await request.json().catch(() => ({}));
     const action = (body as any)?.action;
     if (action !== 'approve' && action !== 'reject') {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const repo = prisma as any;
@@ -182,18 +183,15 @@ export async function PATCH(
     });
 
     if (!requestRow) {
-      return jsonError(404, 'REGISTER_REQUEST_NOT_FOUND', '유효하지 않은 등록 요청이거나 이미 처리된 요청입니다.');
+      return jsonError(404, 'REGISTER_REQUEST_NOT_FOUND', 'Register request not found or already processed.');
     }
 
     if (!requestRow.product) {
-      return jsonError(404, 'PRODUCT_NOT_FOUND', '요청에 연결된 사전 생성 Product가 없습니다.');
+      return jsonError(404, 'PRODUCT_NOT_FOUND', 'Linked product not found.');
     }
 
     if (action === 'reject') {
-      await prisma.$transaction(async (tx) => {
-        await tx.productUpdateRequest.delete({ where: { id: requestId } });
-        await tx.product.delete({ where: { id: requestRow.productId } });
-      });
+      await prisma.productUpdateRequest.delete({ where: { id: requestId } });
 
       return NextResponse.json({
         status: 'success',
@@ -246,22 +244,22 @@ export async function PATCH(
       typeof isPublic !== 'boolean' ||
       !isNonNegativeInt(price)
     ) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     if (!isNonEmptyString(noticeImgUrl)) {
-      return jsonError(400, 'NOTICE_IMAGE_REQUIRED', '상품 정보 고시 이미지는 등록 승인 시 필수입니다.');
+      return jsonError(400, 'NOTICE_IMAGE_REQUIRED', 'Notice image is required for approval.');
     }
 
     const parsedOptions = parseAdminOptionsInput(options);
     if (!parsedOptions.ok) {
-      return jsonError(400, 'INVALID_OPTION_INPUT', '옵션 구조/값 형식 오류');
+      return jsonError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
     }
 
     const salesStart = parseDateTime(salesStartDate);
     const salesEnd = parseDateTime(salesEndDate);
     if (!validRange(salesStart, salesEnd)) {
-      return jsonError(400, 'INVALID_DATE_RANGE', '판매기간/제작기간/배송기간/수령기간 범위 오류');
+      return jsonError(400, 'INVALID_DATE_RANGE', 'Invalid date range.');
     }
 
     if (
@@ -277,7 +275,7 @@ export async function PATCH(
         'pickupLocation',
       ].some(hasOwn)
     ) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     let resolvedGoalAmount: number | null = null;
@@ -291,7 +289,7 @@ export async function PATCH(
 
     if (type === 0) {
       if (!isNonNegativeInt(goalAmount)) {
-        return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       resolvedGoalAmount = goalAmount;
 
@@ -302,14 +300,14 @@ export async function PATCH(
         resolvedDeliveryEnd = parseDateTime(deliveryEndDate);
 
         if (!validRange(resolvedProductionStart, resolvedProductionEnd) || !validRange(resolvedDeliveryStart, resolvedDeliveryEnd)) {
-          return jsonError(400, 'INVALID_DATE_RANGE', '판매기간/제작기간/배송기간/수령기간 범위 오류');
+          return jsonError(400, 'INVALID_DATE_RANGE', 'Invalid date range.');
         }
       } else {
         resolvedPickupStart = parseDateTime(pickupStartDate);
         resolvedPickupEnd = parseDateTime(pickupEndDate);
         resolvedPickupLocation = isNonEmptyString(pickupLocation) ? pickupLocation.trim() : null;
         if (!validRange(resolvedPickupStart, resolvedPickupEnd) || !resolvedPickupLocation) {
-          return jsonError(400, 'INVALID_DATE_RANGE', '판매기간/제작기간/배송기간/수령기간 범위 오류');
+          return jsonError(400, 'INVALID_DATE_RANGE', 'Invalid date range.');
         }
       }
     }
@@ -319,10 +317,66 @@ export async function PATCH(
       select: { id: true, teamName: true },
     });
     if (!team) {
-      return jsonError(400, 'INVALID_INPUT', '필수 입력값 누락/형식 오류');
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     await prisma.$transaction(async (tx) => {
+      // 1) Apply approval result to ProductUpdateRequest first
+      await tx.productUpdateRequest.update({
+        where: { id: requestId },
+        data: {
+          teamId: team.id,
+          name: name.trim(),
+          description: description.trim(),
+          type,
+          receiveMethod,
+          price,
+          goalAmount: type === 0 ? resolvedGoalAmount : null,
+          salesStartDate: salesStart!,
+          salesEndDate: salesEnd!,
+          productionStartDate: type === 0 && receiveMethod === 0 ? resolvedProductionStart : null,
+          productionEndDate: type === 0 && receiveMethod === 0 ? resolvedProductionEnd : null,
+          deliveryStartDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryStart : null,
+          deliveryEndDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryEnd : null,
+          pickupStartDate: type === 0 && receiveMethod === 1 ? resolvedPickupStart : null,
+          pickupEndDate: type === 0 && receiveMethod === 1 ? resolvedPickupEnd : null,
+          pickupLocation: type === 0 && receiveMethod === 1 ? resolvedPickupLocation : null,
+        },
+      });
+
+      await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
+      await tx.productUpdateRequestImage.create({
+        data: {
+          productUpdateRequestId: requestId,
+          thumbnailImgUrl: thumbnailUrl.trim(),
+          detailImgUrl: trimmedDetails,
+          noticeImgUrl: noticeImgUrl.trim(),
+        },
+      });
+
+      await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
+      for (const option of parsedOptions.value) {
+        const createdReqOption = await tx.productUpdateRequestOption.create({
+          data: {
+            productUpdateRequestId: requestId,
+            optionName: option.name,
+          },
+        });
+
+        for (const value of option.values) {
+          await tx.productUpdateRequestOptionValue.create({
+            data: {
+              optionId: createdReqOption.id,
+              productId: requestRow.productId,
+              optionName: option.name,
+              value: value.value,
+              additionalPrice: value.additionalPrice,
+            },
+          });
+        }
+      }
+
+      // 2) Apply the approved request state to Product
       await tx.product.update({
         where: { id: requestRow.productId },
         data: {
@@ -379,62 +433,8 @@ export async function PATCH(
         }
       }
 
-      // 요청본도 관리자 최종 입력값으로 맞춘 뒤, 처리 완료 후 삭제한다.
-      await tx.productUpdateRequest.update({
-        where: { id: requestId },
-        data: {
-          teamId: team.id,
-          name: name.trim(),
-          description: description.trim(),
-          type,
-          receiveMethod,
-          price,
-          goalAmount: type === 0 ? resolvedGoalAmount : null,
-          salesStartDate: salesStart!,
-          salesEndDate: salesEnd!,
-          productionStartDate: type === 0 && receiveMethod === 0 ? resolvedProductionStart : null,
-          productionEndDate: type === 0 && receiveMethod === 0 ? resolvedProductionEnd : null,
-          deliveryStartDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryStart : null,
-          deliveryEndDate: type === 0 && receiveMethod === 0 ? resolvedDeliveryEnd : null,
-          pickupStartDate: type === 0 && receiveMethod === 1 ? resolvedPickupStart : null,
-          pickupEndDate: type === 0 && receiveMethod === 1 ? resolvedPickupEnd : null,
-          pickupLocation: type === 0 && receiveMethod === 1 ? resolvedPickupLocation : null,
-        },
-      });
-
-      await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
-      await tx.productUpdateRequestImage.create({
-        data: {
-          productUpdateRequestId: requestId,
-          thumbnailImgUrl: thumbnailUrl.trim(),
-          detailImgUrl: trimmedDetails,
-          noticeImgUrl: noticeImgUrl.trim(),
-        },
-      });
-
-      await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
-      for (const option of parsedOptions.value) {
-        const createdReqOption = await tx.productUpdateRequestOption.create({
-          data: {
-            productUpdateRequestId: requestId,
-            optionName: option.name,
-          },
-        });
-
-        for (const value of option.values) {
-          await tx.productUpdateRequestOptionValue.create({
-            data: {
-              optionId: createdReqOption.id,
-              productId: requestRow.productId,
-              optionName: option.name,
-              value: value.value,
-              additionalPrice: value.additionalPrice,
-            },
-          });
-        }
-      }
+      await syncProductVariants(tx, requestRow.productId, price, parsedOptions.value);
     });
-
     const approvedProduct = await repo.product.findUnique({
       where: { id: requestRow.productId },
       select: {
@@ -466,7 +466,7 @@ export async function PATCH(
     });
 
     if (!approvedProduct) {
-      return jsonError(404, 'PRODUCT_NOT_FOUND', '요청에 연결된 사전 생성 Product가 없습니다.');
+      return jsonError(404, 'PRODUCT_NOT_FOUND', 'Linked product not found.');
     }
 
     await prisma.productUpdateRequest.delete({ where: { id: requestId } });
@@ -515,6 +515,7 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Admin register request approve/reject error:', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
+    return jsonError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
+

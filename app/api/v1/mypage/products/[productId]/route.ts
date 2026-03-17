@@ -63,7 +63,7 @@ export async function GET(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
         { status: 401 }
       );
     }
@@ -71,7 +71,7 @@ export async function GET(
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'productId 형식 오류' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -79,7 +79,7 @@ export async function GET(
     const teamIds = await getMyTeamIds(session.user.id);
     if (teamIds.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '해당 상품을 수정할 권한이 없습니다.' },
+        { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' },
         { status: 403 }
       );
     }
@@ -88,6 +88,7 @@ export async function GET(
       where: {
         id: productId.trim(),
         teamId: { in: teamIds },
+        isAdminApproved: true,
       },
       include: {
         team: { select: { teamName: true } },
@@ -105,7 +106,7 @@ export async function GET(
 
     if (!product) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '상품을 찾을 수 없습니다.' },
+        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
         { status: 404 }
       );
     }
@@ -151,7 +152,7 @@ export async function GET(
   } catch (error) {
     console.error('My product detail error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
       { status: 500 }
     );
   }
@@ -165,7 +166,7 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' },
+        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
         { status: 401 }
       );
     }
@@ -173,7 +174,7 @@ export async function PATCH(
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'productId 형식 오류' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -225,7 +226,7 @@ export async function PATCH(
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)는 필수입니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -236,7 +237,7 @@ export async function PATCH(
     });
     if (!team) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '해당 팀을 찾을 수 없습니다.' },
+        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
         { status: 404 }
       );
     }
@@ -245,19 +246,23 @@ export async function PATCH(
     const canUpdate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canUpdate) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '해당 팀 상품 수정 요청 권한이 없습니다.' },
+        { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' },
         { status: 403 }
       );
     }
 
     const targetProduct = await prisma.product.findFirst({
-      where: { id: productId.trim(), teamId: { in: await getMyTeamIds(session.user.id) } },
+      where: {
+        id: productId.trim(),
+        teamId: { in: await getMyTeamIds(session.user.id) },
+        isAdminApproved: true,
+      },
       select: { id: true },
     });
 
     if (!targetProduct) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '수정 대상 상품을 찾을 수 없습니다.' },
+        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
         { status: 404 }
       );
     }
@@ -274,14 +279,14 @@ export async function PATCH(
 
     if (priceNum < 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '가격은 0 이상이어야 합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '썸네일 이미지 URL은 필수입니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -296,14 +301,21 @@ export async function PATCH(
 
     if (!normalizedThumbnailImgUrl) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '유효한 썸네일 이미지 URL이 필요합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
 
     if (detailUrls.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '상세 이미지는 1개 이상 필요합니다.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
+        { status: 400 }
+      );
+    }
+
+    if (!normalizedNoticeImgUrl) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -312,7 +324,7 @@ export async function PATCH(
     const salesEnd = parseDate(salesEndDate);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '판매 시작일/종료일을 올바르게 입력해 주세요.' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
         { status: 400 }
       );
     }
@@ -320,7 +332,7 @@ export async function PATCH(
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
@@ -332,7 +344,7 @@ export async function PATCH(
           !parseDate(deliveryEndDate)
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 제작 기간/배송 기간을 올바르게 입력해 주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
             { status: 400 }
           );
         }
@@ -343,7 +355,7 @@ export async function PATCH(
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '예상 수령 기간/수령 장소를 입력해 주세요.' },
+            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
             { status: 400 }
           );
         }
@@ -351,14 +363,14 @@ export async function PATCH(
     } else if (type === 1) {
       if (receiveMethod !== 1) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
     } else {
       if (receiveMethod !== null) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
           { status: 400 }
         );
       }
@@ -376,50 +388,84 @@ export async function PATCH(
     const parsedOptions = parseAndValidateOptions(options);
     if (!parsedOptions.ok) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_OPTION_INPUT', message: '옵션 구조 오류' },
+        { status: 'error', code: 'INVALID_OPTION_INPUT', message: 'Invalid option payload.' },
         { status: 400 }
       );
     }
     const optionList = parsedOptions.value;
 
     const requestRow = await prisma.$transaction(async (tx) => {
-      const createdRequest = await tx.productUpdateRequest.create({
-        data: {
-          productId: targetProduct.id,
-          requestedByUserId: session.user.id,
-          teamId,
-          requestType: 1,
-          name: name.trim(),
-          description: typeof description === 'string' ? description.trim() : '',
-          type,
-          price: priceNum,
-          goalAmount: resolvedGoalAmount,
-          salesStartDate: salesStart,
-          salesEndDate: salesEnd,
-          productionStartDate: parseDate(productionStartDate) ?? undefined,
-          productionEndDate: parseDate(productionEndDate) ?? undefined,
-          deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-          deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
-          pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-          pickupEndDate: parseDate(pickupEndDate) ?? undefined,
-          pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod,
-        },
+      const existingRequest = await tx.productUpdateRequest.findFirst({
+        where: { productId: targetProduct.id, requestType: 1 },
+        select: { id: true },
       });
 
+      const savedRequest = existingRequest
+        ? await tx.productUpdateRequest.update({
+            where: { id: existingRequest.id },
+            data: {
+              requestedByUserId: session.user.id,
+              teamId,
+              name: name.trim(),
+              description: typeof description === 'string' ? description.trim() : '',
+              type,
+              price: priceNum,
+              goalAmount: resolvedGoalAmount,
+              salesStartDate: salesStart,
+              salesEndDate: salesEnd,
+              productionStartDate: parseDate(productionStartDate) ?? undefined,
+              productionEndDate: parseDate(productionEndDate) ?? undefined,
+              deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
+              deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+              pickupStartDate: parseDate(pickupStartDate) ?? undefined,
+              pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+              pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
+              receiveMethod,
+            },
+          })
+        : await tx.productUpdateRequest.create({
+            data: {
+              productId: targetProduct.id,
+              requestedByUserId: session.user.id,
+              teamId,
+              requestType: 1,
+              name: name.trim(),
+              description: typeof description === 'string' ? description.trim() : '',
+              type,
+              price: priceNum,
+              goalAmount: resolvedGoalAmount,
+              salesStartDate: salesStart,
+              salesEndDate: salesEnd,
+              productionStartDate: parseDate(productionStartDate) ?? undefined,
+              productionEndDate: parseDate(productionEndDate) ?? undefined,
+              deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
+              deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+              pickupStartDate: parseDate(pickupStartDate) ?? undefined,
+              pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+              pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
+              receiveMethod,
+            },
+          });
+
+      await tx.productUpdateRequestImage.deleteMany({
+        where: { productUpdateRequestId: savedRequest.id },
+      });
       await tx.productUpdateRequestImage.create({
         data: {
-          productUpdateRequestId: createdRequest.id,
+          productUpdateRequestId: savedRequest.id,
           thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
-          noticeImgUrl: normalizedNoticeImgUrl ?? null,
+          noticeImgUrl: normalizedNoticeImgUrl,
         },
       });
 
+      await tx.productUpdateRequestOption.deleteMany({
+        where: { productUpdateRequestId: savedRequest.id },
+      });
       for (const opt of optionList) {
         const optionName = opt.optionName;
         const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: createdRequest.id, optionName },
+          data: { productUpdateRequestId: savedRequest.id, optionName },
         });
 
         for (const v of opt.values) {
@@ -428,7 +474,7 @@ export async function PATCH(
           await tx.productUpdateRequestOptionValue.create({
             data: {
               optionId: reqOption.id,
-              productId: createdRequest.productId,
+              productId: savedRequest.productId,
               optionName,
               value,
               additionalPrice,
@@ -437,7 +483,7 @@ export async function PATCH(
         }
       }
 
-      return createdRequest;
+      return savedRequest;
     });
 
     return NextResponse.json({
@@ -445,13 +491,13 @@ export async function PATCH(
       data: {
         requestId: requestRow.id,
         productId: targetProduct.id,
-        message: '상품글 수정이 요청되었습니다.',
+        message: 'Product update request submitted.',
       },
     });
   } catch (error) {
     console.error('Product update request error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' },
+      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
       { status: 500 }
     );
   }
