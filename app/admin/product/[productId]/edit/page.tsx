@@ -112,6 +112,13 @@ const KR = {
   salesPeriod: '\uD310\uB9E4 \uAE30\uAC04',
   salesStart: '\uD310\uB9E4 \uC2DC\uC791\uC77C',
   salesEnd: '\uD310\uB9E4 \uC885\uB8CC\uC77C',
+  thumbnailImage: '\uC378\uB124\uC77C \uC774\uBBF8\uC9C0',
+  thumbnailImageHelp: '\uC378\uB124\uC77C \uC774\uBBF8\uC9C0\uB294 1\uC7A5\uB9CC \uC5C5\uB85C\uB4DC\uD569\uB2C8\uB2E4.',
+  detailImage: '\uC0C1\uC138\uD398\uC774\uC9C0 \uC774\uBBF8\uC9C0',
+  detailImageHelp: '\uC5EC\uB7EC \uC7A5\uC778 \uACBD\uC6B0, \uD654\uBA74\uC5D0 \uB178\uCD9C\uB420 \uC21C\uC11C\uB300\uB85C \uC5C5\uB85C\uB4DC\uD574 \uC8FC\uC138\uC694.',
+  noticeImage: '\uC0C1\uD488 \uC815\uBCF4 \uACE0\uC2DC \uC774\uBBF8\uC9C0',
+  noticeImageHelp: '\uC0C1\uD488 \uC815\uBCF4 \uACE0\uC2DC \uC774\uBBF8\uC9C0\uB294 1\uC7A5\uB9CC \uC5C5\uB85C\uB4DC\uD569\uB2C8\uB2E4.',
+  uploading: '\uC5C5\uB85C\uB4DC \uC911...',
   goalAmount: '\uBAA9\uD45C \uAE08\uC561',
   goalAmountHelp: '\uBAA9\uD45C \uAE08\uC561\uC774 \uC5C6\uB2E4\uBA74 0\uC6D0\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.',
   productionPeriod: '\uC81C\uC791 \uAE30\uAC04',
@@ -770,16 +777,91 @@ export default function AdminProductEditPage() {
                 onChangeEnd={setSalesEndDate}
               />
 
-              <div className="flex gap-[5px]">
-                {thumbnailUrl ? <ProductImage property1="Default" src={thumbnailUrl} onRemove={() => setThumbnailUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => thumbInputRef.current?.click()} />}
-              </div>
-              <div className="flex gap-[5px]">
-                {detailImageUrls.map((src, i) => <ProductImage key={`${src}-${i}`} property1="Default" src={src} onRemove={() => setDetailImageUrls((prev) => prev.filter((_, idx) => idx !== i))} />)}
-                {detailImageUrls.length < DETAIL_IMAGE_MAX ? <ProductImage property1={detailImageUrls.length ? 'add' : 'empty'} countText={`${detailImageUrls.length}/${DETAIL_IMAGE_MAX}`} onClick={() => detailInputRef.current?.click()} /> : null}
-              </div>
-              <div className="flex gap-[5px]">
-                {noticeImgUrl ? <ProductImage property1="Default" src={noticeImgUrl} onRemove={() => setNoticeImgUrl('')} /> : <ProductImage property1="empty" countText="0/1" onClick={() => noticeInputRef.current?.click()} />}
-              </div>
+              <section className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <p className="typo-body-small-bold text-neutral-10">{KR.thumbnailImage}</p>
+                    <span className="typo-body-xsmall-bold text-danger">*</span>
+                  </div>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">{KR.thumbnailImageHelp}</p>
+                </div>
+                <div className="h-[100px] w-full">
+                  {thumbnailUrl ? (
+                    <ProductImage
+                      property1="Default"
+                      src={thumbnailUrl}
+                      onRemove={() => setThumbnailUrl('')}
+                      disabled={uploading.thumbnail}
+                    />
+                  ) : (
+                    <ProductImage
+                      property1="empty"
+                      countText="0/1"
+                      onClick={() => thumbInputRef.current?.click()}
+                      disabled={uploading.thumbnail}
+                    />
+                  )}
+                </div>
+                {uploading.thumbnail ? <p className="typo-body-xsmall text-neutral-8">{KR.uploading}</p> : null}
+              </section>
+
+              <section className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <p className="typo-body-small-bold text-neutral-10">{KR.detailImage}</p>
+                    <span className="typo-body-xsmall-bold text-danger">*</span>
+                  </div>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">{KR.detailImageHelp}</p>
+                </div>
+                <div className="flex min-h-[100px] w-full gap-[5px] overflow-x-auto pb-1">
+                  {detailImageUrls.map((src, i) => (
+                    <ProductImage
+                      key={`${src}-${i}`}
+                      property1="Default"
+                      src={src}
+                      onRemove={() => setDetailImageUrls((prev) => prev.filter((_, idx) => idx !== i))}
+                      disabled={uploading.detail}
+                    />
+                  ))}
+                  {detailImageUrls.length < DETAIL_IMAGE_MAX ? (
+                    <ProductImage
+                      property1={detailImageUrls.length ? 'add' : 'empty'}
+                      countText={`${detailImageUrls.length}/${DETAIL_IMAGE_MAX}`}
+                      onClick={() => detailInputRef.current?.click()}
+                      disabled={uploading.detail}
+                    />
+                  ) : null}
+                </div>
+                {uploading.detail ? <p className="typo-body-xsmall text-neutral-8">{KR.uploading}</p> : null}
+              </section>
+
+              <section className="flex w-full flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1">
+                    <p className="typo-body-small-bold text-neutral-10">{KR.noticeImage}</p>
+                    <span className="typo-body-xsmall-bold text-danger">*</span>
+                  </div>
+                  <p className="text-[11px] leading-[1.5] text-neutral-8">{KR.noticeImageHelp}</p>
+                </div>
+                <div className="h-[100px] w-full">
+                  {noticeImgUrl ? (
+                    <ProductImage
+                      property1="Default"
+                      src={noticeImgUrl}
+                      onRemove={() => setNoticeImgUrl('')}
+                      disabled={uploading.notice}
+                    />
+                  ) : (
+                    <ProductImage
+                      property1="empty"
+                      countText="0/1"
+                      onClick={() => noticeInputRef.current?.click()}
+                      disabled={uploading.notice}
+                    />
+                  )}
+                </div>
+                {uploading.notice ? <p className="typo-body-xsmall text-neutral-8">{KR.uploading}</p> : null}
+              </section>
             </div>
           ) : null}
 
