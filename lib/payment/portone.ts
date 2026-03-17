@@ -257,6 +257,13 @@ export async function issueBillingKeyWithOnetime(params: {
     return tokenResult;
   }
 
+  // 아임포트 V1 API는 expiry를 YYYY-MM 형식으로 요구함. MMYY(4자리)는 변환.
+  const rawExpiry = params.expiry.replace(/\D/g, '');
+  const expiryForV1 =
+    rawExpiry.length === 4
+      ? `20${rawExpiry.slice(2)}-${rawExpiry.slice(0, 2)}`
+      : params.expiry;
+
   const onetimeRes = await fetch(`${API_V1_BASE}/subscribe/payments/onetime`, {
     method: 'POST',
     headers: {
@@ -269,7 +276,7 @@ export async function issueBillingKeyWithOnetime(params: {
       merchant_uid: params.merchantUid,
       amount: 1,
       card_number: params.cardNumber.replace(/\D/g, ''),
-      expiry: params.expiry,
+      expiry: expiryForV1,
       birth: params.birth,
       pwd_2digit: params.pwd2digit,
       buyer_name: params.buyerName,
