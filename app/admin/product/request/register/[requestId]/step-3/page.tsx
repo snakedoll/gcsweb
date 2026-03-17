@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -181,7 +181,7 @@ function ActionModal({
         <div className="w-full max-w-[343px] rounded-xl bg-neutral-1 px-7 pb-[23px] pt-10">
           <div className="flex w-[287px] flex-col gap-[30px]">
             <div className="flex w-full flex-col items-center justify-center gap-1">
-              <p className="w-[265px] text-center typo-heading-xxsmall text-neutral-12">작성을 취소하시겠습니까?</p>
+              <p className="w-[265px] text-center typo-heading-xxsmall text-neutral-12">작성 취소하시겠습니까?</p>
               <p className="w-[265px] text-center typo-body-xsmall text-neutral-12">지금까지 작성한 글은 저장되지 않습니다.</p>
             </div>
             <div className="flex w-full items-end gap-[14px]">
@@ -191,7 +191,7 @@ function ActionModal({
                 disabled={loading}
                 className="flex h-[47px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2"
               >
-                <span className="typo-body-small-bold text-neutral-10">이어서 작성</span>
+                <span className="typo-body-small-bold text-neutral-10">이어쓰기</span>
               </button>
               <button
                 type="button"
@@ -214,7 +214,7 @@ function ActionModal({
         <div className={cn('flex h-full flex-col items-center', type === 'approve' ? 'justify-between' : 'justify-end gap-[30px]')}>
           <div className={cn('flex w-full flex-col items-center justify-center', type === 'approve' ? 'gap-[10px]' : '')}>
             <p className="w-[265px] text-center typo-heading-xxsmall text-neutral-12">
-              {type === 'reject' ? '상품글 등록 요청을 거부하시겠습니까?' : '상품글을 등록하시겠습니까?'}
+              {type === 'reject' ? '상품글 등록 요청을 거절하시겠습니까?' : '상품글을 등록하시겠습니까?'}
             </p>
             {type === 'approve' ? (
               <div className="flex items-center gap-[9px]">
@@ -299,7 +299,7 @@ function OptionCardView({
         <div className="flex w-full flex-col gap-[14px]">
           <div className="flex items-center justify-between">
             <p className="typo-heading-xxsmall text-black">{`옵션 ${index + 1}`}</p>
-            <button type="button" className="inline-flex h-5 w-5 items-center justify-center" onClick={onRemoveCard} aria-label="옵션 삭제">
+            <button type="button" className="inline-flex h-5 w-5 items-center justify-center" onClick={onRemoveCard} aria-label="옵션 제거">
               <CloseIcon />
             </button>
           </div>
@@ -352,7 +352,7 @@ function OptionCardView({
                       <span className="w-[10px] text-right typo-body-xsmall text-neutral-7">원</span>
                     </span>
                   </div>
-                  <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" onClick={() => onRemoveRow(row.id)} aria-label="옵션값 삭제">
+                  <button type="button" className="ml-auto inline-flex h-5 w-5 items-center justify-center" onClick={() => onRemoveRow(row.id)} aria-label="옵션값 제거">
                     <CloseIcon size={17} />
                   </button>
                 </div>
@@ -503,7 +503,7 @@ export default function AdminRegisterRequestStep3Page() {
     );
   }, [requestId, loading, errorMessage, price, cards, isPublic]);
 
-  const canAddCard = cards.length < 3;
+  const canAddCard = cards.length < 2;
   const scrollOptionArea = cards.length >= 2;
 
   const registerEnabled = useMemo(() => {
@@ -578,7 +578,7 @@ export default function AdminRegisterRequestStep3Page() {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || json?.status !== 'success') {
-          throw new Error(json?.message ?? '거부 처리에 실패했습니다.');
+          throw new Error(json?.message ?? '거절 처리에 실패했습니다.');
         }
         if (typeof window !== 'undefined') {
           window.sessionStorage.removeItem(`register-request-step1:${requestId}`);
@@ -587,7 +587,7 @@ export default function AdminRegisterRequestStep3Page() {
         }
         router.push('/admin/product/request/register?toast=reject');
       } catch (error: any) {
-        alert(error?.message ?? '거부 처리에 실패했습니다.');
+        alert(error?.message ?? '거절 처리에 실패했습니다.');
       } finally {
         setActionLoading(false);
         setModalType(null);
@@ -674,7 +674,7 @@ export default function AdminRegisterRequestStep3Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="새 상품 등록" onBack={goToPreviousStep} />
+          <NavBar variant="title-back" title="상품글 등록" onBack={goToPreviousStep} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">
@@ -750,7 +750,9 @@ export default function AdminRegisterRequestStep3Page() {
                   {canAddCard ? (
                     <button
                       type="button"
-                      onClick={() => setCards((prev) => [...prev, createOptionCard(`${Date.now()}`)])}
+                      onClick={() =>
+                        setCards((prev) => (prev.length >= 2 ? prev : [...prev, createOptionCard(`${Date.now()}`)])
+                      )}
                       className="flex h-10 w-full items-center justify-center rounded-lg bg-[#E9DED2]"
                     >
                       <span className="typo-body-xsmall-bold text-neutral-10">옵션 추가</span>
@@ -779,7 +781,7 @@ export default function AdminRegisterRequestStep3Page() {
                 disabled={loading || !!errorMessage || actionLoading}
                 className="flex h-[55px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-neutral-2 disabled:cursor-not-allowed disabled:bg-neutral-3"
               >
-                <span className="typo-body-small-bold text-neutral-10">거부</span>
+                <span className="typo-body-small-bold text-neutral-10">거절</span>
               </button>
               <button
                 type="button"

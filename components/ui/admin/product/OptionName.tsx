@@ -1,4 +1,5 @@
-import { cn } from '@/lib/utils';
+﻿import { cn } from '@/lib/utils';
+import type { InputHTMLAttributes } from 'react';
 
 export type OptionNameVariant = 'Default' | 'filled' | 'focus' | 'error';
 
@@ -8,6 +9,7 @@ interface OptionNameProps {
   label?: string;
   value?: string;
   placeholder?: string;
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
 }
 
 function DangerIcon() {
@@ -26,11 +28,11 @@ export default function OptionName({
   label = '옵션명',
   value,
   placeholder = '예) 프린팅',
+  inputProps,
 }: OptionNameProps) {
   const isFilled = property1 === 'filled';
   const isFocus = property1 === 'focus';
   const isError = property1 === 'error';
-  const displayValue = value ?? (isFocus ? '프린' : isFilled || isError ? '프린팅' : placeholder);
 
   return (
     <div className={cn('flex w-[313px] flex-col gap-1', className)}>
@@ -41,9 +43,21 @@ export default function OptionName({
           isError ? 'border-danger' : isFocus ? 'border-orange-5' : isFilled ? 'border-neutral-6' : 'border-neutral-5'
         )}
       >
-        <span className={cn('flex-1 typo-body-xsmall', isFilled || isFocus || isError ? 'text-neutral-12' : 'text-neutral-7')}>
-          {displayValue}
-        </span>
+        {inputProps ? (
+          <input
+            {...inputProps}
+            value={value ?? ''}
+            placeholder={placeholder}
+            className={cn(
+              'flex-1 bg-transparent typo-body-xsmall outline-none placeholder:text-neutral-7',
+              isFilled || isFocus || isError ? 'text-neutral-12' : 'text-neutral-7'
+            )}
+          />
+        ) : (
+          <span className={cn('flex-1 typo-body-xsmall', isFilled || isFocus || isError ? 'text-neutral-12' : 'text-neutral-7')}>
+            {value || placeholder}
+          </span>
+        )}
         {isError ? <DangerIcon /> : null}
       </div>
     </div>

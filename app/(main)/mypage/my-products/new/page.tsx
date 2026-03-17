@@ -280,7 +280,7 @@ export default function NewProductPage() {
 
   const THUMBNAIL_MAX = 1;
   const DETAIL_MAX = 10;
-  const MAX_OPTION_CARD_COUNT = 3;
+  const MAX_OPTION_CARD_COUNT = 2;
 
   const handleDetailReorder = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
