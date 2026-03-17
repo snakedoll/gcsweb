@@ -228,7 +228,7 @@ export default function AdminRegisterRequestStep2Page() {
     <div className="relative min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col justify-between bg-neutral-3">
         <div className="flex flex-col">
-          <NavBar variant="title-back" title="상품 등록" onBack={() => router.push(`/admin/product/request/register/${requestId}`)} />
+          <NavBar variant="title-back" title="새 상품 등록" onBack={() => router.push(`/admin/product/request/register/${requestId}`)} />
 
           <div className="flex items-center justify-center px-[148px] py-[14px]">
             <div className="flex items-center gap-[14px]">

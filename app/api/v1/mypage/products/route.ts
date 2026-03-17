@@ -1,16 +1,16 @@
-import { getServerSession } from 'next-auth';
+﻿import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 
-/** ?닿? ?랁븳 ?(????먮뒗 ??????곹뭹 紐⑸줉 */
+/** 내가 등록한 상품(판매팀 보유 팀 기준) 목록 */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??' },
+        { status: 'error', code: 'UNAUTHORIZED', message: '???? ?????.' },
         { status: 401 }
       );
     }
@@ -60,7 +60,7 @@ export async function GET() {
   } catch (error) {
     console.error('My products list error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '?쒕쾭 ?대? ?ㅻ쪟' },
+      { status: 'error', code: 'SERVER_ERROR', message: '??뺤쒔 ??? ??살첒' },
       { status: 500 }
     );
   }
@@ -72,12 +72,43 @@ function parseDate(str: string | undefined): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
+function parseAndValidateOptions(options: unknown) {
+  if (options == null) return { ok: true as const, value: [] as Array<{ optionName: string; values: Array<{ value: string; extraPrice: number }> }> };
+  if (!Array.isArray(options)) return { ok: false as const };
+
+  const optionNameSet = new Set<string>();
+  const parsed: Array<{ optionName: string; values: Array<{ value: string; extraPrice: number }> }> = [];
+
+  for (const option of options) {
+    if (!option || typeof option !== 'object') return { ok: false as const };
+    const optionName = typeof (option as any).optionName === 'string' ? (option as any).optionName.trim() : '';
+    const values = (option as any).values;
+    if (!optionName || optionNameSet.has(optionName) || !Array.isArray(values) || values.length < 1) return { ok: false as const };
+    optionNameSet.add(optionName);
+
+    const parsedValues: Array<{ value: string; extraPrice: number }> = [];
+    const valueSet = new Set<string>();
+    for (const valueItem of values) {
+      if (!valueItem || typeof valueItem !== 'object') return { ok: false as const };
+      const value = typeof (valueItem as any).value === 'string' ? (valueItem as any).value.trim() : '';
+      const extraPrice = (valueItem as any).extraPrice;
+      if (!value || valueSet.has(value) || !Number.isInteger(extraPrice) || extraPrice < 0) return { ok: false as const };
+      valueSet.add(value);
+      parsedValues.push({ value, extraPrice });
+    }
+
+    parsed.push({ optionName, values: parsedValues });
+  }
+
+  return { ok: true as const, value: parsed };
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '濡쒓렇?몄씠 ?꾩슂?⑸땲??' },
+        { status: 'error', code: 'UNAUTHORIZED', message: '???? ?????.' },
         { status: 401 }
       );
     }
@@ -129,7 +160,7 @@ export async function POST(request: Request) {
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)???꾩닔?낅땲??' },
+        { status: 'error', code: 'INVALID_INPUT', message: 'teamId, name, type(0/1/2)? ?????.' },
         { status: 400 }
       );
     }
@@ -140,7 +171,7 @@ export async function POST(request: Request) {
     });
     if (!team) {
       return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: '?대떦 ???李얠쓣 ???놁뒿?덈떎.' },
+        { status: 'error', code: 'NOT_FOUND', message: '?? ?? ?? ? ????.' },
         { status: 404 }
       );
     }
@@ -148,7 +179,7 @@ export async function POST(request: Request) {
     const canCreate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canCreate) {
       return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: '?대떦 ????곹뭹???깅줉??沅뚰븳???놁뒿?덈떎.' },
+        { status: 'error', code: 'FORBIDDEN', message: '해당 팀의 상품 등록 권한이 없습니다.' },
         { status: 403 }
       );
     }
@@ -164,14 +195,14 @@ export async function POST(request: Request) {
           : 0;
     if (priceNum < 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '媛寃⑹? 0 ?댁긽?댁뼱???⑸땲??' },
+        { status: 'error', code: 'INVALID_INPUT', message: '??? 0 ????? ???.' },
         { status: 400 }
       );
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?몃꽕???대?吏 URL? ?꾩닔?낅땲??' },
+        { status: 'error', code: 'INVALID_INPUT', message: '??? ??? URL? ?????.' },
         { status: 400 }
       );
     }
@@ -184,13 +215,13 @@ export async function POST(request: Request) {
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
     if (!normalizedThumbnailImgUrl) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?좏슚???몃꽕???대?吏 URL???꾩슂?⑸땲??' },
+        { status: 'error', code: 'INVALID_INPUT', message: '??? ??? ??? URL? ?????.' },
         { status: 400 }
       );
     }
     if (detailUrls.length === 0) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?곸꽭 ?대?吏??1媛??댁긽 ?꾩슂?⑸땲??' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?? ???? 1? ?? ?????.' },
         { status: 400 }
       );
     }
@@ -199,7 +230,7 @@ export async function POST(request: Request) {
     const salesEnd = parseDate(salesEndDate);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: '?먮ℓ ?쒖옉??醫낅즺?쇱쓣 ?щ컮瑜닿쾶 ?낅젰??二쇱꽭??' },
+        { status: 'error', code: 'INVALID_INPUT', message: '?? ???/???? ???? ??? ???.' },
         { status: 400 }
       );
     }
@@ -207,7 +238,7 @@ export async function POST(request: Request) {
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Fund ?곹뭹? ?섎졊諛⑹떇(0/1)???꾩슂?⑸땲??' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'Fund 상품은 수령방식(0/1)이 필요합니다.' },
           { status: 400 }
         );
       }
@@ -219,7 +250,7 @@ export async function POST(request: Request) {
           !parseDate(deliveryEndDate)
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '?덉긽 ?쒖옉 湲곌컙/諛곗넚 湲곌컙???щ컮瑜닿쾶 ?낅젰??二쇱꽭??' },
+            { status: 'error', code: 'INVALID_INPUT', message: '?? ?? ??/?? ??? ???? ??? ???.' },
             { status: 400 }
           );
         }
@@ -230,7 +261,7 @@ export async function POST(request: Request) {
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: '?덉긽 ?섎졊 湲곌컙/?섎졊 ?μ냼瑜??낅젰??二쇱꽭??' },
+            { status: 'error', code: 'INVALID_INPUT', message: '?? ?? ??/?? ??? ??? ???.' },
             { status: 400 }
           );
         }
@@ -238,14 +269,14 @@ export async function POST(request: Request) {
     } else if (type === 1) {
       if (receiveMethod !== 1) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow ?곹뭹? receiveMethod=1 ?댁뼱???⑸땲??' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'BuyNow 상품은 receiveMethod=1 이어야 합니다.' },
           { status: 400 }
         );
       }
     } else {
       if (receiveMethod !== null) {
         return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp ?곹뭹? receiveMethod=null ?댁뼱???⑸땲??' },
+          { status: 'error', code: 'INVALID_INPUT', message: 'PartnerUp 상품은 receiveMethod=null 이어야 합니다.' },
           { status: 400 }
         );
       }
@@ -278,7 +309,14 @@ export async function POST(request: Request) {
       viewCount: 0,
     };
 
-    const optionList = Array.isArray(options) ? options : [];
+    const parsedOptions = parseAndValidateOptions(options);
+    if (!parsedOptions.ok) {
+      return NextResponse.json(
+        { status: 'error', code: 'INVALID_OPTION_INPUT', message: '옵션 구조 오류' },
+        { status: 400 }
+      );
+    }
+    const optionList = parsedOptions.value;
 
     const product = await prisma.$transaction(async (tx) => {
       const createdProduct = await tx.product.create({
@@ -301,18 +339,14 @@ export async function POST(request: Request) {
       });
 
       for (const opt of optionList) {
-        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
-        if (!optionName) continue;
-
+        const optionName = opt.optionName;
         const optionRow = await tx.productOption.create({
           data: { productId: createdProduct.id, optionName },
         });
 
-        const values = Array.isArray(opt.values) ? opt.values : [];
-        for (const v of values) {
-          const value = typeof v?.value === 'string' ? v.value.trim() : '';
-          if (!value) continue;
-          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
+        for (const v of opt.values) {
+          const value = v.value;
+          const additionalPrice = v.extraPrice;
           await tx.productOptionValue.create({
             data: {
               optionId: optionRow.id,
@@ -391,13 +425,13 @@ export async function POST(request: Request) {
       status: 'success',
       data: {
         productId: product.id,
-        message: '?깅줉 ?붿껌???묒닔?섏뿀?듬땲?? 愿由ъ옄 ?뺤씤 ???몄텧?⑸땲??',
+        message: '등록 요청이 접수되었습니다. 관리자 확인 후 노출됩니다.',
       },
     });
   } catch (error) {
     console.error('Product registration error:', error);
     return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: '?쒕쾭 ?대? ?ㅻ쪟' },
+      { status: 'error', code: 'SERVER_ERROR', message: '??뺤쒔 ??? ??살첒' },
       { status: 500 }
     );
   }

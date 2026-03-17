@@ -1,12 +1,15 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import StepProgress from '@/components/ui/admin/product/StepProgress';
 import { cn } from '@/lib/utils';
+import OptionName from '@/components/ui/admin/product/OptionName';
+import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 
 type ProductType = 0 | 1 | 2;
+const MAX_OPTION_CARD_COUNT = 2;
 
 type OptionValue = {
   id: string;
@@ -39,9 +42,34 @@ type UpdateRequestDetailResponse = {
   };
 };
 
-function formatWon(value: number | null | undefined) {
-  const safe = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
-  return `${safe.toLocaleString('ko-KR')}원`;
+function formatNumber(value: string) {
+  const digits = value.replace(/[^\d]/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ko-KR');
+}
+
+function getDuplicateOptionNames(options: Array<{ name: string }>) {
+  const counts = new Map<string, number>();
+  for (const option of options) {
+    const key = option.name.trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function getDuplicateOptionValuesByOptionId(options: Array<{ id: string; values: Array<{ value: string }> }>) {
+  const result = new Map<string, Set<string>>();
+  for (const option of options) {
+    const counts = new Map<string, number>();
+    for (const value of option.values) {
+      const key = value.value.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    result.set(option.id, new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key)));
+  }
+  return result;
 }
 
 function ConfirmModal({
@@ -109,6 +137,11 @@ export default function AdminUpdateRequestStep3Page() {
   const [price, setPrice] = useState('');
   const [options, setOptions] = useState<OptionGroup[]>([]);
   const [productType, setProductType] = useState<ProductType>(0);
+  const [focusedOptionNameId, setFocusedOptionNameId] = useState<string | null>(null);
+  const [focusedOptionValueId, setFocusedOptionValueId] = useState<string | null>(null);
+  const canAddOptionCard = options.length < MAX_OPTION_CARD_COUNT;
+  const duplicateOptionNames = useMemo(() => getDuplicateOptionNames(options), [options]);
+  const duplicateOptionValuesByOptionId = useMemo(() => getDuplicateOptionValuesByOptionId(options), [options]);
 
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -187,12 +220,12 @@ export default function AdminUpdateRequestStep3Page() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.status !== 'success') {
-        throw new Error(json?.message ?? '거부 처리에 실패했습니다.');
+        throw new Error(json?.message ?? '거절 처리에 실패했습니다.');
       }
 
       router.push('/admin/product/request/update?toast=reject');
     } catch (error: any) {
-      alert(error?.message ?? '거부 처리에 실패했습니다.');
+      alert(error?.message ?? '거절 처리에 실패했습니다.');
     } finally {
       setActionLoading(false);
       setShowRejectModal(false);
@@ -205,7 +238,7 @@ export default function AdminUpdateRequestStep3Page() {
         <div className="flex flex-col">
           <NavBar variant="title-back" title="상품 수정" />
 
-          {/* 진행바: Buy Now/Partner Up은 2단계를 스킵함 */}
+          {/* 진행바: Buy Now/Partner Up은 2단계를 스킵 */}
           <div className="flex items-center justify-center py-[14px]">
             <div className="flex items-center gap-[14px]">
               <StepProgress status="complete" />
@@ -266,71 +299,77 @@ export default function AdminUpdateRequestStep3Page() {
                           </div>
 
                           <div className="flex flex-col gap-1.5">
-                            <p className="text-[13px] text-neutral-9">옵션명</p>
-                            <div className="flex h-10 items-center rounded-lg border border-neutral-5 bg-neutral-2 px-3">
-                              <input
-                                type="text"
-                                value={opt.name}
-                                onChange={(e) => {
+                            <OptionName
+                              className="w-full"
+                              variant={
+                                duplicateOptionNames.has(opt.name.trim())
+                                  ? 'error'
+                                  : focusedOptionNameId === opt.id
+                                    ? 'focus'
+                                    : opt.name.trim()
+                                      ? 'filled'
+                                      : 'Default'
+                              }
+                              value={opt.name}
+                              inputProps={{
+                                value: opt.name,
+                                onChange: (e) => {
                                   const next = [...options];
                                   next[optIdx].name = e.target.value;
                                   setOptions(next);
-                                }}
-                                className="w-full bg-transparent text-[13px] text-neutral-12 outline-none"
-                                placeholder="예) 프린팅"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center text-[13px] text-neutral-9">
-                            <span className="w-1/2">옵션값</span>
-                            <span className="w-1/2">추가 금액</span>
+                                },
+                                onFocus: () => setFocusedOptionNameId(opt.id),
+                                onBlur: () => setFocusedOptionNameId((prev) => (prev === opt.id ? null : prev)),
+                              }}
+                            />
                           </div>
 
                           <div className="flex flex-col gap-2.5">
                             {opt.values.map((v, vIdx) => (
-                              <div key={v.id} className="flex h-10 items-center justify-between gap-[5px] rounded-lg border border-neutral-6 bg-neutral-1 px-2.5 py-1.5">
-                                <div className="flex flex-1 items-center gap-[10px]">
-                                  <input
-                                    type="text"
-                                    value={v.value}
-                                    onChange={(e) => {
-                                      const next = [...options];
-                                      next[optIdx].values[vIdx].value = e.target.value;
-                                      setOptions(next);
-                                    }}
-                                    className="w-[85px] bg-transparent text-[13px] text-neutral-12 outline-none"
-                                    placeholder="BLACK"
-                                  />
-                                  <div className="h-4 w-[1px] bg-neutral-5" />
-                                  <div className="flex flex-1 items-center border-b border-neutral-5">
-                                    <input
-                                      type="text"
-                                      value={v.additionalPrice ? v.additionalPrice.toLocaleString() : ''}
-                                      onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, '');
-                                        const next = [...options];
-                                        next[optIdx].values[vIdx].additionalPrice = val ? parseInt(val, 10) : 0;
-                                        setOptions(next);
-                                      }}
-                                      className="w-full bg-transparent text-left text-[13px] text-neutral-12 outline-none"
-                                      placeholder="0"
-                                    />
-                                    <span className="ml-1 shrink-0 text-[13px] text-neutral-7">원</span>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
+                              <OptionVariation
+                                key={v.id}
+                                className="w-full"
+                                variant={
+                                  duplicateOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
+                                    ? 'error'
+                                    : focusedOptionValueId === v.id
+                                      ? 'focus'
+                                      : v.value.trim() || v.additionalPrice > 0
+                                        ? 'filled'
+                                        : 'Default'
+                                }
+                                optionLabel={v.value}
+                                extraPrice={v.additionalPrice > 0 ? formatNumber(String(v.additionalPrice)) : ''}
+                                optionInputProps={{
+                                  value: v.value,
+                                  onChange: (e) => {
                                     const next = [...options];
-                                    next[optIdx].values.splice(vIdx, 1);
+                                    next[optIdx].values[vIdx].value = e.target.value;
                                     setOptions(next);
-                                  }}
-                                  className="shrink-0"
-                                >
-                                  <CloseIconV3 />
-                                </button>
-                              </div>
+                                  },
+                                  onFocus: () => setFocusedOptionValueId(v.id),
+                                  onBlur: () => setFocusedOptionValueId((prev) => (prev === v.id ? null : prev)),
+                                }}
+                                priceInputProps={{
+                                  value: v.additionalPrice > 0 ? formatNumber(String(v.additionalPrice)) : '',
+                                  onChange: (e) => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    const next = [...options];
+                                    next[optIdx].values[vIdx].additionalPrice = val ? parseInt(val, 10) : 0;
+                                    setOptions(next);
+                                  },
+                                  placeholder: '0',
+                                }}
+                                onRemove={
+                                  opt.values.length > 1
+                                    ? () => {
+                                        const next = [...options];
+                                        next[optIdx].values.splice(vIdx, 1);
+                                        setOptions(next);
+                                      }
+                                    : undefined
+                                }
+                              />
                             ))}
                             
                             <div className="flex justify-center mt-1">
@@ -358,22 +397,28 @@ export default function AdminUpdateRequestStep3Page() {
                     ))}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOptions((prev) => [
-                        ...prev,
-                        {
-                          id: Math.random().toString(36).substr(2, 9),
-                          name: '',
-                          values: [{ id: Math.random().toString(36).substr(2, 9), value: '', additionalPrice: 0 }],
-                        },
-                      ]);
-                    }}
-                    className="mt-6 flex h-[44px] w-full items-center justify-center rounded-lg bg-[#E9DED2] text-[13px] font-bold text-[#3F3835]"
-                  >
-                    옵션 추가
-                  </button>
+                  {canAddOptionCard ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOptions((prev) =>
+                          prev.length >= MAX_OPTION_CARD_COUNT
+                            ? prev
+                            : [
+                                ...prev,
+                                {
+                                  id: Math.random().toString(36).substr(2, 9),
+                                  name: '',
+                                  values: [{ id: Math.random().toString(36).substr(2, 9), value: '', additionalPrice: 0 }],
+                                },
+                              ]
+                        );
+                      }}
+                      className="mt-6 flex h-[44px] w-full items-center justify-center rounded-lg bg-[#E9DED2] text-[13px] font-bold text-[#3F3835]"
+                    >
+                      옵션 추가
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -391,7 +436,7 @@ export default function AdminUpdateRequestStep3Page() {
               }
             }}
             className="flex h-[55px] w-[37px] items-center justify-center rounded-lg bg-[#E9DED2]"
-            aria-label="이전"
+            aria-label="?댁쟾"
           >
             <BackArrowIconV2 />
           </button>
@@ -401,7 +446,7 @@ export default function AdminUpdateRequestStep3Page() {
             disabled={actionLoading}
             className="flex h-[55px] flex-1 items-center justify-center rounded-lg border border-neutral-5 bg-white shadow-sm"
           >
-            <span className="text-[15px] font-bold text-[#3F3835]">거부</span>
+            <span className="text-[15px] font-bold text-[#3F3835]">거절</span>
           </button>
           <button
             type="button"
@@ -409,7 +454,7 @@ export default function AdminUpdateRequestStep3Page() {
             disabled={actionLoading}
             className="flex h-[55px] flex-1 items-center justify-center rounded-lg bg-orange-5 shadow-sm"
           >
-            <span className="text-[15px] font-bold text-white">승인</span>
+            <span className="text-[15px] font-bold text-white">?뱀씤</span>
           </button>
         </div>
       </div>
@@ -418,7 +463,7 @@ export default function AdminUpdateRequestStep3Page() {
         <ConfirmModal
           title="수정 요청을 승인하시겠습니까?"
           description="승인 시 상품 정보가 수정됩니다."
-          confirmLabel="확인"
+          confirmLabel="?뺤씤"
           cancelLabel="취소"
           onConfirm={handleApproveConfirm}
           onCancel={() => setShowApproveModal(false)}
@@ -428,9 +473,9 @@ export default function AdminUpdateRequestStep3Page() {
 
       {showRejectModal ? (
         <ConfirmModal
-          title="수정 요청을 거부하시겠습니까?"
-          description="거부 시 수정 요청이 삭제됩니다."
-          confirmLabel="확인"
+          title="수정 요청을 거절하시겠습니까?"
+          description="거절 시 수정 요청은 삭제됩니다."
+          confirmLabel="?뺤씤"
           cancelLabel="취소"
           onConfirm={handleRejectConfirm}
           onCancel={() => setShowRejectModal(false)}
@@ -449,14 +494,6 @@ function CloseIconV2() {
   );
 }
 
-function CloseIconV3() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M7 7L17 17M17 7L7 17" stroke="#C7C5C4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function BackArrowIconV2() {
   return (
     <svg width="9" height="16" viewBox="0 0 9 16" fill="none" aria-hidden>
@@ -464,3 +501,4 @@ function BackArrowIconV2() {
     </svg>
   );
 }
+

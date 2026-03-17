@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+﻿import { cn } from '@/lib/utils';
 import OptionName from './OptionName';
 import OptionVariation, { type OptionVariationVariant } from './OptionVariation';
 
@@ -41,7 +41,7 @@ function PlusIcon() {
 export default function ProductOption({
   className,
   property1 = 'Default',
-  title = '옵션 1',
+  title = '?듭뀡 1',
   optionNameVariant = 'Default',
   items,
   onRemoveOption,
@@ -74,18 +74,18 @@ export default function ProductOption({
               type="button"
               onClick={onRemoveOption}
               className={cn('inline-flex h-5 w-5 items-center justify-center', onRemoveOption ? 'cursor-pointer' : 'cursor-default')}
-              aria-label="옵션 삭제"
+              aria-label="?듭뀡 ??젣"
             >
               <CloseIcon />
             </button>
           </div>
 
           <div className="flex w-full flex-col gap-3">
-            <OptionName property1={optionNameVariant} />
+            <OptionName variant={optionNameVariant} />
             {resolvedItems.map((item) => (
               <OptionVariation
                 key={item.id}
-                property1={item.variant ?? 'Default'}
+                variant={item.variant ?? 'Default'}
                 optionLabel={item.optionLabel}
                 extraPrice={item.extraPrice}
               />
@@ -97,7 +97,7 @@ export default function ProductOption({
           type="button"
           onClick={onAddVariation}
           className={cn('inline-flex h-6 w-6 items-center justify-center', onAddVariation ? 'cursor-pointer' : 'cursor-default')}
-          aria-label="옵션값 추가"
+          aria-label="?듭뀡媛?異붽?"
         >
           <PlusIcon />
         </button>
@@ -105,3 +105,4 @@ export default function ProductOption({
     </div>
   );
 }
+

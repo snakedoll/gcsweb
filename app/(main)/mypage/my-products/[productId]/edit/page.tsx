@@ -20,6 +20,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useForm, Controller } from 'react-hook-form';
 import RadioButton from '@/components/ui/button/RadioButton';
+import OptionName from '@/components/ui/admin/product/OptionName';
+import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 import { useQuery } from '@tanstack/react-query';
 import type {
   NewProductStep1Input,
@@ -126,6 +128,30 @@ function parseOrNull(dateStr: string): Date | null {
   } catch {
     return null;
   }
+}
+
+function getDuplicateOptionNames(options: Array<{ optionName: string }>) {
+  const counts = new Map<string, number>();
+  for (const option of options) {
+    const key = option.optionName.trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function getDuplicateOptionValuesByOptionId<T extends { id: string; values: Array<{ value: string }> }>(options: T[]) {
+  const result = new Map<string, Set<string>>();
+  for (const option of options) {
+    const counts = new Map<string, number>();
+    for (const value of option.values) {
+      const key = value.value.trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    result.set(option.id, new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key)));
+  }
+  return result;
 }
 
 function TeamDropdown({
@@ -328,7 +354,7 @@ export default function NewProductPage() {
 
   const THUMBNAIL_MAX = 1;
   const DETAIL_MAX = 10;
-  const MAX_OPTION_CARD_COUNT = 3;
+  const MAX_OPTION_CARD_COUNT = 2;
 
   const handleDetailReorder = (fromIndex: number, toIndex: number) => {
     if (fromIndex === toIndex) return;
@@ -377,6 +403,8 @@ export default function NewProductPage() {
   type BuyNowOptionValue = { id: string; value: string; extraPrice: number };
   type BuyNowOption = { id: string; optionName: string; values: BuyNowOptionValue[] };
   const [buyNowOptions, setBuyNowOptions] = useState<BuyNowOption[]>([]);
+  const [focusedBuyNowOptionNameId, setFocusedBuyNowOptionNameId] = useState<string | null>(null);
+  const [focusedBuyNowOptionValueId, setFocusedBuyNowOptionValueId] = useState<string | null>(null);
 
   const step2BuyNowForm = useForm<NewProductStep2BuyNowInput>({
     resolver: zodResolver(newProductStep2BuyNowSchema),
@@ -474,6 +502,8 @@ export default function NewProductPage() {
   };
 
   const [fundStep3Options, setFundStep3Options] = useState<BuyNowOption[]>([]);
+  const [focusedFundOptionNameId, setFocusedFundOptionNameId] = useState<string | null>(null);
+  const [focusedFundOptionValueId, setFocusedFundOptionValueId] = useState<string | null>(null);
   const step3FundForm = useForm<NewProductStep2BuyNowInput>({
     resolver: zodResolver(newProductStep2BuyNowSchema),
     defaultValues: { price: 0, options: [] },
@@ -614,7 +644,11 @@ export default function NewProductPage() {
   };
   const removeFundStep3OptionValue = (optionId: string, valueId: string) => {
     setFundStep3Options((prev) =>
-      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+      prev.map((o) => {
+        if (o.id !== optionId) return o;
+        if (o.values.length <= 1) return o;
+        return { ...o, values: o.values.filter((v) => v.id !== valueId) };
+      })
     );
   };
   const updateFundStep3OptionName = (optionId: string, optionName: string) => {
@@ -692,6 +726,10 @@ export default function NewProductPage() {
   const isFundStep3Valid = useMemo(() => {
     return newProductStep2BuyNowSchema.safeParse(step3FundForm.getValues()).success;
   }, [step3FundForm, fundPrice]);
+  const duplicateBuyNowOptionNames = useMemo(() => getDuplicateOptionNames(buyNowOptions), [buyNowOptions]);
+  const duplicateBuyNowOptionValuesByOptionId = useMemo(() => getDuplicateOptionValuesByOptionId(buyNowOptions), [buyNowOptions]);
+  const duplicateFundOptionNames = useMemo(() => getDuplicateOptionNames(fundStep3Options), [fundStep3Options]);
+  const duplicateFundOptionValuesByOptionId = useMemo(() => getDuplicateOptionValuesByOptionId(fundStep3Options), [fundStep3Options]);
 
   const isBuyNowRegistrationEnabled = !isSubmittingRegistration && isStep1RequiredValid && hasRequiredImages && isBuyNowStep2Valid;
   const isFundRegistrationEnabled =
@@ -751,7 +789,11 @@ export default function NewProductPage() {
   };
   const removeBuyNowOptionValue = (optionId: string, valueId: string) => {
     setBuyNowOptions((prev) =>
-      prev.map((o) => (o.id === optionId ? { ...o, values: o.values.filter((v) => v.id !== valueId) } : o))
+      prev.map((o) => {
+        if (o.id !== optionId) return o;
+        if (o.values.length <= 1) return o;
+        return { ...o, values: o.values.filter((v) => v.id !== valueId) };
+      })
     );
   };
   const updateBuyNowOptionName = (optionId: string, optionName: string) => {
@@ -1249,49 +1291,55 @@ export default function NewProductPage() {
                     </button>
                   </div>
                   <div className="space-y-3">
+                    <OptionName
+                      className="w-full"
+                      variant={
+                        duplicateBuyNowOptionNames.has(opt.optionName.trim())
+                          ? 'error'
+                          : focusedBuyNowOptionNameId === opt.id
+                            ? 'focus'
+                            : opt.optionName.trim()
+                              ? 'filled'
+                              : 'Default'
+                      }
+                      value={opt.optionName}
+                      inputProps={{
+                        value: opt.optionName,
+                        onChange: (e) => updateBuyNowOptionName(opt.id, e.target.value),
+                        onFocus: () => setFocusedBuyNowOptionNameId(opt.id),
+                        onBlur: () => setFocusedBuyNowOptionNameId((prev) => (prev === opt.id ? null : prev)),
+                      }}
+                    />
                     <div>
-                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
-                      <input
-                        type="text"
-                        placeholder="예: 컬러"
-                        value={opt.optionName}
-                        onChange={(e) => updateBuyNowOptionName(opt.id, e.target.value)}
-                        className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between typo-body-xsmall text-neutral-9 mb-1">
-                        <span>옵션값</span>
-                        <span>추가 금액</span>
-                      </div>
                       {opt.values.map((v) => (
-                        <div key={v.id} className="flex items-center gap-2 mt-1">
-                          <input
-                            type="text"
-                            placeholder="?? BLACK"
-                            value={v.value}
-                            onChange={(e) => updateBuyNowOptionValue(opt.id, v.id, 'value', e.target.value)}
-                            className="h-10 flex-1 min-w-0 rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
-                          />
-                          <div className="flex items-center gap-1 w-[100px]">
-                            <input
-                              type="number"
-                              min={0}
-                              value={v.extraPrice || ''}
-                              onChange={(e) => updateBuyNowOptionValue(opt.id, v.id, 'extraPrice', e.target.value)}
-                              className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-2 py-2 typo-body-xsmall text-neutral-12 text-right"
-                            />
-                            <span className="typo-body-xsmall text-neutral-7 shrink-0">원</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeBuyNowOptionValue(opt.id, v.id)}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                            aria-label="옵션값 삭제"
-                          >
-                            <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
-                          </button>
-                        </div>
+                        <OptionVariation
+                          key={v.id}
+                          className="mt-1 w-full"
+                          variant={
+                            duplicateBuyNowOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
+                              ? 'error'
+                              : focusedBuyNowOptionValueId === v.id
+                                ? 'focus'
+                                : v.value.trim() || v.extraPrice > 0
+                                  ? 'filled'
+                                  : 'Default'
+                          }
+                          optionLabel={v.value}
+                          extraPrice={v.extraPrice > 0 ? String(v.extraPrice) : ''}
+                          optionInputProps={{
+                            value: v.value,
+                            onChange: (e) => updateBuyNowOptionValue(opt.id, v.id, 'value', e.target.value),
+                            onFocus: () => setFocusedBuyNowOptionValueId(v.id),
+                            onBlur: () => setFocusedBuyNowOptionValueId((prev) => (prev === v.id ? null : prev)),
+                          }}
+                          priceInputProps={{
+                            type: 'number',
+                            min: 0,
+                            value: v.extraPrice > 0 ? String(v.extraPrice) : '',
+                            onChange: (e) => updateBuyNowOptionValue(opt.id, v.id, 'extraPrice', e.target.value),
+                          }}
+                          onRemove={opt.values.length > 1 ? () => removeBuyNowOptionValue(opt.id, v.id) : undefined}
+                        />
                       ))}
                       <button
                         type="button"
@@ -1721,49 +1769,55 @@ export default function NewProductPage() {
                     </button>
                   </div>
                   <div className="space-y-3">
+                    <OptionName
+                      className="w-full"
+                      variant={
+                        duplicateFundOptionNames.has(opt.optionName.trim())
+                          ? 'error'
+                          : focusedFundOptionNameId === opt.id
+                            ? 'focus'
+                            : opt.optionName.trim()
+                              ? 'filled'
+                              : 'Default'
+                      }
+                      value={opt.optionName}
+                      inputProps={{
+                        value: opt.optionName,
+                        onChange: (e) => updateFundStep3OptionName(opt.id, e.target.value),
+                        onFocus: () => setFocusedFundOptionNameId(opt.id),
+                        onBlur: () => setFocusedFundOptionNameId((prev) => (prev === opt.id ? null : prev)),
+                      }}
+                    />
                     <div>
-                      <p className="typo-body-xsmall text-neutral-9 mb-1">옵션명</p>
-                      <input
-                        type="text"
-                        placeholder="예: 컬러"
-                        value={opt.optionName}
-                        onChange={(e) => updateFundStep3OptionName(opt.id, e.target.value)}
-                        className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
-                      />
-                    </div>
-                    <div>
-                      <div className="mb-1 flex justify-between typo-body-xsmall text-neutral-9">
-                        <span>옵션값</span>
-                        <span>추가 금액</span>
-                      </div>
                       {opt.values.map((v) => (
-                        <div key={v.id} className="mt-1 flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="?? BLACK"
-                            value={v.value}
-                            onChange={(e) => updateFundStep3OptionValue(opt.id, v.id, 'value', e.target.value)}
-                            className="h-10 min-w-0 flex-1 rounded-lg border border-neutral-5 bg-neutral-1 px-3 py-2 typo-body-xsmall text-neutral-12 placeholder:text-neutral-6"
-                          />
-                          <div className="flex w-[100px] items-center gap-1">
-                            <input
-                              type="number"
-                              min={0}
-                              value={v.extraPrice || ''}
-                              onChange={(e) => updateFundStep3OptionValue(opt.id, v.id, 'extraPrice', e.target.value)}
-                              className="h-10 w-full rounded-lg border border-neutral-5 bg-neutral-1 px-2 py-2 text-right typo-body-xsmall text-neutral-12"
-                            />
-                            <span className="shrink-0 typo-body-xsmall text-neutral-7">원</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFundStep3OptionValue(opt.id, v.id)}
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-neutral-7 hover:bg-neutral-3"
-                            aria-label="옵션값 삭제"
-                          >
-                            <Image src="/assets/icons/filled/Filled/Close.svg" alt="" width={16} height={16} />
-                          </button>
-                        </div>
+                        <OptionVariation
+                          key={v.id}
+                          className="mt-1 w-full"
+                          variant={
+                            duplicateFundOptionValuesByOptionId.get(opt.id)?.has(v.value.trim())
+                              ? 'error'
+                              : focusedFundOptionValueId === v.id
+                                ? 'focus'
+                                : v.value.trim() || v.extraPrice > 0
+                                  ? 'filled'
+                                  : 'Default'
+                          }
+                          optionLabel={v.value}
+                          extraPrice={v.extraPrice > 0 ? String(v.extraPrice) : ''}
+                          optionInputProps={{
+                            value: v.value,
+                            onChange: (e) => updateFundStep3OptionValue(opt.id, v.id, 'value', e.target.value),
+                            onFocus: () => setFocusedFundOptionValueId(v.id),
+                            onBlur: () => setFocusedFundOptionValueId((prev) => (prev === v.id ? null : prev)),
+                          }}
+                          priceInputProps={{
+                            type: 'number',
+                            min: 0,
+                            value: v.extraPrice > 0 ? String(v.extraPrice) : '',
+                            onChange: (e) => updateFundStep3OptionValue(opt.id, v.id, 'extraPrice', e.target.value),
+                          }}
+                          onRemove={opt.values.length > 1 ? () => removeFundStep3OptionValue(opt.id, v.id) : undefined}
+                        />
                       ))}
                       <button
                         type="button"
@@ -1870,6 +1924,7 @@ export default function NewProductPage() {
     </div>
   );
 }
+
 
 
 
