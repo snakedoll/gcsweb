@@ -96,7 +96,6 @@ model Product {
   isHome              Boolean                @default(false)
   isAdminApproved     Boolean                @default(false)
   publicAt            DateTime?
-  isSoldOut           Boolean                @default(false)
   cartItems           CartItem[]
   orderItems          OrderItem[]
   team                Team                   @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -153,7 +152,6 @@ model ProductVariant {
   @@unique([productId, optionSignature])
   @@index([productId])
   @@index([productId, isSoldOut])
-  @@index([productId, status])
 }
 
 model ProductImage {
