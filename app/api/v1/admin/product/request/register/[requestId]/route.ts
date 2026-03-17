@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { syncProductVariants } from '@/lib/product-variant';
 import {
   isNonEmptyString,
   isNonNegativeInt,
@@ -380,6 +381,8 @@ export async function PATCH(
       }
 
       // 요청본도 관리자 최종 입력값으로 맞춘 뒤, 처리 완료 후 삭제한다.
+      await syncProductVariants(tx, requestRow.productId, price, parsedOptions.value);
+
       await tx.productUpdateRequest.update({
         where: { id: requestId },
         data: {

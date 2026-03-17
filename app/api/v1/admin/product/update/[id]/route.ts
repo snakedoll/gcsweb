@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { syncProductVariants } from '@/lib/product-variant';
 import {
   isNonEmptyString,
   isNonNegativeInt,
@@ -369,6 +370,8 @@ export async function PATCH(
           });
         }
       }
+
+      await syncProductVariants(tx, updated.id, price, parsedOptions.value);
 
       return updated;
     });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { syncProductVariants, type VariantOptionInput } from '@/lib/product-variant';
 import { isNonEmptyString, jsonError, requireAdmin } from '../../../_utils';
 
 /**
@@ -240,6 +241,13 @@ export async function PATCH(
 
     // 승인: 수정 요청 내용을 기존 상품에 반영
     const image = requestRow.images?.[0] ?? null;
+    const normalizedOptions: VariantOptionInput[] = (requestRow.options ?? []).map((option) => ({
+      name: option.optionName,
+      values: (option.values ?? []).map((value) => ({
+        value: value.value,
+        additionalPrice: value.additionalPrice,
+      })),
+    }));
 
     await prisma.$transaction(async (tx: any) => {
       // 상품 정보 업데이트
@@ -282,29 +290,29 @@ export async function PATCH(
       }
 
       // 옵션 업데이트
-      if (requestRow.options?.length) {
-        await tx.productOption.deleteMany({ where: { productId: requestRow.productId } });
-        for (const option of requestRow.options) {
-          const createdOption = await tx.productOption.create({
+      await tx.productOption.deleteMany({ where: { productId: requestRow.productId } });
+      for (const option of normalizedOptions) {
+        const createdOption = await tx.productOption.create({
+          data: {
+            productId: requestRow.productId,
+            optionName: option.name,
+          },
+        });
+
+        for (const val of option.values) {
+          await tx.productOptionValue.create({
             data: {
+              optionId: createdOption.id,
               productId: requestRow.productId,
-              optionName: option.optionName,
+              optionName: option.name,
+              value: val.value,
+              additionalPrice: val.additionalPrice,
             },
           });
-
-          for (const val of option.values ?? []) {
-            await tx.productOptionValue.create({
-              data: {
-                optionId: createdOption.id,
-                productId: requestRow.productId,
-                optionName: option.optionName,
-                value: val.value,
-                additionalPrice: val.additionalPrice,
-              },
-            });
-          }
         }
       }
+
+      await syncProductVariants(tx, requestRow.productId, requestRow.price, normalizedOptions);
 
       // 수정 요청 삭제
       await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
