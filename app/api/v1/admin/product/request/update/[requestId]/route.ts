@@ -329,7 +329,10 @@ export async function PATCH(
 
     const goalAmountInput = hasOwn('goalAmount') ? (body as any).goalAmount : requestRow.goalAmount;
     const approvedGoalAmount = goalAmountInput == null ? null : Number(goalAmountInput);
-    if (approvedType === 0 && (!Number.isInteger(approvedGoalAmount) || approvedGoalAmount < 0)) {
+    if (approvedType === 0 && (approvedGoalAmount == null || !Number.isInteger(approvedGoalAmount) || approvedGoalAmount < 0)) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+    if ((approvedType === 1 || approvedType === 2) && approvedGoalAmount != null) {
       return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
