@@ -52,6 +52,18 @@ type LocalImageItem = {
   uploading: boolean;
 };
 
+type Step1Draft = {
+  name: string;
+  description: string;
+  type: ProductType;
+  receiveMethod: ReceiveMethod;
+  salesStartDate: string;
+  salesEndDate: string;
+  thumbnailImgUrl: string | null;
+  detailImageUrls: string[];
+  noticeImgUrl: string | null;
+};
+
 function EmptyImageTileIcon() {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
@@ -139,6 +151,7 @@ export default function AdminUpdateRequestStep1Page() {
   const thumbnailFileInputRef = useRef<HTMLInputElement>(null);
   const detailFileInputRef = useRef<HTMLInputElement>(null);
   const noticeFileInputRef = useRef<HTMLInputElement>(null);
+  const step1DraftKey = `admin:update-request:${requestId}:step1`;
 
   function formatDateValue(value: string | null | undefined): string {
     if (!value) return '';
@@ -187,6 +200,35 @@ export default function AdminUpdateRequestStep1Page() {
           }))
         );
         setNoticeImgUrl(item.noticeImgUrl ?? null);
+
+        if (typeof window !== 'undefined') {
+          const raw = sessionStorage.getItem(step1DraftKey);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw) as Partial<Step1Draft>;
+              if (typeof parsed.name === 'string') setProductName(parsed.name);
+              if (typeof parsed.description === 'string') setProductDescription(parsed.description);
+              if (parsed.type === 0 || parsed.type === 1 || parsed.type === 2) setProductType(parsed.type);
+              if (parsed.receiveMethod === 0 || parsed.receiveMethod === 1) setReceiveMethod(parsed.receiveMethod);
+              if (typeof parsed.salesStartDate === 'string') setSalesStartDate(parsed.salesStartDate);
+              if (typeof parsed.salesEndDate === 'string') setSalesEndDate(parsed.salesEndDate);
+              if (typeof parsed.thumbnailImgUrl === 'string' || parsed.thumbnailImgUrl === null) setThumbnailImgUrl(parsed.thumbnailImgUrl ?? null);
+              if (Array.isArray(parsed.detailImageUrls)) {
+                setDetailImages(
+                  parsed.detailImageUrls.map((url, index) => ({
+                    id: `draft-${index}`,
+                    uploadedUrl: url,
+                    previewUrl: null,
+                    uploading: false,
+                  }))
+                );
+              }
+              if (typeof parsed.noticeImgUrl === 'string' || parsed.noticeImgUrl === null) setNoticeImgUrl(parsed.noticeImgUrl ?? null);
+            } catch {
+              sessionStorage.removeItem(step1DraftKey);
+            }
+          }
+        }
         setLoadError(null);
       } catch (error: any) {
         console.error(error);
@@ -199,7 +241,32 @@ export default function AdminUpdateRequestStep1Page() {
     return () => {
       cancelled = true;
     };
-  }, [requestId]);
+  }, [requestId, step1DraftKey]);
+
+  const handleNext = () => {
+    if (typeof window !== 'undefined') {
+      const draft: Step1Draft = {
+        name: productName,
+        description: productDescription,
+        type: productType,
+        receiveMethod,
+        salesStartDate,
+        salesEndDate,
+        thumbnailImgUrl,
+        detailImageUrls: detailImages
+          .map((item) => item.uploadedUrl ?? item.previewUrl)
+          .filter((url): url is string => typeof url === 'string' && url.length > 0),
+        noticeImgUrl,
+      };
+      sessionStorage.setItem(step1DraftKey, JSON.stringify(draft));
+    }
+
+    if (productType === 0) {
+      router.push(`/admin/product/request/update/${requestId}/step-2`);
+    } else {
+      router.push(`/admin/product/request/update/${requestId}/step-3`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
@@ -426,13 +493,7 @@ export default function AdminUpdateRequestStep1Page() {
         <div className="px-4 pb-8 pt-[17px]">
           <button
             type="button"
-            onClick={() => {
-              if (productType === 0) {
-                router.push(`/admin/product/request/update/${requestId}/step-2`);
-              } else {
-                router.push(`/admin/product/request/update/${requestId}/step-3`);
-              }
-            }}
+            onClick={handleNext}
             className="flex w-full items-center justify-center rounded-lg bg-orange-5 p-4"
           >
             <span className="typo-body-small-bold text-neutral-2">다음</span>

@@ -9,6 +9,7 @@ import OptionName from '@/components/ui/admin/product/OptionName';
 import OptionVariation from '@/components/ui/admin/product/OptionVariation';
 
 type ProductType = 0 | 1 | 2;
+type ReceiveMethod = 0 | 1 | null;
 const MAX_OPTION_CARD_COUNT = 2;
 
 type OptionValue = {
@@ -40,6 +41,29 @@ type UpdateRequestDetailResponse = {
       options?: OptionGroup[];
     };
   };
+};
+
+type Step1Draft = {
+  name: string;
+  description: string;
+  type: ProductType;
+  receiveMethod: 0 | 1;
+  salesStartDate: string;
+  salesEndDate: string;
+  thumbnailImgUrl: string | null;
+  detailImageUrls: string[];
+  noticeImgUrl: string | null;
+};
+
+type Step2Draft = {
+  goalAmount: string;
+  productionStartDate: string;
+  productionEndDate: string;
+  deliveryStartDate: string;
+  deliveryEndDate: string;
+  pickupStartDate: string;
+  pickupEndDate: string;
+  pickupLocation: string;
 };
 
 function formatNumber(value: string) {
@@ -146,6 +170,30 @@ export default function AdminUpdateRequestStep3Page() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const step1DraftKey = `admin:update-request:${requestId}:step1`;
+  const step2DraftKey = `admin:update-request:${requestId}:step2`;
+
+  const readStep1Draft = (): Partial<Step1Draft> | null => {
+    if (typeof window === 'undefined') return null;
+    const raw = sessionStorage.getItem(step1DraftKey);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Partial<Step1Draft>;
+    } catch {
+      return null;
+    }
+  };
+
+  const readStep2Draft = (): Partial<Step2Draft> | null => {
+    if (typeof window === 'undefined') return null;
+    const raw = sessionStorage.getItem(step2DraftKey);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Partial<Step2Draft>;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -188,10 +236,73 @@ export default function AdminUpdateRequestStep3Page() {
     if (actionLoading) return;
     try {
       setActionLoading(true);
+      const normalizedPrice = Number(String(price).replace(/[^\d]/g, '')) || 0;
+      const normalizedOptions = options
+        .map((option) => ({
+          name: option.name.trim(),
+          values: (option.values ?? [])
+            .map((value) => ({
+              value: value.value.trim(),
+              additionalPrice: Number.isFinite(value.additionalPrice) ? Math.max(0, Math.trunc(value.additionalPrice)) : 0,
+            }))
+            .filter((value) => value.value.length > 0),
+        }))
+        .filter((option) => option.name.length > 0);
+      const step1Draft = readStep1Draft();
+      const step2Draft = readStep2Draft();
+      const approvedType = step1Draft?.type ?? productType;
+      const approvedReceiveMethod: ReceiveMethod =
+        approvedType === 2
+          ? null
+          : approvedType === 1
+            ? 1
+            : step1Draft?.receiveMethod === 0 || step1Draft?.receiveMethod === 1
+              ? step1Draft.receiveMethod
+              : 0;
+
+      const payload: Record<string, unknown> = {
+        action: 'approve',
+        price: normalizedPrice,
+        options: normalizedOptions,
+      };
+
+      if (step1Draft) {
+        if (typeof step1Draft.name === 'string') payload.name = step1Draft.name;
+        if (typeof step1Draft.description === 'string') payload.description = step1Draft.description;
+        if (approvedType === 0 || approvedType === 1 || approvedType === 2) payload.type = approvedType;
+        payload.receiveMethod = approvedReceiveMethod;
+        if (typeof step1Draft.salesStartDate === 'string') payload.salesStartDate = step1Draft.salesStartDate;
+        if (typeof step1Draft.salesEndDate === 'string') payload.salesEndDate = step1Draft.salesEndDate;
+        if (typeof step1Draft.thumbnailImgUrl === 'string' && step1Draft.thumbnailImgUrl.trim()) {
+          payload.thumbnailUrl = step1Draft.thumbnailImgUrl.trim();
+        }
+        if (Array.isArray(step1Draft.detailImageUrls) && step1Draft.detailImageUrls.length > 0) {
+          payload.detailImageUrls = step1Draft.detailImageUrls;
+        }
+        if (typeof step1Draft.noticeImgUrl === 'string' && step1Draft.noticeImgUrl.trim()) {
+          payload.noticeImgUrl = step1Draft.noticeImgUrl.trim();
+        }
+      }
+
+      if (approvedType === 0 && step2Draft) {
+        const goal = Number(String(step2Draft.goalAmount ?? '').replace(/[^\d]/g, ''));
+        payload.goalAmount = Number.isFinite(goal) ? goal : 0;
+        if (approvedReceiveMethod === 0) {
+          payload.productionStartDate = step2Draft.productionStartDate ?? null;
+          payload.productionEndDate = step2Draft.productionEndDate ?? null;
+          payload.deliveryStartDate = step2Draft.deliveryStartDate ?? null;
+          payload.deliveryEndDate = step2Draft.deliveryEndDate ?? null;
+        } else if (approvedReceiveMethod === 1) {
+          payload.pickupStartDate = step2Draft.pickupStartDate ?? null;
+          payload.pickupEndDate = step2Draft.pickupEndDate ?? null;
+          payload.pickupLocation = step2Draft.pickupLocation ?? null;
+        }
+      }
+
       const res = await fetch(`/api/v1/admin/product/request/update/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
 
@@ -199,6 +310,10 @@ export default function AdminUpdateRequestStep3Page() {
         throw new Error(json?.message ?? '승인 처리에 실패했습니다.');
       }
 
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(step1DraftKey);
+        sessionStorage.removeItem(step2DraftKey);
+      }
       router.push('/admin/product/request/update?toast=approve');
     } catch (error: any) {
       alert(error?.message ?? '승인 처리에 실패했습니다.');
@@ -223,6 +338,10 @@ export default function AdminUpdateRequestStep3Page() {
         throw new Error(json?.message ?? '거절 처리에 실패했습니다.');
       }
 
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(step1DraftKey);
+        sessionStorage.removeItem(step2DraftKey);
+      }
       router.push('/admin/product/request/update?toast=reject');
     } catch (error: any) {
       alert(error?.message ?? '거절 처리에 실패했습니다.');

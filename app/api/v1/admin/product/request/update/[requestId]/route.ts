@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { syncProductVariants, type VariantOptionInput } from '@/lib/product-variant';
-import { isNonEmptyString, jsonError, requireAdmin } from '../../../_utils';
+import { isNonEmptyString, isNonNegativeInt, jsonError, parseAdminOptionsInput, parseDateTime, requireAdmin } from '../../../_utils';
+
+function trimStringArray(input: unknown): string[] | null {
+  if (!Array.isArray(input)) return null;
+  const values = input
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return values.length === input.length && values.length > 0 ? values : null;
+}
+
+function validRange(start: Date | null, end: Date | null) {
+  return !!start && !!end && start.getTime() <= end.getTime();
+}
 
 /**
  * GET /api/v1/admin/product/request/update/[requestId]
@@ -245,37 +258,194 @@ export async function PATCH(
       });
     }
 
-    // Approve: apply request payload to current product
+    // Approve: finalize request payload first, then apply finalized result to current product
     const image = requestRow.images?.[0] ?? null;
-    const normalizedOptions: VariantOptionInput[] = (requestRow.options ?? []).map((option: any) => ({
-      name: option.optionName,
-      values: (option.values ?? []).map((value: any) => ({
-        value: value.value,
-        additionalPrice: value.additionalPrice,
-      })),
-    }));
+    const hasOwn = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+
+    const approvedName = hasOwn('name')
+      ? (isNonEmptyString((body as any).name) ? (body as any).name.trim() : '')
+      : requestRow.name;
+    const approvedDescription = hasOwn('description')
+      ? (typeof (body as any).description === 'string' ? (body as any).description.trim() : '')
+      : (requestRow.description ?? '');
+    const approvedType = hasOwn('type') ? (body as any).type : requestRow.type;
+    if (!isNonEmptyString(approvedName) || ![0, 1, 2].includes(approvedType)) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    const approvedReceiveMethodRaw = hasOwn('receiveMethod') ? (body as any).receiveMethod : requestRow.receiveMethod;
+    const receiveMethodValid =
+      (approvedType === 0 && [0, 1].includes(approvedReceiveMethodRaw)) ||
+      (approvedType === 1 && approvedReceiveMethodRaw === 1) ||
+      (approvedType === 2 && approvedReceiveMethodRaw === null);
+    if (!receiveMethodValid) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+    const approvedReceiveMethod = approvedReceiveMethodRaw as number | null;
+
+    const salesStartInput = hasOwn('salesStartDate') ? (body as any).salesStartDate : requestRow.salesStartDate;
+    const salesEndInput = hasOwn('salesEndDate') ? (body as any).salesEndDate : requestRow.salesEndDate;
+    const approvedSalesStartDate = parseDateTime(salesStartInput);
+    const approvedSalesEndDate = parseDateTime(salesEndInput);
+    if (!validRange(approvedSalesStartDate, approvedSalesEndDate)) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    const approvedPrice = hasOwn('price') ? (body as any).price : requestRow.price;
+    if (!isNonNegativeInt(approvedPrice)) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    const optionsInput = hasOwn('options')
+      ? (body as any).options
+      : (requestRow.options ?? []).map((option: any) => ({
+          name: option.optionName,
+          values: (option.values ?? []).map((value: any) => ({
+            value: value.value,
+            additionalPrice: value.additionalPrice,
+          })),
+        }));
+    const parsedOptions = parseAdminOptionsInput(optionsInput);
+    if (!parsedOptions.ok) {
+      return jsonError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
+    }
+    const approvedOptions: VariantOptionInput[] = parsedOptions.value;
+
+    const approvedThumbnailUrl = hasOwn('thumbnailUrl')
+      ? (isNonEmptyString((body as any).thumbnailUrl) ? (body as any).thumbnailUrl.trim() : '')
+      : (image?.thumbnailImgUrl ?? '').trim();
+    const approvedDetailImageUrls = hasOwn('detailImageUrls')
+      ? trimStringArray((body as any).detailImageUrls)
+      : Array.isArray(image?.detailImgUrl)
+        ? image.detailImgUrl.filter((v: unknown): v is string => typeof v === 'string' && v.trim().length > 0).map((v: string) => v.trim())
+        : null;
+    const approvedNoticeImgUrl = hasOwn('noticeImgUrl')
+      ? (isNonEmptyString((body as any).noticeImgUrl) ? (body as any).noticeImgUrl.trim() : '')
+      : (image?.noticeImgUrl ?? '').trim();
+
+    if (!approvedThumbnailUrl || !approvedDetailImageUrls || !approvedNoticeImgUrl) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    const goalAmountInput = hasOwn('goalAmount') ? (body as any).goalAmount : requestRow.goalAmount;
+    const approvedGoalAmount = goalAmountInput == null ? null : Number(goalAmountInput);
+    if (approvedType === 0 && (!Number.isInteger(approvedGoalAmount) || approvedGoalAmount < 0)) {
+      return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+    }
+
+    let approvedProductionStartDate: Date | null = null;
+    let approvedProductionEndDate: Date | null = null;
+    let approvedDeliveryStartDate: Date | null = null;
+    let approvedDeliveryEndDate: Date | null = null;
+    let approvedPickupStartDate: Date | null = null;
+    let approvedPickupEndDate: Date | null = null;
+    let approvedPickupLocation: string | null = null;
+
+    if (approvedType === 0 && approvedReceiveMethod === 0) {
+      const productionStartInput = hasOwn('productionStartDate') ? (body as any).productionStartDate : requestRow.productionStartDate;
+      const productionEndInput = hasOwn('productionEndDate') ? (body as any).productionEndDate : requestRow.productionEndDate;
+      const deliveryStartInput = hasOwn('deliveryStartDate') ? (body as any).deliveryStartDate : requestRow.deliveryStartDate;
+      const deliveryEndInput = hasOwn('deliveryEndDate') ? (body as any).deliveryEndDate : requestRow.deliveryEndDate;
+
+      approvedProductionStartDate = parseDateTime(productionStartInput);
+      approvedProductionEndDate = parseDateTime(productionEndInput);
+      approvedDeliveryStartDate = parseDateTime(deliveryStartInput);
+      approvedDeliveryEndDate = parseDateTime(deliveryEndInput);
+
+      if (!validRange(approvedProductionStartDate, approvedProductionEndDate) || !validRange(approvedDeliveryStartDate, approvedDeliveryEndDate)) {
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+      }
+    }
+
+    if (approvedType === 0 && approvedReceiveMethod === 1) {
+      const pickupStartInput = hasOwn('pickupStartDate') ? (body as any).pickupStartDate : requestRow.pickupStartDate;
+      const pickupEndInput = hasOwn('pickupEndDate') ? (body as any).pickupEndDate : requestRow.pickupEndDate;
+      const pickupLocationInput = hasOwn('pickupLocation') ? (body as any).pickupLocation : requestRow.pickupLocation;
+
+      approvedPickupStartDate = parseDateTime(pickupStartInput);
+      approvedPickupEndDate = parseDateTime(pickupEndInput);
+      approvedPickupLocation = isNonEmptyString(pickupLocationInput) ? String(pickupLocationInput).trim() : null;
+
+      if (!validRange(approvedPickupStartDate, approvedPickupEndDate) || !approvedPickupLocation) {
+        return jsonError(400, 'INVALID_INPUT', 'Invalid request input.');
+      }
+    }
 
     await prisma.$transaction(async (tx: any) => {
-      // Update product core fields
+      // 1) Finalize ProductUpdateRequest first
+      await tx.productUpdateRequest.update({
+        where: { id: requestId },
+        data: {
+          name: approvedName,
+          description: approvedDescription,
+          type: approvedType,
+          receiveMethod: approvedReceiveMethod,
+          price: approvedPrice,
+          goalAmount: approvedType === 0 ? approvedGoalAmount : null,
+          salesStartDate: approvedSalesStartDate!,
+          salesEndDate: approvedSalesEndDate!,
+          productionStartDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedProductionStartDate : null,
+          productionEndDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedProductionEndDate : null,
+          deliveryStartDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedDeliveryStartDate : null,
+          deliveryEndDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedDeliveryEndDate : null,
+          pickupStartDate: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupStartDate : null,
+          pickupEndDate: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupEndDate : null,
+          pickupLocation: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupLocation : null,
+        },
+      });
+
+      await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
+      await tx.productUpdateRequestImage.create({
+        data: {
+          productUpdateRequestId: requestId,
+          thumbnailImgUrl: approvedThumbnailUrl,
+          detailImgUrl: approvedDetailImageUrls,
+          noticeImgUrl: approvedNoticeImgUrl,
+        },
+      });
+
+      await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
+      for (const option of approvedOptions) {
+        const createdReqOption = await tx.productUpdateRequestOption.create({
+          data: {
+            productUpdateRequestId: requestId,
+            optionName: option.name,
+          },
+        });
+
+        for (const value of option.values) {
+          await tx.productUpdateRequestOptionValue.create({
+            data: {
+              optionId: createdReqOption.id,
+              productId: requestRow.productId,
+              optionName: option.name,
+              value: value.value,
+              additionalPrice: value.additionalPrice,
+            },
+          });
+        }
+      }
+
+      // 2) Apply finalized request result to Product
       await tx.product.update({
         where: { id: requestRow.productId },
         data: {
           teamId: requestRow.teamId,
-          name: requestRow.name,
-          description: requestRow.description,
-          type: requestRow.type,
-          receiveMethod: requestRow.receiveMethod,
-          price: requestRow.price,
-          goalAmount: requestRow.type === 0 ? requestRow.goalAmount : null,
-          salesStartDate: requestRow.salesStartDate,
-          salesEndDate: requestRow.salesEndDate,
-          productionStartDate: requestRow.productionStartDate,
-          productionEndDate: requestRow.productionEndDate,
-          deliveryStartDate: requestRow.deliveryStartDate,
-          deliveryEndDate: requestRow.deliveryEndDate,
-          pickupStartDate: requestRow.pickupStartDate,
-          pickupEndDate: requestRow.pickupEndDate,
-          pickupLocation: requestRow.pickupLocation,
+          name: approvedName,
+          description: approvedDescription,
+          type: approvedType,
+          receiveMethod: approvedReceiveMethod,
+          price: approvedPrice,
+          goalAmount: approvedType === 0 ? approvedGoalAmount : null,
+          salesStartDate: approvedSalesStartDate!,
+          salesEndDate: approvedSalesEndDate!,
+          productionStartDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedProductionStartDate : null,
+          productionEndDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedProductionEndDate : null,
+          deliveryStartDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedDeliveryStartDate : null,
+          deliveryEndDate: approvedType === 0 && approvedReceiveMethod === 0 ? approvedDeliveryEndDate : null,
+          pickupStartDate: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupStartDate : null,
+          pickupEndDate: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupEndDate : null,
+          pickupLocation: approvedType === 0 && approvedReceiveMethod === 1 ? approvedPickupLocation : null,
           isAdminApproved: true,
           ...(requestRow.product
             ? {
@@ -286,22 +456,20 @@ export async function PATCH(
         },
       });
 
-      // Replace product images with approved request image set
-      if (image) {
-        await tx.productImage.deleteMany({ where: { productId: requestRow.productId } });
-        await tx.productImage.create({
-          data: {
-            productId: requestRow.productId,
-            thumbnailImgUrl: image.thumbnailImgUrl ?? '',
-            detailImgUrl: image.detailImgUrl ?? [],
-            noticeImgUrl: image.noticeImgUrl ?? '',
-          },
-        });
-      }
+      // Replace product images with finalized request image set
+      await tx.productImage.deleteMany({ where: { productId: requestRow.productId } });
+      await tx.productImage.create({
+        data: {
+          productId: requestRow.productId,
+          thumbnailImgUrl: approvedThumbnailUrl,
+          detailImgUrl: approvedDetailImageUrls,
+          noticeImgUrl: approvedNoticeImgUrl,
+        },
+      });
 
-      // Replace product options with approved request options
+      // Replace product options with finalized request options
       await tx.productOption.deleteMany({ where: { productId: requestRow.productId } });
-      for (const option of normalizedOptions) {
+      for (const option of approvedOptions) {
         const createdOption = await tx.productOption.create({
           data: {
             productId: requestRow.productId,
@@ -322,9 +490,9 @@ export async function PATCH(
         }
       }
 
-      await syncProductVariants(tx, requestRow.productId, requestRow.price, normalizedOptions);
+      await syncProductVariants(tx, requestRow.productId, approvedPrice, approvedOptions);
 
-      // Remove processed request payload
+      // 3) Remove processed request payload
       await tx.productUpdateRequestOption.deleteMany({ where: { productUpdateRequestId: requestId } });
       await tx.productUpdateRequestImage.deleteMany({ where: { productUpdateRequestId: requestId } });
       await tx.productUpdateRequest.delete({ where: { id: requestId } });
