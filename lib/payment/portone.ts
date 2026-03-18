@@ -328,6 +328,8 @@ export async function cancelV1Payment(params: {
   impUid: string;
   amount: number;
   reason?: string;
+  /** onetime 결제 취소 시 동일 거래 조회를 위해 merchant_uid 함께 전달 권장 */
+  merchantUid?: string;
 }): Promise<{
   success: boolean;
   code?: string;
@@ -338,18 +340,23 @@ export async function cancelV1Payment(params: {
     return tokenResult;
   }
 
+  const body: Record<string, unknown> = {
+    imp_uid: params.impUid,
+    amount: params.amount,
+    reason: params.reason ?? 'Fund 예약 결제 등록 즉시취소',
+    checksum: params.amount,
+  };
+  if (params.merchantUid) {
+    body.merchant_uid = params.merchantUid;
+  }
+
   const cancelRes = await fetch(`${API_V1_BASE}/payments/cancel`, {
     method: 'POST',
     headers: {
       Authorization: tokenResult.accessToken,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      imp_uid: params.impUid,
-      amount: params.amount,
-      reason: params.reason ?? 'Fund 예약 결제 등록 즉시취소',
-      checksum: params.amount,
-    }),
+    body: JSON.stringify(body),
   });
   const cancelJson = await cancelRes.json().catch(() => ({}));
   const code = cancelJson?.code;

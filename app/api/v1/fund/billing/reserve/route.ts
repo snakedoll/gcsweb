@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       impUid: issueResult.impUid,
       amount: authAmount,
       reason: 'Fund 예약 결제 등록 즉시취소',
+      merchantUid,
     });
     if (!cancelResult.success) {
       console.error('[FundBillingReserve] cancel failed after onetime success', {
