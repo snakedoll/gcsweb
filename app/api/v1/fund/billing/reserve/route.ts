@@ -92,27 +92,35 @@ export async function POST(request: Request) {
       return jsonError(400, issueResult.code ?? 'BILLING_ISSUE_FAILED', issueResult.message ?? '빌링키 예약 등록에 실패했습니다.');
     }
 
-    const cancelDelayMs = getCancelDelayMs();
-    if (cancelDelayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, cancelDelayMs));
-    }
-
     const authAmount = getBillingAuthAmount();
-    const cancelResult = await cancelV1Payment({
+    const cancelParams = {
       impUid: issueResult.impUid,
       amount: authAmount,
       reason: 'Fund 예약 결제 등록 즉시취소',
       merchantUid,
-    });
+    };
+
+    const cancelDelaysMs = [getCancelDelayMs(), 3000, 5000];
+    await new Promise((resolve) => setTimeout(resolve, cancelDelaysMs[0]));
+
+    let cancelResult = await cancelV1Payment(cancelParams);
+    let attempt = 0;
+
+    while (!cancelResult.success && attempt < cancelDelaysMs.length - 1) {
+      attempt += 1;
+      await new Promise((resolve) => setTimeout(resolve, cancelDelaysMs[attempt]));
+      cancelResult = await cancelV1Payment(cancelParams);
+    }
+
     if (!cancelResult.success) {
-      console.warn('[FundBillingReserve] cancel failed after onetime success (빌링키는 저장하고 성공 처리)', {
+      console.warn('[FundBillingReserve] cancel failed after onetime success (재시도 후에도 실패, 빌링키는 저장하고 성공 처리)', {
         customerUid,
         merchantUid,
         impUid: issueResult.impUid,
+        attempts: attempt + 1,
         code: cancelResult.code ?? null,
         message: cancelResult.message ?? null,
       });
-      // 헥토 테스트 등에서 즉시 취소 API가 불가한 경우: 빌링키는 발급됐으므로 성공 처리. 승인 금액은 PG 정책에 따라 당일 자동 취소될 수 있음.
       return NextResponse.json({
         status: 'success',
         data: {
