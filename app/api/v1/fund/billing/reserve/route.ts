@@ -29,6 +29,13 @@ function normalizeExpiry(value: string) {
   return '';
 }
 
+function getCancelDelayMs(): number {
+  const raw = process.env.FUND_BILLING_CANCEL_DELAY_MS?.trim();
+  if (!raw) return 2000;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 10000) : 2000;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -85,6 +92,11 @@ export async function POST(request: Request) {
       return jsonError(400, issueResult.code ?? 'BILLING_ISSUE_FAILED', issueResult.message ?? '빌링키 예약 등록에 실패했습니다.');
     }
 
+    const cancelDelayMs = getCancelDelayMs();
+    if (cancelDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, cancelDelayMs));
+    }
+
     const authAmount = getBillingAuthAmount();
     const cancelResult = await cancelV1Payment({
       impUid: issueResult.impUid,
@@ -93,18 +105,22 @@ export async function POST(request: Request) {
       merchantUid,
     });
     if (!cancelResult.success) {
-      console.error('[FundBillingReserve] cancel failed after onetime success', {
+      console.warn('[FundBillingReserve] cancel failed after onetime success (빌링키는 저장하고 성공 처리)', {
         customerUid,
         merchantUid,
         impUid: issueResult.impUid,
         code: cancelResult.code ?? null,
         message: cancelResult.message ?? null,
       });
-      return jsonError(
-        502,
-        cancelResult.code ?? 'BILLING_CANCEL_FAILED',
-        '예약 등록 직후 취소에 실패했습니다. 고객센터에 문의해주세요.'
-      );
+      // 헥토 테스트 등에서 즉시 취소 API가 불가한 경우: 빌링키는 발급됐으므로 성공 처리. 승인 금액은 PG 정책에 따라 당일 자동 취소될 수 있음.
+      return NextResponse.json({
+        status: 'success',
+        data: {
+          reserved: true,
+          customerUid: issueResult.customerUid ?? customerUid,
+          cancelSkipped: true,
+        },
+      });
     }
 
     return NextResponse.json({
