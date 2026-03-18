@@ -13,6 +13,8 @@ function getSecret(): string {
 }
 
 function getConfig() {
+  const authAmountRaw = process.env.PORTONE_BILLING_AUTH_AMOUNT?.trim();
+  const authAmount = authAmountRaw ? Math.max(1, Math.min(10000, Number(authAmountRaw) || 1)) : 1;
   return {
     storeId: process.env.PORTONE_STORE_ID ?? '',
     channelKey: process.env.PORTONE_CHANNEL_KEY ?? '',
@@ -21,7 +23,14 @@ function getConfig() {
     apiSecret: getSecret(),
     v1ApiKey: process.env.PORTONE_V1_API_KEY ?? '',
     v1ApiSecret: process.env.PORTONE_V1_API_SECRET ?? '',
+    /** 빌링키 발급 시 1원 승인 금액. PG/카드사 최소금액 제한 시 100 등으로 설정 (즉시 취소됨) */
+    billingAuthAmount: authAmount,
   };
+}
+
+/** Fund 빌링키 발급 시 사용한 승인 금액(취소 시 동일 금액 필요) */
+export function getBillingAuthAmount(): number {
+  return getConfig().billingAuthAmount;
 }
 
 async function getV1AccessToken(): Promise<{ success: true; accessToken: string } | { success: false; code: string; message: string }> {
@@ -264,6 +273,7 @@ export async function issueBillingKeyWithOnetime(params: {
       ? `20${rawExpiry.slice(2)}-${rawExpiry.slice(0, 2)}`
       : params.expiry;
 
+  const authAmount = getConfig().billingAuthAmount;
   const onetimeRes = await fetch(`${API_V1_BASE}/subscribe/payments/onetime`, {
     method: 'POST',
     headers: {
@@ -274,7 +284,7 @@ export async function issueBillingKeyWithOnetime(params: {
       pg: billingPg,
       customer_uid: params.customerUid,
       merchant_uid: params.merchantUid,
-      amount: 1,
+      amount: authAmount,
       card_number: params.cardNumber.replace(/\D/g, ''),
       expiry: expiryForV1,
       birth: params.birth,

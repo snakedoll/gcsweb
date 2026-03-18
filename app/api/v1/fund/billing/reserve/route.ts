@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { cancelV1Payment, issueBillingKeyWithOnetime } from '@/lib/payment/portone';
+import { cancelV1Payment, getBillingAuthAmount, issueBillingKeyWithOnetime } from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -85,9 +85,10 @@ export async function POST(request: Request) {
       return jsonError(400, issueResult.code ?? 'BILLING_ISSUE_FAILED', issueResult.message ?? '빌링키 예약 등록에 실패했습니다.');
     }
 
+    const authAmount = getBillingAuthAmount();
     const cancelResult = await cancelV1Payment({
       impUid: issueResult.impUid,
-      amount: 1,
+      amount: authAmount,
       reason: 'Fund 예약 결제 등록 즉시취소',
     });
     if (!cancelResult.success) {

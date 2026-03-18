@@ -55,6 +55,12 @@
 | GET | `/api/v1/payment/portone/billing-config` | 빌링키 발급용 storeId, channelKey 반환 |
 | POST | `/api/v1/shop/orders/[orderId]/payment/portone/billing` | 빌링키로 결제 실행 |
 
+### 환경 변수 (Fund 빌링키 발급)
+
+| 변수 | 설명 |
+|------|------|
+| `PORTONE_BILLING_AUTH_AMOUNT` | 빌링키 발급 시 1원 승인에 쓰는 금액(기본 1). PG/카드사 최소금액 제한 시 `100` 등으로 설정 가능. 승인 후 즉시 취소됨. |
+
 ---
 
 ## 참고
