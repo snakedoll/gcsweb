@@ -27,6 +27,17 @@ type UpdateRequestDetailResponse = {
   };
 };
 
+type Step2Draft = {
+  goalAmount: string;
+  productionStartDate: string;
+  productionEndDate: string;
+  deliveryStartDate: string;
+  deliveryEndDate: string;
+  pickupStartDate: string;
+  pickupEndDate: string;
+  pickupLocation: string;
+};
+
 function toDateOnly(value: string | null | undefined) {
   if (!value) return '';
   const date = new Date(value);
@@ -55,6 +66,7 @@ export default function AdminUpdateRequestStep2Page() {
   const [pickupStart, setPickupStart] = useState('');
   const [pickupEnd, setPickupEnd] = useState('');
   const [pickupLoc, setPickupLoc] = useState('');
+  const step2DraftKey = `admin:update-request:${requestId}:step2`;
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +105,25 @@ export default function AdminUpdateRequestStep2Page() {
         setPickupEnd(toDateOnly(item.pickupEndDate));
         setPickupLoc(item.pickupLocation ?? '');
 
+        if (typeof window !== 'undefined') {
+          const raw = sessionStorage.getItem(step2DraftKey);
+          if (raw) {
+            try {
+              const draft = JSON.parse(raw) as Partial<Step2Draft>;
+              if (typeof draft.goalAmount === 'string') setGoalAmount(draft.goalAmount);
+              if (typeof draft.productionStartDate === 'string') setProdStart(draft.productionStartDate);
+              if (typeof draft.productionEndDate === 'string') setProdEnd(draft.productionEndDate);
+              if (typeof draft.deliveryStartDate === 'string') setDelivStart(draft.deliveryStartDate);
+              if (typeof draft.deliveryEndDate === 'string') setDelivEnd(draft.deliveryEndDate);
+              if (typeof draft.pickupStartDate === 'string') setPickupStart(draft.pickupStartDate);
+              if (typeof draft.pickupEndDate === 'string') setPickupEnd(draft.pickupEndDate);
+              if (typeof draft.pickupLocation === 'string') setPickupLoc(draft.pickupLocation);
+            } catch {
+              sessionStorage.removeItem(step2DraftKey);
+            }
+          }
+        }
+
         setLoadError(null);
       } catch (error: any) {
         if (!cancelled) setLoadError(error?.message ?? '오류가 발생했습니다.');
@@ -102,9 +133,22 @@ export default function AdminUpdateRequestStep2Page() {
     })();
 
     return () => { cancelled = true; };
-  }, [requestId, router]);
+  }, [requestId, router, step2DraftKey]);
 
   const handleNext = () => {
+    if (typeof window !== 'undefined') {
+      const draft: Step2Draft = {
+        goalAmount,
+        productionStartDate: prodStart,
+        productionEndDate: prodEnd,
+        deliveryStartDate: delivStart,
+        deliveryEndDate: delivEnd,
+        pickupStartDate: pickupStart,
+        pickupEndDate: pickupEnd,
+        pickupLocation: pickupLoc,
+      };
+      sessionStorage.setItem(step2DraftKey, JSON.stringify(draft));
+    }
     router.push(`/admin/product/request/update/${requestId}/step-3`);
   };
 

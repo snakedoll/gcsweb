@@ -170,7 +170,21 @@ export default function NavBar({
             onClick={onTrash}
             className="inline-flex h-6 w-6 items-center justify-center"
           >
-            <Image src="/assets/icons/icon-trash.svg" alt="" width={24} height={24} />
+            <span
+              aria-hidden
+              className="inline-block h-6 w-6 text-neutral-7"
+              style={{
+                WebkitMaskImage: 'url(/assets/icons/light/trash-can.svg)',
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                WebkitMaskSize: '24px 24px',
+                maskImage: 'url(/assets/icons/light/trash-can.svg)',
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                maskSize: '24px 24px',
+                backgroundColor: 'currentColor',
+              }}
+            />
           </button>
         </div>
       </div>
