@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       where: {
         productType: 1, // 1 for Buy Now
         receiveMethod: 1, // 1 for 현장수령
-        paymentStatus: { in: [1, 2] }, // 1 = 무통장입금대기, 2 = 결제완료
+        paymentStatus: { in: [1, 2, 3, 4] }, // 1 = 미결제, 2 = 결제완료, 3 = 취소, 4 = 실패
         OR: search
           ? [
               { ordererName: { contains: search, mode: 'insensitive' } },
@@ -36,7 +36,11 @@ export async function GET(req: Request) {
           : undefined,
       },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: true
+          }
+        },
       },
       orderBy: { orderDate: 'desc' },
     });
@@ -44,26 +48,75 @@ export async function GET(req: Request) {
     const mappedData = orders.map((order) => {
       // transform date appropriately for mocked view
       const dateObj = new Date(order.orderDate);
-      const mm = dateObj.getMonth() + 1;
-      const dd = dateObj.getDate();
+      const YY = String(dateObj.getFullYear()).slice(-2);
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dateObj.getDate()).padStart(2, '0');
       const HH = String(dateObj.getHours()).padStart(2, '0');
       const mmTime = String(dateObj.getMinutes()).padStart(2, '0');
 
       let paymentStatusStr = '오류';
       if (order.paymentStatus === 1) paymentStatusStr = '미결제';
       if (order.paymentStatus === 2) paymentStatusStr = '결제완료';
+      if (order.paymentStatus === 3) paymentStatusStr = '주문취소';
+      if (order.paymentStatus === 4) paymentStatusStr = '결제실패';
 
       let receiptStatusStr = '미수령';
       if (order.fulfillmentStatus === 1) receiptStatusStr = '수령완료';
 
+      let paymentMethodStr = '알수없음';
+      switch (order.paymentMethod) {
+        case 0: paymentMethodStr = '신용카드'; break;
+        case 1: paymentMethodStr = '가상계좌'; break;
+        case 2: paymentMethodStr = '간편결제'; break;
+        case 3: paymentMethodStr = '카카오페이'; break;
+        case 4: paymentMethodStr = '카운터에서 결제'; break;
+      }
+
+      const orderItems = order.items.map(item => {
+        let options = '';
+        if (item.optionData && typeof item.optionData === 'object') {
+          try {
+            const data = item.optionData as any;
+            if (data && data.optionName) {
+              options = data.optionName;
+            } else if (Array.isArray(data)) {
+               options = data.map(o => o.optionName || o.value).join(' / ');
+            } else {
+               options = JSON.stringify(data);
+            }
+          } catch(e){}
+        }
+        return {
+          id: item.id,
+          name: item.product?.name || '알수없는 상품',
+          options: options,
+          price: item.price,
+          quantity: item.quantity,
+        };
+      });
+
+      const formatPhone = (phone: string | null) => {
+        if (!phone) return '';
+        const cleaned = phone.replace(/-/g, '');
+        if (cleaned.length === 11) return `${cleaned.slice(0,3)}-${cleaned.slice(3,7)}-${cleaned.slice(7)}`;
+        if (cleaned.length === 10) return `${cleaned.slice(0,3)}-${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
+        return phone;
+      };
+
       return {
         id: order.id,
+        orderId: order.id.slice(-10).toUpperCase(),
         name: order.ordererName,
         phoneLast4: order.ordererPhone ? order.ordererPhone.slice(-4) : '...',
+        fullPhone: formatPhone(order.ordererPhone),
         orderTime: `${HH}:${mmTime}`,
-        orderDateRaw: `${mm}월 ${dd}일`,
+        fullOrderTime: `${YY}.${mm}.${dd} ${HH}:${mmTime}`,
+        orderDateRaw: `${parseInt(mm, 10)}월 ${parseInt(dd, 10)}일`,
         paymentStatus: paymentStatusStr,
+        paymentMethodStr,
+        paymentAmount: order.paymentAmount,
         receiptStatus: receiptStatusStr,
+        items: orderItems,
       };
     });
 
