@@ -12,16 +12,16 @@
 
 */
 -- DropIndex
-DROP INDEX "Order_bankCode_idx";
+DROP INDEX IF EXISTS "Order_bankCode_idx";
 
 -- DropIndex
-DROP INDEX "Order_cardCompany_idx";
+DROP INDEX IF EXISTS "Order_cardCompany_idx";
 
 -- DropIndex
-DROP INDEX "Order_easyPayProvider_idx";
+DROP INDEX IF EXISTS "Order_easyPayProvider_idx";
 
 -- DropIndex
-DROP INDEX "Order_paymentMethod_idx";
+DROP INDEX IF EXISTS "Order_paymentMethod_idx";
 
 -- AlterTable
 ALTER TABLE "Product" ALTER COLUMN "description" SET NOT NULL,
