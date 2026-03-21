@@ -38,8 +38,7 @@ function checkChar(base: string): string {
 - 최종: `orderCode = base + checkChar(base)`
 
 ## 5. 순번 정책
-- `orderSeq`는 매일 00:00에 초기화되는 개념으로 운영한다.
-- 구현은 초기화 작업이 아니라 날짜키 기준 분리로 처리한다.
+- `orderSeq`는 날짜키 기준 분리로 처리한다.
 - 동일 `orderSeq` 재사용 허용 범위:
   - 다른 날짜면 허용
   - 같은 날짜라도 `ProductType`이 다르면 허용
