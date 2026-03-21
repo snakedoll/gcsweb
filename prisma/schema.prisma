@@ -249,6 +249,9 @@ model Order {
   orderDate             DateTime    @default(now())
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
+  orderDateKey          String?     // YYMMDD
+  orderSeq              Int?        // 001~999
+  orderCode             String?     @unique
   productType           Int
   receiveMethod         Int
   receiverName          String?
@@ -272,9 +275,21 @@ model Order {
 
   @@index([userId])
   @@index([productType, receiveMethod])
+  @@unique([orderDateKey, productType, orderSeq])
   @@index([paymentStatus])
   @@index([fulfillmentStatus])
   @@index([orderDate])
+  @@index([orderDateKey, productType])
+}
+
+model OrderSequence {
+  orderDateKey String
+  productType  Int
+  lastSeq      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@id([orderDateKey, productType])
 }
 
 model OrderItem {
