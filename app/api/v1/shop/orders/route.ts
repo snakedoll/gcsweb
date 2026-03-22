@@ -350,7 +350,9 @@ export async function POST(request: Request) {
             ordererPhone,
             paymentMethod: data.paymentMethod,
             billingKey: isFund && data.paymentMethod === 0 ? normalizedBillingKey : null,
-            cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
+            // DB constraint(Order_payment_detail_by_method_check) requires cardCompany for paymentMethod=0.
+            // BUY_NOW flow does not collect card company, so fallback to 0 as a server-side default.
+            cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? 0) : null,
             bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
             easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
             paymentStatus: data.paymentMethod === 3 ? 1 : 0,
