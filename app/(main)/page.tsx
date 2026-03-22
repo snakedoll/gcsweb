@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BottomTabBar, Footer, NavBar } from '@/components/layout';
+import { BottomTabBar, NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 
 const heroImage = 'https://www.figma.com/api/mcp/asset/1a720de9-5732-4c38-ae25-95524116dcf8';
@@ -409,8 +409,6 @@ export default function HomePage() {
               </div>
             </div>
           </section>
-
-          <Footer />
         </main>
 
         <div className="sticky bottom-0 z-20 mt-auto">
