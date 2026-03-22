@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
@@ -28,7 +28,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { productId, quantity, optionData } = body as { productId?: string; quantity?: number; optionData?: any };
+    const { productId, quantity, optionData, mergeMode } = body as {
+      productId?: string;
+      quantity?: number;
+      optionData?: any;
+      mergeMode?: 'ADD' | 'SET';
+    };
 
     if (!productId || typeof productId !== 'string' || !productId.trim()) {
       return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'productId가 필요합니다.' }, { status: 400 });
@@ -124,8 +129,9 @@ export async function POST(request: Request) {
     const existingItem = cartItems.find((item) => isMatch(item.optionData, optionData));
 
     if (existingItem) {
-      // 이미 있으면 수량 증가
-      const newQty = existingItem.quantity + (quantity ?? 1);
+      // mergeMode=SET (바로주문)면 선택 수량으로 설정, 아니면 기존처럼 누적
+      const normalizedMode = mergeMode === 'SET' ? 'SET' : 'ADD';
+      const newQty = normalizedMode === 'SET' ? (quantity ?? 1) : existingItem.quantity + (quantity ?? 1);
       await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { quantity: newQty },

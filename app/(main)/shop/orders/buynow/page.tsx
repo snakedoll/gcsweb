@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -180,37 +180,50 @@ function ShopOrdersBuyNowPageContent() {
     const fetchPageData = async () => {
       setLoading(true);
       try {
-        const [cartRes, profileRes] = await Promise.all([
-          fetch('/api/v1/mypage/cart/list?page=1&size=100', { cache: 'no-store' }),
-          fetch('/api/user/profile', { cache: 'no-store' }),
-        ]);
-
-        if (cartRes.status === 401 || !profileRes.ok) {
+        const parseGuestItems = () => {
           const rawGuestItems = sessionStorage.getItem(GUEST_ORDER_STORAGE_KEY);
-          let parsedGuestItems: OrderLineItem[] = [];
-          if (rawGuestItems) {
-            const parsed = JSON.parse(rawGuestItems) as unknown;
-            if (Array.isArray(parsed)) {
-              parsedGuestItems = (parsed as Array<Partial<OrderLineItem>>).map((item, index) => ({
-                id: item.id ?? `guest-${index}`,
-                productId: item.productId ?? '',
-                quantity: item.quantity ?? 1,
-                unitPrice: item.unitPrice ?? 0,
-                optionData: item.optionData ?? null,
-                productType: item.productType ?? 1,
-                receiveMethod: item.receiveMethod ?? 1,
-                brand: item.brand ?? '',
-                title: item.title ?? '',
-                optionText: item.optionText ?? '',
-                priceText: item.priceText ?? `${Number(item.unitPrice ?? 0).toLocaleString('ko-KR')}원`,
-                imageUrl: item.imageUrl ?? '',
-              }));
-            }
-          }
+          if (!rawGuestItems) return [] as OrderLineItem[];
+          const parsed = JSON.parse(rawGuestItems) as unknown;
+          if (!Array.isArray(parsed)) return [] as OrderLineItem[];
+          return (parsed as Array<Partial<OrderLineItem>>).map((item, index) => ({
+            id: item.id ?? `guest-${index}`,
+            productId: item.productId ?? '',
+            quantity: item.quantity ?? 1,
+            unitPrice: item.unitPrice ?? 0,
+            optionData: item.optionData ?? null,
+            productType: item.productType ?? 1,
+            receiveMethod: item.receiveMethod ?? 1,
+            brand: item.brand ?? '',
+            title: item.title ?? '',
+            optionText: item.optionText ?? '',
+            priceText: item.priceText ?? `${Number(item.unitPrice ?? 0).toLocaleString('ko-KR')}원`,
+            imageUrl: item.imageUrl ?? '',
+          }));
+        };
 
+        const guestItems = parseGuestItems();
+        if (!selectedCartItemIds && guestItems.length > 0) {
           if (!cancelled) {
             setIsAuthenticated(false);
-            setItems(parsedGuestItems);
+            setItems(guestItems);
+          }
+          return;
+        }
+
+        const profileRes = await fetch('/api/user/profile', { cache: 'no-store' });
+        if (!profileRes.ok) {
+          if (!cancelled) {
+            setIsAuthenticated(false);
+            setItems(guestItems);
+          }
+          return;
+        }
+
+        const cartRes = await fetch('/api/v1/mypage/cart/list?page=1&size=100', { cache: 'no-store' });
+        if (!cartRes.ok) {
+          if (!cancelled) {
+            setIsAuthenticated(false);
+            setItems(guestItems);
           }
           return;
         }

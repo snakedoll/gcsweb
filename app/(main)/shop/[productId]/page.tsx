@@ -18,6 +18,7 @@ type SheetMode = 'none' | 'cart' | 'order';
 type SheetSubmitMode = 'cart' | 'order';
 type ConflictGuardMode = 'fund' | 'type';
 const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
+const GUEST_CART_STORAGE_KEY = 'shop:guest-cart-items';
 
 interface PendingSheetAction {
   mode: SheetSubmitMode;
@@ -497,6 +498,37 @@ export default function ShopDetailPage() {
     ];
   };
 
+  const addGuestCartItem = (action: PendingSheetAction) => {
+    if (!product) return;
+    const additionalPrice = action.optionData.reduce((sum, option) => {
+      const value = Number(option.additionalPrice ?? 0);
+      return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+    const unitPrice = Math.max(0, product.price + additionalPrice);
+    const options = action.optionData.map((option) => option.value).filter(Boolean);
+
+    const nextItem = {
+      id: `guest-${product.id}-${Date.now()}`,
+      productId: product.id,
+      optionData: action.optionData,
+      teamName: product.teamName || '팀명 없음',
+      productName: product.name || '상품명 없음',
+      options,
+      quantity: action.quantity,
+      price: unitPrice,
+      imageUrl: product.thumbnailUrl || '',
+      status: 'AVAILABLE' as const,
+      liked: false,
+      type: product.type,
+      receiveMethod: product.receiveMethod,
+    };
+
+    const raw = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const current = Array.isArray(parsed) ? parsed : [];
+    localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify([...current, nextItem]));
+  };
+
   const executeAddToCart = async (action: PendingSheetAction) => {
     if (!product) return;
     setAddingCart(true);
@@ -508,10 +540,26 @@ export default function ShopDetailPage() {
           productId: product.id,
           quantity: action.quantity,
           optionData: action.optionData,
+          mergeMode: action.mode === 'order' ? 'SET' : 'ADD',
         }),
       });
 
       if (res.status === 401) {
+        if (product.type === 1) {
+          setSheetMode('none');
+          setOpenOptionIndex(null);
+          setPendingSheetAction(null);
+
+          if (action.mode === 'cart') {
+            addGuestCartItem(action);
+            setShowCartAddedModal(true);
+          } else {
+            const guestItems = buildGuestOrderItems(action);
+            sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestItems));
+            router.push('/shop/orders/buynow');
+          }
+          return;
+        }
         setShowLoginOrderModal(true);
         return;
       }
@@ -530,7 +578,8 @@ export default function ShopDetailPage() {
       setOpenOptionIndex(null);
       setPendingSheetAction(null);
 
-      if (action.mode === 'cart') {
+      const shouldMoveToOrder = action.mode === 'order' && (sheetMode === 'order' || !canUseCartSheet);
+      if (!shouldMoveToOrder) {
         setShowCartAddedModal(true);
       } else {
         router.push(resolveOrderPagePath(product, json?.data?.cartItemId ?? null));
@@ -547,17 +596,26 @@ export default function ShopDetailPage() {
 
     if (!isAuthenticated) {
       if (product.type === 1) {
-        const guestItems = buildGuestOrderItems(action);
-        try {
-          sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestItems));
-        } catch (_) {
-          window.alert('주문 정보를 저장하지 못했습니다. 다시 시도해주세요.');
-          return;
-        }
         setSheetMode('none');
         setOpenOptionIndex(null);
         setPendingSheetAction(null);
-        router.push('/shop/orders/buynow');
+
+        if (action.mode === 'cart') {
+          try {
+            addGuestCartItem(action);
+            setShowCartAddedModal(true);
+          } catch (_) {
+            window.alert('장바구니 저장에 실패했습니다. 다시 시도해주세요.');
+          }
+        } else {
+          try {
+            const guestItems = buildGuestOrderItems(action);
+            sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestItems));
+            router.push('/shop/orders/buynow');
+          } catch (_) {
+            window.alert('주문 정보를 저장하지 못했습니다. 다시 시도해주세요.');
+          }
+        }
         return;
       }
       setPendingSheetAction(action);
