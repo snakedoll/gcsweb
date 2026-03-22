@@ -6,6 +6,7 @@ import { NavBar } from '@/components/layout';
 
 interface OrderDetail {
   id: string;
+  orderCode: string;
   orderDate: string;
   items: {
     id: string;
@@ -124,7 +125,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                     주문 번호
                   </span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">
-                    {detail.id}
+                    {detail.orderCode}
                   </span>
                 </div>
                 {/* 주문 일시 */}
