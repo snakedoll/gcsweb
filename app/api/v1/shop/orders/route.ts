@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { Prisma } from '@prisma/client';
+import crypto from 'crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
@@ -58,6 +59,10 @@ function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNul
 
 function toTypeGroup(type: number): 0 | 1 {
   return type === 0 ? 0 : 1;
+}
+
+function hashGuestToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
 const ORDER_CREATE_MAX_RETRIES = 3;
@@ -195,6 +200,18 @@ export async function POST(request: Request) {
       return jsonError(400, 'FUND_LOGIN_REQUIRED', 'fund orders require login.');
     }
 
+    const rawGuestToken = request.headers.get('x-guest-token')?.trim() ?? '';
+    const isAuthenticated = !!user;
+    if (isBuyNow && !isAuthenticated && !rawGuestToken) {
+      return jsonError(400, 'GUEST_TOKEN_REQUIRED', 'x-guest-token is required for guest order.');
+    }
+
+    const buyerType: 'USER' | 'GUEST' = isBuyNow
+      ? (isAuthenticated ? 'USER' : 'GUEST')
+      : 'USER';
+    const buyerUserId = isAuthenticated ? user!.id : null;
+    const buyerGuestTokenHash = isBuyNow && !isAuthenticated ? hashGuestToken(rawGuestToken) : null;
+
     const productIds = [...new Set(data.items.map((item) => item.productId))];
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -271,9 +288,9 @@ export async function POST(request: Request) {
       };
     });
 
-    const ordererName = data.ordererName?.trim() || user?.name || '';
-    const ordererPhone = data.ordererPhone?.trim() || user?.phone || '';
-    if (!ordererName || !ordererPhone) {
+    const ordererName = isBuyNow ? null : data.ordererName?.trim() || user?.name || '';
+    const ordererPhone = isBuyNow ? null : data.ordererPhone?.trim() || user?.phone || '';
+    if (!isBuyNow && (!ordererName || !ordererPhone)) {
       return jsonError(400, 'INVALID_INPUT', 'ordererName and ordererPhone are required.');
     }
 
@@ -315,7 +332,9 @@ export async function POST(request: Request) {
 
         const order = await tx.order.create({
           data: {
-            userId: user?.id ?? null,
+            userId: buyerUserId,
+            buyerType,
+            buyerGuestTokenHash,
             orderDateKey,
             orderSeq,
             orderCode,
@@ -371,6 +390,7 @@ export async function POST(request: Request) {
               data: {
                 orderId: order.id,
                 productId: row.productId,
+                productType: data.productType,
                 quantity: row.quantity,
                 price: row.price,
                 optionData: row.optionData,
