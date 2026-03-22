@@ -27,8 +27,8 @@ export const createOrderSchema = z
     deliveryAddressMain: z.string().trim().optional().nullable(),
     deliveryAddressDetail: z.string().trim().optional().nullable(),
     deliveryMessage: z.string().trim().optional().nullable(),
-    ordererName: z.string().trim().min(1, 'ordererName is required.'),
-    ordererPhone: z.string().trim().min(1, 'ordererPhone is required.'),
+    ordererName: z.string().trim().optional().nullable(),
+    ordererPhone: z.string().trim().optional().nullable(),
     paymentMethod: PaymentMethodSchema,
     cardCompany: CardCompanySchema.optional().nullable(),
     bankCode: BankCodeSchema.optional().nullable(),
@@ -45,6 +45,20 @@ export const createOrderSchema = z
     const requiresPolicyAgreement = data.productType === 1 || (data.productType === 0 && data.receiveMethod === 1);
 
     if (isFund) {
+      if (!data.ordererName) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ordererName'],
+          message: 'ordererName is required for fund orders.',
+        });
+      }
+      if (!data.ordererPhone) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ordererPhone'],
+          message: 'ordererPhone is required for fund orders.',
+        });
+      }
       if (!data.receiverName) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

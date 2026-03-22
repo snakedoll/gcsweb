@@ -244,6 +244,8 @@ model ProductUpdateRequestOptionValue {
 model Order {
   id                    String      @id @default(cuid())
   userId                String?
+  buyerType             BuyerType
+  buyerGuestTokenHash   String?
   paymentAmount         Int
   orderDate             DateTime    @default(now())
   createdAt             DateTime    @default(now())
@@ -256,8 +258,8 @@ model Order {
   deliveryAddressMain   String?
   deliveryAddressDetail String?
   deliveryMessage       String?
-  ordererName           String
-  ordererPhone          String
+  ordererName           String?
+  ordererPhone          String?
   paymentStatus         Int         @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int
@@ -298,6 +300,7 @@ model OrderItem {
   id         String   @id @default(cuid())
   orderId    String
   productId  String
+  productType Int
   quantity   Int
   price      Int
   optionData Json?
@@ -593,4 +596,9 @@ model Term {
 enum SignupMethod {
   EMAIL
   KAKAO
+}
+
+enum BuyerType {
+  USER
+  GUEST
 }
