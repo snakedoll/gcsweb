@@ -30,6 +30,7 @@ export async function GET(req: Request) {
         paymentStatus: { in: [1, 2, 3, 4] }, // 1 = 미결제, 2 = 결제완료, 3 = 취소, 4 = 실패
         OR: search
           ? [
+              { orderCode: { contains: search, mode: 'insensitive' } },
               { ordererName: { contains: search, mode: 'insensitive' } },
               { ordererPhone: { endsWith: search } },
             ]
@@ -105,7 +106,7 @@ export async function GET(req: Request) {
 
       return {
         id: order.id,
-        orderId: order.id.slice(-10).toUpperCase(),
+        orderId: order.orderCode ?? order.id.slice(-10).toUpperCase(),
         name: order.ordererName,
         phoneLast4: order.ordererPhone ? order.ordererPhone.slice(-4) : '...',
         fullPhone: formatPhone(order.ordererPhone),

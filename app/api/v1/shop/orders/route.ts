@@ -6,6 +6,12 @@ import { prisma } from '@/lib/db';
 import { createOrderSchema } from '@/lib/validations/order';
 import { getSaleStatusByDate } from '@/lib/sale-date';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
+import {
+  ORDER_CODE_CONFIG,
+  buildOrderCode,
+  getOrderDateKeyYYMMDD,
+  mapProductTypeToOrderCode,
+} from '@/lib/order-code';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -52,6 +58,25 @@ function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNul
 
 function toTypeGroup(type: number): 0 | 1 {
   return type === 0 ? 0 : 1;
+}
+
+const ORDER_CREATE_MAX_RETRIES = 3;
+const ORDER_CREATE_RETRY_BASE_DELAY_MS = 30;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableOrderCreateError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') return true;
+    if (error.code === 'P2034') return true;
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  return message.includes('could not serialize access') || message.includes('serialization failure');
 }
 
 export async function GET(request: Request) {
@@ -252,75 +277,135 @@ export async function POST(request: Request) {
       return jsonError(400, 'INVALID_INPUT', 'ordererName and ordererPhone are required.');
     }
 
-    const created = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.create({
-        data: {
-          userId: user?.id ?? null,
-          productType: data.productType,
-          receiveMethod: data.receiveMethod,
-          receiverName: isFund ? data.receiverName ?? null : null,
-          receiverPhone: isFund ? data.receiverPhone ?? null : null,
-          deliveryZipCode: isFundDelivery ? data.deliveryZipCode ?? null : null,
-          deliveryAddressMain: isFundDelivery ? data.deliveryAddressMain ?? null : null,
-          deliveryAddressDetail: isFundDelivery ? data.deliveryAddressDetail ?? null : null,
-          deliveryMessage: isFundDelivery ? data.deliveryMessage ?? null : null,
-          ordererName,
-          ordererPhone,
-          paymentMethod: data.paymentMethod,
-          billingKey: isFund && data.paymentMethod === 0 ? normalizedBillingKey : null,
-          cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
-          bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
-          easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
-          paymentStatus: data.paymentMethod === 3 ? 1 : 0,
-          fulfillmentStatus: null,
-          paymentAmount,
-        },
-        select: {
-          id: true,
-          productType: true,
-          receiveMethod: true,
-          receiverName: true,
-          receiverPhone: true,
-          deliveryZipCode: true,
-          deliveryAddressMain: true,
-          deliveryAddressDetail: true,
-          deliveryMessage: true,
-          ordererName: true,
-          ordererPhone: true,
-          paymentMethod: true,
-          billingKey: true,
-          cardCompany: true,
-          bankCode: true,
-          easyPayProvider: true,
-          paymentStatus: true,
-          fulfillmentStatus: true,
-          paymentAmount: true,
-          createdAt: true,
-        },
+    const orderDateKey = getOrderDateKeyYYMMDD(new Date());
+    const createOrderTransaction = () =>
+      prisma.$transaction(async (tx) => {
+        const sequence = await tx.orderSequence.upsert({
+          where: {
+            orderDateKey_productType: {
+              orderDateKey,
+              productType: data.productType,
+            },
+          },
+          create: {
+            orderDateKey,
+            productType: data.productType,
+            lastSeq: 1,
+          },
+          update: {
+            lastSeq: {
+              increment: 1,
+            },
+          },
+          select: {
+            lastSeq: true,
+          },
+        });
+
+        const orderSeq = sequence.lastSeq;
+        if (orderSeq > ORDER_CODE_CONFIG.sequenceMax) {
+          throw new Error('ORDER_SEQUENCE_EXCEEDED');
+        }
+        const productTypeCode = mapProductTypeToOrderCode(data.productType);
+        const orderCode = buildOrderCode({
+          orderDateKey,
+          productTypeCode,
+          orderSeq,
+        });
+
+        const order = await tx.order.create({
+          data: {
+            userId: user?.id ?? null,
+            orderDateKey,
+            orderSeq,
+            orderCode,
+            productType: data.productType,
+            receiveMethod: data.receiveMethod,
+            receiverName: isFund ? data.receiverName ?? null : null,
+            receiverPhone: isFund ? data.receiverPhone ?? null : null,
+            deliveryZipCode: isFundDelivery ? data.deliveryZipCode ?? null : null,
+            deliveryAddressMain: isFundDelivery ? data.deliveryAddressMain ?? null : null,
+            deliveryAddressDetail: isFundDelivery ? data.deliveryAddressDetail ?? null : null,
+            deliveryMessage: isFundDelivery ? data.deliveryMessage ?? null : null,
+            ordererName,
+            ordererPhone,
+            paymentMethod: data.paymentMethod,
+            billingKey: isFund && data.paymentMethod === 0 ? normalizedBillingKey : null,
+            cardCompany: data.paymentMethod === 0 ? (data.cardCompany ?? null) : null,
+            bankCode: data.paymentMethod === 1 ? (data.bankCode ?? null) : null,
+            easyPayProvider: data.paymentMethod === 2 ? (data.easyPayProvider ?? null) : null,
+            paymentStatus: data.paymentMethod === 3 ? 1 : 0,
+            fulfillmentStatus: null,
+            paymentAmount,
+          },
+          select: {
+            id: true,
+            orderDateKey: true,
+            orderSeq: true,
+            orderCode: true,
+            productType: true,
+            receiveMethod: true,
+            receiverName: true,
+            receiverPhone: true,
+            deliveryZipCode: true,
+            deliveryAddressMain: true,
+            deliveryAddressDetail: true,
+            deliveryMessage: true,
+            ordererName: true,
+            ordererPhone: true,
+            paymentMethod: true,
+            billingKey: true,
+            cardCompany: true,
+            bankCode: true,
+            easyPayProvider: true,
+            paymentStatus: true,
+            fulfillmentStatus: true,
+            paymentAmount: true,
+            createdAt: true,
+          },
+        });
+
+        const createdItems = await Promise.all(
+          itemRows.map((row) =>
+            tx.orderItem.create({
+              data: {
+                orderId: order.id,
+                productId: row.productId,
+                quantity: row.quantity,
+                price: row.price,
+                optionData: row.optionData,
+              },
+              select: {
+                productId: true,
+                quantity: true,
+                price: true,
+                optionData: true,
+              },
+            })
+          )
+        );
+
+        return { order, items: createdItems };
       });
+    let created: Awaited<ReturnType<typeof createOrderTransaction>> | null = null;
+    for (let attempt = 1; attempt <= ORDER_CREATE_MAX_RETRIES; attempt += 1) {
+      try {
+        created = await createOrderTransaction();
+        break;
+      } catch (txnError) {
+        if (!isRetryableOrderCreateError(txnError)) {
+          throw txnError;
+        }
+        if (attempt >= ORDER_CREATE_MAX_RETRIES) {
+          throw new Error('ORDER_CREATE_RETRY_EXCEEDED');
+        }
+        await sleep(ORDER_CREATE_RETRY_BASE_DELAY_MS * attempt);
+      }
+    }
 
-      const createdItems = await Promise.all(
-        itemRows.map((row) =>
-          tx.orderItem.create({
-            data: {
-              orderId: order.id,
-              productId: row.productId,
-              quantity: row.quantity,
-              price: row.price,
-              optionData: row.optionData,
-            },
-            select: {
-              productId: true,
-              quantity: true,
-              price: true,
-              optionData: true,
-            },
-          })
-        )
-      );
-
-      return { order, items: createdItems };
-    });
+    if (!created) {
+      throw new Error('ORDER_CREATE_RETRY_EXCEEDED');
+    }
 
     const orderPayload = {
       ...created.order,
@@ -338,6 +423,12 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && error.message === 'VARIANT_SOLD_OUT') {
       return jsonError(409, 'INVALID_STATE', 'sold-out variants cannot be ordered.');
+    }
+    if (error instanceof Error && error.message === 'ORDER_SEQUENCE_EXCEEDED') {
+      return jsonError(409, 'ORDER_SEQUENCE_EXCEEDED', 'daily order sequence limit exceeded.');
+    }
+    if (error instanceof Error && error.message === 'ORDER_CREATE_RETRY_EXCEEDED') {
+      return jsonError(409, 'ORDER_CREATE_RETRY_EXCEEDED', 'please retry order creation.');
     }
 
     const message = error instanceof Error ? error.message : '';
