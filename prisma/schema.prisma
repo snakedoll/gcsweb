@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id                    String                 @id @default(cuid())
-  email                 String
+  email                 String                 @unique
   password              String?
   nickname              String                 @unique
   name                  String
@@ -26,7 +26,6 @@ model User {
   lockedUntil           DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
-  providerId            String?
   carts                 Cart[]
   inquiries             Inquiry[]
   likes                 Like[]
@@ -38,7 +37,6 @@ model User {
   scraps                Scrap[]
   teams                 Team[]
 
-  @@unique([email, signupMethod])
   @@index([email])
   @@index([nickname])
   @@index([memberType])
@@ -249,9 +247,6 @@ model Order {
   orderDate             DateTime    @default(now())
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
-  orderDateKey          String?     // YYMMDD
-  orderSeq              Int?        // 001~999
-  orderCode             String?     @unique
   productType           Int
   receiveMethod         Int
   receiverName          String?
@@ -269,17 +264,23 @@ model Order {
   bankCode              Int?
   easyPayProvider       Int?
   billingKey            String?
+  orderDateKey          String?
+  orderSeq              Int?
+  orderCode             String?     @unique
   inquiries             Inquiry[]
   user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
 
+  @@unique([orderDateKey, productType, orderSeq])
   @@index([userId])
   @@index([productType, receiveMethod])
-  @@unique([orderDateKey, productType, orderSeq])
   @@index([paymentStatus])
   @@index([fulfillmentStatus])
   @@index([orderDate])
   @@index([orderDateKey, productType])
+  @@index([bankCode])
+  @@index([cardCompany])
+  @@index([easyPayProvider])
 }
 
 model OrderSequence {
@@ -572,20 +573,6 @@ model CartItem {
 
   @@index([cartId])
   @@index([productId])
-}
-
-model Term {
-  id        String   @id @default(cuid())
-  type      String
-  mainTitle String
-  subTitle  String?
-  body      String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([type])
-  @@index([order])
 }
 
 enum SignupMethod {
