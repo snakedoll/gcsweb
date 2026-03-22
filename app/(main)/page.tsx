@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BottomTabBar, Footer, NavBar } from '@/components/layout';
+import { BottomTabBar, NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 
 const heroImage = 'https://www.figma.com/api/mcp/asset/1a720de9-5732-4c38-ae25-95524116dcf8';
-const instagramIcon = 'https://www.figma.com/api/mcp/asset/a756b379-dc78-4e02-a871-1c61f7baef6a';
+const instagramIcon = '/assets/icons/icon-instagram-line.svg';
 
 type HomeBuyNowProduct = {
   id: string;
@@ -254,7 +254,7 @@ export default function HomePage() {
             />
 
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/nirvana.express?igsh=dnBzdnAwbXlhb3Rw/"
               target="_blank"
               rel="noreferrer"
               className="mx-auto mb-8 mt-[19px] flex h-[29px] w-fit items-center gap-1 rounded-[5px] border border-orange-3 bg-neutral-2 px-2 text-[15px] text-neutral-8"
@@ -409,8 +409,6 @@ export default function HomePage() {
               </div>
             </div>
           </section>
-
-          <Footer />
         </main>
 
         <div className="sticky bottom-0 z-20 mt-auto">

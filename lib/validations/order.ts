@@ -112,7 +112,7 @@ export const createOrderSchema = z
       }
     }
 
-    if (data.paymentMethod === 0) {
+    if (isFund && data.paymentMethod === 0) {
       if (data.cardCompany === null || data.cardCompany === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -136,7 +136,7 @@ export const createOrderSchema = z
       }
     }
 
-    if (data.paymentMethod === 1) {
+    if (isFund && data.paymentMethod === 1) {
       if (data.bankCode === null || data.bankCode === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -160,7 +160,7 @@ export const createOrderSchema = z
       }
     }
 
-    if (data.paymentMethod === 2) {
+    if (isFund && data.paymentMethod === 2) {
       if (data.easyPayProvider === null || data.easyPayProvider === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -215,12 +215,36 @@ export const createOrderSchema = z
       }
     }
 
-    if (isBuyNow && data.paymentMethod === 2 && (data.easyPayProvider === null || data.easyPayProvider === undefined)) {
+    if (isBuyNow && data.paymentMethod !== 0 && data.paymentMethod !== 3) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['easyPayProvider'],
-        message: 'INVALID_EASY_PAY_PROVIDER',
+        path: ['paymentMethod'],
+        message: 'INVALID_PAYMENT_METHOD',
       });
+    }
+
+    if (isBuyNow) {
+      if (data.cardCompany !== null && data.cardCompany !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['cardCompany'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
+      if (data.bankCode !== null && data.bankCode !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bankCode'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
+      if (data.easyPayProvider !== null && data.easyPayProvider !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['easyPayProvider'],
+          message: 'INVALID_PAYMENT_DETAIL_COMBINATION',
+        });
+      }
     }
 
     if (isFundPickup && data.isPolicyAgreed !== true) {
