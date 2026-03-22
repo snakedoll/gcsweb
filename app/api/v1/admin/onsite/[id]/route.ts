@@ -54,6 +54,7 @@ export async function GET(
 
     const formattedData = {
       id: order.id,
+      orderCode: order.orderCode ?? order.id.slice(-10).toUpperCase(),
       orderDate: `${YY}. ${MM}. ${DD}`,
       items: order.items.map(item => ({
         id: item.id,
