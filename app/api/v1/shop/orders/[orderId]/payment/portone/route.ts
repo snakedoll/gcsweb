@@ -60,7 +60,7 @@ export async function GET(
     const baseUrl =
       process.env.NEXTAUTH_URL ??
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    const buyerName = order.ordererName?.trim() || undefined;
+    const buyerName = order.ordererName?.trim() || '구매자';
     const buyerTel = order.ordererPhone?.trim() || undefined;
 
     return NextResponse.json({
@@ -74,7 +74,7 @@ export async function GET(
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         redirectUrl: `${baseUrl}/shop/orders/buynow/result`,
-        ...(buyerName ? { buyerName } : {}),
+        buyerName,
         ...(buyerTel ? { buyerTel } : {}),
       },
     });

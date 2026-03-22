@@ -34,7 +34,7 @@ function PayContent() {
         currency: string;
         payMethod: string;
         redirectUrl: string;
-        buyerName?: string;
+        buyerName: string;
         buyerTel?: string;
       };
 
@@ -58,13 +58,10 @@ function PayContent() {
           payMethod: data.payMethod as 'CARD',
           redirectUrl: redirectFull,
           forceRedirect: true,
-          ...(data.buyerName &&
-            data.buyerTel && {
-              customer: {
-                fullName: data.buyerName,
-                phoneNumber: data.buyerTel,
-              },
-            }),
+          customer: {
+            fullName: data.buyerName,
+            ...(data.buyerTel ? { phoneNumber: data.buyerTel } : {}),
+          },
         });
 
         if (response?.code != null) {
