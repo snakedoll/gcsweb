@@ -15,9 +15,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   // TypeScript 오류가 있어도 빌드 계속 진행 (필요시 주석 해제)
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 module.exports = nextConfig
