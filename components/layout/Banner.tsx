@@ -3,14 +3,17 @@ import { cn } from '@/lib/utils';
 
 interface BannerProps {
   className?: string;
-  variant?: 'archive' | 'shop';
+  variant?: 'archive' | 'shop' | 'about' | 'community';
 }
 
 export default function Banner({ className, variant = 'archive' }: BannerProps) {
-  const src =
-    variant === 'shop'
-      ? '/assets/images/banner-shop.svg'
-      : '/assets/images/banner-archive.svg';
+  const srcMap: Record<NonNullable<BannerProps['variant']>, string> = {
+    archive: '/assets/images/banner-archive.svg',
+    shop: '/assets/images/banner-shop.svg',
+    about: '/assets/images/banner-about.svg',
+    community: '/assets/images/banner-community.svg',
+  };
+  const src = srcMap[variant];
 
   return (
     <section className={cn('relative h-[113px] w-full', className)}>

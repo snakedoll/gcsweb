@@ -19,7 +19,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-neutral-3">
       <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
         <NavBar />
-        <Banner variant="archive" />
+        <Banner variant="about" />
 
         <TabBar
           items={aboutTabItems}
