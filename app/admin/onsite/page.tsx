@@ -49,8 +49,10 @@ export default function AdminOnsitePage() {
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelModalItem, setCancelModalItem] = useState<ReceiptItem | null>(null);
 
   useEffect(() => {
+
     fetchGroups();
   }, [search]);
 
@@ -275,9 +277,6 @@ export default function AdminOnsitePage() {
                            <div className="w-[160px] h-full flex items-center px-[18px] border-r border-[#dddcdb] border-dashed shrink-0">
                               <span className="text-[13px] font-semibold text-[#3f3835] tracking-[-0.26px]">주문 번호</span>
                            </div>
-                           <div className="w-[145px] h-full flex items-center px-[18px] border-r border-[#dddcdb] border-dashed shrink-0">
-                              <span className="text-[13px] font-semibold text-[#f6874c] tracking-[-0.26px]">주문자 정보</span>
-                           </div>
                            <div className="w-[285px] h-full flex items-center px-[16px] border-r border-[#dddcdb] border-dashed shrink-0">
                               <span className="text-[13px] font-semibold text-[#f6874c] tracking-[-0.26px]">주문 상품</span>
                            </div>
@@ -287,8 +286,11 @@ export default function AdminOnsitePage() {
                            <div className="w-[200px] h-full flex items-center px-[18px] border-r border-[#dddcdb] border-dashed shrink-0">
                               <span className="text-[13px] font-semibold text-[#3f3835] tracking-[-0.26px]">결제 정보</span>
                            </div>
-                           <div className="flex-1 h-full flex items-center px-[18px] shrink-0">
+                           <div className="w-[110px] h-full flex items-center px-[18px] border-r border-[#dddcdb] border-dashed shrink-0">
                               <span className="text-[13px] font-semibold text-[#3f3835] tracking-[-0.26px]">수령여부</span>
+                           </div>
+                           <div className="w-[145px] h-full flex items-center px-[18px] shrink-0">
+                              <span className="text-[13px] font-semibold text-[#3f3835] tracking-[-0.26px]">주문취소</span>
                            </div>
                         </div>
 
@@ -310,10 +312,6 @@ export default function AdminOnsitePage() {
                                </div>
                                <div className="w-[160px] flex flex-col py-[16px] px-[18px] border-r border-[#dddcdb] border-dashed shrink-0 bg-white">
                                   <span className="text-[15px] text-[#3f3835]">{item.orderId}</span>
-                               </div>
-                               <div className={cn("w-[145px] flex flex-col py-[16px] px-[18px] border-r border-dashed shrink-0 transition-colors", rowBgColor, borderColor)}>
-                                  <span className="text-[13px] text-[#3f3835] tracking-[-0.26px]">{item.name}</span>
-                                  <span className="text-[13px] text-[#3f3835] tracking-[-0.26px]">{item.fullPhone}</span>
                                </div>
                                <div className={cn("w-[285px] flex flex-col justify-start py-[16px] px-[16px] border-r border-dashed shrink-0 gap-[14px]", rowBgColor, borderColor)}>
                                   {isCanceled && (
@@ -349,9 +347,21 @@ export default function AdminOnsitePage() {
                                   <span className="text-[13px] text-[#3f3835] tracking-[-0.26px]">{item.paymentMethodStr}</span>
                                   <span className="text-[13px] text-[#3f3835] tracking-[-0.26px]">{item.paymentAmount.toLocaleString()}원</span>
                                </div>
-                               <div className="flex-1 flex flex-col items-center justify-center p-[16px] shrink-0 bg-white">
-                                  <button className={cn("w-[78px] h-[26px] rounded-[4px] flex items-center justify-center text-[13px] font-semibold text-white tracking-[-0.26px]", (isComplete || isCanceled) ? "bg-[#fac0a1]" : "bg-[#f46d25]")}>
+                               <div className="w-[110px] flex flex-col items-center justify-center p-[18px] border-r border-[#dddcdb] border-dashed shrink-0 bg-white">
+                                  <button className={cn("w-full h-[26px] rounded-[4px] flex items-center justify-center text-[13px] font-semibold text-[#fdfdfd] tracking-[-0.26px]", (isComplete || isCanceled) ? "bg-[#fac0a1]" : "bg-[#f46d25]")}>
                                     {item.receiptStatus}
+                                  </button>
+                               </div>
+                               <div className="w-[145px] flex flex-col items-center justify-center p-[18px] shrink-0 bg-white">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCancelModalItem(item);
+                                    }}
+                                    disabled={isCanceled}
+                                    className={cn("w-full h-[26px] rounded-[4px] flex items-center justify-center text-[13px] font-semibold text-[#fdfdfd] tracking-[-0.26px]", isCanceled ? "bg-[#fac0a1] cursor-default" : "bg-[#f46d25]")}
+                                  >
+                                    {isCanceled ? '주문 취소 완료' : '주문취소'}
                                   </button>
                                </div>
                             </div>
@@ -362,6 +372,50 @@ export default function AdminOnsitePage() {
                   ))
                 )}
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirm Modal */}
+      {cancelModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white flex flex-col pt-[40px] pb-[23px] px-[28px] relative rounded-[12px] w-[343px] shadow-lg">
+            <div className="flex flex-col gap-[30px] items-start w-full cursor-auto">
+              <div className="flex flex-col items-center justify-center w-full">
+                <p className="font-bold text-[#2f2824] text-[15px] leading-[1.5] text-center w-[265px] font-pretendard">
+                  해당 주문을 취소하시겠습니까?
+                </p>
+              </div>
+              <div className="flex gap-[14px] w-full">
+                <button
+                  onClick={() => setCancelModalItem(null)}
+                  className="bg-[#fdfdfd] border border-[#dddcdb] flex-1 min-h-[48px] rounded-[8px] flex items-center justify-center text-[15px] font-bold text-[#3f3835] font-pretendard hover:bg-gray-50 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!cancelModalItem) return;
+                    try {
+                      const res = await fetch(`/api/v1/admin/onsite/${cancelModalItem.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paymentStatus: 3 }),
+                      });
+                      if (res.ok) {
+                        fetchGroups();
+                      }
+                    } catch (e) {
+                      console.error('Failed to cancel order:', e);
+                    }
+                    setCancelModalItem(null);
+                  }}
+                  className="bg-[#f6874c] flex-1 min-h-[48px] rounded-[8px] flex items-center justify-center text-[15px] font-bold text-[#fdfdfd] font-pretendard hover:bg-[#e6753a] transition-colors"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

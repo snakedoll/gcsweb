@@ -100,12 +100,7 @@ export async function PATCH(
     if (!id) return jsonError(400, 'INVALID_INPUT', '주문 ID가 없습니다.');
 
     const body = await req.json().catch(() => ({}));
-    const { fulfillmentStatus } = body;
-
-    // fulfillmentStatus: 0 for 미수령, 1 for 수령완료
-    if (fulfillmentStatus !== 0 && fulfillmentStatus !== 1) {
-      return jsonError(400, 'INVALID_INPUT', '잘못된 수령 상태값입니다.');
-    }
+    const { fulfillmentStatus, paymentStatus } = body;
 
     const targetOrder = await prisma.order.findUnique({
       where: { id }
@@ -115,12 +110,28 @@ export async function PATCH(
       return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
     }
 
+    if (paymentStatus === 3) {
+      await prisma.order.update({
+        where: { id },
+        data: { paymentStatus: 3 }
+      });
+      return NextResponse.json({
+        status: 'success',
+        message: '주문이 취소되었습니다.',
+      });
+    }
+
+    // fulfillmentStatus: 0 for 미수령, 1 for 수령완료
+    if (fulfillmentStatus !== 0 && fulfillmentStatus !== 1) {
+      return jsonError(400, 'INVALID_INPUT', '잘못된 수령 상태값입니다.');
+    }
+
     await prisma.order.update({
       where: { id },
       data: {
         fulfillmentStatus,
         // 수령 완료 처리 시 결제 상태도 완료로 자동 변경 (현장 결제 케이스 대응)
-        ...(fulfillmentStatus === 1 ? { paymentStatus: 2 } : {}),
+        ...(fulfillmentStatus === 1 && targetOrder.paymentStatus !== 3 ? { paymentStatus: 2 } : {}),
       }
     });
 

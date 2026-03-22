@@ -26,6 +26,7 @@ model User {
   lockedUntil           DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  providerId            String?
   carts                 Cart[]
   inquiries             Inquiry[]
   likes                 Like[]
