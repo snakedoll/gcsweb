@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,17 +19,14 @@ type CartApiItem = {
   receiveMethod: number;
 };
 
-type UserProfileResponse = {
-  name?: string;
-  phone?: string;
-};
-
 type OrderLineItem = {
   id: string;
   productId: string;
   quantity: number;
   unitPrice: number;
   optionData?: unknown;
+  productType: number;
+  receiveMethod: number;
   brand: string;
   title: string;
   optionText: string;
@@ -43,14 +40,30 @@ type ProductVariantState = {
 };
 
 type ProductDetailForSoldOutCheck = {
-  options?: Array<{ name?: string; optionName?: string }>;
   variants?: ProductVariantState[];
 };
 
 const TAG_BASE_CLASS =
-  'inline-flex items-center justify-center rounded-[8px] bg-orange-3 px-2 py-[2px] typo-body-xsmall text-orange-7';
+  'inline-flex items-center justify-center rounded-[4px] bg-orange-4 px-[5px] py-[1px] typo-body-xsmall text-neutral-2';
 
-function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string; additionalPrice?: number }> {
+const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
+const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
+
+function getOrCreateGuestToken(): string {
+  const existing = localStorage.getItem(GUEST_TOKEN_STORAGE_KEY)?.trim();
+  if (existing) return existing;
+
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const token = Array.from(bytes)
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
+
+  localStorage.setItem(GUEST_TOKEN_STORAGE_KEY, token);
+  return token;
+}
+
+function parseOptions(value: unknown): Array<{ optionName?: string; optionValue?: string; value?: string }> {
   if (!value || typeof value !== 'object') return [];
   return Array.isArray(value) ? value : [value];
 }
@@ -68,6 +81,7 @@ function parseVariantSignature(signature: string): Record<string, string> {
   return signature.split('|').reduce<Record<string, string>>((acc, part) => {
     const [rawKey, rawValue] = part.split('=');
     if (!rawKey || rawValue == null) return acc;
+
     try {
       acc[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue);
       return acc;
@@ -111,6 +125,9 @@ function findMatchedVariant(
 }
 
 function OrderLineCard({ item }: { item: OrderLineItem }) {
+  const productTypeLabel = item.productType === 0 ? 'Fund' : item.productType === 1 ? 'BuyNow' : '상품';
+  const receiveMethodLabel = item.receiveMethod === 0 ? '택배배송' : item.receiveMethod === 1 ? '현장수령' : '수령방식';
+
   return (
     <article className="w-full">
       <div className="flex w-full gap-4">
@@ -118,13 +135,13 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
         <img src={item.imageUrl} alt={item.title} className="h-[100px] w-20 rounded-[4px] object-cover" />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div>
-            <p className="typo-body-small text-neutral-8">{item.brand}</p>
-            <p className="typo-body-small-bold text-neutral-12">{item.title}</p>
+            <p className="typo-body-xsmall text-neutral-11">{item.brand}</p>
+            <p className="typo-heading-xsmall text-neutral-12">{item.title}</p>
             <p className="typo-body-xsmall text-neutral-11">{item.optionText}</p>
           </div>
-          <div className="flex items-center gap-1">
-            <span className={TAG_BASE_CLASS}>BuyNow</span>
-            <span className={TAG_BASE_CLASS}>현장수령</span>
+          <div className="flex items-center gap-[5px]">
+            <span className={TAG_BASE_CLASS}>{productTypeLabel}</span>
+            <span className={TAG_BASE_CLASS}>{receiveMethodLabel}</span>
           </div>
           <div className="h-px w-full border-t border-dashed border-neutral-5" />
           <p className="typo-body-xsmall-bold text-neutral-11">{item.priceText}</p>
@@ -137,14 +154,14 @@ function OrderLineCard({ item }: { item: OrderLineItem }) {
 function ShopOrdersBuyNowPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [items, setItems] = useState<OrderLineItem[]>([]);
-  const [ordererName, setOrdererName] = useState('');
-  const [ordererPhone, setOrdererPhone] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<0 | 3>(0);
-  const [isAgreed, setIsAgreed] = useState(false);
+  const [bagOption, setBagOption] = useState<'YES' | 'NO' | null>(null);
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
 
   const selectedCartItemIds = useMemo(() => {
@@ -169,7 +186,32 @@ function ShopOrdersBuyNowPageContent() {
         ]);
 
         if (cartRes.status === 401 || !profileRes.ok) {
-          router.replace('/shop/orders/buynow-guest');
+          const rawGuestItems = sessionStorage.getItem(GUEST_ORDER_STORAGE_KEY);
+          let parsedGuestItems: OrderLineItem[] = [];
+          if (rawGuestItems) {
+            const parsed = JSON.parse(rawGuestItems) as unknown;
+            if (Array.isArray(parsed)) {
+              parsedGuestItems = (parsed as Array<Partial<OrderLineItem>>).map((item, index) => ({
+                id: item.id ?? `guest-${index}`,
+                productId: item.productId ?? '',
+                quantity: item.quantity ?? 1,
+                unitPrice: item.unitPrice ?? 0,
+                optionData: item.optionData ?? null,
+                productType: item.productType ?? 1,
+                receiveMethod: item.receiveMethod ?? 1,
+                brand: item.brand ?? '',
+                title: item.title ?? '',
+                optionText: item.optionText ?? '',
+                priceText: item.priceText ?? `${Number(item.unitPrice ?? 0).toLocaleString('ko-KR')}원`,
+                imageUrl: item.imageUrl ?? '',
+              }));
+            }
+          }
+
+          if (!cancelled) {
+            setIsAuthenticated(false);
+            setItems(parsedGuestItems);
+          }
           return;
         }
 
@@ -189,6 +231,8 @@ function ShopOrdersBuyNowPageContent() {
             quantity: row.quantity ?? 1,
             unitPrice: row.price ?? 0,
             optionData: row.options ?? null,
+            productType: row.type ?? 1,
+            receiveMethod: row.receiveMethod ?? 1,
             brand: row.teamName ?? '',
             title: row.productName ?? '',
             optionText: `${toOptionText(options)} / ${row.quantity ?? 1}개`,
@@ -197,12 +241,9 @@ function ShopOrdersBuyNowPageContent() {
           };
         });
 
-        const profileJson = (await profileRes.json().catch(() => ({}))) as UserProfileResponse;
-
         if (!cancelled) {
+          setIsAuthenticated(true);
           setItems(mapped);
-          setOrdererName(profileJson?.name ?? '');
-          setOrdererPhone(profileJson?.phone ?? '');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -213,24 +254,21 @@ function ShopOrdersBuyNowPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, selectedCartItemIds]);
+  }, [selectedCartItemIds]);
 
   const totalPriceText = useMemo(() => {
     const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     return `${total.toLocaleString('ko-KR')}원`;
   }, [items]);
 
-  const isPayEnabled =
-    items.length > 0 &&
-    ordererName.trim().length > 0 &&
-    ordererPhone.trim().length > 0 &&
-    (paymentMethod === 0 || paymentMethod === 3) &&
-    isAgreed;
+  const isPayEnabled = items.length > 0 && (paymentMethod === 0 || paymentMethod === 3) && bagOption !== null;
 
   const handleSubmit = async () => {
     if (!isPayEnabled || isSubmitting) return;
+
     setSubmitError(null);
     setIsSubmitting(true);
+
     try {
       const productIds = Array.from(new Set(items.map((item) => item.productId).filter(Boolean)));
       const productEntries = await Promise.all(
@@ -241,6 +279,7 @@ function ShopOrdersBuyNowPageContent() {
           return [id, product ?? null] as const;
         })
       );
+
       const productMap = new Map<string, ProductDetailForSoldOutCheck | null>(productEntries);
 
       const hasSoldOut = items.some((item) => {
@@ -259,8 +298,6 @@ function ShopOrdersBuyNowPageContent() {
       const payload = {
         productType: 1 as const,
         receiveMethod: 1 as const,
-        ordererName: ordererName.trim(),
-        ordererPhone: ordererPhone.trim(),
         paymentMethod,
         cardCompany: null,
         bankCode: null,
@@ -274,9 +311,13 @@ function ShopOrdersBuyNowPageContent() {
         })),
       };
 
+      const guestToken = !isAuthenticated ? getOrCreateGuestToken() : null;
       const res = await fetch('/api/v1/shop/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(guestToken ? { 'x-guest-token': guestToken } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
@@ -286,16 +327,21 @@ function ShopOrdersBuyNowPageContent() {
         return;
       }
 
+      if (!isAuthenticated) {
+        sessionStorage.removeItem(GUEST_ORDER_STORAGE_KEY);
+      }
+
       const orderId = json?.data?.order?.id;
-      if (orderId) {
-        if (paymentMethod === 3) {
-          router.push(`/shop/orders/buynow/result?orderId=${orderId}&counterPay=1`);
-        } else {
-          router.push(`/shop/orders/buynow/pay?orderId=${orderId}`);
-        }
-      } else {
+      if (!orderId) {
         window.alert('주문이 생성되었습니다.');
-        router.push('/mypage');
+        router.push(isAuthenticated ? '/mypage' : '/shop');
+        return;
+      }
+
+      if (paymentMethod === 3) {
+        router.push(`/shop/orders/buynow/result?orderId=${orderId}&counterPay=1`);
+      } else {
+        router.push(`/shop/orders/buynow/pay?orderId=${orderId}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -313,9 +359,9 @@ function ShopOrdersBuyNowPageContent() {
         <button
           type="button"
           className="rounded-lg bg-orange-5 px-4 py-2 typo-body-small-bold text-neutral-2"
-          onClick={() => router.push('/cart')}
+          onClick={() => router.push(isAuthenticated ? '/cart' : '/shop')}
         >
-          장바구니로 이동
+          이동하기
         </button>
       </div>
     );
@@ -325,21 +371,26 @@ function ShopOrdersBuyNowPageContent() {
     <div className="min-h-screen w-full bg-neutral-3">
       <NavBar variant="title-back" title="주문하기" />
 
-      <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[25px]">
-        <section className="flex flex-col gap-8">
-          {items.map((item) => (
-            <OrderLineCard key={item.id} item={item} />
-          ))}
+      <div className="mx-auto flex w-full max-w-[375px] flex-col gap-8 px-4 pb-[34px] pt-[24px]">
+        <section className="space-y-3">
+          <h2 className="typo-body-medium-bold text-neutral-10">주문한 상품</h2>
+          <div className="space-y-8">
+            {items.map((item) => (
+              <OrderLineCard key={item.id} item={item} />
+            ))}
+          </div>
         </section>
 
-                <section className="space-y-3">
+        <div className="h-px w-full bg-neutral-4" />
+
+        <section className="space-y-3">
           <h2 className="typo-body-medium-bold text-neutral-10">결제수단</h2>
           <div className="flex gap-3">
             <Button
               size="s"
               color={paymentMethod === 0 ? 'orange' : 'white'}
               status="default"
-              className="w-auto min-w-[96px]"
+              className="w-auto min-w-[88px]"
               onClick={() => setPaymentMethod(0)}
             >
               온라인결제
@@ -348,7 +399,7 @@ function ShopOrdersBuyNowPageContent() {
               size="s"
               color={paymentMethod === 3 ? 'orange' : 'white'}
               status="default"
-              className="w-auto min-w-[96px]"
+              className="w-auto min-w-[88px]"
               onClick={() => setPaymentMethod(3)}
             >
               현장결제
@@ -358,16 +409,26 @@ function ShopOrdersBuyNowPageContent() {
 
         <section className="rounded-2xl bg-neutral-2 p-4">
           <div className="space-y-2">
-            <p className="typo-body-xsmall text-black">
-              현장에서 판매하는 상품으로,
-              <br />
-              현장에 계신 고객만 수령 가능합니다.
-            </p>
-            <CheckboxButton checked={isAgreed} onChange={setIsAgreed} label="확인하였습니다." className="mt-1" />
+            <div className="flex items-center gap-1 typo-body-xsmall">
+              <span className="text-red-600">(필수)</span>
+              <span className="text-black">봉투에 담아드릴까요?</span>
+            </div>
+            <div className="flex gap-3">
+              <CheckboxButton
+                checked={bagOption === 'YES'}
+                onChange={(checked) => setBagOption(checked ? 'YES' : null)}
+                label="예 (+100원)"
+              />
+              <CheckboxButton
+                checked={bagOption === 'NO'}
+                onChange={(checked) => setBagOption(checked ? 'NO' : null)}
+                label="아니요"
+              />
+            </div>
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 pt-20">
           <div className="flex items-center justify-between">
             <p className="typo-body-medium-bold text-neutral-10">총 결제금액</p>
             <p className="typo-body-medium-bold text-neutral-10">{totalPriceText}</p>
@@ -384,7 +445,7 @@ function ShopOrdersBuyNowPageContent() {
           <div className="w-[343px] rounded-[12px] bg-white px-7 pb-[23px] pt-10">
             <div className="flex flex-col gap-[30px]">
               <div className="flex w-full flex-col items-center gap-1 text-center">
-                <p className="w-[265px] typo-heading-xxsmall text-neutral-12">품절된 상품입니다.</p>
+                <p className="w-[265px] typo-heading-xxsmall text-neutral-12">품절된 상품입니다</p>
                 <p className="w-[265px] whitespace-pre-line typo-body-xsmall text-neutral-12">
                   {'상품이 품절되어 주문이 불가능합니다.\n현장 직원에게 문의해 주세요.'}
                 </p>

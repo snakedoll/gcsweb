@@ -557,7 +557,7 @@ export default function ShopDetailPage() {
         setSheetMode('none');
         setOpenOptionIndex(null);
         setPendingSheetAction(null);
-        router.push('/shop/orders/buynow-guest');
+        router.push('/shop/orders/buynow');
         return;
       }
       setPendingSheetAction(action);
