@@ -19,7 +19,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-neutral-3">
       <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
         <NavBar />
-        <Banner variant="archive" />
+        <Banner variant="about" />
 
         <TabBar
           items={aboutTabItems}
@@ -29,7 +29,7 @@ export default function AboutPage() {
         />
 
         <section className="flex h-[510px] items-start justify-center pt-[206px]">
-          <EmptyviewText title="Comming Soon!" subtitle="커밍숭다리" className="w-[307px]" />
+          <EmptyviewText title="Comming Soon!" subtitle="About GCS는 추후 오픈 예정입니다." className="w-[307px]" />
         </section>
 
         <BottomTabBar variant="about" />
