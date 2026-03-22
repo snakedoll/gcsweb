@@ -254,7 +254,7 @@ export default function HomePage() {
             />
 
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/nirvana.express?igsh=dnBzdnAwbXlhb3Rw/"
               target="_blank"
               rel="noreferrer"
               className="mx-auto mb-8 mt-[19px] flex h-[29px] w-fit items-center gap-1 rounded-[5px] border border-orange-3 bg-neutral-2 px-2 text-[15px] text-neutral-8"
