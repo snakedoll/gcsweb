@@ -899,14 +899,15 @@ export default function ShopDetailPage() {
                 {product.detailImageUrls.map((url, index) => (
                   <div
                     key={`${url}-${index}`}
-                    className={cn('relative w-full', product.type === 0 ? '' : 'h-[529px] overflow-hidden')}
+                    className="relative w-full"
                   >
                     <Image
                       src={url}
                       alt={`상품 상세 이미지 ${index + 1}`}
                       width={375}
-                      height={529}
-                      className={cn('w-full object-cover', product.type === 0 ? 'h-auto' : 'h-[529px]')}
+                      height={0}
+                      sizes="100vw"
+                      className="h-auto w-full"
                     />
                   </div>
                 ))}

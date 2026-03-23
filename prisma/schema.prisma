@@ -244,8 +244,6 @@ model ProductUpdateRequestOptionValue {
 model Order {
   id                    String      @id @default(cuid())
   userId                String?
-  buyerType             BuyerType
-  buyerGuestTokenHash   String?
   paymentAmount         Int
   orderDate             DateTime    @default(now())
   createdAt             DateTime    @default(now())
@@ -270,6 +268,8 @@ model Order {
   orderDateKey          String?
   orderSeq              Int?
   orderCode             String?     @unique
+  buyerType             BuyerType
+  buyerGuestTokenHash   String?     @db.VarChar(128)
   inquiries             Inquiry[]
   user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
@@ -297,16 +297,16 @@ model OrderSequence {
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
-  orderId    String
-  productId  String
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Int
+  price       Int
+  optionData  Json?
+  createdAt   DateTime @default(now())
   productType Int
-  quantity   Int
-  price      Int
-  optionData Json?
-  createdAt  DateTime @default(now())
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])

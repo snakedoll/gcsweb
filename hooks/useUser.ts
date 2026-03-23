@@ -32,18 +32,22 @@ async function fetchUserProfile(on401?: () => void): Promise<UserProfile | null>
 export function useUser() {
   const { data: session, status, update } = useSession();
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
+  const { data: profile, isLoading: isProfileLoading, isFetched } = useQuery({
     queryKey: ['user', 'profile', session?.user?.id],
     queryFn: () => fetchUserProfile(() => signOut({ callbackUrl: '/login' })),
     enabled: !!session,
     retry: false,
   });
 
+  const isSessionLoading = status === 'loading';
+  // 세션은 존재하지만 프로필 쿼리가 아직 완료되지 않은 경우도 로딩으로 처리
+  const isProfilePending = !!session && !isFetched;
+
   return {
     session,
     profile,
     update,
-    isLoading: status === 'loading' || isProfileLoading,
+    isLoading: isSessionLoading || isProfileLoading || isProfilePending,
     isAuthenticated: !!session,
   };
 }
