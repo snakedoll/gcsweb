@@ -270,9 +270,10 @@ function ShopOrdersBuyNowPageContent() {
   }, [selectedCartItemIds]);
 
   const totalPriceText = useMemo(() => {
-    const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const baseTotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const total = baseTotal + (bagOption === 'YES' ? 100 : 0);
     return `${total.toLocaleString('ko-KR')}원`;
-  }, [items]);
+  }, [bagOption, items]);
 
   const isPayEnabled = items.length > 0 && (paymentMethod === 0 || paymentMethod === 3) && bagOption !== null;
 
@@ -315,6 +316,7 @@ function ShopOrdersBuyNowPageContent() {
         cardCompany: null,
         bankCode: null,
         easyPayProvider: null,
+        bagOption,
         isPolicyAgreed: true,
         items: items.map((item) => ({
           productId: item.productId,

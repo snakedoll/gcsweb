@@ -33,11 +33,13 @@ function mapValidationIssueToErrorCode(issue: { path?: (string | number)[]; mess
   if (issue.message === 'INVALID_BANK_CODE') return 'INVALID_BANK_CODE';
   if (issue.message === 'INVALID_EASY_PAY_PROVIDER') return 'INVALID_EASY_PAY_PROVIDER';
   if (issue.message === 'POLICY_AGREEMENT_REQUIRED') return 'POLICY_AGREEMENT_REQUIRED';
+  if (issue.message === 'BAG_OPTION_REQUIRED') return 'BAG_OPTION_REQUIRED';
 
   if (path === 'cardCompany') return 'INVALID_CARD_COMPANY';
   if (path === 'bankCode') return 'INVALID_BANK_CODE';
   if (path === 'easyPayProvider') return 'INVALID_EASY_PAY_PROVIDER';
   if (path === 'isPolicyAgreed') return 'POLICY_AGREEMENT_REQUIRED';
+  if (path === 'bagOption') return 'BAG_OPTION_REQUIRED';
 
   return 'INVALID_INPUT';
 }
@@ -67,6 +69,7 @@ function hashGuestToken(token: string): string {
 
 const ORDER_CREATE_MAX_RETRIES = 3;
 const ORDER_CREATE_RETRY_BASE_DELAY_MS = 30;
+const BUY_NOW_BAG_FEE = 100;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -268,6 +271,9 @@ export async function POST(request: Request) {
     if ((isBuyNow || isFundPickup) && data.isPolicyAgreed !== true) {
       return jsonError(400, 'POLICY_AGREEMENT_REQUIRED', 'policy agreement is required.');
     }
+    if (isBuyNow && data.bagOption !== 'YES' && data.bagOption !== 'NO') {
+      return jsonError(400, 'BAG_OPTION_REQUIRED', 'bagOption is required for buy now orders.');
+    }
 
     let paymentAmount = 0;
     const itemRows = data.items.map((item) => {
@@ -287,6 +293,9 @@ export async function POST(request: Request) {
         optionData: toDbJson(item.optionData),
       };
     });
+    if (isBuyNow && data.bagOption === 'YES') {
+      paymentAmount += BUY_NOW_BAG_FEE;
+    }
 
     const ordererName = isBuyNow ? null : data.ordererName?.trim() || user?.name || '';
     const ordererPhone = isBuyNow ? null : data.ordererPhone?.trim() || user?.phone || '';

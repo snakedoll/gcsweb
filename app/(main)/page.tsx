@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { BottomTabBar, NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 
-const heroImage = 'https://www.figma.com/api/mcp/asset/1a720de9-5732-4c38-ae25-95524116dcf8';
+const heroImage = '/assets/images/poster.svg';
 const instagramIcon = '/assets/icons/icon-instagram-line.svg';
 
 type HomeBuyNowProduct = {
