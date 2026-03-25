@@ -432,7 +432,7 @@ function ShopOrdersBuyNowPageContent() {
               <CheckboxButton
                 checked={bagOption === 'YES'}
                 onChange={(checked) => setBagOption(checked ? 'YES' : null)}
-                label="예"
+                label="예(+100원)"
               />
               <CheckboxButton
                 checked={bagOption === 'NO'}
