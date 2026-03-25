@@ -89,7 +89,7 @@ export default function BottomSheet({
 
           {isOrderBlocked ? (
             <p className="typo-body-small whitespace-pre-line text-neutral-7">
-              사인에는 주문이 불가능한 상태입니다.{'\n'}현장 직원에게 문의하세요.
+              사이트에서 주문이 불가능한 상태입니다.{'\n'}현장 직원에게 문의하세요.
             </p>
           ) : (
             <div className="flex items-center gap-2">
