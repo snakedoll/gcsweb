@@ -36,6 +36,7 @@ function PayContent() {
         redirectUrl: string;
         buyerName: string;
         buyerTel?: string;
+        buyerEmail?: string;
       };
 
       if (!data.storeId || !data.channelKey || !data.paymentId) {
@@ -61,6 +62,7 @@ function PayContent() {
           customer: {
             fullName: data.buyerName,
             ...(data.buyerTel ? { phoneNumber: data.buyerTel } : {}),
+            ...(data.buyerEmail ? { email: data.buyerEmail } : {}),
           },
         });
 
