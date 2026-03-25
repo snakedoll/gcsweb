@@ -8,6 +8,7 @@ export type BottomSheetVariant = '미선택' | '선택중' | '선택' | '주문 
 export interface BottomSheetOptionValue {
   value: string;
   additionalPrice?: number | null;
+  additionalPriceText?: string | null;
 }
 
 export interface BottomSheetOption {
@@ -26,6 +27,19 @@ interface BottomSheetProps {
   onOptionToggle?: (index: number) => void;
   onOptionSelect?: (optionIndex: number, value: string) => void;
   onQuantityChange?: (next: number) => void;
+}
+
+function getOptionSubtext(optionValue: BottomSheetOptionValue): string | undefined {
+  if (
+    typeof optionValue.additionalPriceText === 'string' &&
+    optionValue.additionalPriceText.trim().length > 0
+  ) {
+    return optionValue.additionalPriceText;
+  }
+
+  const additionalPrice = Number(optionValue.additionalPrice ?? 0);
+  if (!Number.isFinite(additionalPrice) || additionalPrice <= 0) return undefined;
+  return `+${additionalPrice.toLocaleString('ko-KR')}원`;
 }
 
 export default function BottomSheet({
@@ -75,6 +89,7 @@ export default function BottomSheet({
                       items={(option.values ?? []).map((value) => ({
                         label: value.value,
                         value: value.value,
+                        subtext: getOptionSubtext(value),
                       }))}
                       open={isOpened}
                       onToggle={() => !isOrderBlocked && onOptionToggle?.(index)}

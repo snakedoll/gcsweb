@@ -12,6 +12,11 @@ function isValidProductId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && !/\s/.test(value);
 }
 
+function formatAdditionalPriceText(additionalPrice: number): string | null {
+  if (!Number.isFinite(additionalPrice) || additionalPrice <= 0) return null;
+  return `+${additionalPrice.toLocaleString('ko-KR')}원`;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: { productId: string } }
@@ -185,6 +190,7 @@ export async function GET(
             values: (option.values ?? []).map((value: any) => ({
               value: value.value,
               additionalPrice: value.additionalPrice,
+              additionalPriceText: formatAdditionalPriceText(Number(value.additionalPrice ?? 0)),
             })),
           })),
           variants: (product.variants ?? []).map((variant: any) => ({

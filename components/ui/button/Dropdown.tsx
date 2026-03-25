@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import Item from './Item';
 
 type DropdownSize = 's' | 'm' | 'l';
 type DropdownState = 'default' | 'selected' | 'active' | 'open';
@@ -7,6 +8,7 @@ type DropdownState = 'default' | 'selected' | 'active' | 'open';
 interface DropdownItem {
   label: string;
   value: string;
+  subtext?: string;
 }
 
 interface DropdownProps {
@@ -55,12 +57,6 @@ const listClassMap: Record<DropdownSize, string> = {
   s: 'h-[108px] rounded-[4px]',
   m: 'rounded-[8px]',
   l: 'rounded-[8px]',
-};
-
-const itemClassMap: Record<DropdownSize, string> = {
-  s: 'px-3 py-2',
-  m: 'px-3 py-2',
-  l: 'p-3',
 };
 
 export default function Dropdown({
@@ -128,19 +124,19 @@ export default function Dropdown({
       {resolvedOpen ? (
         <div className={cn('w-full overflow-hidden bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]', listClassMap[size])}>
           {items.map((item) => (
-            <button
+            <Item
               key={item.value}
-              type="button"
-              className={cn('flex w-full items-center bg-neutral-2 text-left typo-body-xsmall text-neutral-10', itemClassMap[size])}
+              contents={item.label}
+              subtext={item.subtext}
+              size={size === 'l' ? 'l' : 'm'}
+              state={size === 'l' && item.subtext ? 'default_subtext' : 'default'}
               onClick={() => {
                 onSelect?.(item.value);
                 if (!isOpenControlled) {
                   setInternalOpen(false);
                 }
               }}
-            >
-              {item.label}
-            </button>
+            />
           ))}
         </div>
       ) : null}

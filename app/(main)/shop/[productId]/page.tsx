@@ -32,6 +32,7 @@ interface PendingSheetAction {
 interface ProductOptionValue {
   value: string;
   additionalPrice: number | null;
+  additionalPriceText?: string | null;
 }
 
 interface ProductOption {
@@ -322,6 +323,10 @@ export default function ShopDetailPage() {
       values: (option.values ?? []).map((value) => ({
         value: value.value,
         additionalPrice: value.additionalPrice ?? 0,
+        additionalPriceText:
+          typeof value.additionalPriceText === 'string' && value.additionalPriceText.trim().length > 0
+            ? value.additionalPriceText
+            : null,
       })),
     }));
   }, [product]);
@@ -570,7 +575,9 @@ export default function ShopDetailPage() {
         data?: { cartItemId?: string | number };
       };
       if (!res.ok || json.status !== 'success') {
-        throw new Error(json.message ?? (action.mode === 'cart' ? '장바구니 담기 중 오류가 발생했습니다.' : '주문 처리 중 오류가 발생했습니다.'));
+        throw new Error(
+          json.message ?? (action.mode === 'cart' ? '장바구니 담기 중 오류가 발생했습니다.' : '주문 처리 중 오류가 발생했습니다.')
+        );
       }
 
       setProduct((prev) => (prev ? { ...prev, isInCart: true } : prev));
