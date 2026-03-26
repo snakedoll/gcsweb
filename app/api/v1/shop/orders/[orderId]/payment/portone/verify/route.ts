@@ -80,7 +80,10 @@ export async function POST(_request: Request, { params }: Params) {
     if (paid) {
       await prisma.order.update({
         where: { id: orderId },
-        data: { paymentStatus: 1 },
+        data: {
+          paymentStatus: 1,
+          impUid: payment.impUid,
+        },
       });
     } else {
       console.warn('[PortOne][verify] Payment not yet paid', {

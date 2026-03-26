@@ -70,7 +70,10 @@ export async function POST(request: Request, { params }: Params) {
 
     await prisma.order.update({
       where: { id: orderId },
-      data: { paymentStatus: 1 },
+      data: {
+        paymentStatus: 1,
+        impUid: result.impUid,
+      },
     });
 
     return NextResponse.json({

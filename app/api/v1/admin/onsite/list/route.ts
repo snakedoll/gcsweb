@@ -33,6 +33,7 @@ export async function GET(req: Request) {
         OR: search
           ? [
               { orderCode: { contains: search, mode: 'insensitive' } },
+              { impUid: { contains: search, mode: 'insensitive' } },
             ]
           : undefined,
       },
@@ -110,6 +111,7 @@ export async function GET(req: Request) {
         paymentMethodStr,
         paymentAmount: order.paymentAmount,
         receiptStatus: receiptStatusStr,
+        impUid: order.impUid ?? '-',
         items: orderItems,
       };
     });

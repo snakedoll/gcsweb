@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
@@ -58,6 +58,7 @@ export async function GET(
     const formattedData = {
       id: order.id,
       orderCode: order.orderCode ?? order.id.slice(-10).toUpperCase(),
+      impUid: order.impUid ?? '-',
       orderDate: `${YYYY}. ${MM}. ${DD} ${HH}:${mm}`,
       isCanceled,
       paymentStatus: order.paymentStatus,

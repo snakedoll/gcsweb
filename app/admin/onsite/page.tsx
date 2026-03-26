@@ -17,6 +17,7 @@ type ReceiptItem = {
   paymentMethodStr: string;
   paymentAmount: number;
   receiptStatus: string;
+  impUid: string;
   items: {
     id: string;
     name: string;
@@ -257,8 +258,9 @@ export default function AdminOnsitePage() {
                 <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
                 <div className="overflow-hidden rounded-[8px] border border-[#DDDCDB] bg-white">
-                  <div className="grid h-10 grid-cols-[160px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
+                  <div className="grid h-10 grid-cols-[160px_180px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
                     <div className="flex items-center px-4">주문 번호</div>
+                    <div className="flex items-center px-4">포트원 거래번호</div>
                     <div className="flex items-center px-4">주문 시각</div>
                     <div className="flex items-center px-4">결제여부</div>
                     <div className="flex items-center px-4">수령여부</div>
@@ -278,10 +280,11 @@ export default function AdminOnsitePage() {
                     return (
                       <div
                         key={item.id}
-                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
+                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_180px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
                         onClick={() => router.push(`/admin/onsite/${item.id}`)}
                       >
                         <div className="flex items-center px-4 text-[#3F3835]">{item.orderId}</div>
+                        <div className="flex items-center px-4 text-[#3F3835] truncate">{item.impUid}</div>
                         <div className="flex items-center px-4 text-[#3F3835]">{item.fullOrderTime}</div>
                         <div className="flex items-center px-4">
                           <span

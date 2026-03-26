@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,7 @@ type OrderItem = {
 type OrderDetail = {
   id: string;
   orderCode: string;
+  impUid: string;
   orderDate: string;
   isCanceled: boolean;
   paymentStatus: number;
@@ -166,11 +167,15 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
             <section className="rounded-lg border border-[#f1f1f1] bg-[#f1f1f1] p-4">
               <div className="flex flex-col gap-1">
                 <div className="flex h-[19.49px] items-center gap-4">
-                  <span className="w-16 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 번호</span>
+                  <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 번호</span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.orderCode}</span>
                 </div>
                 <div className="flex h-[19.49px] items-center gap-4">
-                  <span className="w-16 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 일시</span>
+                  <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">포트원 거래번호</span>
+                  <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.impUid}</span>
+                </div>
+                <div className="flex h-[19.49px] items-center gap-4">
+                  <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 일시</span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.orderDate}</span>
                 </div>
               </div>

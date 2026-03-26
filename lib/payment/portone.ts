@@ -82,6 +82,7 @@ export async function getPayment(merchantUid: string): Promise<{
   success: boolean;
   status?: string;
   amount?: { total: number };
+  impUid?: string; // 포트원/PG 고유 거래번호
   code?: string;
   message?: string;
 }> {
@@ -130,14 +131,13 @@ export async function getPayment(merchantUid: string): Promise<{
     return { success: false, code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다.' };
   }
 
-  const amountVal = payload.amount;
-  const total =
-    typeof amountVal === 'number' ? amountVal : amountVal?.total;
+  const impUid = payload.pgTid || payload.transactionId || payload.imp_uid;
 
   return {
     success: true,
     status: payload.status,
     amount: total != null ? { total } : undefined,
+    impUid: typeof impUid === 'string' ? impUid : undefined,
   };
 }
 
@@ -154,6 +154,7 @@ export async function chargeWithBillingKey(params: {
 }): Promise<{
   success: boolean;
   status?: string;
+  impUid?: string;
   code?: string;
   message?: string;
 }> {
@@ -183,9 +184,11 @@ export async function chargeWithBillingKey(params: {
     const payCode = payJson?.code;
     const payStatus = payJson?.response?.status as string | undefined;
     const paid = payCode === 0 && payStatus === 'paid';
+    const impUid = payJson?.response?.imp_uid;
     return {
       success: paid,
       status: payStatus,
+      impUid: typeof impUid === 'string' ? impUid : undefined,
       code: paid ? undefined : (payCode != null ? String(payCode) : 'V1_PAYMENT_ERROR'),
       message: paid ? undefined : (payJson?.message ?? 'V1 빌링 결제 실패'),
     };
@@ -231,9 +234,12 @@ export async function chargeWithBillingKey(params: {
   const status = data?.status;
   const paid = status === 'PAID' || status === 'VIRTUAL_ACCOUNT_ISSUED';
 
+  const impUid = data.pgTid || data.transactionId || data.imp_uid;
+
   return {
     success: paid,
     status,
+    impUid: typeof impUid === 'string' ? impUid : undefined,
     code: paid ? undefined : data?.code,
     message: paid ? undefined : data?.message ?? '결제 미완료',
   };
