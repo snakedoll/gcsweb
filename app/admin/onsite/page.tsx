@@ -200,7 +200,7 @@ export default function AdminOnsitePage() {
       </div>
 
       <div className="hidden w-full lg:flex lg:min-h-screen lg:flex-col lg:items-center lg:pb-20">
-        <div className="w-full bg-[#F6F6F5] px-6 py-[15px] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
+        <div className="sticky top-0 z-10 w-full bg-[#F6F6F5] px-6 py-[15px] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
           <div className="mx-auto flex h-[28px] w-[1232px] items-center justify-between">
             <div className="flex items-center gap-[44px]">
               <button onClick={() => router.push('/admin')} className="flex size-7 items-center justify-center" aria-label="뒤로가기">
@@ -241,10 +241,10 @@ export default function AdminOnsitePage() {
           </div>
 
           <SearchBar
-            placeholder="주문번호로 검색"
+            placeholder="주문번호, 주문자명으로 검색"
             value={search}
             onChange={setSearch}
-            className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
+            className="h-10 border-[#DDDCDB] bg-[#FDFDFD] text-[13px] placeholder:text-[#999694]"
           />
 
           {loading ? (
@@ -257,33 +257,49 @@ export default function AdminOnsitePage() {
                 <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
                 <div className="overflow-hidden rounded-[8px] border border-[#DDDCDB] bg-white">
-                  <div className="grid h-10 grid-cols-[160px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
-                    <div className="flex items-center px-4">주문 번호</div>
-                    <div className="flex items-center px-4">주문 시각</div>
-                    <div className="flex items-center px-4">결제여부</div>
-                    <div className="flex items-center px-4">수령여부</div>
-                    <div className="flex items-center px-4">주문 상품</div>
-                    <div className="flex items-center px-4">결제 정보</div>
-                    <div className="flex items-center px-4">수령변경</div>
-                    <div className="flex items-center px-4">주문취소</div>
+                  <div className="grid h-10 grid-cols-[72px_120px_160px_285px_140px_200px_110px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
+                    <div className="flex items-center justify-center border-r border-dashed border-[#DDDCDB] px-3">No.</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px]">주문시각</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px]">주문 번호</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px] text-[#F46D25]">주문 상품</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px]">결제여부</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px]">결제 정보</div>
+                    <div className="flex items-center border-r border-dashed border-[#DDDCDB] px-[18px]">수령여부</div>
+                    <div className="flex items-center px-[18px]">주문취소</div>
                   </div>
 
-                  {group.items.map((item) => {
+                  {group.items.map((item, index) => {
                     const isCanceled = isCanceledStatus(item.paymentStatus);
                     const isReceived = item.receiptStatus === '수령완료';
-                    const productSummary = item.items
-                      .map((product) => `${product.name}${product.options ? ` (${product.options})` : ''} / ${product.quantity}개`)
-                      .join(', ');
+                    const products = item.items.map((product) => ({
+                      name: product.name,
+                      options: product.options,
+                      price: product.price,
+                      quantity: product.quantity,
+                    }));
 
                     return (
                       <div
                         key={item.id}
-                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
+                        className="grid min-h-[72px] cursor-pointer grid-cols-[72px_120px_160px_285px_140px_200px_110px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
                         onClick={() => router.push(`/admin/onsite/${item.id}`)}
                       >
-                        <div className="flex items-center px-4 text-[#3F3835]">{item.orderId}</div>
-                        <div className="flex items-center px-4 text-[#3F3835]">{item.fullOrderTime}</div>
-                        <div className="flex items-center px-4">
+                        <div className="flex items-start justify-center border-r border-dashed border-[#DDDCDB] pb-[16px] pt-[17px] text-[15px] font-bold text-[#3F3835]">{index + 1}</div>
+                        <div className="flex items-start border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px] text-[#3F3835]">{item.orderTime}</div>
+                        <div className="flex items-start border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px] text-[#3F3835]">{item.orderId}</div>
+                        <div className="flex flex-col gap-2 border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px]">
+                          {products.map((p, idx) => (
+                            <div key={idx} className="flex justify-between gap-1 text-[#3F3835]">
+                              <div className="flex flex-col gap-1">
+                                <span className={cn(isCanceled && "text-[#F46D25]")}>{p.name}</span>
+                                {p.options && <span className={cn("text-[11px] opacity-70", isCanceled && "text-[#F46D25]")}>{p.options} / {p.quantity}개</span>}
+                                {!p.options && <span className={cn("text-[11px] opacity-70", isCanceled && "text-[#F46D25]")}>{p.quantity}개</span>}
+                              </div>
+                              <span className={cn("font-semibold", isCanceled && "text-[#F46D25]")}>{p.price.toLocaleString()}원</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-start border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px]">
                           <span
                             className={cn(
                               'inline-flex h-6 min-w-[61px] items-center justify-center rounded-[4px] px-2 text-center text-[13px] font-semibold',
@@ -293,33 +309,22 @@ export default function AdminOnsitePage() {
                             {item.paymentStatus}
                           </span>
                         </div>
-                        <div className="flex items-center px-4">
-                          <span
-                            className={cn(
-                              'inline-flex h-6 min-w-[61px] items-center justify-center rounded-[4px] px-2 text-center text-[13px] font-semibold',
-                              receiptBadgeClass(item.receiptStatus)
-                            )}
-                          >
-                            {item.receiptStatus}
-                          </span>
-                        </div>
-                        <div className="flex items-center px-4 text-[#3F3835]">{productSummary || '-'}</div>
-                        <div className="flex flex-col justify-center px-4 text-[#3F3835]">
+                        <div className="flex flex-col items-start border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px] text-[#3F3835]">
                           <span>{item.paymentMethodStr}</span>
-                          <span>{item.paymentAmount.toLocaleString()}원</span>
+                          <span className="font-semibold">{item.paymentAmount.toLocaleString()}원</span>
                         </div>
-                        <div className="flex items-center px-4">
+                        <div className="flex items-start border-r border-dashed border-[#DDDCDB] px-[18px] py-[16px]">
                           <button
                             type="button"
                             className={cn(
-                              'inline-flex h-[26px] min-w-[72px] items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold',
-                              isReceived || isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25] text-white'
+                              'inline-flex h-[26px] w-full items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold text-white',
+                              isReceived || isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F8A376]'
                             )}
                           >
                             {isReceived ? '수령완료' : '미수령'}
                           </button>
                         </div>
-                        <div className="flex items-center px-4">
+                        <div className="flex items-start px-[18px] py-[16px]">
                           <button
                             type="button"
                             onClick={(event) => {
@@ -330,8 +335,8 @@ export default function AdminOnsitePage() {
                             }}
                             disabled={isCanceled}
                             className={cn(
-                              'inline-flex h-[26px] min-w-[88px] items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold',
-                              isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25] text-white'
+                              'inline-flex h-[26px] w-full items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold text-white',
+                              isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25]'
                             )}
                           >
                             {isCanceled ? '주문취소완료' : '주문취소'}
@@ -348,6 +353,7 @@ export default function AdminOnsitePage() {
           <div className="pt-2 text-right text-[13px] text-[#6C6764]">총 {totalCount}건</div>
         </div>
       </div>
+
 
       {cancelModalItem ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
