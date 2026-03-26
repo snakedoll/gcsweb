@@ -258,6 +258,7 @@ model Order {
   deliveryMessage       String?
   ordererName           String?
   ordererPhone          String?
+  bagOption             Boolean     @default(false)
   paymentStatus         Int         @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int
@@ -270,7 +271,6 @@ model Order {
   orderCode             String?     @unique
   buyerType             BuyerType
   buyerGuestTokenHash   String?     @db.VarChar(128)
-  bagOption             Boolean     @default(false)
   inquiries             Inquiry[]
   user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
