@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
@@ -6,8 +6,14 @@ function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
+function toPaymentMethodLabel(paymentMethod: number): string {
+  if (paymentMethod === 0 || paymentMethod === 1 || paymentMethod === 2) return '온라인결제';
+  if (paymentMethod === 3 || paymentMethod === 4) return '현장결제';
+  return '기타';
+}
+
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -27,12 +33,12 @@ export async function GET(
           include: {
             product: {
               include: {
-                images: true, 
-              }
-            }
-          }
-        }
-      }
+                images: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -40,46 +46,45 @@ export async function GET(
     }
 
     const dateObj = new Date(order.orderDate);
-    const YY = dateObj.getFullYear();
+    const YYYY = dateObj.getFullYear();
     const MM = String(dateObj.getMonth() + 1).padStart(2, '0');
     const DD = String(dateObj.getDate()).padStart(2, '0');
+    const HH = String(dateObj.getHours()).padStart(2, '0');
+    const mm = String(dateObj.getMinutes()).padStart(2, '0');
 
-    let paymentMethodStr = '알수없음';
-    switch (order.paymentMethod) {
-      case 0: paymentMethodStr = '신용카드'; break;
-      case 1: paymentMethodStr = '가상계좌'; break;
-      case 2: paymentMethodStr = '간편결제'; break;
-      default: paymentMethodStr = '기타';
-    }
+    const isCanceled = order.paymentStatus === 3;
+    const fulfillmentStatus = order.fulfillmentStatus === 1 ? 'RECEIVED' : 'NOT_RECEIVED';
 
     const formattedData = {
       id: order.id,
       orderCode: order.orderCode ?? order.id.slice(-10).toUpperCase(),
-      orderDate: `${YY}. ${MM}. ${DD}`,
-      items: order.items.map(item => ({
+      orderDate: `${YYYY}. ${MM}. ${DD} ${HH}:${mm}`,
+      isCanceled,
+      paymentStatus: order.paymentStatus,
+      bagOption: order.bagOption,
+      requiresBagPackaging: order.bagOption === true,
+      bagNoticeMessage: order.bagOption === true ? '봉투에 담아주세요.' : null,
+      items: order.items.map((item) => ({
         id: item.id,
-        name: item.product?.name || '알수없는 상품',
-        option: item.optionData || '단일 상품', 
+        name: item.product?.name ?? '알수없는 상품',
+        option: item.optionData ?? '단일 상품',
         price: item.price,
         quantity: item.quantity,
-        imgUrl: item.product?.images?.[0]?.thumbnailImgUrl || null,
+        imgUrl: item.product?.images?.[0]?.thumbnailImgUrl ?? null,
       })),
-      customer: {
-        name: order.ordererName,
-        phone: order.ordererPhone,
-      },
       payment: {
-        method: paymentMethodStr,
+        method: toPaymentMethodLabel(order.paymentMethod),
         amount: `${order.paymentAmount.toLocaleString()}원`,
       },
-      fulfillmentStatus: order.fulfillmentStatus === 1 ? '수령완료' : '미수령',
+      fulfillmentStatus,
+      actionButtonState: isCanceled ? 'CANCELED' : fulfillmentStatus,
     };
 
     return NextResponse.json({
       status: 'success',
       data: formattedData,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Admin Onsite Detail GET Error]', err);
     return jsonError(500, 'INTERNAL_SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }
@@ -102,10 +107,7 @@ export async function PATCH(
     const body = await req.json().catch(() => ({}));
     const { fulfillmentStatus, paymentStatus } = body;
 
-    const targetOrder = await prisma.order.findUnique({
-      where: { id }
-    });
-
+    const targetOrder = await prisma.order.findUnique({ where: { id } });
     if (!targetOrder) {
       return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
     }
@@ -113,7 +115,7 @@ export async function PATCH(
     if (paymentStatus === 3) {
       await prisma.order.update({
         where: { id },
-        data: { paymentStatus: 3 }
+        data: { paymentStatus: 3 },
       });
       return NextResponse.json({
         status: 'success',
@@ -132,15 +134,14 @@ export async function PATCH(
         fulfillmentStatus,
         // 수령 완료 처리 시 결제 상태도 완료로 자동 변경 (현장 결제 케이스 대응)
         ...(fulfillmentStatus === 1 && targetOrder.paymentStatus !== 3 ? { paymentStatus: 2 } : {}),
-      }
+      },
     });
 
     return NextResponse.json({
       status: 'success',
       message: '수령 상태가 변경되었습니다.',
     });
-
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Admin Onsite Detail PATCH Error]', err);
     return jsonError(500, 'INTERNAL_SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }

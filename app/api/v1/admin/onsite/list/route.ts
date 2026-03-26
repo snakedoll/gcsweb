@@ -33,8 +33,6 @@ export async function GET(req: Request) {
         OR: search
           ? [
               { orderCode: { contains: search, mode: 'insensitive' } },
-              { ordererName: { contains: search, mode: 'insensitive' } },
-              { ordererPhone: { endsWith: search } },
             ]
           : undefined,
       },
@@ -68,11 +66,15 @@ export async function GET(req: Request) {
 
       let paymentMethodStr = '알수없음';
       switch (order.paymentMethod) {
-        case 0: paymentMethodStr = '신용카드'; break;
-        case 1: paymentMethodStr = '가상계좌'; break;
-        case 2: paymentMethodStr = '간편결제'; break;
-        case 3: paymentMethodStr = '카카오페이'; break;
-        case 4: paymentMethodStr = '카운터에서 결제'; break;
+        case 0:
+        case 1:
+        case 2:
+          paymentMethodStr = '온라인결제';
+          break;
+        case 3:
+        case 4:
+          paymentMethodStr = '현장결제';
+          break;
       }
 
       const orderItems = order.items.map(item => {
@@ -98,20 +100,9 @@ export async function GET(req: Request) {
         };
       });
 
-      const formatPhone = (phone: string | null) => {
-        if (!phone) return '';
-        const cleaned = phone.replace(/-/g, '');
-        if (cleaned.length === 11) return `${cleaned.slice(0,3)}-${cleaned.slice(3,7)}-${cleaned.slice(7)}`;
-        if (cleaned.length === 10) return `${cleaned.slice(0,3)}-${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
-        return phone;
-      };
-
       return {
         id: order.id,
         orderId: order.orderCode ?? order.id.slice(-10).toUpperCase(),
-        name: order.ordererName,
-        phoneLast4: order.ordererPhone ? order.ordererPhone.slice(-4) : '...',
-        fullPhone: formatPhone(order.ordererPhone),
         orderTime: `${HH}:${mmTime}`,
         fullOrderTime: `${YY}.${mm}.${dd} ${HH}:${mmTime}`,
         orderDateRaw: `${parseInt(mm, 10)}월 ${parseInt(dd, 10)}일`,

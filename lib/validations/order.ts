@@ -3,7 +3,7 @@ import { z } from 'zod';
 const ProductTypeSchema = z.union([z.literal(0), z.literal(1)]); // fund | buy now
 const ReceiveMethodSchema = z.union([z.literal(0), z.literal(1)]); // delivery | pickup
 const PaymentMethodSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]); // card | virtual account | easy pay | pay at counter
-const BagOptionSchema = z.union([z.literal('YES'), z.literal('NO')]);
+const BagOptionSchema = z.boolean();
 const CardCompanySchema = z.union([
   z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4),
   z.literal(5), z.literal(6), z.literal(7), z.literal(8), z.literal(9),
@@ -240,7 +240,7 @@ export const createOrderSchema = z
     }
 
     if (isBuyNow) {
-      if (data.bagOption !== 'YES' && data.bagOption !== 'NO') {
+      if (data.bagOption === null || data.bagOption === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['bagOption'],

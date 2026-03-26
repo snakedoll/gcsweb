@@ -1,0 +1,2 @@
+ALTER TABLE "Order"
+ADD COLUMN "bagOption" BOOLEAN NOT NULL DEFAULT false;
