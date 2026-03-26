@@ -265,7 +265,7 @@ export default function AdminOnsitePage() {
                 <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
                 <div className="overflow-hidden rounded-[8px] border border-[#DDDCDB] bg-white">
-                  <div className="grid h-10 grid-cols-[160px_180px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
+                  <div className="grid h-10 grid-cols-[160px_180px_120px_140px_120px_1fr_220px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
                     <div className="flex items-center px-4">주문 번호</div>
                     <div className="flex items-center px-4">포트원 거래번호</div>
                     <div className="flex items-center px-4">주문 시각</div>
@@ -273,18 +273,16 @@ export default function AdminOnsitePage() {
                     <div className="flex items-center px-4">수령여부</div>
                     <div className="flex items-center px-4">주문 상품</div>
                     <div className="flex items-center px-4">결제 정보</div>
-                    <div className="flex items-center px-4">수령변경</div>
                     <div className="flex items-center px-4">주문취소</div>
                   </div>
 
                   {group.items.map((item) => {
                     const isCanceled = isCanceledStatus(item.paymentStatus);
-                    const isReceived = item.receiptStatus === '수령완료';
 
                     return (
                       <div
                         key={item.id}
-                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_180px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
+                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_180px_120px_140px_120px_1fr_220px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
                       >
                         <div className="flex items-center px-4 text-[#3F3835]">{item.orderId}</div>
                         <div className="flex items-center px-4 text-[#3F3835] truncate">{item.impUid}</div>
@@ -333,17 +331,6 @@ export default function AdminOnsitePage() {
                         <div className="flex flex-col justify-center px-4 text-[#3F3835]">
                           <span>{item.paymentMethodStr}</span>
                           <span>{item.paymentAmount.toLocaleString()}원</span>
-                        </div>
-                        <div className="flex items-center px-4">
-                          <button
-                            type="button"
-                            className={cn(
-                              'inline-flex h-[26px] min-w-[72px] items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold',
-                              isReceived || isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25] text-white'
-                            )}
-                          >
-                            {isReceived ? '수령완료' : '미수령'}
-                          </button>
                         </div>
                         <div className="flex items-center px-4">
                           <button
