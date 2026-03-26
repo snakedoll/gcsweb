@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { resolveSellerUserIds } from '@/lib/seller-membership';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -41,6 +42,15 @@ export async function GET() {
     },
   });
 
+  const resolvedSellerIds = await resolveSellerUserIds([user.id]);
+  const resolvedIsSeller = resolvedSellerIds.has(user.id);
+  if (user.isSeller !== resolvedIsSeller) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isSeller: resolvedIsSeller },
+    });
+  }
+
   return NextResponse.json({
     id: user.id,
     email: user.email,
@@ -50,7 +60,7 @@ export async function GET() {
     profileImage: user.profileImage ?? undefined,
     role: Number(user.memberType) === 2 ? 'admin' : 'user',
     memberType: user.memberType,
-    isSeller: user.isSeller,
+    isSeller: resolvedIsSeller,
     notificationCount: unreadNotificationCount,
     createdAt: user.createdAt.toISOString(),
   });
