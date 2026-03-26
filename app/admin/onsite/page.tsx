@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 type ReceiptItem = {
   id: string;
+  productType: number;
   orderId: string;
   orderTime: string;
   fullOrderTime: string;
@@ -70,7 +71,13 @@ export default function AdminOnsitePage() {
       const json = (await res.json()) as OnsiteListResponse;
 
       if (json.status === 'success' && Array.isArray(json.data)) {
-        setGroups(json.data);
+        const buyNowOnlyGroups = json.data
+          .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => item.productType === 1),
+          }))
+          .filter((group) => group.items.length > 0);
+        setGroups(buyNowOnlyGroups);
         return;
       }
       setGroups([]);
@@ -123,7 +130,7 @@ export default function AdminOnsitePage() {
       <div className="mx-auto flex w-full max-w-[375px] flex-col bg-neutral-3 lg:hidden">
         <NavBar
           variant="title-back"
-          title="현장판매 관리"
+          title="수령 관리"
           onBack={() => router.push('/admin')}
           rightElement={
             <button
@@ -209,7 +216,7 @@ export default function AdminOnsitePage() {
                   <path d="M7 13L1 7L7 1" stroke="#3F3835" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
-              <h1 className="text-[17px] font-bold text-[#3F3835]">현장판매 관리</h1>
+              <h1 className="text-[17px] font-bold text-[#3F3835]">수령 관리</h1>
             </div>
             <button
               onClick={() => {
@@ -273,15 +280,11 @@ export default function AdminOnsitePage() {
                   {group.items.map((item) => {
                     const isCanceled = isCanceledStatus(item.paymentStatus);
                     const isReceived = item.receiptStatus === '수령완료';
-                    const productSummary = item.items
-                      .map((product) => `${product.name}${product.options ? ` (${product.options})` : ''} / ${product.quantity}개`)
-                      .join(', ');
 
                     return (
                       <div
                         key={item.id}
                         className="grid min-h-[72px] cursor-pointer grid-cols-[160px_180px_120px_140px_120px_1fr_220px_120px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
-                        onClick={() => router.push(`/admin/onsite/${item.id}`)}
                       >
                         <div className="flex items-center px-4 text-[#3F3835]">{item.orderId}</div>
                         <div className="flex items-center px-4 text-[#3F3835] truncate">{item.impUid}</div>
@@ -306,7 +309,27 @@ export default function AdminOnsitePage() {
                             {item.receiptStatus}
                           </span>
                         </div>
-                        <div className="flex items-center px-4 text-[#3F3835]">{productSummary || '-'}</div>
+                        <div className="flex items-center px-4 text-[#3F3835]">
+                          {item.items.length > 0 ? (
+                            <div className="flex w-full flex-col gap-[10px] py-3">
+                              {item.items.map((product) => (
+                                <div key={product.id} className="flex w-full items-start justify-between gap-4">
+                                  <div className="flex w-[137px] flex-col gap-[3px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
+                                    <p className="w-full">{product.name}</p>
+                                    <p className="w-full">{product.options || `${product.quantity}개`}</p>
+                                  </div>
+                                  <div className="w-[116px]">
+                                    <p className="w-full text-right text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
+                                      {product.price.toLocaleString()}원
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            '-'
+                          )}
+                        </div>
                         <div className="flex flex-col justify-center px-4 text-[#3F3835]">
                           <span>{item.paymentMethodStr}</span>
                           <span>{item.paymentAmount.toLocaleString()}원</span>
@@ -385,4 +408,5 @@ export default function AdminOnsitePage() {
     </div>
   );
 }
+
 
