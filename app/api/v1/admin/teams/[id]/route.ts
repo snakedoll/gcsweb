@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { syncSellerFlags } from '@/lib/seller-membership';
 
 export async function GET(
   request: Request,
@@ -221,14 +222,15 @@ export async function PATCH(
     const finalMemberIds = uniqueMemberIds ?? updated.teamMember ?? [];
     const finalLeaderId = leaderId !== undefined ? (leaderId ?? null) : updated.userId;
 
-    const isNowSalesTeam = teamType !== undefined ? teamType === 1 : updated.isSalesTeam;
-    if (isNowSalesTeam) {
-       const allTeamMemberIds = Array.from(new Set([...finalMemberIds, finalLeaderId].filter(Boolean) as string[]));
-       await prisma.user.updateMany({
-         where: { id: { in: allTeamMemberIds } },
-         data: { isSeller: true },
-       });
-    }
+    const affectedUserIds = Array.from(
+      new Set<string>([
+        ...oldMemberIds,
+        oldLeaderId,
+        ...finalMemberIds,
+        ...(finalLeaderId ? [finalLeaderId] : []),
+      ].filter(Boolean))
+    );
+    await syncSellerFlags(affectedUserIds);
 
     const responseTeam = {
       id: updated.id,
@@ -246,3 +248,5 @@ export async function PATCH(
     return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 로직 오류' }, { status: 500 });
   }
 }
+    const oldMemberIds = Array.isArray(existing?.teamMember) ? existing.teamMember.filter(Boolean) : [];
+    const oldLeaderId = existing?.userId ?? '';

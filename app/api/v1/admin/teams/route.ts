@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { syncSellerFlags } from '@/lib/seller-membership';
 
 export async function GET(request: Request) {
   try {
@@ -202,14 +203,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // 만약 판매팀(teamType === 1)이라면 포함된 모든 유저의 판매 권한을 즉시 열어줍니다.
-    if (isSalesTeam) {
-      const allTeamMemberIds = Array.from(new Set([...uniqueMemberIds, ownerId]));
-      await prisma.user.updateMany({
-        where: { id: { in: allTeamMemberIds } },
-        data: { isSeller: true },
-      });
-    }
+    // 팀 생성 후, 현재 팀 소속 기준으로 판매 권한을 재동기화합니다.
+    await syncSellerFlags(Array.from(new Set([...uniqueMemberIds, ownerId])));
 
     const responseTeam: any = {
       id: created.id,

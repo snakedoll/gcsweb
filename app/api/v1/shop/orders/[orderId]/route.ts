@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import crypto from 'crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { normalizeImageUrl } from '@/lib/image-url';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -15,6 +16,51 @@ function hashGuestToken(token: string): string {
 type Params = {
   params: { orderId: string };
 };
+
+type OptionLike = {
+  value?: unknown;
+  optionValue?: unknown;
+  optionName?: unknown;
+  name?: unknown;
+};
+
+function extractOptionValues(optionData: unknown): string[] {
+  if (Array.isArray(optionData)) {
+    return optionData
+      .map((row) => {
+        if (row && typeof row === 'object') {
+          const option = row as OptionLike;
+          const candidate = option.optionValue ?? option.value ?? option.optionName ?? option.name ?? '';
+          return String(candidate).trim();
+        }
+        if (typeof row === 'string') return row.trim();
+        return '';
+      })
+      .filter(Boolean);
+  }
+
+  if (optionData && typeof optionData === 'object') {
+    return extractOptionValues([optionData]);
+  }
+
+  if (typeof optionData === 'string') {
+    const trimmed = optionData.trim();
+    if (!trimmed) return [];
+    try {
+      return extractOptionValues(JSON.parse(trimmed));
+    } catch {
+      return [trimmed];
+    }
+  }
+
+  return [];
+}
+
+function toOptionQuantityText(optionData: unknown, quantity: number): string {
+  const values = extractOptionValues(optionData);
+  if (values.length === 0) return `${quantity}개`;
+  return `${values.join(' / ')} / ${quantity}개`;
+}
 
 export async function GET(request: Request, { params }: Params) {
   try {
@@ -39,6 +85,7 @@ export async function GET(request: Request, { params }: Params) {
       },
       select: {
         id: true,
+        orderCode: true,
         userId: true,
         buyerType: true,
         buyerGuestTokenHash: true,
@@ -63,10 +110,18 @@ export async function GET(request: Request, { params }: Params) {
         createdAt: true,
         items: {
           select: {
+            id: true,
             productId: true,
             quantity: true,
             price: true,
             optionData: true,
+            product: {
+              select: {
+                name: true,
+                team: { select: { teamName: true } },
+                images: { select: { thumbnailImgUrl: true }, take: 1 },
+              },
+            },
           },
         },
       },
@@ -92,10 +147,32 @@ export async function GET(request: Request, { params }: Params) {
     }
 
     const { buyerGuestTokenHash: _buyerGuestTokenHash, ...safeOrder } = order;
+    const resolvedOrderCode = order.orderCode ?? order.id.slice(-10).toUpperCase();
+    const fulfillmentLabel = order.fulfillmentStatus === 1 ? '수령완료' : '미수령';
+
+    const mappedItems = order.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+      optionData: item.optionData,
+      productName: item.product?.name ?? '상품',
+      teamName: item.product?.team?.teamName ?? '',
+      thumbnailUrl: normalizeImageUrl(item.product?.images?.[0]?.thumbnailImgUrl ?? null) ?? '',
+      optionText: toOptionQuantityText(item.optionData, item.quantity),
+      priceText: `${Number((item.price ?? 0) * (item.quantity ?? 1)).toLocaleString('ko-KR')}원`,
+      fulfillmentLabel,
+    }));
 
     return NextResponse.json({
       status: 'success',
-      data: { order: safeOrder },
+      data: {
+        order: {
+          ...safeOrder,
+          orderCode: resolvedOrderCode,
+          items: mappedItems,
+        },
+      },
     });
   } catch (error) {
     console.error('Shop order detail error:', error);
