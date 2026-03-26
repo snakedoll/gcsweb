@@ -161,7 +161,7 @@ function ShopOrdersBuyNowPageContent() {
   const [items, setItems] = useState<OrderLineItem[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<0 | 3>(0);
-  const [bagOption, setBagOption] = useState<'YES' | 'NO' | null>(null);
+  const [bagOption, setBagOption] = useState<boolean | null>(null);
   const [showSoldOutModal, setShowSoldOutModal] = useState(false);
 
   const selectedCartItemIds = useMemo(() => {
@@ -271,7 +271,7 @@ function ShopOrdersBuyNowPageContent() {
 
   const totalPriceText = useMemo(() => {
     const baseTotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const total = baseTotal + (bagOption === 'YES' ? 100 : 0);
+    const total = baseTotal + (bagOption === true ? 100 : 0);
     return `${total.toLocaleString('ko-KR')}원`;
   }, [bagOption, items]);
 
@@ -430,13 +430,13 @@ function ShopOrdersBuyNowPageContent() {
             </div>
             <div className="flex gap-3">
               <CheckboxButton
-                checked={bagOption === 'YES'}
-                onChange={(checked) => setBagOption(checked ? 'YES' : null)}
+                checked={bagOption === true}
+                onChange={(checked) => setBagOption(checked ? true : null)}
                 label="예(+100원)"
               />
               <CheckboxButton
-                checked={bagOption === 'NO'}
-                onChange={(checked) => setBagOption(checked ? 'NO' : null)}
+                checked={bagOption === false}
+                onChange={(checked) => setBagOption(checked ? false : null)}
                 label="아니요"
               />
             </div>

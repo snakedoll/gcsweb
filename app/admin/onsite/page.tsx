@@ -11,9 +11,9 @@ import { cn } from '@/lib/utils';
 interface ReceiptItem {
   id: string;
   orderId: string;
-  name: string;
-  phoneLast4: string;
-  fullPhone: string;
+  bagOption?: boolean;
+  requiresBagPackaging?: boolean;
+  bagNoticeMessage?: string | null;
   orderTime: string;
   fullOrderTime: string;
   paymentStatus: string;
@@ -168,8 +168,8 @@ export default function AdminOnsitePage() {
                             onClick={() => router.push(`/admin/onsite/${item.id}`)}
                             className="flex items-center justify-between h-[44px] border-b border-[#dddcdb] last:border-b-0 cursor-pointer hover:bg-neutral-3 transition-colors"
                           >
-                            <div className="w-[66px] shrink-0 px-3 text-[13px] text-black tracking-[-0.26px] truncate font-pretendard">{item.name}</div>
-                            <div className="w-[70px] shrink-0 px-1 text-center text-[13px] text-black tracking-[-0.26px] font-pretendard">{item.phoneLast4}</div>
+                            <div className="w-[66px] shrink-0 px-3 text-[13px] text-black tracking-[-0.26px] truncate font-pretendard">{item.orderId}</div>
+                            <div className="w-[70px] shrink-0 px-1 text-center text-[13px] text-black tracking-[-0.26px] font-pretendard">{item.requiresBagPackaging ? '봉투' : '-'}</div>
                             <div className="w-[68px] shrink-0 px-1 text-center text-[13px] text-black tracking-[-0.26px] font-pretendard">{item.orderTime}</div>
                             <div className="w-[77px] shrink-0 px-1 flex items-center justify-center">
                               <Tag

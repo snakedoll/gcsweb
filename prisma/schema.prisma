@@ -258,6 +258,7 @@ model Order {
   deliveryMessage       String?
   ordererName           String?
   ordererPhone          String?
+  bagOption             Boolean     @default(false)
   paymentStatus         Int         @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int

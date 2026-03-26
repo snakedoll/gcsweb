@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,9 @@ interface OrderDetail {
   id: string;
   orderCode: string;
   orderDate: string;
+  bagOption?: boolean;
+  requiresBagPackaging?: boolean;
+  bagNoticeMessage?: string | null;
   items: {
     id: string;
     name: string;
@@ -16,15 +19,11 @@ interface OrderDetail {
     quantity: number;
     imgUrl: string | null;
   }[];
-  customer: {
-    name: string;
-    phone: string;
-  };
   payment: {
     method: string;
     amount: string;
   };
-  fulfillmentStatus: '미수령' | '수령완료';
+  fulfillmentStatus: string;
 }
 
 export default function AdminOnsiteDetailPage({ params }: { params: { id: string } }) {
@@ -45,7 +44,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
       if (json.status === 'success') {
         setDetail(json.data);
       } else {
-        alert(json.message || '불러오기에 실패했습니다.');
+        alert(json.message || '遺덈윭?ㅺ린???ㅽ뙣?덉뒿?덈떎.');
         router.back();
       }
     } catch (error) {
@@ -66,13 +65,13 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
       const json = await res.json();
       if (json.status === 'success') {
         setDetail((prev) =>
-          prev ? { ...prev, fulfillmentStatus: newStatus === 1 ? '수령완료' : '미수령' } : null
+          prev ? { ...prev, fulfillmentStatus: newStatus === 1 ? 'RECEIVED' : 'NOT_RECEIVED' } : null
         );
         if (newStatus === 1) {
           router.push('/admin/onsite');
         }
       } else {
-        alert(json.message || '상태 변경에 실패했습니다.');
+        alert(json.message || '?곹깭 蹂寃쎌뿉 ?ㅽ뙣?덉뒿?덈떎.');
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -81,22 +80,10 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
     }
   };
 
-  const formatPhone = (phone: string | null | undefined) => {
-    if (!phone) return '';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 11) {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
-    }
-    if (cleaned.length === 10) {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    return phone;
-  };
-
   if (loading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#f6f6f5]">
-        <p className="text-[15px] text-[#6c6764]">불러오는 중...</p>
+        <p className="text-[15px] text-[#6c6764]">遺덈윭?ㅻ뒗 以?..</p>
       </div>
     );
   }
@@ -104,34 +91,34 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
   if (!detail) return null;
 
   return (
-    /* 전체 배경: #F6F6F5 (피그마 Neutral-3) */
+    /* ?꾩껜 諛곌꼍: #F6F6F5 (?쇨렇留?Neutral-3) */
     <div className="flex min-h-screen w-full flex-col bg-[#f6f6f5] font-pretendard">
       <div className="relative mx-auto flex h-full w-full max-w-[375px] flex-col bg-[#f6f6f5]">
 
-        {/* NavBar - 피그마: bg-[#f6f6f5], shadow, border-b #f1f1f1 */}
-        <NavBar variant="title-back" title="주문 상세" onBack={() => router.back()} />
+        {/* NavBar - ?쇨렇留? bg-[#f6f6f5], shadow, border-b #f1f1f1 */}
+        <NavBar variant="title-back" title="二쇰Ц ?곸꽭" onBack={() => router.back()} />
 
-        {/* 스크롤 가능한 컨텐츠 영역 - pb-[101px] for bottom button */}
+        {/* ?ㅽ겕濡?媛?ν븳 而⑦뀗痢??곸뿭 - pb-[101px] for bottom button */}
         <main className="flex flex-1 flex-col overflow-y-auto px-4 pt-6 pb-[120px]">
           <div className="flex flex-col gap-6">
 
-            {/* ── 주문 요약 박스 (node 7473:37702) ─────────────────────── */}
+            {/* ?? 二쇰Ц ?붿빟 諛뺤뒪 (node 7473:37702) ??????????????????????? */}
             {/* bg-[#f1f1f1], border border-[#f1f1f1], rounded-lg, p-4 */}
             <div className="rounded-lg border border-[#f1f1f1] bg-[#f1f1f1] p-4">
               <div className="flex flex-col gap-1">
-                {/* 주문 번호 */}
+                {/* 二쇰Ц 踰덊샇 */}
                 <div className="flex h-[19.49px] items-center gap-4">
                   <span className="w-16 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">
-                    주문 번호
+                    二쇰Ц 踰덊샇
                   </span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">
                     {detail.orderCode}
                   </span>
                 </div>
-                {/* 주문 일시 */}
+                {/* 二쇰Ц ?쇱떆 */}
                 <div className="flex h-[19.49px] items-center gap-4">
                   <span className="w-16 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">
-                    주문 일시
+                    二쇰Ц ?쇱떆
                   </span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">
                     {detail.orderDate}
@@ -140,97 +127,77 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
               </div>
             </div>
 
-            {/* ── 주문 목록 (node 7473:37712) ───────────────────────────── */}
+            {/* ?? 二쇰Ц 紐⑸줉 (node 7473:37712) ????????????????????????????? */}
             <div className="flex flex-col gap-4">
-              {/* 헤더: 주문 목록 / 총 N건 */}
+              {/* ?ㅻ뜑: 二쇰Ц 紐⑸줉 / 珥?N嫄?*/}
               <div className="flex w-full items-center justify-between">
-                <h2 className="text-[17px] font-bold leading-[1.5] text-[#3f3835]">주문 목록</h2>
+                <h2 className="text-[17px] font-bold leading-[1.5] text-[#3f3835]">二쇰Ц 紐⑸줉</h2>
                 <span className="text-[15px] font-normal leading-[1.5] text-[#3f3835]">
-                  총 {detail.items.length}건
+                  珥?{detail.items.length}嫄?
                 </span>
               </div>
 
-              {/* 상품 카드 목록 (node 7473:37716 / 7473:37717) */}
+              {/* ?곹뭹 移대뱶 紐⑸줉 (node 7473:37716 / 7473:37717) */}
               {detail.items.map((item, idx) => (
                 <div
                   key={idx}
                   className="flex w-full flex-col gap-3 rounded-lg border border-[#f1f1f1] bg-[#fdfdfd] px-4 py-3"
                 >
-                  {/* 상품명 */}
+                  {/* ?곹뭹紐?*/}
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#3f3835]">
-                      상품명
+                      ?곹뭹紐?
                     </span>
                     <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#3f3835]">
                       {item.name}
                     </span>
                   </div>
-                  {/* 옵션 / 수량 */}
+                  {/* ?듭뀡 / ?섎웾 */}
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#6c6764]">
-                      옵션 / 수량
+                      ?듭뀡 / ?섎웾
                     </span>
                     <span className="text-[13px] font-normal tracking-[-0.26px] text-[#6c6764]">
                       {item.option
                         ? (typeof item.option === 'string' ? item.option : JSON.stringify(item.option))
-                        : '단일 옵션'}{' '}
-                      / {item.quantity}개
+                        : '?⑥씪 ?듭뀡'}{' '}
+                      / {item.quantity}媛?
                     </span>
                   </div>
-                  {/* 가격 */}
+                  {/* 媛寃?*/}
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#6c6764]">
-                      가격
+                      媛寃?
                     </span>
                     <span className="text-[13px] font-normal tracking-[-0.26px] text-[#6c6764]">
-                      {item.price.toLocaleString()}원
+                      {item.price.toLocaleString()}??
                     </span>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ── 구분선 (node 7473:37718) ─────────────────────────────── */}
+            {/* ?? 援щ텇??(node 7473:37718) ??????????????????????????????? */}
             <div className="h-px w-full bg-[#f1f1f1]" />
 
-            {/* ── 주문자/결제 정보 (node 7473:37719) ───────────────────── */}
+            {/* ?? 二쇰Ц??寃곗젣 ?뺣낫 (node 7473:37719) ????????????????????? */}
             <div className="flex flex-col gap-4">
-              <h2 className="text-[17px] font-bold leading-[1.5] text-[#3f3835]">주문자/결제 정보</h2>
+              <h2 className="text-[17px] font-bold leading-[1.5] text-[#3f3835]">二쇰Ц??寃곗젣 ?뺣낫</h2>
+              {detail.requiresBagPackaging ? (
+                <p className="text-[13px] font-semibold text-[#f46d25]">
+                  {detail.bagNoticeMessage ?? '봉투에 담아주세요.'}
+                </p>
+              ) : null}
 
-              {/* 주문자 정보 박스 (node 7473:37722) */}
+              {/* 寃곗젣 ?뺣낫 諛뺤뒪 (node 7473:37735) */}
               <div className="flex w-full flex-col gap-2 rounded-lg border border-[#f1f1f1] bg-[#fdfdfd] p-4">
-                <h3 className="text-[15px] font-bold leading-[1.5] text-[#3f3835]">주문자 정보</h3>
-                {/* 내부 구분선 */}
+                <h3 className="text-[15px] font-bold leading-[1.5] text-[#3f3835]">寃곗젣 ?뺣낫</h3>
+                {/* ?대? 援щ텇??*/}
                 <div className="h-px w-full bg-[#f1f1f1]" />
                 <div className="flex flex-col gap-2">
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      이름
-                    </span>
-                    <span className="text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      {detail.customer.name}
-                    </span>
-                  </div>
-                  <div className="flex h-[19.49px] items-center gap-4">
-                    <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      전화번호
-                    </span>
-                    <span className="text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      {formatPhone(detail.customer.phone)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 결제 정보 박스 (node 7473:37735) */}
-              <div className="flex w-full flex-col gap-2 rounded-lg border border-[#f1f1f1] bg-[#fdfdfd] p-4">
-                <h3 className="text-[15px] font-bold leading-[1.5] text-[#3f3835]">결제 정보</h3>
-                {/* 내부 구분선 */}
-                <div className="h-px w-full bg-[#f1f1f1]" />
-                <div className="flex flex-col gap-2">
-                  <div className="flex h-[19.49px] items-center gap-4">
-                    <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      결제 수단
+                      寃곗젣 ?섎떒
                     </span>
                     <span className="text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
                       {detail.payment.method}
@@ -238,7 +205,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                   </div>
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
-                      결제 금액
+                      寃곗젣 湲덉븸
                     </span>
                     <span className="text-[13px] font-normal tracking-[-0.26px] text-[#85817e]">
                       {detail.payment.amount}
@@ -251,22 +218,22 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
           </div>
         </main>
 
-        {/* ── 하단 버튼 영역 (node 7509:39608) ─────────────────────────── */}
+        {/* ?? ?섎떒 踰꾪듉 ?곸뿭 (node 7509:39608) ??????????????????????????? */}
         {/* h-[101px], rounded-tl/tr-[12px], bg-[#f6f6f5] fixed */}
         <div className="fixed bottom-0 left-1/2 z-10 h-[101px] w-full max-w-[375px] -translate-x-1/2 overflow-hidden rounded-tl-[12px] rounded-tr-[12px] bg-[#f6f6f5] px-4 pt-[11px] pb-8">
-          {detail.fulfillmentStatus === '미수령' ? (
-            /* 수령 완료 버튼 (node 7509:39609): bg-[#3f3835], h-55px, rounded-[8px], full width */
+          {detail.fulfillmentStatus !== 'RECEIVED' ? (
+            /* ?섎졊 ?꾨즺 踰꾪듉 (node 7509:39609): bg-[#3f3835], h-55px, rounded-[8px], full width */
             <button
               disabled={submitting}
               onClick={() => updateStatus(1)}
               className="flex h-[55px] w-full items-center justify-center rounded-[8px] bg-[#3f3835] text-[15px] font-bold leading-[1.5] text-[#fdfdfd] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? '처리 중...' : '수령 완료'}
+              {submitting ? '泥섎━ 以?..' : '?섎졊 ?꾨즺'}
             </button>
           ) : (
             <div className="flex w-full items-center gap-4">
               <div className="flex h-[55px] flex-1 items-center justify-center rounded-[8px] bg-[#C7C7C7] text-[15px] font-bold leading-[1.5] text-white">
-                수령 완료
+                ?섎졊 ?꾨즺
               </div>
               <button
                 disabled={submitting}
@@ -285,3 +252,5 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
     </div>
   );
 }
+
+

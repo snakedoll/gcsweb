@@ -52,6 +52,7 @@ export async function GET(request: Request, { params }: Params) {
         deliveryMessage: true,
         ordererName: true,
         ordererPhone: true,
+        bagOption: true,
         paymentMethod: true,
         cardCompany: true,
         bankCode: true,

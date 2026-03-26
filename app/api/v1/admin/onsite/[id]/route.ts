@@ -46,9 +46,15 @@ export async function GET(
 
     let paymentMethodStr = '알수없음';
     switch (order.paymentMethod) {
-      case 0: paymentMethodStr = '신용카드'; break;
-      case 1: paymentMethodStr = '가상계좌'; break;
-      case 2: paymentMethodStr = '간편결제'; break;
+      case 0:
+      case 1:
+      case 2:
+        paymentMethodStr = '온라인결제';
+        break;
+      case 3:
+      case 4:
+        paymentMethodStr = '현장결제';
+        break;
       default: paymentMethodStr = '기타';
     }
 
@@ -64,10 +70,6 @@ export async function GET(
         quantity: item.quantity,
         imgUrl: item.product?.images?.[0]?.thumbnailImgUrl || null,
       })),
-      customer: {
-        name: order.ordererName,
-        phone: order.ordererPhone,
-      },
       payment: {
         method: paymentMethodStr,
         amount: `${order.paymentAmount.toLocaleString()}원`,
