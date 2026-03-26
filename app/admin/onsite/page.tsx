@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TabBar from '@/components/ui/button/TabBar';
 import SearchBar from '@/components/ui/common/SearchBar';
-import { Matrix_Attribute_03, Matrix_Contents_03 } from '@/components/ui/admin/onsite';
+import { Matrix_Attribute_06, Matrix_Contents_06 } from '@/components/ui/admin/onsite';
 import { cn } from '@/lib/utils';
 
 type ReceiptItem = {
@@ -172,20 +172,23 @@ export default function AdminOnsitePage() {
           ) : (
             groups.map((group) => (
               <section key={group.date} className="flex flex-col gap-0">
-                <div className="flex h-[26px] items-center px-3">
-                  <h2 className="text-[29px] font-bold leading-[1.5] tracking-[-0.58px] text-[#3F3835]">{group.date}</h2>
+                <div className="flex items-center px-3">
+                  <h2 className="typo-heading-xsmall text-neutral-10">{group.date}</h2>
                 </div>
 
-                <Matrix_Attribute_03 className="mt-0" />
+                <Matrix_Attribute_06 className="mt-0 w-full" />
 
                 <div className="flex flex-col">
                   {group.items.map((item) => (
-                    <Matrix_Contents_03
+                    <Matrix_Contents_06
                       key={item.id}
-                      orderId={item.orderId}
+                      className="w-full"
+                      orderCode={item.orderId}
                       orderTime={item.orderTime}
-                      paymentStatus={item.paymentStatus}
-                      receiptStatus={item.receiptStatus}
+                      paymentLabel={item.paymentStatus}
+                      receiptLabel={item.receiptStatus}
+                      paymentTone={item.paymentStatus.includes('결제완료') ? 'orange' : 'gray'}
+                      receiptTone={item.receiptStatus.includes('수령완료') ? 'gray' : 'orange'}
                       onClick={() => router.push(`/admin/onsite/${item.id}`)}
                     />
                   ))}
