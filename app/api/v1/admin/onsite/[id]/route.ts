@@ -63,7 +63,7 @@ export async function GET(
       paymentStatus: order.paymentStatus,
       bagOption: order.bagOption,
       requiresBagPackaging: order.bagOption === true,
-      bagNoticeMessage: order.bagOption === true ? '봉투에 담아주세요.' : null,
+      bagNoticeMessage: order.bagOption === true ? '봉투에 담아주세요' : null,
       items: order.items.map((item) => ({
         id: item.id,
         name: item.product?.name ?? '알수없는 상품',

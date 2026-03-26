@@ -33,6 +33,50 @@ type OrderDetail = {
   actionButtonState?: 'CANCELED' | 'RECEIVED' | 'NOT_RECEIVED';
 };
 
+type ItemOptionValue = {
+  value?: unknown;
+};
+
+const formatOptionQuantityText = (option: unknown, quantity: number): string => {
+  const quantityText = `${quantity}개`;
+  let optionValues: string[] = [];
+
+  const extractValues = (input: unknown): string[] => {
+    if (Array.isArray(input)) {
+      return input
+        .map((row) => {
+          if (row && typeof row === 'object' && 'value' in row) {
+            const value = (row as ItemOptionValue).value;
+            return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+          }
+          if (typeof row === 'string') return row.trim();
+          return '';
+        })
+        .filter(Boolean);
+    }
+
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+      if (!trimmed) return [];
+      try {
+        return extractValues(JSON.parse(trimmed));
+      } catch {
+        return [trimmed];
+      }
+    }
+
+    return [];
+  };
+
+  optionValues = extractValues(option);
+
+  if (optionValues.length === 0) {
+    return quantityText;
+  }
+
+  return `${optionValues.join(' · ')} / ${quantityText}`;
+};
+
 export default function AdminOnsiteDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [detail, setDetail] = useState<OrderDetail | null>(null);
@@ -62,6 +106,8 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
   };
 
   const updateStatus = async (newStatus: 0 | 1) => {
+    if (!detail || detail.isCanceled) return;
+
     try {
       setSubmitting(true);
       const res = await fetch(`/api/v1/admin/onsite/${params.id}`, {
@@ -136,10 +182,10 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                 <span className="text-[15px] font-normal leading-[1.5] text-[#3f3835]">총 {detail.items.length}건</span>
               </div>
 
-              {detail.requiresBagPackaging ? (
+              {detail.requiresBagPackaging && buttonState === 'NOT_RECEIVED' ? (
                 <div className="flex items-center gap-2 text-[13px] tracking-[-0.26px] text-[#f46d25]">
                   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#f46d25] text-[11px] font-bold text-white">i</span>
-                  <span>{detail.bagNoticeMessage ?? '봉투에 담아주세요.'}</span>
+                  <span>{detail.bagNoticeMessage ?? '봉투에 담아주세요'}</span>
                 </div>
               ) : null}
 
@@ -151,14 +197,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                   </div>
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] text-[#6c6764]">옵션 / 수량</span>
-                    <span className="text-[13px] text-[#6c6764]">
-                      {item.option
-                        ? typeof item.option === 'string'
-                          ? item.option
-                          : JSON.stringify(item.option)
-                        : '단일 옵션'}{' '}
-                      / {item.quantity}개
-                    </span>
+                    <span className="text-[13px] text-[#6c6764]">{formatOptionQuantityText(item.option, item.quantity)}</span>
                   </div>
                   <div className="flex h-[19.49px] items-center gap-4">
                     <span className="w-16 shrink-0 text-[13px] text-[#6c6764]">가격</span>
@@ -192,9 +231,13 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
 
         <div className="fixed bottom-0 left-1/2 z-10 h-[101px] w-full max-w-[375px] -translate-x-1/2 rounded-tl-[12px] rounded-tr-[12px] bg-[#f6f6f5] px-4 pb-8 pt-[11px]">
           {buttonState === 'CANCELED' ? (
-            <div className="flex h-[55px] w-full items-center justify-center rounded-[8px] bg-[#c7c5c4] text-[15px] font-bold text-[#fdfdfd]">
+            <button
+              type="button"
+              disabled
+              className="flex h-[55px] w-full items-center justify-center rounded-[8px] bg-[#c7c5c4] text-[15px] font-bold text-[#fdfdfd]"
+            >
               주문이 취소된 상품입니다.
-            </div>
+            </button>
           ) : buttonState !== 'RECEIVED' ? (
             <button
               disabled={submitting}
