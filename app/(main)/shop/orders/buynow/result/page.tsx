@@ -3,7 +3,24 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
-import { Button, EmptyviewText } from '@/components/ui';
+import { Button, EmptyviewText, Productcard } from '@/components/ui';
+
+type OrderResultItem = {
+  id: string;
+  productName: string;
+  teamName: string;
+  optionText: string;
+  priceText: string;
+  thumbnailUrl: string;
+  fulfillmentLabel: string;
+};
+
+type OrderResultData = {
+  orderCode: string;
+  items: OrderResultItem[];
+};
+
+const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
 function ResultContent() {
   const router = useRouter();
@@ -12,8 +29,10 @@ function ResultContent() {
   const isCounterPay = searchParams.get('counterPay') === '1';
   const portoneCode = searchParams.get('code');
   const portoneMessage = searchParams.get('message');
+
   const [status, setStatus] = useState<'loading' | 'success' | 'fail'>('loading');
   const [message, setMessage] = useState('');
+  const [orderResult, setOrderResult] = useState<OrderResultData | null>(null);
 
   useEffect(() => {
     if (!orderId) {
@@ -24,7 +43,6 @@ function ResultContent() {
 
     if (isCounterPay) {
       setStatus('success');
-      setMessage('COUNTER_PAY_COMPLETED');
       return;
     }
 
@@ -50,7 +68,6 @@ function ResultContent() {
         const verified = json?.data?.verified === true;
         if (verified) {
           setStatus('success');
-          setMessage('주문이 완료되었습니다.');
           return;
         }
 
@@ -70,6 +87,50 @@ function ResultContent() {
     };
   }, [isCounterPay, orderId, portoneCode, portoneMessage]);
 
+  useEffect(() => {
+    if (status !== 'success' || !orderId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const guestToken =
+        typeof window !== 'undefined' ? window.localStorage.getItem(GUEST_TOKEN_STORAGE_KEY)?.trim() ?? '' : '';
+
+      const res = await fetch(`/api/v1/shop/orders/${orderId}`, {
+        cache: 'no-store',
+        headers: guestToken ? { 'x-guest-token': guestToken } : {},
+      });
+      const json = await res.json().catch(() => ({}));
+      if (cancelled) return;
+
+      if (!res.ok || json?.status !== 'success') {
+        setOrderResult({ orderCode: '', items: [] });
+        return;
+      }
+
+      const order = json?.data?.order ?? {};
+      const orderCode = typeof order?.orderCode === 'string' ? order.orderCode : '';
+      const items = Array.isArray(order?.items) ? order.items : [];
+
+      setOrderResult({
+        orderCode,
+        items: items.map((item: any) => ({
+          id: String(item?.id ?? ''),
+          productName: String(item?.productName ?? '상품'),
+          teamName: String(item?.teamName ?? ''),
+          optionText: String(item?.optionText ?? ''),
+          priceText: String(item?.priceText ?? ''),
+          thumbnailUrl: String(item?.thumbnailUrl ?? ''),
+          fulfillmentLabel: String(item?.fulfillmentLabel ?? '미수령'),
+        })),
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, status]);
+
   if (status === 'loading') {
     return (
       <div className="flex min-h-[calc(100vh-78px)] items-center justify-center bg-neutral-3 px-5">
@@ -79,21 +140,46 @@ function ResultContent() {
   }
 
   if (status === 'success') {
+    const orderCodeText = orderResult?.orderCode ? `주문번호 ${orderResult.orderCode}` : '주문번호 확인 중';
+    const items = orderResult?.items ?? [];
+
     return (
-      <div className="min-h-[calc(100vh-78px)] bg-neutral-3">
+      <div className="min-h-screen bg-neutral-3">
         <NavBar variant="title-back" title="주문하기" />
-        <div className="mx-auto flex w-full max-w-[375px] flex-col items-center px-[63px] pt-[303px] pb-[303px]">
-          <div className="flex w-full flex-col items-center gap-6">
-            <EmptyviewText title="주문이 완료되었습니다." subtitle="카운터에서 상품을 수령해가세요!" />
-            <Button
-              size="m"
-              color="orange"
-              className="h-[47px] w-[182px]"
-              onClick={() => router.push('/')}
-            >
-              홈으로 이동
-            </Button>
-          </div>
+
+        <div className="mx-auto flex w-full max-w-[375px] flex-col gap-5 px-4 py-5">
+          <section className="flex w-full flex-col items-center justify-center p-3 text-center">
+            <p className="text-[19px] font-bold leading-[1.5] text-orange-5">{orderCodeText}</p>
+            <p className="typo-body-small text-neutral-8">주문번호 확인을 위해 스크린샷을 남겨주세요!</p>
+          </section>
+
+          <section className="flex w-full flex-col gap-3">
+            <h2 className="typo-body-small-bold text-neutral-10">주문한 상품</h2>
+
+            <div className="flex flex-col gap-5">
+              {items.map((item) => (
+                <article key={item.id} className="rounded-lg border border-neutral-4 bg-neutral-2 px-[18px] pb-4 pt-3">
+                  <div className="flex flex-col gap-[14px]">
+                    <div className="flex h-7 items-center border-b border-dashed border-neutral-5">
+                      <p className="typo-body-xsmall text-neutral-8">{item.fulfillmentLabel || '미수령'}</p>
+                    </div>
+
+                    <Productcard
+                      type="all"
+                      view="cart"
+                      className="w-full"
+                      imageSrc={item.thumbnailUrl}
+                      brand={item.teamName || '팀명'}
+                      title={item.productName}
+                      cartOptionText={item.optionText}
+                      cartTags={['Buy Now', '현장수령']}
+                      cartPriceText={item.priceText}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     );
@@ -102,10 +188,10 @@ function ResultContent() {
   return (
     <div className="min-h-[calc(100vh-78px)] bg-neutral-3">
       <NavBar variant="title-back" title="주문하기" />
-      <div className="mx-auto flex w-full max-w-[375px] flex-col items-center gap-4 px-5 pt-[220px] pb-[220px] text-center">
+      <div className="mx-auto flex w-full max-w-[375px] flex-col items-center gap-4 px-5 pb-[220px] pt-[220px] text-center">
         <EmptyviewText title="결제에 실패했습니다." subtitle={message} />
         <Button size="m" color="orange" className="h-[47px] w-[182px]" onClick={() => router.push('/shop')}>
-          샵으로 이동
+          홈으로 이동
         </Button>
       </div>
     </div>
