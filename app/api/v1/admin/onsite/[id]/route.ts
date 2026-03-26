@@ -105,8 +105,21 @@ export async function PATCH(
     const { id } = params;
     if (!id) return jsonError(400, 'INVALID_INPUT', '주문 ID가 없습니다.');
 
-    const body = await req.json().catch(() => ({}));
-    const { fulfillmentStatus, paymentStatus } = body;
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const rawFulfillmentStatus = (body as Record<string, unknown>).fulfillmentStatus;
+    const rawPaymentStatus = (body as Record<string, unknown>).paymentStatus;
+    const fulfillmentStatus =
+      typeof rawFulfillmentStatus === 'number'
+        ? rawFulfillmentStatus
+        : typeof rawFulfillmentStatus === 'string'
+          ? Number(rawFulfillmentStatus)
+          : undefined;
+    const paymentStatus =
+      typeof rawPaymentStatus === 'number'
+        ? rawPaymentStatus
+        : typeof rawPaymentStatus === 'string'
+          ? Number(rawPaymentStatus)
+          : undefined;
 
     const targetOrder = await prisma.order.findUnique({ where: { id } });
     if (!targetOrder) {
@@ -114,13 +127,25 @@ export async function PATCH(
     }
 
     if (paymentStatus === 3) {
-      await prisma.order.update({
+      if (targetOrder.paymentStatus === 3) {
+        return NextResponse.json({
+          status: 'success',
+          message: '주문취소완료',
+        });
+      }
+
+      const updated = await prisma.order.updateMany({
         where: { id },
         data: { paymentStatus: 3 },
       });
+
+      if (updated.count < 1) {
+        return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
+      }
+
       return NextResponse.json({
         status: 'success',
-        message: '주문이 취소되었습니다.',
+        message: '주문취소완료',
       });
     }
 
