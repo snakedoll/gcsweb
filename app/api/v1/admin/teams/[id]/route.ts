@@ -141,6 +141,9 @@ export async function PATCH(
       );
     }
 
+    const oldMemberIds = Array.isArray(existing.teamMember) ? existing.teamMember.filter(Boolean) : [];
+    const oldLeaderId = existing.userId ?? '';
+
     // Validate provided fields
     if (teamType !== undefined && ![0, 1].includes(teamType)) {
       return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'teamType은 0 또는 1이어야 합니다.' }, { status: 400 });
@@ -248,5 +251,3 @@ export async function PATCH(
     return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 로직 오류' }, { status: 500 });
   }
 }
-    const oldMemberIds = Array.isArray(existing?.teamMember) ? existing.teamMember.filter(Boolean) : [];
-    const oldLeaderId = existing?.userId ?? '';
