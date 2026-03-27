@@ -328,6 +328,7 @@ export default function AdminOnsitePage() {
                         no={index + 1}
                         orderDateTime={item.fullOrderTime}
                         orderNumber={item.orderId}
+                        transactionId={item.impUid}
                         paymentInfoTitle={item.paymentMethodStr}
                         paymentAmountText={`${item.paymentAmount.toLocaleString()}원`}
                         paymentStatusText={item.paymentStatus}
