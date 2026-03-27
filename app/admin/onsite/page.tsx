@@ -1,13 +1,11 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TabBar from '@/components/ui/button/TabBar';
 import SearchBar from '@/components/ui/common/SearchBar';
-import { Matrix_Attribute_06, Matrix_Contents_06 } from '@/components/ui/admin/onsite';
-import { cn } from '@/lib/utils';
+import { Matrix_Attribute_06, Matrix_Contents_06, PcTableRow_Buynow } from '@/components/ui/admin/onsite';
 
 type ReceiptItem = {
   id: string;
@@ -44,11 +42,6 @@ type OnsiteListResponse = {
   data?: ReceiptGroup[];
   message?: string;
 };
-
-function receiptBadgeClass(receiptStatus: string) {
-  if (receiptStatus === '수령완료') return 'bg-[#F1F1F1] text-[#6C6764]';
-  return 'bg-[#F8A376] text-white';
-}
 
 export default function AdminOnsitePage() {
   const router = useRouter();
@@ -287,105 +280,70 @@ export default function AdminOnsitePage() {
               <section key={group.date} className="flex flex-col gap-3">
                 <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
-                <div className="overflow-hidden rounded-[8px] border border-[#DDDCDB] bg-white">
-                  <div className="grid h-10 grid-cols-[160px_180px_120px_140px_120px_1fr_220px_145px] border-b border-[#DDDCDB] bg-white text-[13px] font-semibold tracking-[-0.26px] text-[#3F3835]">
-                    <div className="flex items-center px-4">주문 번호</div>
-                    <div className="flex items-center px-4">포트원 거래번호</div>
-                    <div className="flex items-center px-4">주문 시각</div>
-                    <div className="flex items-center px-4">결제여부</div>
-                    <div className="flex items-center px-4">수령여부</div>
-                    <div className="flex items-center px-4">주문 상품</div>
-                    <div className="flex items-center px-4">결제 정보</div>
-                    <div className="flex items-center px-4">주문취소</div>
-                  </div>
+                <div className="flex flex-col gap-4">
+                  <PcTableRow_Buynow variant="Header" className="w-full" />
 
-                  {group.items.map((item) => {
+                  {group.items.map((item, index) => {
                     const isCanceled = item.paymentStatusCode === 3;
                     const isReceiptUpdating = updatingReceiptId === item.id;
                     const isCancelUpdating = updatingCancelId === item.id;
+                    const hasBagNotice = Boolean(item.requiresBagPackaging || item.bagOption);
+
+                    const variant =
+                      isCanceled
+                        ? '주문취소완료'
+                        : hasBagNotice
+                          ? '봉투'
+                          : item.items.length >= 2
+                            ? 'multiple'
+                            : item.fulfillmentStatusCode === 1
+                              ? '수령완료'
+                              : '미수령';
+
+                    const mappedProducts = item.items.map((product) => ({
+                      id: product.id,
+                      name: product.name,
+                      option: product.options || `${product.quantity}개`,
+                      priceText: `${product.price.toLocaleString()}원`,
+                    }));
+
+                    const products = hasBagNotice
+                      ? [
+                          {
+                            id: `bag-${item.id}`,
+                            name: item.bagNoticeMessage ?? '봉투에 담아주세요!',
+                            option: '',
+                            priceText: '100원',
+                            isBagNotice: true,
+                          },
+                          ...mappedProducts,
+                        ]
+                      : mappedProducts;
 
                     return (
-                      <div
+                      <PcTableRow_Buynow
                         key={item.id}
-                        className="grid min-h-[72px] cursor-pointer grid-cols-[160px_180px_120px_140px_120px_1fr_220px_145px] border-b border-[#DDDCDB] text-[13px] last:border-b-0 hover:bg-[#FAFAF9]"
-                      >
-                        <div className="flex items-center px-4 text-[#3F3835]">{item.orderId}</div>
-                        <div className="flex items-center px-4 text-[#3F3835] truncate">{item.impUid}</div>
-                        <div className="flex items-center px-4 text-[#3F3835]">{item.fullOrderTime}</div>
-                        <div className="flex items-center px-4">
-                          <span className="typo-body-xsmall text-neutral-10">{item.paymentStatus}</span>
-                        </div>
-                        <div className="flex items-center px-4">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleToggleReceipt(item);
-                            }}
-                            disabled={isCanceled || isReceiptUpdating}
-                            className={cn(
-                              'inline-flex w-[61px] items-center justify-center gap-1 rounded-[4px] px-2 py-[2px] text-center text-[13px] font-semibold',
-                              receiptBadgeClass(item.receiptStatus)
-                            )}
-                          >
-                            {isReceiptUpdating ? '처리중' : item.receiptStatus}
-                          </button>
-                        </div>
-                        <div className="flex items-center px-4 text-[#3F3835]">
-                          {item.items.length > 0 ? (
-                            <div className="flex w-full flex-col gap-[10px] py-3">
-                              {item.requiresBagPackaging || item.bagOption ? (
-                                <div className="flex w-full items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <Image src="/assets/icons/light/info-circle.svg" alt="info" width={16} height={16} />
-                                    <p className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
-                                      {item.bagNoticeMessage ?? '봉투에 담아주세요'}
-                                    </p>
-                                  </div>
-                                  <p className="text-right text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
-                                    100원
-                                  </p>
-                                </div>
-                              ) : null}
-                              {item.items.map((product) => (
-                                <div key={product.id} className="flex w-full items-start justify-between gap-4">
-                                  <div className="flex w-[137px] flex-col gap-[3px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
-                                    <p className="w-full">{product.name}</p>
-                                    <p className="w-full">{product.options || `${product.quantity}개`}</p>
-                                  </div>
-                                  <div className="w-[116px]">
-                                    <p className="w-full text-right text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
-                                      {product.price.toLocaleString()}원
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            '-'
-                          )}
-                        </div>
-                        <div className="flex flex-col justify-center px-4 text-[#3F3835]">
-                          <span>{item.paymentMethodStr}</span>
-                          <span>{item.paymentAmount.toLocaleString()}원</span>
-                        </div>
-                        <div className="flex items-center px-4">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleCancelOrder(item);
-                            }}
-                            disabled={isCanceled || isCancelUpdating}
-                            className={cn(
-                              'inline-flex h-[26px] min-w-[88px] items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold',
-                              isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25] text-white'
-                            )}
-                          >
-                            {isCancelUpdating ? '처리중' : isCanceled ? '주문취소완료' : '주문취소'}
-                          </button>
-                        </div>
-                      </div>
+                        className="w-full"
+                        variant={variant}
+                        no={index + 1}
+                        orderDateTime={item.fullOrderTime}
+                        orderNumber={item.orderId}
+                        paymentInfoTitle={item.paymentMethodStr}
+                        paymentAmountText={`${item.paymentAmount.toLocaleString()}원`}
+                        paymentStatusText={item.paymentStatus}
+                        products={products}
+                        onReceiptClick={() => {
+                          void handleToggleReceipt(item);
+                        }}
+                        onCancelClick={() => {
+                          void handleCancelOrder(item);
+                        }}
+                        receiptDisabled={isCanceled || isReceiptUpdating}
+                        cancelDisabled={isCanceled || isCancelUpdating}
+                        receiptLabel={isReceiptUpdating ? '처리중' : item.receiptStatus}
+                        cancelLabel={isCancelUpdating ? '처리중' : isCanceled ? '주문 취소 완료' : '주문 취소'}
+                        hoverable
+                      />
                     );
                   })}
                 </div>
