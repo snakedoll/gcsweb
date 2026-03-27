@@ -1,15 +1,18 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import {
+  ONSITE_FULFILLMENT_STATUS,
+  ONSITE_PAYMENT_STATUS,
+  isCounterPaymentMethod,
+} from '@/lib/admin-onsite-status';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
 function toPaymentMethodLabel(paymentMethod: number): string {
-  if (paymentMethod === 0 || paymentMethod === 1 || paymentMethod === 2) return '온라인결제';
-  if (paymentMethod === 3 || paymentMethod === 4) return '현장결제';
-  return '기타';
+  return isCounterPaymentMethod(paymentMethod) ? '현장결제' : '온라인결제';
 }
 
 export async function GET(
@@ -52,8 +55,9 @@ export async function GET(
     const HH = String(dateObj.getHours()).padStart(2, '0');
     const mm = String(dateObj.getMinutes()).padStart(2, '0');
 
-    const isCanceled = order.paymentStatus === 3;
-    const fulfillmentStatus = order.fulfillmentStatus === 1 ? 'RECEIVED' : 'NOT_RECEIVED';
+    const isCanceled = order.paymentStatus === ONSITE_PAYMENT_STATUS.CANCELED;
+    const fulfillmentStatus =
+      order.fulfillmentStatus === ONSITE_FULFILLMENT_STATUS.RECEIVED ? 'RECEIVED' : 'NOT_RECEIVED';
 
     const formattedData = {
       id: order.id,
@@ -67,8 +71,8 @@ export async function GET(
       bagNoticeMessage: order.bagOption === true ? '봉투에 담아주세요' : null,
       items: order.items.map((item) => ({
         id: item.id,
-        name: item.product?.name ?? '알수없는 상품',
-        option: item.optionData ?? '단일 상품',
+        name: item.product?.name ?? '알 수 없는 상품',
+        option: item.optionData ?? '옵션 없음',
         price: item.price,
         quantity: item.quantity,
         imgUrl: item.product?.images?.[0]?.thumbnailImgUrl ?? null,
@@ -108,12 +112,14 @@ export async function PATCH(
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const rawFulfillmentStatus = (body as Record<string, unknown>).fulfillmentStatus;
     const rawPaymentStatus = (body as Record<string, unknown>).paymentStatus;
+
     const fulfillmentStatus =
       typeof rawFulfillmentStatus === 'number'
         ? rawFulfillmentStatus
         : typeof rawFulfillmentStatus === 'string'
           ? Number(rawFulfillmentStatus)
           : undefined;
+
     const paymentStatus =
       typeof rawPaymentStatus === 'number'
         ? rawPaymentStatus
@@ -126,41 +132,48 @@ export async function PATCH(
       return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
     }
 
-    if (paymentStatus === 3) {
-      if (targetOrder.paymentStatus === 3) {
-        return NextResponse.json({
-          status: 'success',
-          message: '주문취소완료',
-        });
+    // 주문취소는 비가역 처리
+    if (paymentStatus === ONSITE_PAYMENT_STATUS.CANCELED) {
+      if (targetOrder.paymentStatus === ONSITE_PAYMENT_STATUS.CANCELED) {
+        return NextResponse.json({ status: 'success', message: '주문취소완료' });
       }
 
-      const updated = await prisma.order.updateMany({
+      await prisma.order.update({
         where: { id },
-        data: { paymentStatus: 3 },
+        data: { paymentStatus: ONSITE_PAYMENT_STATUS.CANCELED },
       });
 
-      if (updated.count < 1) {
-        return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
-      }
-
-      return NextResponse.json({
-        status: 'success',
-        message: '주문취소완료',
-      });
+      return NextResponse.json({ status: 'success', message: '주문취소완료' });
     }
 
-    // fulfillmentStatus: 0 for 미수령, 1 for 수령완료
-    if (fulfillmentStatus !== 0 && fulfillmentStatus !== 1) {
+    if (
+      fulfillmentStatus !== ONSITE_FULFILLMENT_STATUS.NOT_RECEIVED &&
+      fulfillmentStatus !== ONSITE_FULFILLMENT_STATUS.RECEIVED
+    ) {
       return jsonError(400, 'INVALID_INPUT', '잘못된 수령 상태값입니다.');
+    }
+
+    if (targetOrder.paymentStatus === ONSITE_PAYMENT_STATUS.CANCELED) {
+      return jsonError(400, 'INVALID_INPUT', '주문취소 상태에서는 수령 상태를 변경할 수 없습니다.');
+    }
+
+    const updateData: { fulfillmentStatus: number; paymentStatus?: number } = {
+      fulfillmentStatus,
+    };
+
+    // 현장결제 규칙
+    // 미수령 -> 수령완료 : 결제완료
+    // 수령완료 -> 미수령 : 미결제
+    if (isCounterPaymentMethod(targetOrder.paymentMethod)) {
+      updateData.paymentStatus =
+        fulfillmentStatus === ONSITE_FULFILLMENT_STATUS.RECEIVED
+          ? ONSITE_PAYMENT_STATUS.PAID
+          : ONSITE_PAYMENT_STATUS.UNPAID;
     }
 
     await prisma.order.update({
       where: { id },
-      data: {
-        fulfillmentStatus,
-        // 수령 완료 처리 시 결제 상태도 완료로 자동 변경 (현장 결제 케이스 대응)
-        ...(fulfillmentStatus === 1 && targetOrder.paymentStatus !== 3 ? { paymentStatus: 2 } : {}),
-      },
+      data: updateData,
     });
 
     return NextResponse.json({

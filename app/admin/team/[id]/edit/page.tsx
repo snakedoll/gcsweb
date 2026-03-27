@@ -43,6 +43,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showLeaderModal, setShowLeaderModal] = useState(false);
   const [memberInputValue, setMemberInputValue] = useState("");
+  const [leaderSearch, setLeaderSearch] = useState("");
 
   const sampleMembers = [
     { id: 'kim1', name: '김무성', major: '기계로봇에너지공학과' },
@@ -58,6 +59,46 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(false);
 
   const [allMembersCache, setAllMembersCache] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+
+  const candidateMembers = React.useMemo(() => {
+    const byId = new Map<string, any>();
+    allUsers.forEach((u: any) => {
+      if (!u?.id) return;
+      byId.set(u.id, u);
+    });
+    allMembersCache.forEach((m: any) => {
+      if (!m?.id || byId.has(m.id)) return;
+      byId.set(m.id, m);
+    });
+    return Array.from(byId.values());
+  }, [allUsers, allMembersCache]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/v1/admin/members");
+        const json = await res.json();
+        if (!mounted || !res.ok) return;
+        const users = Array.isArray(json?.members)
+          ? json.members.map((m: any) => ({
+              id: m.id,
+              name: m.name ?? "",
+              phone: m.phone ?? "",
+              major: m.major ?? "",
+              role: m.role,
+            }))
+          : [];
+        setAllUsers(users);
+      } catch (e) {
+        if (mounted) setAllUsers([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     let mounted = true;

@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TabBar from '@/components/ui/button/TabBar';
@@ -11,6 +12,8 @@ import { cn } from '@/lib/utils';
 type ReceiptItem = {
   id: string;
   productType: number;
+  paymentStatusCode: number;
+  fulfillmentStatusCode: number;
   orderId: string;
   orderTime: string;
   fullOrderTime: string;
@@ -19,6 +22,9 @@ type ReceiptItem = {
   paymentAmount: number;
   receiptStatus: string;
   impUid: string;
+  bagOption?: boolean;
+  requiresBagPackaging?: boolean;
+  bagNoticeMessage?: string | null;
   items: {
     id: string;
     name: string;
@@ -39,15 +45,6 @@ type OnsiteListResponse = {
   message?: string;
 };
 
-function isCanceledStatus(paymentStatus: string) {
-  return paymentStatus.includes('취소');
-}
-
-function paymentBadgeClass(paymentStatus: string) {
-  if (paymentStatus === '결제완료') return 'bg-[#F8A376] text-white';
-  return 'bg-[#F1F1F1] text-[#6C6764]';
-}
-
 function receiptBadgeClass(receiptStatus: string) {
   if (receiptStatus === '수령완료') return 'bg-[#F1F1F1] text-[#6C6764]';
   return 'bg-[#F8A376] text-white';
@@ -58,8 +55,8 @@ export default function AdminOnsitePage() {
   const [search, setSearch] = useState('');
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancelModalItem, setCancelModalItem] = useState<ReceiptItem | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
+  const [updatingCancelId, setUpdatingCancelId] = useState<string | null>(null);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -98,12 +95,39 @@ export default function AdminOnsitePage() {
     [groups]
   );
 
-  const handleCancelOrder = async () => {
-    if (!cancelModalItem || isCancelling) return;
+  const handleToggleReceipt = async (item: ReceiptItem) => {
+    if (updatingReceiptId === item.id || item.paymentStatusCode === 3) return;
 
     try {
-      setIsCancelling(true);
-      const res = await fetch(`/api/v1/admin/onsite/${cancelModalItem.id}`, {
+      setUpdatingReceiptId(item.id);
+      const nextFulfillmentStatus = item.fulfillmentStatusCode === 1 ? 0 : 1;
+      const res = await fetch(`/api/v1/admin/onsite/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fulfillmentStatus: nextFulfillmentStatus }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || json?.status !== 'success') {
+        alert(json?.message || '수령 상태 변경에 실패했습니다.');
+        return;
+      }
+
+      await fetchGroups();
+    } catch (error) {
+      console.error('Failed to update receipt status:', error);
+      alert('수령 상태 변경 중 오류가 발생했습니다.');
+    } finally {
+      setUpdatingReceiptId(null);
+    }
+  };
+
+  const handleCancelOrder = async (item: ReceiptItem) => {
+    if (updatingCancelId === item.id || item.paymentStatusCode === 3) return;
+
+    try {
+      setUpdatingCancelId(item.id);
+      const res = await fetch(`/api/v1/admin/onsite/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentStatus: 3 }),
@@ -120,8 +144,7 @@ export default function AdminOnsitePage() {
       console.error('Failed to cancel order:', error);
       alert('주문 취소 중 오류가 발생했습니다.');
     } finally {
-      setIsCancelling(false);
-      setCancelModalItem(null);
+      setUpdatingCancelId(null);
     }
   };
 
@@ -206,7 +229,7 @@ export default function AdminOnsitePage() {
           )}
         </div>
       </div>
-
+  
       <div className="hidden w-full lg:flex lg:min-h-screen lg:flex-col lg:items-center lg:pb-20">
         <div className="w-full bg-[#F6F6F5] px-6 py-[15px] shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
           <div className="mx-auto flex h-[28px] w-[1232px] items-center justify-between">
@@ -277,7 +300,9 @@ export default function AdminOnsitePage() {
                   </div>
 
                   {group.items.map((item) => {
-                    const isCanceled = isCanceledStatus(item.paymentStatus);
+                    const isCanceled = item.paymentStatusCode === 3;
+                    const isReceiptUpdating = updatingReceiptId === item.id;
+                    const isCancelUpdating = updatingCancelId === item.id;
 
                     return (
                       <div
@@ -288,28 +313,40 @@ export default function AdminOnsitePage() {
                         <div className="flex items-center px-4 text-[#3F3835] truncate">{item.impUid}</div>
                         <div className="flex items-center px-4 text-[#3F3835]">{item.fullOrderTime}</div>
                         <div className="flex items-center px-4">
-                          <span
-                            className={cn(
-                              'inline-flex h-6 min-w-[61px] items-center justify-center rounded-[4px] px-2 text-center text-[13px] font-semibold',
-                              paymentBadgeClass(item.paymentStatus)
-                            )}
-                          >
-                            {item.paymentStatus}
-                          </span>
+                          <span className="typo-body-xsmall text-neutral-10">{item.paymentStatus}</span>
                         </div>
                         <div className="flex items-center px-4">
-                          <span
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleToggleReceipt(item);
+                            }}
+                            disabled={isCanceled || isReceiptUpdating}
                             className={cn(
-                              'inline-flex h-6 min-w-[61px] items-center justify-center rounded-[4px] px-2 text-center text-[13px] font-semibold',
+                              'inline-flex w-[61px] items-center justify-center gap-1 rounded-[4px] px-2 py-[2px] text-center text-[13px] font-semibold',
                               receiptBadgeClass(item.receiptStatus)
                             )}
                           >
-                            {item.receiptStatus}
-                          </span>
+                            {isReceiptUpdating ? '처리중' : item.receiptStatus}
+                          </button>
                         </div>
                         <div className="flex items-center px-4 text-[#3F3835]">
                           {item.items.length > 0 ? (
                             <div className="flex w-full flex-col gap-[10px] py-3">
+                              {item.requiresBagPackaging || item.bagOption ? (
+                                <div className="flex w-full items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <Image src="/assets/icons/light/info-circle.svg" alt="info" width={16} height={16} />
+                                    <p className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
+                                      {item.bagNoticeMessage ?? '봉투에 담아주세요'}
+                                    </p>
+                                  </div>
+                                  <p className="text-right text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
+                                    100원
+                                  </p>
+                                </div>
+                              ) : null}
                               {item.items.map((product) => (
                                 <div key={product.id} className="flex w-full items-start justify-between gap-4">
                                   <div className="flex w-[137px] flex-col gap-[3px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#3F3835]">
@@ -337,17 +374,15 @@ export default function AdminOnsitePage() {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              if (!isCanceled) {
-                                setCancelModalItem(item);
-                              }
+                              void handleCancelOrder(item);
                             }}
-                            disabled={isCanceled}
+                            disabled={isCanceled || isCancelUpdating}
                             className={cn(
                               'inline-flex h-[26px] min-w-[88px] items-center justify-center rounded-[4px] px-2 text-[13px] font-semibold',
                               isCanceled ? 'bg-[#F1F1F1] text-[#6C6764]' : 'bg-[#F46D25] text-white'
                             )}
                           >
-                            {isCanceled ? '주문취소완료' : '주문취소'}
+                            {isCancelUpdating ? '처리중' : isCanceled ? '주문취소완료' : '주문취소'}
                           </button>
                         </div>
                       </div>
@@ -361,37 +396,6 @@ export default function AdminOnsitePage() {
           <div className="pt-2 text-right text-[13px] text-[#6C6764]">총 {totalCount}건</div>
         </div>
       </div>
-
-      {cancelModalItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[343px] rounded-[12px] bg-white px-7 pb-[23px] pt-10 shadow-lg">
-            <div className="flex flex-col gap-[30px]">
-              <p className="text-center text-[15px] font-bold leading-[1.5] text-[#2F2824]">
-                해당 주문을 취소하시겠습니까?
-              </p>
-              <div className="flex gap-[14px]">
-                <button
-                  type="button"
-                  onClick={() => setCancelModalItem(null)}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[8px] border border-[#DDDCDB] bg-[#FDFDFD] text-[15px] font-bold text-[#3F3835]"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleCancelOrder();
-                  }}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-[8px] bg-[#F6874C] text-[15px] font-bold text-[#FDFDFD]"
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? '처리 중...' : '확인'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
