@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 
@@ -185,15 +184,23 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                 <span className="text-[15px] font-normal leading-[1.5] text-[#3f3835]">총 {detail.items.length}건</span>
               </div>
 
-              {detail.requiresBagPackaging ? (
-                <div className="flex items-center justify-between rounded-[8px] border border-[#F1F1F1] bg-[#FDFDFD] px-3 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <Image src="/assets/icons/light/info-circle.svg" alt="info" width={16} height={16} />
-                    <span className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#F46D25]">
-                      {detail.bagNoticeMessage ?? '봉투에 담아주세요'}
-                    </span>
-                  </div>
-                  <span className="text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">100원</span>
+              {detail.requiresBagPackaging || detail.bagOption ? (
+                <div className="flex h-5 items-center gap-2">
+                  <svg
+                    aria-hidden
+                    className="h-4 w-4 shrink-0 text-orange-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 1.25C17.9371 1.25 22.75 6.06294 22.75 12C22.75 17.9371 17.9371 22.75 12 22.75C6.06294 22.75 1.25 17.9371 1.25 12C1.25 6.06294 6.06294 1.25 12 1.25ZM10.5 10.25C10.0858 10.25 9.75 10.5858 9.75 11C9.75 11.4142 10.0858 11.75 10.5 11.75H11.75V17C11.75 17.4142 12.0858 17.75 12.5 17.75C12.9142 17.75 13.25 17.4142 13.25 17V11C13.25 10.6118 12.9551 10.2925 12.5771 10.2539C12.5518 10.2513 12.526 10.25 12.5 10.25H10.5ZM12.5 6.25C12.0858 6.25 11.75 6.58579 11.75 7V8C11.75 8.41421 12.0858 8.75 12.5 8.75C12.9142 8.75 13.25 8.41421 13.25 8V7C13.25 6.58579 12.9142 6.25 12.5 6.25Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  <span className="typo-body-xsmall text-orange-6">
+                    {detail.bagNoticeMessage ?? '봉투에 담아주세요.'}
+                  </span>
                 </div>
               ) : null}
 

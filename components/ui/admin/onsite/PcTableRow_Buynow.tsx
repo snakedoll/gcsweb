@@ -29,6 +29,7 @@ interface PcTableRowBuynowProps {
   cancelDisabled?: boolean;
   receiptLabel?: string;
   cancelLabel?: string;
+  hoverable?: boolean;
 }
 
 const DEFAULT_PRODUCTS: ProductLine[] = [
@@ -94,6 +95,7 @@ export default function PcTableRow_Buynow({
   cancelDisabled = false,
   receiptLabel,
   cancelLabel,
+  hoverable = false,
 }: PcTableRowBuynowProps) {
   const isHeader = variant === 'Header';
   const isCanceled = variant === '주문취소완료';
@@ -108,6 +110,7 @@ export default function PcTableRow_Buynow({
       className={cn(
         'flex w-[1232px] rounded-[8px] border border-neutral-5 bg-white',
         rowHeightClass(variant),
+        hoverable && !isHeader ? 'transition-shadow hover:shadow-[0px_1px_4px_0px_rgba(63,56,53,0.16)]' : '',
         onRowClick && !isHeader ? 'cursor-pointer' : '',
         className
       )}

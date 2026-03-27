@@ -332,7 +332,6 @@ export default function AdminOnsitePage() {
                         paymentAmountText={`${item.paymentAmount.toLocaleString()}원`}
                         paymentStatusText={item.paymentStatus}
                         products={products}
-                        onRowClick={() => router.push(`/admin/onsite/${item.id}`)}
                         onReceiptClick={() => {
                           void handleToggleReceipt(item);
                         }}
@@ -343,6 +342,7 @@ export default function AdminOnsitePage() {
                         cancelDisabled={isCanceled || isCancelUpdating}
                         receiptLabel={isReceiptUpdating ? '처리중' : item.receiptStatus}
                         cancelLabel={isCancelUpdating ? '처리중' : isCanceled ? '주문 취소 완료' : '주문 취소'}
+                        hoverable
                       />
                     );
                   })}
