@@ -278,10 +278,10 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
               </button>
 
               {/* leader preview */}
-              {leaderId && allMembersCache.find(m => m.id === leaderId) && (
+              {leaderId && candidateMembers.find(m => m.id === leaderId) && (
                 <div className="rounded-lg bg-neutral-3 p-4 mt-3 border border-neutral-4">
-                  <p className="typo-body-small-bold text-[#3F3835]">{allMembersCache.find(m => m.id === leaderId)?.name}</p>
-                  <p className="typo-body-xsmall text-[#5A5451] mt-1">{(() => { const l = allMembersCache.find(m => m.id === leaderId); return l?.phone ? formatPhone(l.phone) : '-'; })()}</p>
+                  <p className="typo-body-small-bold text-[#3F3835]">{candidateMembers.find(m => m.id === leaderId)?.name}</p>
+                  <p className="typo-body-xsmall text-[#5A5451] mt-1">{(() => { const l = candidateMembers.find(m => m.id === leaderId); return l?.phone ? formatPhone(l.phone) : '-'; })()}</p>
                 </div>
               )}
 
@@ -299,7 +299,7 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   {/* 최대 6명까지만 보이게 max-height 설정 (약 6 * 64px = 384px) 및 내부 스크롤 */}
                   <div className="max-h-[384px] overflow-y-auto">
                     {memberIds.filter(id => id !== leaderId).map((id, idx, arr) => {
-                      const member = allMembersCache.find(m => m.id === id);
+                      const member = candidateMembers.find(m => m.id === id);
                       const isLast = idx === arr.length - 1;
                       return (
                         <div key={id}>
@@ -380,11 +380,16 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                   <input value={memberInputValue} onChange={(e) => setMemberInputValue(e.target.value)} className="flex-1 bg-transparent" placeholder="이름, 전공, 학번으로 검색..." />
                 </div>
                 <div className="flex h-[36px] items-center mb-4">
-                  <p className="typo-body-small text-neutral-10">전체 {allMembersCache.length}명</p>
+                  <p className="typo-body-small text-neutral-10">전체 {candidateMembers.length}명</p>
                 </div>
                 <div className="mb-28 border border-neutral-4 rounded-[16px] overflow-hidden bg-neutral-2">
                   {(() => {
-                    const filteredList = allMembersCache.filter(m => (m.name + m.major).includes(memberInputValue));
+                    const keyword = memberInputValue.trim().toLowerCase();
+                    const filteredList = candidateMembers.filter((m) => {
+                      if (!keyword) return true;
+                      const haystack = `${m?.name ?? ''} ${m?.major ?? ''} ${m?.phone ?? ''}`.toLowerCase();
+                      return haystack.includes(keyword);
+                    });
                     return filteredList.map((m, idx) => {
                       const isLeader = m.id === leaderId;
                       return (
@@ -495,7 +500,13 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
               <div className="flex-1 overflow-y-auto px-4 pt-6">
                 {/* Search Bar */}
                 <div className="mb-8 flex h-12 items-center justify-between rounded-lg border border-neutral-5 bg-neutral-2 pl-4 pr-3">
-                  <p className="typo-body-xsmall text-neutral-7">이름, 전공, 학번으로 검색...</p>
+                  <input
+                    type="text"
+                    placeholder="이름, 전공, 학번으로 검색..."
+                    value={leaderSearch}
+                    onChange={(e) => setLeaderSearch(e.target.value)}
+                    className="flex-1 bg-transparent typo-body-xsmall text-neutral-12 placeholder:text-neutral-7 focus:outline-none"
+                  />
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="10" cy="10" r="6" stroke="#999694" strokeWidth="1.5" />
                     <path d="M15 15l4 4" stroke="#999694" strokeWidth="1.5" strokeLinecap="round" />
@@ -503,40 +514,48 @@ export default function AdminTeamEditPage({ params }: { params: { id: string } }
                 </div>
 
                 {/* Member Count */}
-                <p className="typo-body-small text-neutral-12 mb-8">전체 {allMembersCache.length}명</p>
+                <p className="typo-body-small text-neutral-12 mb-8">전체 {candidateMembers.length}명</p>
 
                 {/* Member List */}
                 <div className="mb-28 overflow-hidden rounded-2xl border border-neutral-4">
-                  {allMembersCache.map((m, idx) => (
-                    <div key={m.id}>
-                      <button type="button" onClick={() => setLeaderId(m.id)} className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 flex flex-col gap-1">
-                            <p className="typo-body-small-bold text-neutral-12">{m.name}</p>
-                            <p className="typo-body-xsmall text-neutral-9">{m.phone ? formatPhone(m.phone) : '-'}</p>
+                  {(() => {
+                    const keyword = leaderSearch.trim().toLowerCase();
+                    const leaderFiltered = candidateMembers.filter((m) => {
+                      if (!keyword) return true;
+                      const haystack = `${m?.name ?? ''} ${m?.major ?? ''} ${m?.phone ?? ''}`.toLowerCase();
+                      return haystack.includes(keyword);
+                    });
+                    return leaderFiltered.map((m, idx) => (
+                      <div key={m.id}>
+                        <button type="button" onClick={() => setLeaderId(m.id)} className="w-full bg-neutral-2 px-4 py-4 text-left transition-colors hover:bg-neutral-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 flex flex-col gap-1">
+                              <p className="typo-body-small-bold text-neutral-12">{m.name}</p>
+                              <p className="typo-body-xsmall text-neutral-9">{m.phone ? formatPhone(m.phone) : '-'}</p>
+                            </div>
+                            <div className="ml-4 mt-1">
+                              {leaderId === m.id ? (
+                                <Image
+                                  src="http://localhost:3845/assets/c7ba311a28712c18910b68566da1264af8e2acd6.svg"
+                                  alt="selected"
+                                  width={24}
+                                  height={24}
+                                />
+                              ) : (
+                                <Image
+                                  src="http://localhost:3845/assets/cccab0fded6198009335d639fa7656370c63e78a.svg"
+                                  alt="unselected"
+                                  width={24}
+                                  height={24}
+                                />
+                              )}
+                            </div>
                           </div>
-                          <div className="ml-4 mt-1">
-                            {leaderId === m.id ? (
-                              <Image
-                                src="http://localhost:3845/assets/c7ba311a28712c18910b68566da1264af8e2acd6.svg"
-                                alt="selected"
-                                width={24}
-                                height={24}
-                              />
-                            ) : (
-                              <Image
-                                src="http://localhost:3845/assets/cccab0fded6198009335d639fa7656370c63e78a.svg"
-                                alt="unselected"
-                                width={24}
-                                height={24}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                      {idx < allMembersCache.length - 1 && <div className="h-px bg-neutral-4" />}
-                    </div>
-                  ))}
+                        </button>
+                        {idx < leaderFiltered.length - 1 && <div className="h-px bg-neutral-4" />}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
               <div className="p-4"><Button type="button" color="black" size="l" onClick={() => setShowLeaderModal(false)}>선택하기</Button></div>
