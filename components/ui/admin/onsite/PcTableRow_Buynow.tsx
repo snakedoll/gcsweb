@@ -146,7 +146,7 @@ export default function PcTableRow_Buynow({
         ) : (
           <div className="flex w-full flex-col gap-[3px] text-neutral-10">
             <p className="typo-body-small w-full">{orderNumber}</p>
-            {variant === '수령완료' ? <p className="typo-body-small w-full">{transactionId}</p> : null}
+            <p className="typo-body-small w-full">{transactionId}</p>
           </div>
         )}
       </div>
