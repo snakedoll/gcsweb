@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 
@@ -36,18 +37,18 @@ type OrderDetail = {
 
 type ItemOptionValue = {
   value?: unknown;
+  optionValue?: unknown;
 };
 
 const formatOptionQuantityText = (option: unknown, quantity: number): string => {
   const quantityText = `${quantity}개`;
-  let optionValues: string[] = [];
 
   const extractValues = (input: unknown): string[] => {
     if (Array.isArray(input)) {
       return input
         .map((row) => {
-          if (row && typeof row === 'object' && 'value' in row) {
-            const value = (row as ItemOptionValue).value;
+          if (row && typeof row === 'object') {
+            const value = (row as ItemOptionValue).optionValue ?? (row as ItemOptionValue).value;
             return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
           }
           if (typeof row === 'string') return row.trim();
@@ -69,11 +70,8 @@ const formatOptionQuantityText = (option: unknown, quantity: number): string => 
     return [];
   };
 
-  optionValues = extractValues(option);
-
-  if (optionValues.length === 0) {
-    return quantityText;
-  }
+  const optionValues = extractValues(option);
+  if (optionValues.length === 0) return quantityText;
 
   return `${optionValues.join(' · ')} / ${quantityText}`;
 };
@@ -187,10 +185,15 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                 <span className="text-[15px] font-normal leading-[1.5] text-[#3f3835]">총 {detail.items.length}건</span>
               </div>
 
-              {detail.requiresBagPackaging && buttonState === 'NOT_RECEIVED' ? (
-                <div className="flex items-center gap-2 text-[13px] tracking-[-0.26px] text-[#f46d25]">
-                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#f46d25] text-[11px] font-bold text-white">i</span>
-                  <span>{detail.bagNoticeMessage ?? '봉투에 담아주세요'}</span>
+              {detail.requiresBagPackaging ? (
+                <div className="flex items-center justify-between rounded-[8px] border border-[#F1F1F1] bg-[#FDFDFD] px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <Image src="/assets/icons/light/info-circle.svg" alt="info" width={16} height={16} />
+                    <span className="text-[13px] leading-[1.5] tracking-[-0.26px] text-[#F46D25]">
+                      {detail.bagNoticeMessage ?? '봉투에 담아주세요'}
+                    </span>
+                  </div>
+                  <span className="text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#3F3835]">100원</span>
                 </div>
               ) : null}
 
@@ -241,7 +244,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
               disabled
               className="flex h-[55px] w-full items-center justify-center rounded-[8px] bg-[#c7c5c4] text-[15px] font-bold text-[#fdfdfd]"
             >
-              주문이 취소된 상품입니다.
+              주문이 취소된 상품입니다
             </button>
           ) : buttonState !== 'RECEIVED' ? (
             <button

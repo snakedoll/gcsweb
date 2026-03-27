@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import {
+  toOnsitePaymentStatusLabel,
+  toOnsiteReceiptStatusLabel,
+} from '@/lib/admin-onsite-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +28,8 @@ type MappedOrderItem = {
 type MappedOrder = {
   id: string;
   productType: number;
+  paymentStatusCode: number;
+  fulfillmentStatusCode: number;
   orderId: string;
   orderTime: string;
   fullOrderTime: string;
@@ -77,6 +83,11 @@ function toOptionQuantityText(optionData: unknown, quantity: number): string {
   return `${values.join(' · ')} / ${quantity}개`;
 }
 
+function toPaymentMethodLabel(paymentMethod: number) {
+  if (paymentMethod === 3) return '현장결제';
+  return '온라인결제';
+}
+
 export async function GET(req: Request) {
   try {
     const auth = await requireAdmin();
@@ -88,14 +99,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() ?? '';
 
-    // NOTE:
-    // Prisma Client 타입이 스키마와 불일치하는 환경에서도 컴파일이 깨지지 않도록
-    // where/include를 any로 구성합니다.
     const where: any = {
       productType: 1,
       receiveMethod: 1,
-      paymentStatus: { in: [1, 2, 3, 4] },
+      paymentStatus: { in: [0, 1, 2, 3, 4] },
     };
+
     if (search) {
       where.OR = [
         { orderCode: { contains: search, mode: 'insensitive' } },
@@ -125,22 +134,21 @@ export async function GET(req: Request) {
       const HH = String(dateObj.getHours()).padStart(2, '0');
       const mm = String(dateObj.getMinutes()).padStart(2, '0');
 
-      let paymentStatusStr = '오류';
-      if (order.paymentStatus === 1) paymentStatusStr = '미결제';
-      if (order.paymentStatus === 2) paymentStatusStr = '결제완료';
-      if (order.paymentStatus === 3) paymentStatusStr = '주문취소';
-      if (order.paymentStatus === 4) paymentStatusStr = '결제실패';
+      const paymentStatusCode = Number(order.paymentStatus ?? 0);
+      const fulfillmentStatusCode = Number(order.fulfillmentStatus ?? 0);
+      const paymentMethodCode = Number(order.paymentMethod ?? 0);
 
-      const receiptStatusStr = order.fulfillmentStatus === 1 ? '수령완료' : '미수령';
-
-      let paymentMethodStr = '알수없음';
-      if ([0, 1, 2].includes(order.paymentMethod)) paymentMethodStr = '온라인결제';
-      if ([3, 4].includes(order.paymentMethod)) paymentMethodStr = '현장결제';
+      const paymentStatus = toOnsitePaymentStatusLabel({
+        paymentMethod: paymentMethodCode,
+        paymentStatus: paymentStatusCode,
+        fulfillmentStatus: fulfillmentStatusCode,
+      });
+      const receiptStatus = toOnsiteReceiptStatusLabel(fulfillmentStatusCode);
 
       const items: MappedOrderItem[] = Array.isArray(order.items)
         ? order.items.map((item: any) => ({
             id: String(item.id ?? ''),
-            name: String(item.product?.name ?? '알수없는 상품'),
+            name: String(item.product?.name ?? '알 수 없는 상품'),
             options: toOptionQuantityText(item.optionData, Number(item.quantity ?? 1)),
             price: Number(item.price ?? 0),
             quantity: Number(item.quantity ?? 1),
@@ -152,14 +160,16 @@ export async function GET(req: Request) {
       return {
         id: String(order.id),
         productType: Number(order.productType ?? 1),
+        paymentStatusCode,
+        fulfillmentStatusCode,
         orderId: String(order.orderCode ?? String(order.id ?? '').slice(-10).toUpperCase()),
         orderTime: `${HH}:${mm}`,
         fullOrderTime: `${YY}.${MM}.${DD} ${HH}:${mm}`,
         orderDateRaw: `${parseInt(MM, 10)}월 ${parseInt(DD, 10)}일`,
-        paymentStatus: paymentStatusStr,
-        paymentMethodStr,
+        paymentStatus,
+        paymentMethodStr: toPaymentMethodLabel(paymentMethodCode),
         paymentAmount: Number(order.paymentAmount ?? 0),
-        receiptStatus: receiptStatusStr,
+        receiptStatus,
         impUid: String(order.impUid ?? '-'),
         bagOption: hasBagOption,
         requiresBagPackaging: hasBagOption,
