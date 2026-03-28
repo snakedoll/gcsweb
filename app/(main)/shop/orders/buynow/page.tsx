@@ -338,6 +338,18 @@ function ShopOrdersBuyNowPageContent() {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.status !== 'success') {
+        const errorCode = typeof json?.code === 'string' ? json.code : '';
+        const errorMessage = typeof json?.message === 'string' ? json.message : '';
+        const isSoldOutError =
+          errorCode === 'INVALID_STATE' &&
+          errorMessage.toLowerCase().includes('sold-out variants cannot be ordered');
+
+        if (isSoldOutError) {
+          setShowSoldOutModal(true);
+          setSubmitError(null);
+          return;
+        }
+
         setSubmitError(json?.message ?? '주문 생성에 실패했습니다.');
         return;
       }
@@ -461,10 +473,7 @@ function ShopOrdersBuyNowPageContent() {
           <div className="w-[343px] rounded-[12px] bg-white px-7 pb-[23px] pt-10">
             <div className="flex flex-col gap-[30px]">
               <div className="flex w-full flex-col items-center gap-1 text-center">
-                <p className="w-[265px] typo-heading-xxsmall text-neutral-12">품절된 상품입니다</p>
-                <p className="w-[265px] whitespace-pre-line typo-body-xsmall text-neutral-12">
-                  {'상품이 품절되어 주문이 불가능합니다.\n현장 직원에게 문의해 주세요.'}
-                </p>
+                <p className="w-[287px] typo-heading-xxsmall text-neutral-12">품절된 상품이 포함되어 있습니다.</p>
               </div>
               <button
                 type="button"

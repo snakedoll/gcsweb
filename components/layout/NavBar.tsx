@@ -143,7 +143,9 @@ export default function NavBar({
           >
             <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
           </button>
-          <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={53} height={19} />
+          <Link href={homeHref} aria-label="홈으로 이동" className="inline-flex items-center justify-center">
+            <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={53} height={19} />
+          </Link>
           <span className="inline-flex h-6 w-3 opacity-0" aria-hidden />
         </div>
       </div>

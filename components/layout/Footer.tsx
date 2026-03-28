@@ -56,12 +56,20 @@ export default function Footer() {
           </Link>
 
           {showAdminButton ? (
-            <Link
-              href="/admin"
-              className="mt-2 inline-flex h-[31px] items-center justify-center rounded-[8px] bg-orange-5 px-4 text-[15px] font-bold leading-[1.5] text-neutral-2 transition-colors hover:bg-orange-6"
-            >
-              admin
-            </Link>
+            <div className="mt-2 flex items-start gap-2">
+              <Link
+                href="/admin"
+                className="inline-flex h-[22px] w-20 items-center justify-center rounded-[8px] bg-orange-5 typo-body-xxsmall-bold text-neutral-2 transition-colors hover:bg-orange-6"
+              >
+                관리자
+              </Link>
+              <Link
+                href="/admin/onsite"
+                className="inline-flex h-[22px] w-20 items-center justify-center rounded-[8px] bg-orange-5 typo-body-xxsmall-bold text-neutral-2 transition-colors hover:bg-orange-6"
+              >
+                박람회
+              </Link>
+            </div>
           ) : null}
         </div>
       </div>

@@ -111,6 +111,10 @@ body {
   .typo-body-xxsmall {
     @apply text-[11px] font-normal leading-[150%] tracking-[0];
   }
+
+  .typo-body-xxsmall-bold {
+    @apply text-[11px] font-bold leading-[150%] tracking-[0];
+  }
 }
 
 /* react-datepicker: 앱 테마(주황) 적용 */
