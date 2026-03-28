@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -685,7 +685,7 @@ export default function CartPage() {
     const query = `?cartItemIds=${encodeURIComponent(cartItemIds)}`;
 
     if (first.type === 0) {
-      const route = first.receiveMethod === 1 ? '/shop/orders/pickup' : '/shop/orders';
+      const route = first.receiveMethod === 1 ? '/shop/orders/fund/pickup' : '/shop/orders/fund/delivery';
       router.push(`${route}${query}`);
       return;
     }

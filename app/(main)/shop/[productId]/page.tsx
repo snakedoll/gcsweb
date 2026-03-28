@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -467,7 +467,7 @@ export default function ShopDetailPage() {
         : '';
 
     if (target.type === 0) {
-      return target.receiveMethod === 0 ? `/shop/orders${query}` : `/shop/orders/pickup${query}`;
+      return target.receiveMethod === 0 ? `/shop/orders/fund/delivery${query}` : `/shop/orders/fund/pickup${query}`;
     }
     if (target.type === 1 || target.type === 2) {
       return `/shop/orders/buynow${query}`;
