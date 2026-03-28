@@ -477,10 +477,10 @@ function ShopOrdersBuyNowPageContent() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowSoldOutModal(false)}
+                onClick={() => router.push('/shop')}
                 className="h-[47px] w-full rounded-lg bg-orange-5 typo-body-small-bold text-neutral-2"
               >
-                확인
+                Shop으로 이동
               </button>
             </div>
           </div>

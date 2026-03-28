@@ -16,6 +16,21 @@ function toPaymentMethodLabel(paymentMethod: number): string {
   return isCounterPaymentMethod(paymentMethod) ? '현장결제' : '온라인결제';
 }
 
+function normalizeTransactionId(impUid: unknown, fallbackOrderId: string): string {
+  const fallback = String(fallbackOrderId ?? '-').trim() || '-';
+  const raw = typeof impUid === 'string' ? impUid.trim() : '';
+
+  if (!raw) return fallback;
+
+  const cleaned = raw.replace(/\(\s*null\s*\)\s*$/i, '').trim();
+  const lowered = cleaned.toLowerCase();
+  if (!cleaned || cleaned === '-' || lowered === 'null' || lowered === 'undefined') {
+    return fallback;
+  }
+
+  return cleaned;
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
@@ -63,7 +78,7 @@ export async function GET(
     const formattedData = {
       id: order.id,
       orderCode: order.orderCode ?? order.id.slice(-10).toUpperCase(),
-      impUid: order.impUid ?? '-',
+      impUid: normalizeTransactionId(order.impUid, order.id),
       orderDate: `${YYYY}. ${MM}. ${DD} ${HH}:${mm}`,
       isCanceled,
       paymentStatus: order.paymentStatus,

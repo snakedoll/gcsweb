@@ -169,7 +169,7 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
                 </div>
                 <div className="flex h-[19.49px] items-center gap-4">
                   <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">포트원 거래번호</span>
-                  <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.impUid}</span>
+                  <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{typeof detail.impUid === 'string' && detail.impUid.trim() ? detail.impUid : '-'}</span>
                 </div>
                 <div className="flex h-[19.49px] items-center gap-4">
                   <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 일시</span>

@@ -31,7 +31,14 @@ function SectionTitle({ title, href }: { title: string; href: string }) {
   return (
     <Link href={href} className="inline-flex items-center gap-0.5">
       <span className="typo-heading-xsmall text-orange-4">{title}</span>
-      <span className="text-[18px] leading-none text-orange-4">{'>'}</span>
+      <Image
+        src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg"
+        alt=""
+        width={22}
+        height={22}
+        className="[filter:brightness(0)_saturate(100%)_invert(64%)_sepia(65%)_saturate(1452%)_hue-rotate(331deg)_brightness(102%)_contrast(93%)]"
+        aria-hidden
+      />
     </Link>
   );
 }
@@ -273,7 +280,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   aria-label="이전"
-                  className="inline-flex h-6 w-6 items-center justify-center text-neutral-6"
+                  className={`inline-flex h-6 w-6 items-center justify-center ${
+                    buyNowProducts.length === 0 ? 'text-neutral-6' : 'text-orange-3'
+                  }`}
                   onClick={() => moveBuyNow(-1)}
                   disabled={buyNowProducts.length <= 1 || isBuyNowAnimating}
                 >
@@ -321,7 +330,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   aria-label="다음"
-                  className="inline-flex h-6 w-6 items-center justify-center text-[#FAC0A1]"
+                  className={`inline-flex h-6 w-6 items-center justify-center ${
+                    buyNowProducts.length === 0 ? 'text-neutral-6' : 'text-orange-3'
+                  }`}
                   onClick={() => moveBuyNow(1)}
                   disabled={buyNowProducts.length <= 1 || isBuyNowAnimating}
                 >
@@ -340,7 +351,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   aria-label="이전"
-                  className="inline-flex h-6 w-6 items-center justify-center text-neutral-6"
+                  className={`inline-flex h-6 w-6 items-center justify-center ${
+                    fundProducts.length === 0 ? 'text-neutral-6' : 'text-orange-3'
+                  }`}
                   onClick={() => moveFund(-1)}
                   disabled={fundProducts.length <= 1 || isFundAnimating}
                 >
@@ -388,7 +401,9 @@ export default function HomePage() {
                 <button
                   type="button"
                   aria-label="다음"
-                  className="inline-flex h-6 w-6 items-center justify-center text-[#FAC0A1]"
+                  className={`inline-flex h-6 w-6 items-center justify-center ${
+                    fundProducts.length === 0 ? 'text-neutral-6' : 'text-orange-3'
+                  }`}
                   onClick={() => moveFund(1)}
                   disabled={fundProducts.length <= 1 || isFundAnimating}
                 >
