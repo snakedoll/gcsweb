@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import TabBar from '@/components/ui/button/TabBar';
+import Modal from '@/components/ui/common/Modal';
 import SearchBar from '@/components/ui/common/SearchBar';
 import { Matrix_Attribute_06, Matrix_Contents_06, PcTableRow_Buynow } from '@/components/ui/admin/onsite';
 
@@ -50,6 +51,7 @@ export default function AdminOnsitePage() {
   const [loading, setLoading] = useState(true);
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
   const [updatingCancelId, setUpdatingCancelId] = useState<string | null>(null);
+  const [pendingCancelItem, setPendingCancelItem] = useState<ReceiptItem | null>(null);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -116,7 +118,7 @@ export default function AdminOnsitePage() {
   };
 
   const handleCancelOrder = async (item: ReceiptItem) => {
-    if (updatingCancelId === item.id || item.paymentStatusCode === 3) return;
+    if (updatingCancelId === item.id || item.paymentStatusCode === 3) return false;
 
     try {
       setUpdatingCancelId(item.id);
@@ -129,15 +131,35 @@ export default function AdminOnsitePage() {
       const json = await res.json();
       if (!res.ok || json?.status !== 'success') {
         alert(json?.message || '주문 취소에 실패했습니다.');
-        return;
+        return false;
       }
 
       await fetchGroups();
+      return true;
     } catch (error) {
       console.error('Failed to cancel order:', error);
       alert('주문 취소 중 오류가 발생했습니다.');
+      return false;
     } finally {
       setUpdatingCancelId(null);
+    }
+  };
+
+  const openCancelModal = (item: ReceiptItem) => {
+    if (updatingCancelId === item.id || item.paymentStatusCode === 3) return;
+    setPendingCancelItem(item);
+  };
+
+  const closeCancelModal = () => {
+    if (pendingCancelItem && updatingCancelId === pendingCancelItem.id) return;
+    setPendingCancelItem(null);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!pendingCancelItem) return;
+    const success = await handleCancelOrder(pendingCancelItem);
+    if (success) {
+      setPendingCancelItem(null);
     }
   };
 
@@ -337,7 +359,7 @@ export default function AdminOnsitePage() {
                           void handleToggleReceipt(item);
                         }}
                         onCancelClick={() => {
-                          void handleCancelOrder(item);
+                          openCancelModal(item);
                         }}
                         receiptDisabled={isCanceled || isReceiptUpdating}
                         cancelDisabled={isCanceled || isCancelUpdating}
@@ -355,6 +377,22 @@ export default function AdminOnsitePage() {
           <div className="pt-2 text-right text-[13px] text-[#6C6764]">총 {totalCount}건</div>
         </div>
       </div>
+
+      {pendingCancelItem ? (
+        <div className="fixed inset-0 z-50 hidden items-center justify-center bg-[rgba(0,0,0,0.3)] px-4 lg:flex">
+          <Modal
+            title="해당 주문을 취소하시겠습니까?"
+            variant="Default"
+            cancelText="취소"
+            confirmText={updatingCancelId === pendingCancelItem.id ? '처리중' : '확인'}
+            onCancel={closeCancelModal}
+            onConfirm={() => {
+              void confirmCancelOrder();
+            }}
+            disabled={updatingCancelId === pendingCancelItem.id}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

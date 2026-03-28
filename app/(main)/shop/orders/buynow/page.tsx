@@ -353,6 +353,7 @@ function ShopOrdersBuyNowPageContent() {
         return;
       }
 
+      // 결제 수단에 따라 리다이렉트
       if (paymentMethod === 3) {
         router.push(`/shop/orders/buynow/result?orderId=${orderId}&counterPay=1`);
       } else {

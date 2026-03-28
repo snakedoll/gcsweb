@@ -145,8 +145,8 @@ export default function PcTableRow_Buynow({
           <p className="typo-body-xsmall-bold w-full text-neutral-10">주문번호 · 거래번호</p>
         ) : (
           <div className="flex w-full flex-col gap-[3px] text-neutral-10">
-            <p className="typo-body-small w-full">{orderNumber}</p>
-            <p className="typo-body-small w-full">{transactionId}</p>
+            <p className="typo-body-small w-full text-orange-5">{orderNumber}</p>
+            <p className="typo-body-small w-full break-all whitespace-normal">{transactionId}</p>
           </div>
         )}
       </div>

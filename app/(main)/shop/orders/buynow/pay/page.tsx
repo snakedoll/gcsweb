@@ -1,3 +1,4 @@
+// 포트원 결제창 호출 
 'use client';
 
 import * as PortOne from '@portone/browser-sdk/v2';
@@ -48,6 +49,7 @@ function PayContent() {
 
       const redirectFull = `${data.redirectUrl}?orderId=${orderId}`;
 
+      // PortOne 결제창 호출
       try {
         const response = await PortOne.requestPayment({
           storeId: data.storeId,

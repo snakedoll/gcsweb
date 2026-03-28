@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Script from 'next/script';
 import { Suspense, useEffect, useMemo, useState } from 'react';
