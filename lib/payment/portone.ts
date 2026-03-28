@@ -131,12 +131,28 @@ export async function getPayment(merchantUid: string): Promise<{
     return { success: false, code: 'NOT_FOUND', message: '결제 정보를 찾을 수 없습니다.' };
   }
 
-  const impUid = payload.pgTid || payload.transactionId || payload.imp_uid;
+  const rawTotal =
+    payload?.amount?.total ??
+    payload?.amount?.paid ??
+    payload?.amount ??
+    payload?.totalAmount ??
+    payload?.paidAmount;
+  const total = typeof rawTotal === 'number' ? rawTotal : Number(rawTotal);
+  const hasTotal = Number.isFinite(total);
+
+  // PortOne 응답 포맷(v1/v2/PG별 차이)마다 거래번호 필드명이 다를 수 있어 폭넓게 폴백한다.
+  const impUid =
+    payload.pgTid ||
+    payload.transactionId ||
+    payload.imp_uid ||
+    payload.paymentId ||
+    payload.id ||
+    payload.merchant_uid;
 
   return {
     success: true,
     status: payload.status,
-    amount: total != null ? { total } : undefined,
+    amount: hasTotal ? { total } : undefined,
     impUid: typeof impUid === 'string' ? impUid : undefined,
   };
 }
