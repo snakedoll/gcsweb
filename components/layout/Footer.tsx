@@ -67,7 +67,7 @@ export default function Footer() {
                 href="/admin/onsite"
                 className="inline-flex h-[22px] w-20 items-center justify-center rounded-[8px] bg-orange-5 typo-body-xxsmall-bold text-neutral-2 transition-colors hover:bg-orange-6"
               >
-                현장판매
+                박람회
               </Link>
             </div>
           ) : null}

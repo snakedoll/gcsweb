@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getPayment } from '@/lib/payment/portone';
+import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -22,7 +23,26 @@ export async function POST(_request: Request, { params }: Params) {
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, productType: { in: [0, 1] } },
-      select: { id: true, paymentAmount: true, paymentStatus: true },
+      select: {
+        id: true,
+        paymentAmount: true,
+        paymentStatus: true,
+        items: {
+          select: {
+            optionData: true,
+            product: {
+              select: {
+                variants: {
+                  select: {
+                    optionSignature: true,
+                    isSoldOut: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -33,6 +53,22 @@ export async function POST(_request: Request, { params }: Params) {
       return NextResponse.json({
         status: 'success',
         data: { verified: true, alreadyPaid: true },
+      });
+    }
+
+    // Re-check sold-out state at payment verification time.
+    // If stock changed while user was in the payment window, fail the verification.
+    const hasSoldOutVariant = order.items.some((item) =>
+      isMatchedVariantSoldOut(item.product?.variants ?? [], item.optionData)
+    );
+    if (hasSoldOutVariant) {
+      return NextResponse.json({
+        status: 'success',
+        data: {
+          verified: false,
+          code: 'VARIANT_SOLD_OUT',
+          message: '품절된 상품으로 결제 실패하였습니다.',
+        },
       });
     }
 

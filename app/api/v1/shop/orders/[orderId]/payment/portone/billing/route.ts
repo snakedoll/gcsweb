@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: Params) {
       billingKey,
       orderName: goodname,
       totalAmount: order.paymentAmount,
-      customerName: order.ordererName,
+      customerName: order.ordererName ?? undefined,
       customerMobile: order.ordererPhone ?? undefined,
     });
 

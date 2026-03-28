@@ -92,7 +92,7 @@ export default function BottomSheet({
                         subtext: getOptionSubtext(value),
                       }))}
                       open={isOpened}
-                      onToggle={() => !isOrderBlocked && onOptionToggle?.(index)}
+                      onToggle={() => onOptionToggle?.(index)}
                       onSelect={(value) => onOptionSelect?.(index, value)}
                       className="gap-[5px]"
                     />

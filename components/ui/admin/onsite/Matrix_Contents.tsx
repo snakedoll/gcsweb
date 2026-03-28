@@ -39,12 +39,12 @@ export default function Matrix_Contents({
       </div>
 
       <div className="flex min-w-0 flex-1 items-center px-2 py-3">
-        <p className="w-full truncate text-[13px] leading-[1.5] tracking-[-0.26px] text-black">{productName}</p>
+        <p className="w-full whitespace-normal break-words text-[13px] leading-[1.5] tracking-[-0.26px] text-black">{productName}</p>
       </div>
 
-      <div className="flex h-[58px] w-[82px] flex-col justify-center px-2 py-3">
-        {optionText.slice(0, 3).map((line) => (
-          <p key={line} className="truncate text-[11px] leading-[1.5] text-black">
+      <div className="flex min-h-[58px] w-[82px] flex-col justify-center px-2 py-3">
+        {optionText.map((line, index) => (
+          <p key={`${line}-${index}`} className="w-full whitespace-normal break-words text-[11px] leading-[1.5] text-black">
             {line}
           </p>
         ))}

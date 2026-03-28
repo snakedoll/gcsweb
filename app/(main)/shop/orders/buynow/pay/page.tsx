@@ -21,6 +21,7 @@ function PayContent() {
       const json = await res.json().catch(() => ({}));
       if (cancelled) return;
 
+      //서버에서 결제에 필요한 정보를 불러오지 못한 경우
       if (!res.ok || json?.status !== 'success') {
         setError(json?.message ?? '결제 정보를 불러올 수 없습니다.');
         return;
@@ -40,6 +41,7 @@ function PayContent() {
         buyerEmail?: string;
       };
 
+      // 제 SDK 호출에 필요한 최소한의 정보가 없는 경우
       if (!data.storeId || !data.channelKey || !data.paymentId) {
         setError('결제 정보가 올바르지 않습니다.');
         return;
@@ -68,6 +70,7 @@ function PayContent() {
           },
         });
 
+        // 포트원 쪽에서 결제 요청이 실패/취소/검증불가 등으로 처리된 경우
         if (response?.code != null) {
           setError(response?.message ?? '결제 요청에 실패했습니다.');
           triggered.current = false;
@@ -81,6 +84,7 @@ function PayContent() {
     return () => { cancelled = true; };
   }, [orderId]);
 
+  // requestPayment 호출 자체 예외 발생한 경우
   if (error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-neutral-3 px-5 text-center">
