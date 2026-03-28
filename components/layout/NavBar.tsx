@@ -143,9 +143,14 @@ export default function NavBar({
           >
             <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />
           </button>
-          <Link href={homeHref} aria-label="홈으로 이동" className="inline-flex items-center justify-center">
+          <button
+            type="button"
+            aria-label="홈으로 이동"
+            onClick={() => router.push(homeHref)}
+            className="inline-flex items-center justify-center"
+          >
             <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={53} height={19} />
-          </Link>
+          </button>
           <span className="inline-flex h-6 w-3 opacity-0" aria-hidden />
         </div>
       </div>
@@ -236,9 +241,14 @@ export default function NavBar({
             >
               <Image src="/assets/icons/icon-user-nav.svg" alt="" width={24} height={24} />
             </Link>
-            <Link href={homeHref} aria-label="홈" className="inline-flex items-center justify-center">
+            <button
+              type="button"
+              aria-label="홈"
+              onClick={() => router.push(homeHref)}
+              className="inline-flex items-center justify-center"
+            >
               <Image src="/assets/logos/logo-gcs.svg" alt="GCS" width={53} height={19} />
-            </Link>
+            </button>
             <Link href={cartHref} aria-label="장바구니" className="inline-flex h-6 w-6 items-center justify-center">
               <Image src="/assets/icons/icon-cart-nav.svg" alt="" width={24} height={24} />
             </Link>
