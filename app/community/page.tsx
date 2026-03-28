@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Banner, BottomTabBar, Footer, NavBar } from '@/components/layout';
 import TabBar from '@/components/ui/button/TabBar';
@@ -15,7 +15,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-neutral-3">
-      <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
+      <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
         <NavBar />
         <Banner variant="community" />
 
@@ -26,17 +26,24 @@ export default function CommunityPage() {
           className="bg-neutral-3 py-0"
         />
 
-        <section className="flex h-[439px] items-center justify-center bg-neutral-3 px-5">
-          <EmptyviewText
-            className="w-[307px]"
-            title="Comming Soon!"
-            subtitle="Community는 추후 오픈 예정입니다."
-          />
-        </section>
+        <main className="flex-1">
+          <section className="flex h-[507px] items-center justify-center bg-neutral-3 px-5">
+            <EmptyviewText
+              className="w-[307px]"
+              title="Comming Soon!"
+              subtitle="Community는 추후 오픈 예정입니다."
+            />
+          </section>
+        </main>
 
-        <BottomTabBar variant="community" />
-        <Footer />
+        <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-[375px] -translate-x-1/2">
+          <BottomTabBar variant="community" />
+        </div>
+        <div className="pb-[74px]">
+          <Footer />
+        </div>
       </div>
     </div>
   );
 }
+

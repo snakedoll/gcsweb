@@ -17,7 +17,7 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-3">
-      <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
+      <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
         <NavBar />
         <Banner variant="about" />
 
@@ -28,12 +28,22 @@ export default function AboutPage() {
           className="bg-neutral-3 py-0"
         />
 
-        <section className="flex h-[510px] items-start justify-center pt-[206px]">
-          <EmptyviewText title="Comming Soon!" subtitle="About GCS는 추후 오픈 예정입니다." className="w-[307px]" />
-        </section>
+        <main className="flex-1">
+          <section className="flex h-[507px] items-center justify-center">
+            <EmptyviewText
+              title="Comming Soon!"
+              subtitle="About GCS는 추후 오픈 예정입니다."
+              className="w-[307px]"
+            />
+          </section>
+        </main>
 
-        <BottomTabBar variant="about" />
-        <Footer />
+        <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-[375px] -translate-x-1/2">
+          <BottomTabBar variant="about" />
+        </div>
+        <div className="pb-[74px]">
+          <Footer />
+        </div>
       </div>
     </div>
   );
