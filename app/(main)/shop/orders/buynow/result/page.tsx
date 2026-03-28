@@ -185,18 +185,15 @@ function ResultContent() {
     );
   }
 
-  // status === 'fail' 
+  // status === 'fail'
   // orderId(또는 paymentId)가 없는 경우, 포트원에서 결제 실패 후 돌아온 경우, 결제 검증 3회 모두 실패한 경우
   return (
     <div className="min-h-[calc(100vh-78px)] bg-neutral-3">
       <NavBar variant="title-back" title="주문하기" onBack={() => router.push('/shop')} />
       <div className="mx-auto flex w-full max-w-[375px] flex-col items-center gap-4 px-5 pb-[220px] pt-[220px] text-center">
-        <EmptyviewText
-          title={message === '품절된 상품으로 결제 실패하였습니다.' ? '품절된 상품으로 결제 실패하였습니다.' : '결제에 실패했습니다.'}
-          subtitle={message === '품절된 상품으로 결제 실패하였습니다.' ? '' : message}
-        />
+        <EmptyviewText title="결제에 실패했습니다." subtitle={message} />
         <Button size="m" color="orange" className="h-[47px] w-[182px]" onClick={() => router.push('/shop')}>
-          Shop으로 이동
+          홈으로 이동
         </Button>
       </div>
     </div>
