@@ -1,6 +1,7 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import { formatDateTimePartsInSeoul } from '@/lib/datetime';
 import {
   ONSITE_FULFILLMENT_STATUS,
   ONSITE_PAYMENT_STATUS,
@@ -48,12 +49,12 @@ export async function GET(
       return jsonError(404, 'NOT_FOUND', '해당 주문을 찾을 수 없습니다.');
     }
 
-    const dateObj = new Date(order.orderDate);
-    const YYYY = dateObj.getFullYear();
-    const MM = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const DD = String(dateObj.getDate()).padStart(2, '0');
-    const HH = String(dateObj.getHours()).padStart(2, '0');
-    const mm = String(dateObj.getMinutes()).padStart(2, '0');
+    const { year, month, day, hour, minute } = formatDateTimePartsInSeoul(order.orderDate);
+    const YYYY = Number(year);
+    const MM = month;
+    const DD = day;
+    const HH = hour;
+    const mm = minute;
 
     const isCanceled = order.paymentStatus === ONSITE_PAYMENT_STATUS.CANCELED;
     const fulfillmentStatus =
@@ -185,3 +186,4 @@ export async function PATCH(
     return jsonError(500, 'INTERNAL_SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }
 }
+

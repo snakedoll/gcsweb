@@ -1,6 +1,7 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import { formatDateTimePartsInSeoul } from '@/lib/datetime';
 import {
   toOnsitePaymentStatusLabel,
   toOnsiteReceiptStatusLabel,
@@ -127,12 +128,12 @@ export async function GET(req: Request) {
     const orders = (await prisma.order.findMany(query)) as any[];
 
     const mappedData: MappedOrder[] = orders.map((order) => {
-      const dateObj = new Date(order.orderDate);
-      const YY = String(dateObj.getFullYear()).slice(-2);
-      const MM = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const DD = String(dateObj.getDate()).padStart(2, '0');
-      const HH = String(dateObj.getHours()).padStart(2, '0');
-      const mm = String(dateObj.getMinutes()).padStart(2, '0');
+      const { year, month, day, hour, minute } = formatDateTimePartsInSeoul(order.orderDate);
+      const YY = year.slice(-2);
+      const MM = month;
+      const DD = day;
+      const HH = hour;
+      const mm = minute;
 
       const paymentStatusCode = Number(order.paymentStatus ?? 0);
       const fulfillmentStatusCode = Number(order.fulfillmentStatus ?? 0);
@@ -194,3 +195,4 @@ export async function GET(req: Request) {
     return jsonError(500, 'INTERNAL_SERVER_ERROR', '서버 내부 오류가 발생했습니다.');
   }
 }
+
