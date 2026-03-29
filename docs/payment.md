@@ -3,7 +3,7 @@
 ## 개요
 
 - **Buy Now 상품**: 포트원 결제창 SDK (KG이니시스 채널)
-- **Fund 상품**: 포트원 **V1 REST** 빌링키 흐름(아임포트 `subscribe/payments/onetime` → 즉시취소 → 만기 시 `subscribe/payments/again`). 사용 PG는 **`PORTONE_BILLING_PG`** 로 지정한다 (헥토 `settle.*` 또는 KG이니시스 `html5_inicis.{MID}` 등).
+- **Fund 상품**: 포트원 빌링키 결제 (헥토파이낸셜 채널)
 
 환경 변수는 `.env`에 설정한다.
 
@@ -15,7 +15,7 @@
 |------|------|
 | `PORTONE_STORE_ID` | 포트원 스토어 ID |
 | `PORTONE_CHANNEL_KEY` | Buy Now 결제 채널 Key (KG이니시스) |
-| `PORTONE_BILLING_CHANNEL_KEY` | Fund **V2 브라우저 빌링키 UI**용 채널 Key (선택). 현재 구현의 카드등록은 서버 onetime 위주 |
+| `PORTONE_BILLING_CHANNEL_KEY` | Fund 빌링키 채널 Key (헥토파이낸셜) |
 | `PORTONE_API_SECRET` | 포트원 API Secret (결제 조회·빌링키 결제 인증용) |
 
 ---
@@ -42,17 +42,11 @@
 
 ## Fund (포트원 빌링키)
 
-### 흐름 (현재 코드 기준)
+### 흐름
 
-1. **빌링키( customer_uid ) 등록**: Fund 택배 주문 페이지에서 카드 정보 입력 후 **카드 등록** → `POST /api/v1/fund/billing/reserve` → 서버가 아임포트 **`POST /subscribe/payments/onetime`** (`pg` = `PORTONE_BILLING_PG`)으로 소액 승인 후 **`cancel`** 로 환불. 성공 시 반환된 `customerUid`를 주문 시 `billingKey`로 저장.
-2. **실결제 시점**: 펀딩 기간 종료·목표 달성 등 조건 충족 시 크론 등에서 **`chargeWithBillingKey`** (`POST .../subscribe/payments/again` 또는 V2 billing-key API) 호출.
-3. **보조**: `PORTONE_V1_IMP_CODE` + `PORTONE_BILLING_PG` 가 모두 있으면 `GET /api/v1/payment/portone/billing-config`는 `mode: v1`을 반환한다. 둘 중 하나라도 비면 `mode: v2` + `storeId`/`channelKey`(브라우저 `requestIssueBillingKey`용)를 반환한다.
-
-### KG이니시스로 Fund PG만 바꾸는 경우
-
-- `PORTONE_BILLING_PG`를 **`html5_inicis.{PG상점아이디}`** 로 설정한다 (예: `html5_inicis.MOI6594311`). 일반결제 MID와 **정기·빌링(비인증) 특약이 붙은 MID**가 다를 수 있으니 KG이니시스/포트원에 확인한다.
-- `PORTONE_V1_API_KEY` / `PORTONE_V1_API_SECRET` 은 그대로 두면 `chargeWithBillingKey`는 V1 `again` 경로를 사용한다(빌링키 발급 PG와 동일 계열이어야 한다).
-- 헥토 전용 값(`settle.*`)은 제거한다.
+1. **빌링키 발급**: Fund 주문 페이지에서 "카드 등록" 클릭 → `GET /api/v1/payment/portone/billing-config`로 `storeId`, `channelKey` 조회 → `PortOne.requestIssueBillingKey()` 호출 → 발급된 `billingKey` 입력 필드에 반영
+2. **주문 생성 시 결제**: `POST /api/v1/shop/orders` body에 `billingKey` 포함. Fund+카드이고 `billingKey`가 있으면 생성 직후 `chargeWithBillingKey` 호출, 성공 시 `paymentStatus=1` 갱신.
+3. **주문 생성 후 결제**: `POST /api/v1/shop/orders/[orderId]/payment/portone/billing` body `{ billingKey }` 로 빌링키 결제 실행. 성공 시 해당 주문 `paymentStatus=1` 갱신.
 
 ### API
 
