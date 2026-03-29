@@ -4,36 +4,36 @@
       "id": "demo-americano-hot",
       "name": "아메리카노",
       "option": "HOT",
-      "price": 4000,
-      "initStock": 100,
-      "currentStock": 100,
+      "price": 100,
+      "initStock": 2,
+      "currentStock": 2,
       "emoji": "☕"
     },
     {
       "id": "demo-americano-ice",
       "name": "아메리카노",
       "option": "ICE",
-      "price": 4500,
-      "initStock": 100,
-      "currentStock": 100,
+      "price": 100,
+      "initStock": 2,
+      "currentStock": 2,
       "emoji": "🧊"
     },
     {
       "id": "demo-latte",
       "name": "카페라떼",
       "option": "HOT",
-      "price": 5000,
-      "initStock": 80,
-      "currentStock": 80,
+      "price": 100,
+      "initStock": 2,
+      "currentStock": 2,
       "emoji": "🥛"
     },
     {
       "id": "demo-ade",
       "name": "자몽에이드",
       "option": "ICED",
-      "price": 5500,
-      "initStock": 50,
-      "currentStock": 50,
+      "price": 100,
+      "initStock": 2,
+      "currentStock": 2,
       "emoji": "🍊"
     }
   ]
