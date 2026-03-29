@@ -28,16 +28,6 @@ function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNul
   return value as Prisma.InputJsonValue;
 }
 
-function extractAdditionalPrice(optionData: unknown): number {
-  const list = Array.isArray(optionData) ? optionData : optionData && typeof optionData === 'object' ? [optionData] : [];
-  return list.reduce((sum, item) => {
-    if (!item || typeof item !== 'object') return sum;
-    const value = (item as Record<string, unknown>).additionalPrice;
-    const parsed = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(parsed) ? sum + parsed : sum;
-  }, 0);
-}
-
 const bodySchema = z.object({
   lines: z
     .array(
@@ -161,7 +151,8 @@ export async function POST(request: Request) {
       if (isMatchedVariantSoldOut(product.variants, optionData)) {
         throw new Error('VARIANT_SOLD_OUT');
       }
-      const unitPrice = product.price + extractAdditionalPrice(optionData);
+      // 금액은 item.json(서버 검증)만 신뢰. 플레이스홀더 Product.price 가 0이 아니어도 Buynow 일반식(product.price+옵션)과 맞추지 않음
+      const unitPrice = row.unitPrice;
       return {
         productId: product.id,
         quantity: row.quantity,
