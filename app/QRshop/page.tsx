@@ -58,7 +58,7 @@ export default function QRshopPage() {
     [lines],
   );
 
-  const handlePay = async () => {
+  const submitOrder = async (paymentMethod: 0 | 3) => {
     if (lines.length === 0 || !agreed || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -73,6 +73,7 @@ export default function QRshopPage() {
         },
         body: JSON.stringify({
           lines: lines.map((row) => ({ itemId: row.item.id, quantity: row.qty })),
+          paymentMethod,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -85,7 +86,11 @@ export default function QRshopPage() {
         setError('주문 번호를 받지 못했습니다.');
         return;
       }
-      router.push(`/QRshop/pay?orderId=${encodeURIComponent(orderId)}`);
+      if (paymentMethod === 3) {
+        router.push(`/QRshop/result?orderId=${encodeURIComponent(orderId)}&counterPay=1`);
+      } else {
+        router.push(`/QRshop/pay?orderId=${encodeURIComponent(orderId)}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -178,14 +183,24 @@ export default function QRshopPage() {
 
           {error ? <p className="mb-2 text-center text-[13px] text-red-600">{error}</p> : null}
 
-          <button
-            type="button"
-            disabled={lines.length === 0 || !agreed || submitting}
-            onClick={() => void handlePay()}
-            className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#3182f6] text-[16px] font-semibold text-white transition enabled:active:scale-[0.99] disabled:bg-neutral-5 disabled:text-neutral-8"
-          >
-            {submitting ? '처리 중…' : '결제하기'}
-          </button>
+          <div className="flex w-full gap-2">
+            <button
+              type="button"
+              disabled={lines.length === 0 || !agreed || submitting}
+              onClick={() => void submitOrder(0)}
+              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] bg-[#3182f6] text-[15px] font-semibold text-white transition enabled:active:scale-[0.99] disabled:bg-neutral-5 disabled:text-neutral-8"
+            >
+              {submitting ? '처리 중…' : '결제하기'}
+            </button>
+            <button
+              type="button"
+              disabled={lines.length === 0 || !agreed || submitting}
+              onClick={() => void submitOrder(3)}
+              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] border-2 border-[#3182f6] bg-white text-[15px] font-semibold text-[#3182f6] transition enabled:active:scale-[0.99] disabled:border-neutral-5 disabled:bg-neutral-3 disabled:text-neutral-8"
+            >
+              {submitting ? '처리 중…' : '현장결제'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

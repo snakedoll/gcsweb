@@ -36,6 +36,7 @@ function ResultContent() {
   const orderId = searchParams.get('orderId') ?? searchParams.get('paymentId');
   const portoneCode = searchParams.get('code');
   const portoneMessage = searchParams.get('message');
+  const isCounterPay = searchParams.get('counterPay') === '1';
 
   const [status, setStatus] = useState<'loading' | 'success' | 'fail'>('loading');
   const [message, setMessage] = useState('');
@@ -46,6 +47,11 @@ function ResultContent() {
     if (!orderId) {
       setStatus('fail');
       setMessage('주문 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (isCounterPay) {
+      setStatus('success');
       return;
     }
 
@@ -88,7 +94,7 @@ function ResultContent() {
     return () => {
       cancelled = true;
     };
-  }, [orderId, portoneCode, portoneMessage]);
+  }, [orderId, portoneCode, portoneMessage, isCounterPay]);
 
   useEffect(() => {
     if (status !== 'success' || !orderId) return;
@@ -142,7 +148,9 @@ function ResultContent() {
   if (status === 'loading') {
     return (
       <div className="flex min-h-dvh items-center justify-center px-5">
-        <p className="text-[15px] text-neutral-8">결제 결과를 확인 중입니다.</p>
+        <p className="text-[15px] text-neutral-8">
+          {isCounterPay ? '주문 정보를 불러오는 중입니다.' : '결제 결과를 확인 중입니다.'}
+        </p>
       </div>
     );
   }
@@ -150,15 +158,29 @@ function ResultContent() {
   if (status === 'success') {
     return (
       <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-8 pb-[max(32px,env(safe-area-inset-bottom))]">
-        <div className="flex flex-col items-center text-center">
+        <div className="flex w-full max-w-[400px] flex-col items-center text-center">
           <div className="rounded-full bg-[#e8f3ff] p-4 text-[40px]" aria-hidden>
             ✓
           </div>
-          <p className="mt-4 text-[20px] font-bold text-neutral-12">결제가 완료되었습니다</p>
+          <p className="mt-4 text-[20px] font-bold text-neutral-12">
+            {isCounterPay ? '주문이 완료되었습니다' : '결제가 완료되었습니다'}
+          </p>
           {orderCode ? (
             <p className="mt-2 text-[16px] font-semibold text-[#3182f6]">주문번호 {orderCode}</p>
           ) : null}
-          <p className="mt-2 text-[14px] text-neutral-8">주문 확인을 위해 번호를 저장해 주세요.</p>
+          <p className="mt-2 text-[14px] text-neutral-8">
+            {isCounterPay
+              ? '카운터에서 결제 시 주문번호를 알려 주세요.'
+              : '주문 확인을 위해 번호를 저장해 주세요.'}
+          </p>
+          {isCounterPay ? (
+            <div
+              className="mt-4 w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[14px] font-semibold leading-snug text-amber-950"
+              role="status"
+            >
+              이 화면을 닫지 말고 카운터 직원에게 보여 주세요.
+            </div>
+          ) : null}
         </div>
 
         {orderLines.length > 0 ? (

@@ -37,6 +37,8 @@ const bodySchema = z.object({
       }),
     )
     .min(1),
+  /** 0: 카드(온라인) 결제창, 3: 현장결제(즉시 접수) */
+  paymentMethod: z.union([z.literal(0), z.literal(3)]).optional().default(0),
 });
 
 const ORDER_CREATE_MAX_RETRIES = 3;
@@ -137,7 +139,8 @@ export async function POST(request: Request) {
 
     const productType = 1 as const;
     const receiveMethod = 1 as const;
-    const paymentMethod = 0 as const;
+    const paymentMethod = parsedBody.data.paymentMethod;
+    const isCounterPay = paymentMethod === 3;
     const bagOption = false;
 
     const itemRows = resolved.map((row) => {
@@ -224,10 +227,10 @@ export async function POST(request: Request) {
             bagOption,
             paymentMethod,
             billingKey: null,
-            cardCompany: 0,
+            cardCompany: isCounterPay ? null : 0,
             bankCode: null,
             easyPayProvider: null,
-            paymentStatus: 0,
+            paymentStatus: isCounterPay ? 1 : 0,
             fulfillmentStatus: null,
             paymentAmount: computedPayment,
           },
