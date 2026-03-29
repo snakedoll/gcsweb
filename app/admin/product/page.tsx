@@ -51,7 +51,7 @@ const TAB_OPTIONS: Array<{ key: ProductTabKey; label: string; type: ProductType 
 
 function formatDate(value: string | null) {
   if (!value) return null;
-  const ymd = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const ymd = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (ymd) return `${ymd[1]}.${ymd[2]}.${ymd[3]}`;
 
   const date = new Date(value);
