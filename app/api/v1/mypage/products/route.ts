@@ -4,6 +4,21 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 
+function toDateOnlyInKst(date: Date | null | undefined): string | null {
+  if (!date) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) return null;
+  return `${year}-${month}-${day}`;
+}
+
 /** 내가 등록한 상품(판매팀 보유 팀 기준) 목록 */
 export async function GET() {
   try {
@@ -50,8 +65,8 @@ export async function GET() {
         description: p.description ?? '',
         teamName: p.team.teamName,
         likeCount: p.likeCount,
-        salesStartDate: p.salesStartDate?.toISOString().slice(0, 10) ?? null,
-        salesEndDate: p.salesEndDate?.toISOString().slice(0, 10) ?? null,
+        salesStartDate: toDateOnlyInKst(p.salesStartDate),
+        salesEndDate: toDateOnlyInKst(p.salesEndDate),
         goalAmount: goal,
         currentAmount: current,
         progressPercent,
@@ -69,9 +84,9 @@ export async function GET() {
   }
 }
 
-function parseDate(str: string | undefined): Date | undefined {
+function parseDate(str: string | undefined, endOfDay = false): Date | undefined {
   if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return undefined;
-  const d = new Date(str + 'T00:00:00');
+  const d = new Date(`${str}T${endOfDay ? '23:59:59.000' : '00:00:00.000'}+09:00`);
   return isNaN(d.getTime()) ? undefined : d;
 }
 
@@ -237,7 +252,7 @@ export async function POST(request: Request) {
     }
 
     const salesStart = parseDate(salesStartDate);
-    const salesEnd = parseDate(salesEndDate);
+    const salesEnd = parseDate(salesEndDate, true);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
@@ -255,9 +270,9 @@ export async function POST(request: Request) {
       if (receiveMethod === 0) {
         if (
           !parseDate(productionStartDate) ||
-          !parseDate(productionEndDate) ||
+          !parseDate(productionEndDate, true) ||
           !parseDate(deliveryStartDate) ||
-          !parseDate(deliveryEndDate)
+          !parseDate(deliveryEndDate, true)
         ) {
           return NextResponse.json(
             { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
@@ -267,7 +282,7 @@ export async function POST(request: Request) {
       } else {
         if (
           !parseDate(pickupStartDate) ||
-          !parseDate(pickupEndDate) ||
+          !parseDate(pickupEndDate, true) ||
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
@@ -307,11 +322,11 @@ export async function POST(request: Request) {
       salesStartDate: salesStart,
       salesEndDate: salesEnd,
       productionStartDate: parseDate(productionStartDate) ?? undefined,
-      productionEndDate: parseDate(productionEndDate) ?? undefined,
+      productionEndDate: parseDate(productionEndDate, true) ?? undefined,
       deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-      deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+      deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
       pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-      pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+      pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
       pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
       receiveMethod,
       isPublic: false,
@@ -383,11 +398,11 @@ export async function POST(request: Request) {
           salesStartDate: salesStart,
           salesEndDate: salesEnd,
           productionStartDate: parseDate(productionStartDate) ?? undefined,
-          productionEndDate: parseDate(productionEndDate) ?? undefined,
+          productionEndDate: parseDate(productionEndDate, true) ?? undefined,
           deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-          deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+          deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
           pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-          pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+          pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
           pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
           receiveMethod,
         },

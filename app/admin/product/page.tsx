@@ -51,12 +51,23 @@ const TAB_OPTIONS: Array<{ key: ProductTabKey; label: string; type: ProductType 
 
 function formatDate(value: string | null) {
   if (!value) return null;
+  const ymd = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) return `${ymd[1]}.${ymd[2]}.${ymd[3]}`;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
 
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const yyyy = parts.find((part) => part.type === 'year')?.value;
+  const mm = parts.find((part) => part.type === 'month')?.value;
+  const dd = parts.find((part) => part.type === 'day')?.value;
+  if (!yyyy || !mm || !dd) return null;
   return `${yyyy}.${mm}.${dd}`;
 }
 
