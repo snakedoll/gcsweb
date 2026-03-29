@@ -94,12 +94,12 @@ function ShopProductCard({
 
 export default function ShopPage() {
   const router = useRouter();
-  const [typeTab, setTypeTab] = useState<TypeTabKey>('fund');
+  const [typeTab, setTypeTab] = useState<TypeTabKey>('buyNow');
   const [statusTab, setStatusTab] = useState<StatusTabKey>('active');
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const activeType = useMemo(() => TYPE_TABS.find((tab) => tab.key === typeTab)?.type ?? 0, [typeTab]);
+  const activeType = useMemo(() => TYPE_TABS.find((tab) => tab.key === typeTab)?.type ?? 1, [typeTab]);
   const activeStatus = useMemo(() => STATUS_TABS.find((tab) => tab.key === statusTab)?.status ?? 1, [statusTab]);
 
   const updateProductLike = async (productId: string) => {

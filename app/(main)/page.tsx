@@ -271,10 +271,12 @@ export default function HomePage() {
             </a>
           </section>
 
-          <div className="mb-2 bg-neutral-3 px-4 pt-4">
-            <SectionTitle title="Buy Now" href="/shop?type=buyNow" />
-          </div>
-          <section className="bg-neutral-2 px-4 pb-7 pt-6">
+          {buyNowProducts.length > 0 ? (
+            <>
+              <div className="mb-2 bg-neutral-3 px-4 pt-4">
+                <SectionTitle title="Buy Now" href="/shop?type=buyNow" />
+              </div>
+              <section className="bg-neutral-2 px-4 pb-7 pt-6">
             <div>
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -340,12 +342,16 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-          </section>
+              </section>
+            </>
+          ) : null}
 
-          <div className="mb-2 bg-neutral-3 px-4 pt-4">
-            <SectionTitle title="Fund" href="/shop?type=fund" />
-          </div>
-          <section className="bg-neutral-2 px-4 pb-7 pt-6">
+          {fundProducts.length > 0 ? (
+            <>
+              <div className="mb-2 bg-neutral-3 px-4 pt-4">
+                <SectionTitle title="Fund" href="/shop?type=fund" />
+              </div>
+              <section className="bg-neutral-2 px-4 pb-7 pt-6">
             <div>
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -423,7 +429,9 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          </section>
+              </section>
+            </>
+          ) : null}
         </main>
 
         <div className="sticky bottom-0 z-20 mt-auto">

@@ -168,7 +168,7 @@ export default function AdminOnsitePage() {
       <div className="mx-auto flex w-full max-w-[375px] flex-col bg-neutral-3 lg:hidden">
         <NavBar
           variant="title-back"
-          title="수령 관리"
+          title="현장판매 관리"
           onBack={() => router.push('/admin')}
           rightElement={
             <button
