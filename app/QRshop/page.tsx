@@ -32,6 +32,43 @@ function formatWon(n: number) {
   return `${n.toLocaleString('ko-KR')}원`;
 }
 
+type OutOfStockIssue = {
+  kind: string;
+  displayLabel: string;
+  available: number;
+  requested: number;
+};
+
+function isOutOfStockIssue(value: unknown): value is OutOfStockIssue {
+  if (!value || typeof value !== 'object') return false;
+  const o = value as Record<string, unknown>;
+  return (
+    typeof o.kind === 'string' &&
+    typeof o.displayLabel === 'string' &&
+    typeof o.available === 'number' &&
+    typeof o.requested === 'number'
+  );
+}
+
+function formatOutOfStockAlert(issues: OutOfStockIssue[]): string {
+  const insufficient = issues.filter((i) => i.kind === 'insufficient');
+  const zeroLike = issues.filter((i) => i.kind === 'zero' || i.kind === 'missing');
+  const parts: string[] = [];
+  for (const i of insufficient) {
+    parts.push(
+      `현재 아래 상품의 재고는 ${i.available}개입니다. ${i.available}개 이하로 구매해 주세요.\n${i.displayLabel}`,
+    );
+  }
+  if (zeroLike.length > 0) {
+    parts.push(
+      `장바구니에 담으신 상품 중 아래 상품은 재고가 없습니다. 해당 상품을 제외한 뒤 다시 결제해 주세요.\n\n${zeroLike
+        .map((i) => i.displayLabel)
+        .join('\n')}`,
+    );
+  }
+  return parts.join('\n\n');
+}
+
 export default function QRshopPage() {
   const router = useRouter();
   const [items, setItems] = useState<FairShopCatalogItemRow[]>([]);
@@ -120,21 +157,10 @@ export default function QRshopPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json?.status !== 'success') {
-        if (
-          res.status === 409 &&
-          json?.code === 'OUT_OF_STOCK' &&
-          Array.isArray(json?.outOfStockItemNames) &&
-          json.outOfStockItemNames.length > 0
-        ) {
-          const names = (json.outOfStockItemNames as unknown[]).filter(
-            (n): n is string => typeof n === 'string' && n.trim().length > 0,
-          );
-          if (names.length > 0) {
-            alert(
-              `장바구니에 담으신 상품 중 아래 상품은 재고가 없습니다. 해당 상품을 제외한 뒤 다시 결제해 주세요.\n\n${names.join(
-                '\n',
-              )}`,
-            );
+        if (res.status === 409 && json?.code === 'OUT_OF_STOCK' && Array.isArray(json?.issues)) {
+          const issues = (json.issues as unknown[]).filter(isOutOfStockIssue);
+          if (issues.length > 0) {
+            alert(formatOutOfStockAlert(issues));
             return;
           }
         }

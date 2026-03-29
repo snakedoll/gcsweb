@@ -320,7 +320,10 @@ model FairShopProduct {
   id        String   @id @default(cuid())
   qrItemId  String   @unique
   initStock Int
-  stock     Int
+  /// 판매 가능 재고(결제 확정 시 감소)
+  stock        Int
+  /// 미충족 수요 누적(판매 재고 0일 때 결제 시도마다 요청 수량만큼 감소 → 음수). 분석용.
+  currentStock Int       @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

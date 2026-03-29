@@ -18,6 +18,7 @@ import {
   ensureFairShopProductsSeeded,
   fairShopDecrementStockAndWriteHistory,
   loadFairShopStockMap,
+  recordFairShopUnmetDemandForZeroStockLines,
 } from '@/lib/qrshop/fair-shop';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
@@ -117,8 +118,9 @@ export async function POST(request: Request) {
     );
     const stockCheck = assertFairShopStockForLines(resolved, stockMap);
     if (!stockCheck.ok) {
+      await recordFairShopUnmetDemandForZeroStockLines(prisma, resolved, stockMap);
       return jsonError(409, 'OUT_OF_STOCK', stockCheck.message, {
-        outOfStockItemNames: stockCheck.outOfStockLabels,
+        issues: stockCheck.issues,
       });
     }
 

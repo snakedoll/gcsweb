@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { loadFairShopStockMap, ensureFairShopProductsSeeded } from '@/lib/qrshop/fair-shop';
+import { ensureFairShopProductsSeeded } from '@/lib/qrshop/fair-shop';
 import { getQrShopCatalog } from '@/lib/qrshop/catalog';
 
 function jsonError(status: number, code: string, message: string) {
@@ -13,20 +13,27 @@ export async function GET() {
     await ensureFairShopProductsSeeded(prisma);
     const catalog = getQrShopCatalog();
     const ids = catalog.items.map((row) => row.id);
-    const stockMap = await loadFairShopStockMap(prisma, ids);
+    const rows = await prisma.fairShopProduct.findMany({
+      where: { qrItemId: { in: ids } },
+      select: { qrItemId: true, stock: true, currentStock: true },
+    });
+    const byId = new Map(rows.map((r) => [r.qrItemId, r]));
 
     const items = catalog.items
       .filter((row) => !row.disabled)
-      .map((row) => ({
-        id: row.id,
-        name: row.name,
-        option: row.option,
-        price: row.price,
-        emoji: row.emoji,
-        initStock: row.initStock,
-        currentStock: stockMap.get(row.id) ?? 0,
-        stock: stockMap.get(row.id) ?? 0,
-      }));
+      .map((row) => {
+        const db = byId.get(row.id);
+        return {
+          id: row.id,
+          name: row.name,
+          option: row.option,
+          price: row.price,
+          emoji: row.emoji,
+          initStock: row.initStock,
+          currentStock: db?.currentStock ?? 0,
+          stock: db?.stock ?? 0,
+        };
+      });
 
     return NextResponse.json({ status: 'success', data: { items } });
   } catch (error) {

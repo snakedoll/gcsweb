@@ -15,6 +15,7 @@ export async function ensureFairShopProductsSeeded(client: Pick<PrismaClient, 'f
         qrItemId: item.id,
         initStock: item.initStock,
         stock: item.initStock,
+        currentStock: 0,
       },
       update: {},
     });
@@ -33,26 +34,71 @@ export async function loadFairShopStockMap(
   return new Map(rows.map((r) => [r.qrItemId, r.stock]));
 }
 
+export type FairShopStockIssue = {
+  kind: 'zero' | 'insufficient' | 'missing';
+  displayLabel: string;
+  available: number;
+  requested: number;
+};
+
 export function assertFairShopStockForLines(
   resolved: ResolvedQrLine[],
   stockMap: Map<string, number>,
-): { ok: true } | { ok: false; message: string; outOfStockLabels: string[] } {
-  const outOfStockLabels: string[] = [];
+): { ok: true } | { ok: false; message: string; issues: FairShopStockIssue[] } {
+  const issues: FairShopStockIssue[] = [];
   for (const row of resolved) {
     const s = stockMap.get(row.itemId);
-    if (s === undefined || s < row.quantity) {
-      outOfStockLabels.push(row.displayLabel);
+    const requested = row.quantity;
+    if (s === undefined) {
+      issues.push({ kind: 'missing', displayLabel: row.displayLabel, available: 0, requested });
+    } else if (s === 0) {
+      if (requested > 0) {
+        issues.push({ kind: 'zero', displayLabel: row.displayLabel, available: 0, requested });
+      }
+    } else if (s < requested) {
+      issues.push({
+        kind: 'insufficient',
+        displayLabel: row.displayLabel,
+        available: s,
+        requested,
+      });
     }
   }
-  if (outOfStockLabels.length === 0) return { ok: true };
-  const hasMissing = resolved.some((row) => stockMap.get(row.itemId) === undefined);
-  return {
-    ok: false,
-    message: hasMissing
+  if (issues.length === 0) return { ok: true };
+
+  const hasInsufficient = issues.some((i) => i.kind === 'insufficient');
+  const hasZeroOrMissing = issues.some((i) => i.kind === 'zero' || i.kind === 'missing');
+  const hasMissing = issues.some((i) => i.kind === 'missing');
+
+  let message = '재고가 부족한 상품이 포함되어 있습니다.';
+  if (hasInsufficient && !hasZeroOrMissing) {
+    message = '일부 상품의 주문 수량이 재고를 초과합니다.';
+  } else if (!hasInsufficient && hasZeroOrMissing) {
+    message = hasMissing
       ? '재고 정보를 찾을 수 없는 상품이 있습니다.'
-      : '재고가 부족한 상품이 포함되어 있습니다.',
-    outOfStockLabels,
-  };
+      : '재고가 부족한 상품이 포함되어 있습니다.';
+  }
+
+  return { ok: false, message, issues };
+}
+
+/**
+ * 판매 재고(stock)가 DB상 0인 품목에 대해서만, 결제 시도 수요를 currentStock에 누적(감소)한다. 분석용.
+ * (행이 없어 맵에 없는 경우는 제외)
+ */
+export async function recordFairShopUnmetDemandForZeroStockLines(
+  client: Pick<PrismaClient, 'fairShopProduct'>,
+  resolved: ResolvedQrLine[],
+  stockMap: Map<string, number>,
+): Promise<void> {
+  for (const row of resolved) {
+    if (stockMap.get(row.itemId) === 0 && row.quantity > 0) {
+      await client.fairShopProduct.updateMany({
+        where: { qrItemId: row.itemId },
+        data: { currentStock: { decrement: row.quantity } },
+      });
+    }
+  }
 }
 
 export function linesSnapshotFromResolved(resolved: ResolvedQrLine[]): Prisma.JsonArray {
