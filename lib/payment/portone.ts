@@ -19,6 +19,7 @@ function getConfig() {
     storeId: process.env.PORTONE_STORE_ID ?? '',
     channelKey: process.env.PORTONE_CHANNEL_KEY ?? '',
     billingChannelKey: process.env.PORTONE_BILLING_CHANNEL_KEY ?? '',
+    /** Fund `issueBillingKeyWithOnetime` 의 아임포트 `pg` (예: settle.* , html5_inicis.MOI…) */
     billingPg: process.env.PORTONE_BILLING_PG ?? '',
     apiSecret: getSecret(),
     v1ApiKey: process.env.PORTONE_V1_API_KEY ?? '',

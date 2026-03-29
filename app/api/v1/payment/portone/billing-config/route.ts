@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
+  getCheckoutStoreId,
   getPortoneBillingChannelKey,
-  getPortonePaymentConfig,
   isPortoneConfigured,
 } from '@/lib/payment/portone';
 
@@ -23,7 +23,7 @@ export async function GET() {
     );
   }
 
-  const { storeId } = getPortonePaymentConfig();
+  const storeId = getCheckoutStoreId();
   const channelKey = getPortoneBillingChannelKey();
 
   return NextResponse.json({
