@@ -9,6 +9,16 @@ function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
 }
 
+function orderUsesQrShopRedirect(
+  items: Array<{ optionData: unknown }>,
+): boolean {
+  return items.some((row) => {
+    const d = row.optionData;
+    if (!d || typeof d !== 'object') return false;
+    return (d as { source?: string }).source === 'qrshop';
+  });
+}
+
 type Params = { params: { orderId: string } };
 
 /**
@@ -44,8 +54,8 @@ export async function GET(
           },
         },
         items: {
-          take: 1,
           select: {
+            optionData: true,
             product: { select: { name: true } },
           },
         },
@@ -69,6 +79,8 @@ export async function GET(
       process.env.NEXTAUTH_URL ??
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
+    const redirectPath = orderUsesQrShopRedirect(order.items) ? '/QRshop/result' : '/shop/orders/buynow/result';
+
     // Buy Now에서는 주문자 정보를 수집하지 않으므로 PG 필수값은 서버 기본값으로 보강한다.
     const buyerName = order.ordererName?.trim() || '구매자';
     const buyerTel = order.ordererPhone?.trim() || '01000000000';
@@ -84,7 +96,7 @@ export async function GET(
         totalAmount: order.paymentAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        redirectUrl: `${baseUrl}/shop/orders/buynow/result`,
+        redirectUrl: `${baseUrl}${redirectPath}`,
         buyerName,
         buyerTel,
         buyerEmail,

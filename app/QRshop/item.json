@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "id": "demo-americano-hot",
+      "name": "아메리카노",
+      "option": "HOT",
+      "price": 4000,
+      "emoji": "☕"
+    },
+    {
+      "id": "demo-americano-ice",
+      "name": "아메리카노",
+      "option": "ICE",
+      "price": 4500,
+      "emoji": "🧊"
+    },
+    {
+      "id": "demo-latte",
+      "name": "카페라떼",
+      "option": "HOT",
+      "price": 5000,
+      "emoji": "🥛"
+    },
+    {
+      "id": "demo-ade",
+      "name": "자몽에이드",
+      "option": "ICED",
+      "price": 5500,
+      "emoji": "🍊"
+    }
+  ]
+}
