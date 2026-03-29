@@ -5,6 +5,31 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
+type ResultLine = {
+  id: string;
+  label: string;
+  quantity: number;
+  unitPriceText: string;
+  lineTotalText: string;
+};
+
+function lineLabelFromOrderItem(item: {
+  optionData?: unknown;
+  optionText?: string;
+}): string {
+  const od = item.optionData;
+  if (od && typeof od === 'object' && !Array.isArray(od)) {
+    const ov = (od as { optionValue?: string }).optionValue;
+    if (typeof ov === 'string' && ov.trim()) return ov.trim();
+  }
+  const raw = typeof item.optionText === 'string' ? item.optionText : '';
+  const parts = raw.split(' / ');
+  if (parts.length >= 2) {
+    return parts.slice(0, -1).join(' / ').trim() || raw;
+  }
+  return raw || '상품';
+}
+
 function ResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -15,6 +40,7 @@ function ResultContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'fail'>('loading');
   const [message, setMessage] = useState('');
   const [orderCode, setOrderCode] = useState('');
+  const [orderLines, setOrderLines] = useState<ResultLine[]>([]);
 
   useEffect(() => {
     if (!orderId) {
@@ -83,6 +109,28 @@ function ResultContent() {
       if (res.ok && json?.status === 'success') {
         const code = json?.data?.order?.orderCode;
         if (typeof code === 'string' && code) setOrderCode(code);
+
+        const rawItems = json?.data?.order?.items;
+        const rows: ResultLine[] = Array.isArray(rawItems)
+          ? rawItems.map((item: Record<string, unknown>) => {
+              const qty = Math.max(1, Number(item.quantity ?? 1));
+              const unit = Number(item.price ?? 0);
+              return {
+                id: String(item.id ?? ''),
+                label: lineLabelFromOrderItem({
+                  optionData: item.optionData,
+                  optionText: typeof item.optionText === 'string' ? item.optionText : '',
+                }),
+                quantity: qty,
+                unitPriceText: `${unit.toLocaleString('ko-KR')}원`,
+                lineTotalText:
+                  typeof item.priceText === 'string'
+                    ? item.priceText
+                    : `${(unit * qty).toLocaleString('ko-KR')}원`,
+              };
+            })
+          : [];
+        setOrderLines(rows);
       }
     })();
 
@@ -101,20 +149,53 @@ function ResultContent() {
 
   if (status === 'success') {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
-        <div className="rounded-full bg-[#e8f3ff] p-4 text-[40px]" aria-hidden>
-          ✓
-        </div>
-        <div>
-          <p className="text-[20px] font-bold text-neutral-12">결제가 완료되었습니다</p>
+      <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-8 pb-[max(32px,env(safe-area-inset-bottom))]">
+        <div className="flex flex-col items-center text-center">
+          <div className="rounded-full bg-[#e8f3ff] p-4 text-[40px]" aria-hidden>
+            ✓
+          </div>
+          <p className="mt-4 text-[20px] font-bold text-neutral-12">결제가 완료되었습니다</p>
           {orderCode ? (
             <p className="mt-2 text-[16px] font-semibold text-[#3182f6]">주문번호 {orderCode}</p>
           ) : null}
           <p className="mt-2 text-[14px] text-neutral-8">주문 확인을 위해 번호를 저장해 주세요.</p>
         </div>
+
+        {orderLines.length > 0 ? (
+          <div className="w-full max-w-[400px]">
+            <p className="mb-2 text-left text-[14px] font-semibold text-neutral-11">주문 내역</p>
+            <div className="overflow-x-auto rounded-xl border border-neutral-5 bg-white shadow-sm">
+              <table className="w-full min-w-[280px] border-collapse text-left text-[13px] text-neutral-11">
+                <thead>
+                  <tr className="border-b border-neutral-5 bg-[#f2f4f6]">
+                    <th className="px-3 py-2.5 font-semibold text-neutral-12">상품</th>
+                    <th className="w-12 px-2 py-2.5 text-center font-semibold text-neutral-12">수량</th>
+                    <th className="w-[72px] px-2 py-2.5 text-right font-semibold text-neutral-12">단가</th>
+                    <th className="w-[88px] px-3 py-2.5 text-right font-semibold text-neutral-12">금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderLines.map((row) => (
+                    <tr key={row.id || row.label} className="border-b border-neutral-4 last:border-b-0">
+                      <td className="px-3 py-2.5 align-top">{row.label}</td>
+                      <td className="px-2 py-2.5 text-center align-top">{row.quantity}</td>
+                      <td className="whitespace-nowrap px-2 py-2.5 text-right align-top tabular-nums">
+                        {row.unitPriceText}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium text-neutral-12 align-top tabular-nums">
+                        {row.lineTotalText}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+
         <button
           type="button"
-          className="w-full max-w-[320px] rounded-[14px] bg-[#3182f6] py-4 text-[16px] font-semibold text-white"
+          className="mt-auto w-full max-w-[320px] rounded-[14px] bg-[#3182f6] py-4 text-[16px] font-semibold text-white"
           onClick={() => router.push('/QRshop')}
         >
           처음으로
