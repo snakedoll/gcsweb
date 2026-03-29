@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { BottomTabBar, NavBar } from '@/components/layout';
 import { useRouter } from 'next/navigation';
 
-const heroImage = '/assets/images/poster.svg';
+const heroImage = '/assets/images/poster.jpg';
 const instagramIcon = '/assets/icons/icon-instagram-line.svg';
 
 type HomeBuyNowProduct = {
