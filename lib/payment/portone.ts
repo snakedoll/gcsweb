@@ -115,7 +115,15 @@ export async function getPayment(merchantUid: string): Promise<{
     return { success: false, code: 'CONFIG_MISSING', message: 'PORTONE_API_SECRET 미설정' };
   }
 
-  const res = await fetch(`${API_BASE}/payments/${encodeURIComponent(merchantUid)}`, {
+  // 결제 생성 시 사용한 상점과 동일한 storeId로 조회해야 함. 미전달 시 API는 시크릿의 기본 상점으로만 찾아
+  // 하위 상점(PORTONE_CHECKOUT_STORE_ID)으로 결제한 건이 "payment not found"로 떨어질 수 있음.
+  const paymentUrl = new URL(`${API_BASE}/payments/${encodeURIComponent(merchantUid)}`);
+  const lookupStoreId = getCheckoutStoreId();
+  if (lookupStoreId) {
+    paymentUrl.searchParams.set('storeId', lookupStoreId);
+  }
+
+  const res = await fetch(paymentUrl.toString(), {
     headers: { Authorization: `PortOne ${secret}` },
   });
 
