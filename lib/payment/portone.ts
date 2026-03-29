@@ -65,9 +65,33 @@ export function isPortoneConfigured(): boolean {
   return Boolean(storeId && channelKey && apiSecret);
 }
 
+/**
+ * 결제창(requestPayment)에 넣을 스토어 ID.
+ * 포트원 하위 상점에 실결제 채널만 붙인 경우, 대표 상점 ID가 아니라 하위 상점 Store ID를
+ * PORTONE_CHECKOUT_STORE_ID에 넣어야 PG 서브가맹점 오류가 나지 않는 경우가 많다.
+ */
+export function getCheckoutStoreId(): string {
+  const override = process.env.PORTONE_CHECKOUT_STORE_ID?.trim();
+  if (override) return override;
+  return getConfig().storeId;
+}
+
+export function isPortoneCheckoutConfigured(): boolean {
+  const { channelKey, apiSecret } = getConfig();
+  return Boolean(getCheckoutStoreId() && channelKey && apiSecret);
+}
+
 export function getPortonePaymentConfig() {
   const { storeId, channelKey } = getConfig();
   return { storeId, channelKey };
+}
+
+/** Buy Now 등 브라우저 결제창용 (storeId는 하위 상점 오버라이드 반영) */
+export function getPortoneCheckoutPaymentConfig() {
+  return {
+    storeId: getCheckoutStoreId(),
+    channelKey: getConfig().channelKey,
+  };
 }
 
 export function getPortoneBillingChannelKey(): string {

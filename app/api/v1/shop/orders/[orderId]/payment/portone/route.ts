@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getPortonePaymentConfig, isPortoneConfigured } from '@/lib/payment/portone';
+import {
+  getPortoneCheckoutPaymentConfig,
+  isPortoneCheckoutConfigured,
+} from '@/lib/payment/portone';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -22,7 +25,7 @@ export async function GET(
       return jsonError(400, 'INVALID_INPUT', 'orderId is required.');
     }
 
-    if (!isPortoneConfigured()) {
+    if (!isPortoneCheckoutConfigured()) {
       return jsonError(503, 'PAYMENT_NOT_CONFIGURED', 'PortOne env not set.');
     }
 
@@ -57,7 +60,7 @@ export async function GET(
       return jsonError(400, 'COUNTER_PAYMENT_NOT_SUPPORTED', 'counter payment does not require PortOne payment.');
     }
 
-    const { storeId, channelKey } = getPortonePaymentConfig();
+    const { storeId, channelKey } = getPortoneCheckoutPaymentConfig();
     const goodname =
       order.items[0]?.product?.name?.slice(0, 80) ??
       (order.productType === 0 ? 'Fund 주문' : 'Buy Now 주문');
