@@ -1,10 +1,20 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { listQrShopItemsForDisplay, type QrShopCatalogItem } from '@/lib/qrshop/catalog';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
+
+type FairShopCatalogItemRow = {
+  id: string;
+  name: string;
+  option?: string;
+  price: number;
+  emoji?: string;
+  initStock: number;
+  currentStock: number;
+  stock: number;
+};
 
 function getOrCreateGuestToken(): string {
   const existing = localStorage.getItem(GUEST_TOKEN_STORAGE_KEY)?.trim();
@@ -24,28 +34,60 @@ function formatWon(n: number) {
 
 export default function QRshopPage() {
   const router = useRouter();
-  const items = useMemo(() => listQrShopItemsForDisplay(), []);
+  const [items, setItems] = useState<FairShopCatalogItemRow[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addOne = useCallback((id: string) => {
-    setCounts((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    setError(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCatalogLoading(true);
+      setCatalogError(null);
+      const res = await fetch('/api/v1/qrshop/catalog', { cache: 'no-store' });
+      const json = await res.json().catch(() => ({}));
+      if (cancelled) return;
+      if (res.ok && json?.status === 'success' && Array.isArray(json?.data?.items)) {
+        setItems(json.data.items as FairShopCatalogItemRow[]);
+      } else {
+        setCatalogError('메뉴를 불러오지 못했습니다.');
+      }
+      setCatalogLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const setQty = useCallback((id: string, next: number) => {
+  const addOne = useCallback((id: string) => {
     setCounts((prev) => {
-      const copy = { ...prev };
-      if (next <= 0) delete copy[id];
-      else copy[id] = Math.min(99, next);
-      return copy;
+      const item = items.find((i) => i.id === id);
+      const stock = item?.stock ?? 0;
+      const current = prev[id] ?? 0;
+      if (stock <= 0 || current + 1 > stock) return prev;
+      return { ...prev, [id]: current + 1 };
     });
-  }, []);
+    setError(null);
+  }, [items]);
+
+  const setQty = useCallback(
+    (id: string, next: number) => {
+      setCounts((prev) => {
+        const stock = items.find((i) => i.id === id)?.stock ?? 0;
+        const copy = { ...prev };
+        if (next <= 0) delete copy[id];
+        else copy[id] = Math.min(stock, Math.min(99, next));
+        return copy;
+      });
+    },
+    [items],
+  );
 
   const lines = useMemo(() => {
-    const rows: { item: QrShopCatalogItem; qty: number }[] = [];
+    const rows: { item: FairShopCatalogItemRow; qty: number }[] = [];
     for (const item of items) {
       const q = counts[item.id] ?? 0;
       if (q > 0) rows.push({ item, qty: q });
@@ -96,6 +138,29 @@ export default function QRshopPage() {
     }
   };
 
+  if (catalogLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-5">
+        <p className="text-[15px] text-neutral-8">메뉴를 불러오는 중입니다…</p>
+      </div>
+    );
+  }
+
+  if (catalogError || items.length === 0) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-5 text-center">
+        <p className="text-[15px] text-neutral-9">{catalogError ?? '표시할 메뉴가 없습니다.'}</p>
+        <button
+          type="button"
+          className="rounded-[14px] bg-[#3182f6] px-4 py-2 text-[14px] font-semibold text-white"
+          onClick={() => window.location.reload()}
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-[calc(200px+env(safe-area-inset-bottom,0px))] pt-4">
       <header className="px-4 pb-2">
@@ -108,8 +173,9 @@ export default function QRshopPage() {
           <button
             key={item.id}
             type="button"
+            disabled={item.stock <= 0}
             onClick={() => addOne(item.id)}
-            className="flex flex-col items-start rounded-[20px] bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition active:scale-[0.98] active:bg-neutral-3"
+            className="flex flex-col items-start rounded-[20px] bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition active:scale-[0.98] active:bg-neutral-3 disabled:opacity-50 disabled:active:scale-100"
           >
             {item.emoji ? (
               <span className="mb-2 text-[28px] leading-none" aria-hidden>
@@ -120,7 +186,10 @@ export default function QRshopPage() {
             {item.option ? (
               <span className="mt-0.5 text-[13px] text-neutral-8">{item.option}</span>
             ) : null}
-            <span className="mt-3 text-[16px] font-bold text-[#3182f6]">{formatWon(item.price)}</span>
+            <span className="mt-1 text-[12px] text-neutral-8">
+              {item.stock <= 0 ? '품절' : `재고 ${item.stock}개`}
+            </span>
+            <span className="mt-2 text-[16px] font-bold text-[#3182f6]">{formatWon(item.price)}</span>
           </button>
         ))}
       </div>
@@ -154,6 +223,7 @@ export default function QRshopPage() {
                       type="button"
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-lg font-medium text-neutral-10 shadow-sm"
                       onClick={() => setQty(item.id, qty + 1)}
+                      disabled={qty >= item.stock}
                       aria-label="한 개 더하기"
                     >
                       +

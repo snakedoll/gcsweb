@@ -275,6 +275,7 @@ model Order {
   inquiries             Inquiry[]
   user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
+  fairShopHistory       FairShopHistory?
 
   @@unique([orderDateKey, productType, orderSeq])
   @@index([userId])
@@ -312,6 +313,32 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+/// QRshop(/Fair) 메뉴별 재고. qrItemId 는 app/QRshop/item.json 의 id 와 동일
+model FairShopProduct {
+  id        String   @id @default(cuid())
+  qrItemId  String   @unique
+  initStock Int
+  stock     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("FairShopProductTable")
+}
+
+/// Fair shop 결제 완료 시점 스냅샷 (주문 1건당 1행)
+model FairShopHistory {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  paymentMethod Int
+  paymentAmount Int
+  linesSnapshot Json
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@map("FairShopHistoryTable")
 }
 
 model Scrap {

@@ -6,6 +6,10 @@ const QrShopItemSchema = z.object({
   name: z.string().min(1),
   option: z.string().optional(),
   price: z.number().int().nonnegative().max(50_000_000),
+  /** 최초 DB 시드 시 재고. 운영 재고는 FairShopProductTable.stock */
+  initStock: z.number().int().min(0).max(1_000_000),
+  /** 참고용(파일 기입). 실제 표시·결제 재고는 DB 기준 */
+  currentStock: z.number().int().min(0).max(1_000_000).optional(),
   emoji: z.string().optional(),
   disabled: z.boolean().optional(),
 });

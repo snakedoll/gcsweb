@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getPayment } from '@/lib/payment/portone';
+import { fairShopDecrementFromOrderItems, tryParseQrDeductionsFromOrderItems } from '@/lib/qrshop/fair-shop';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -8,10 +10,25 @@ function jsonError(status: number, code: string, message: string) {
 
 type Params = { params: { orderId: string } };
 
+function qrLinesSnapshotFromOrderItems(
+  items: Array<{ quantity: number; price: number; optionData: unknown }>,
+): Prisma.InputJsonValue {
+  return items.map((item) => {
+    const od = item.optionData as { qrItemId?: string; optionValue?: string } | null;
+    return {
+      itemId: typeof od?.qrItemId === 'string' ? od.qrItemId : '',
+      label: typeof od?.optionValue === 'string' ? od.optionValue : '',
+      quantity: item.quantity,
+      unitPrice: item.price,
+    };
+  });
+}
+
 /**
  * 포트원 결제 결과 검증.
  * 결제창 리다이렉트 후 클라이언트에서 paymentId로 호출.
  * 금액 일치·상태 확인 후 paymentStatus=1 갱신.
+ * Fair shop(QR) 주문은 재고 차감·FairShopHistory 기록을 동일 트랜잭션에서 처리한다.
  */
 export async function POST(_request: Request, { params }: Params) {
   try {
@@ -22,7 +39,15 @@ export async function POST(_request: Request, { params }: Params) {
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, productType: { in: [0, 1] } },
-      select: { id: true, paymentAmount: true, paymentStatus: true },
+      select: {
+        id: true,
+        paymentAmount: true,
+        paymentStatus: true,
+        paymentMethod: true,
+        items: {
+          select: { quantity: true, price: true, optionData: true },
+        },
+      },
     });
 
     if (!order) {
@@ -77,25 +102,75 @@ export async function POST(_request: Request, { params }: Params) {
     const paid =
       payment.status?.toUpperCase() === 'PAID' ||
       payment.status?.toUpperCase() === 'VIRTUAL_ACCOUNT_ISSUED';
-    if (paid) {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          paymentStatus: 1,
-          impUid: payment.impUid,
-        },
-      });
-    } else {
+
+    if (!paid) {
       console.warn('[PortOne][verify] Payment not yet paid', {
         orderId,
         paymentStatus: payment.status,
       });
+      return NextResponse.json({
+        status: 'success',
+        data: {
+          verified: false,
+          status: payment.status,
+        },
+      });
+    }
+
+    const deductions = tryParseQrDeductionsFromOrderItems(order.items);
+
+    try {
+      if (deductions) {
+        await prisma.$transaction(
+          async (tx) => {
+            const dup = await tx.fairShopHistory.findUnique({ where: { orderId: order.id } });
+            if (dup) {
+              await tx.order.update({
+                where: { id: orderId },
+                data: { paymentStatus: 1, impUid: payment.impUid },
+              });
+              return;
+            }
+            await fairShopDecrementFromOrderItems(tx, deductions);
+            await tx.fairShopHistory.create({
+              data: {
+                orderId: order.id,
+                paymentMethod: order.paymentMethod,
+                paymentAmount: order.paymentAmount,
+                linesSnapshot: qrLinesSnapshotFromOrderItems(order.items),
+              },
+            });
+            await tx.order.update({
+              where: { id: orderId },
+              data: { paymentStatus: 1, impUid: payment.impUid },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } else {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 1, impUid: payment.impUid },
+        });
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message === 'FAIR_SHOP_STOCK_UNDERFLOW') {
+        console.error('[PortOne][verify] Fair shop stock underflow after payment', { orderId });
+        return NextResponse.json({
+          status: 'success',
+          data: {
+            verified: false,
+            message: '재고 처리에 실패했습니다. 카운터에 문의해 주세요.',
+          },
+        });
+      }
+      throw e;
     }
 
     return NextResponse.json({
       status: 'success',
       data: {
-        verified: paid,
+        verified: true,
         status: payment.status,
       },
     });

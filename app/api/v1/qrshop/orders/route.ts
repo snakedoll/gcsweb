@@ -13,6 +13,12 @@ import {
   mapProductTypeToOrderCode,
 } from '@/lib/order-code';
 import { resolveQrShopOrderLines } from '@/lib/qrshop/catalog';
+import {
+  assertFairShopStockForLines,
+  ensureFairShopProductsSeeded,
+  fairShopDecrementStockAndWriteHistory,
+  loadFairShopStockMap,
+} from '@/lib/qrshop/fair-shop';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
 function jsonError(status: number, code: string, message: string) {
@@ -103,6 +109,16 @@ export async function POST(request: Request) {
     }
 
     const { resolved, paymentAmount } = resolvedLines;
+
+    await ensureFairShopProductsSeeded(prisma);
+    const stockMap = await loadFairShopStockMap(
+      prisma,
+      resolved.map((r) => r.itemId),
+    );
+    const stockCheck = assertFairShopStockForLines(resolved, stockMap);
+    if (!stockCheck.ok) {
+      return jsonError(409, 'OUT_OF_STOCK', stockCheck.message);
+    }
 
     const product = await prisma.product.findFirst({
       where: { id: placeholderProductId },
@@ -265,6 +281,15 @@ export async function POST(request: Request) {
           ),
         );
 
+        if (isCounterPay) {
+          await fairShopDecrementStockAndWriteHistory(tx, {
+            orderId: order.id,
+            paymentMethod,
+            paymentAmount: computedPayment,
+            resolved,
+          });
+        }
+
         return { order, items: createdItems };
       });
 
@@ -306,6 +331,9 @@ export async function POST(request: Request) {
     }
     if (error instanceof Error && error.message === 'ORDER_CREATE_RETRY_EXCEEDED') {
       return jsonError(409, 'ORDER_CREATE_RETRY_EXCEEDED', 'please retry order creation.');
+    }
+    if (error instanceof Error && error.message === 'FAIR_SHOP_STOCK_UNDERFLOW') {
+      return jsonError(409, 'OUT_OF_STOCK', '재고가 부족합니다. 다시 시도해 주세요.');
     }
 
     console.error('QR shop order create error:', error);
