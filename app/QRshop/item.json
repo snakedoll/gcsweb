@@ -4,7 +4,7 @@
       "id": "acrylic-key-ring_1",
       "name": "아크릴 키링",
       "option": "명상중 꾸벅꾸벅 부처님",
-      "price": 100,
+      "price": 1000,
       "initStock": 2,
       "currentStock": 2,
       "emoji": "🔑"
@@ -13,7 +13,7 @@
       "id": "acrylic-key-ring_2",
       "name": "아크릴 키링",
       "option": "옆으로 누운 꾸벅꾸벅 부처님",
-      "price": 100,
+      "price": 1000,
       "initStock": 2,
       "currentStock": 2,
       "emoji": "🔑"
@@ -22,7 +22,7 @@
       "id": "bandana_1",
       "name": "반다나",
       "option": "청색 (비천상)",
-      "price": 100,
+      "price": 1000,
       "initStock": 2,
       "currentStock": 2,
       "emoji": "☸"
@@ -31,7 +31,7 @@
       "id": "bandana_2",
       "name": "반다나",
       "option": "홍색 (연화)",
-      "price": 100,
+      "price": 1000,
       "initStock": 2,
       "currentStock": 2,
       "emoji": "☸"
@@ -40,7 +40,7 @@
       "id": "bandana_3",
       "name": "반다나",
       "option": "흑색 (옴)",
-      "price": 100,
+      "price": 1000,
       "initStock": 2,
       "currentStock": 2,
       "emoji": "☸"
