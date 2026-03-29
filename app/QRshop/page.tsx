@@ -65,14 +65,26 @@ export default function QRshopPage() {
     try {
       const guestToken =
         typeof window !== 'undefined' ? getOrCreateGuestToken() : '';
-      const res = await fetch('/api/v1/qrshop/orders', {
+      const res = await fetch('/api/v1/shop/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(guestToken ? { 'x-guest-token': guestToken } : {}),
         },
         body: JSON.stringify({
-          lines: lines.map((row) => ({ itemId: row.item.id, quantity: row.qty })),
+          productType: 1,
+          receiveMethod: 1,
+          paymentMethod: 0,
+          cardCompany: null,
+          bankCode: null,
+          easyPayProvider: null,
+          bagOption: false,
+          isPolicyAgreed: true,
+          items: lines.map(({ item, qty }) => ({
+            productId: item.productId,
+            quantity: qty,
+            optionData: item.optionData ?? null,
+          })),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -85,7 +97,7 @@ export default function QRshopPage() {
         setError('주문 번호를 받지 못했습니다.');
         return;
       }
-      router.push(`/QRshop/pay?orderId=${encodeURIComponent(orderId)}`);
+      router.push(`/shop/orders/buynow/pay?orderId=${encodeURIComponent(orderId)}`);
     } finally {
       setSubmitting(false);
     }
@@ -95,7 +107,7 @@ export default function QRshopPage() {
     <div className="pb-[calc(200px+env(safe-area-inset-bottom,0px))] pt-4">
       <header className="px-4 pb-2">
         <h1 className="text-[22px] font-bold tracking-tight text-neutral-12">주문하기</h1>
-        <p className="mt-1 text-[14px] text-neutral-8">원하시는 메뉴를 눌러 담아주세요</p>
+        <p className="mt-1 text-[14px] text-neutral-8">원하시는 상품을 눌러 담아주세요</p>
       </header>
 
       <div className="grid grid-cols-2 gap-3 px-3">

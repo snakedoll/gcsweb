@@ -2,31 +2,39 @@
   "items": [
     {
       "id": "demo-americano-hot",
+      "productId": "REPLACE_WITH_BUYNOW_PICKUP_PRODUCT_ID",
       "name": "아메리카노",
       "option": "HOT",
       "price": 4000,
-      "emoji": "☕"
+      "emoji": "☕",
+      "optionData": null
     },
     {
       "id": "demo-americano-ice",
+      "productId": "REPLACE_WITH_BUYNOW_PICKUP_PRODUCT_ID",
       "name": "아메리카노",
       "option": "ICE",
       "price": 4500,
-      "emoji": "🧊"
+      "emoji": "🧊",
+      "optionData": null
     },
     {
       "id": "demo-latte",
+      "productId": "REPLACE_WITH_BUYNOW_PICKUP_PRODUCT_ID",
       "name": "카페라떼",
       "option": "HOT",
       "price": 5000,
-      "emoji": "🥛"
+      "emoji": "🥛",
+      "optionData": null
     },
     {
       "id": "demo-ade",
+      "productId": "REPLACE_WITH_BUYNOW_PICKUP_PRODUCT_ID",
       "name": "자몽에이드",
       "option": "ICED",
       "price": 5500,
-      "emoji": "🍊"
+      "emoji": "🍊",
+      "optionData": null
     }
   ]
 }
