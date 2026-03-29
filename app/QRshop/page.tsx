@@ -65,26 +65,14 @@ export default function QRshopPage() {
     try {
       const guestToken =
         typeof window !== 'undefined' ? getOrCreateGuestToken() : '';
-      const res = await fetch('/api/v1/shop/orders', {
+      const res = await fetch('/api/v1/qrshop/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(guestToken ? { 'x-guest-token': guestToken } : {}),
         },
         body: JSON.stringify({
-          productType: 1,
-          receiveMethod: 1,
-          paymentMethod: 0,
-          cardCompany: null,
-          bankCode: null,
-          easyPayProvider: null,
-          bagOption: false,
-          isPolicyAgreed: true,
-          items: lines.map(({ item, qty }) => ({
-            productId: item.productId,
-            quantity: qty,
-            optionData: item.optionData ?? null,
-          })),
+          lines: lines.map((row) => ({ itemId: row.item.id, quantity: row.qty })),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -97,7 +85,7 @@ export default function QRshopPage() {
         setError('주문 번호를 받지 못했습니다.');
         return;
       }
-      router.push(`/shop/orders/buynow/pay?orderId=${encodeURIComponent(orderId)}`);
+      router.push(`/QRshop/pay?orderId=${encodeURIComponent(orderId)}`);
     } finally {
       setSubmitting(false);
     }
