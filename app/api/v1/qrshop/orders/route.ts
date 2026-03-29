@@ -21,8 +21,8 @@ import {
 } from '@/lib/qrshop/fair-shop';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
 
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
+function jsonError(status: number, code: string, message: string, extra?: Record<string, unknown>) {
+  return NextResponse.json({ status: 'error', code, message, ...extra }, { status });
 }
 
 function hashGuestToken(token: string): string {
@@ -117,7 +117,9 @@ export async function POST(request: Request) {
     );
     const stockCheck = assertFairShopStockForLines(resolved, stockMap);
     if (!stockCheck.ok) {
-      return jsonError(409, 'OUT_OF_STOCK', stockCheck.message);
+      return jsonError(409, 'OUT_OF_STOCK', stockCheck.message, {
+        outOfStockItemNames: stockCheck.outOfStockLabels,
+      });
     }
 
     const product = await prisma.product.findFirst({

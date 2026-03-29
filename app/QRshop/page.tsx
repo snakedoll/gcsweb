@@ -120,6 +120,24 @@ export default function QRshopPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json?.status !== 'success') {
+        if (
+          res.status === 409 &&
+          json?.code === 'OUT_OF_STOCK' &&
+          Array.isArray(json?.outOfStockItemNames) &&
+          json.outOfStockItemNames.length > 0
+        ) {
+          const names = (json.outOfStockItemNames as unknown[]).filter(
+            (n): n is string => typeof n === 'string' && n.trim().length > 0,
+          );
+          if (names.length > 0) {
+            alert(
+              `장바구니에 담으신 상품 중 아래 상품은 재고가 없습니다. 해당 상품을 제외한 뒤 다시 결제해 주세요.\n\n${names.join(
+                '\n',
+              )}`,
+            );
+            return;
+          }
+        }
         setError(typeof json?.message === 'string' ? json.message : '주문을 만들 수 없습니다.');
         return;
       }

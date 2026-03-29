@@ -36,17 +36,23 @@ export async function loadFairShopStockMap(
 export function assertFairShopStockForLines(
   resolved: ResolvedQrLine[],
   stockMap: Map<string, number>,
-): { ok: true } | { ok: false; message: string } {
+): { ok: true } | { ok: false; message: string; outOfStockLabels: string[] } {
+  const outOfStockLabels: string[] = [];
   for (const row of resolved) {
     const s = stockMap.get(row.itemId);
-    if (s === undefined) {
-      return { ok: false, message: '재고 정보를 찾을 수 없는 상품이 있습니다.' };
-    }
-    if (s < row.quantity) {
-      return { ok: false, message: '재고가 부족한 상품이 포함되어 있습니다.' };
+    if (s === undefined || s < row.quantity) {
+      outOfStockLabels.push(row.displayLabel);
     }
   }
-  return { ok: true };
+  if (outOfStockLabels.length === 0) return { ok: true };
+  const hasMissing = resolved.some((row) => stockMap.get(row.itemId) === undefined);
+  return {
+    ok: false,
+    message: hasMissing
+      ? '재고 정보를 찾을 수 없는 상품이 있습니다.'
+      : '재고가 부족한 상품이 포함되어 있습니다.',
+    outOfStockLabels,
+  };
 }
 
 export function linesSnapshotFromResolved(resolved: ResolvedQrLine[]): Prisma.JsonArray {
