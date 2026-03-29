@@ -176,13 +176,23 @@ function toDateInput(value?: string | null) {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) return '';
+  return `${year}-${month}-${day}`;
 }
 
 function toIso(value: string, endOfDay = false) {
   const v = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
-  return `${v}T${endOfDay ? '23:59:59.000' : '00:00:00.000'}Z`;
+  return `${v}T${endOfDay ? '23:59:59.000' : '00:00:00.000'}+09:00`;
 }
 
 async function uploadProductImage(file: File, usage: 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'PRODUCT_NOTICE') {

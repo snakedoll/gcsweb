@@ -4,9 +4,24 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 
-function parseDate(str: string | undefined): Date | undefined {
+function toDateOnlyInKst(date: Date | null | undefined): string {
+  if (!date) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) return '';
+  return `${year}-${month}-${day}`;
+}
+
+function parseDate(str: string | undefined, endOfDay = false): Date | undefined {
   if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return undefined;
-  const d = new Date(str + 'T00:00:00');
+  const d = new Date(`${str}T${endOfDay ? '23:59:59.000' : '00:00:00.000'}+09:00`);
   return isNaN(d.getTime()) ? undefined : d;
 }
 
@@ -126,14 +141,14 @@ export async function GET(
           receiveMethod: product.receiveMethod,
           price: product.price,
           goalAmount: product.goalAmount ?? 0,
-          salesStartDate: product.salesStartDate?.toISOString().slice(0, 10) ?? '',
-          salesEndDate: product.salesEndDate?.toISOString().slice(0, 10) ?? '',
-          productionStartDate: product.productionStartDate?.toISOString().slice(0, 10) ?? '',
-          productionEndDate: product.productionEndDate?.toISOString().slice(0, 10) ?? '',
-          deliveryStartDate: product.deliveryStartDate?.toISOString().slice(0, 10) ?? '',
-          deliveryEndDate: product.deliveryEndDate?.toISOString().slice(0, 10) ?? '',
-          pickupStartDate: product.pickupStartDate?.toISOString().slice(0, 10) ?? '',
-          pickupEndDate: product.pickupEndDate?.toISOString().slice(0, 10) ?? '',
+          salesStartDate: toDateOnlyInKst(product.salesStartDate),
+          salesEndDate: toDateOnlyInKst(product.salesEndDate),
+          productionStartDate: toDateOnlyInKst(product.productionStartDate),
+          productionEndDate: toDateOnlyInKst(product.productionEndDate),
+          deliveryStartDate: toDateOnlyInKst(product.deliveryStartDate),
+          deliveryEndDate: toDateOnlyInKst(product.deliveryEndDate),
+          pickupStartDate: toDateOnlyInKst(product.pickupStartDate),
+          pickupEndDate: toDateOnlyInKst(product.pickupEndDate),
           pickupLocation: product.pickupLocation ?? '',
           thumbnailImgUrl: normalizeImageUrl(image?.thumbnailImgUrl ?? null) ?? '',
           detailImgUrls: (image?.detailImgUrl ?? [])
@@ -321,7 +336,7 @@ export async function PATCH(
     }
 
     const salesStart = parseDate(salesStartDate);
-    const salesEnd = parseDate(salesEndDate);
+    const salesEnd = parseDate(salesEndDate, true);
     if (!salesStart || !salesEnd) {
       return NextResponse.json(
         { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
@@ -339,9 +354,9 @@ export async function PATCH(
       if (receiveMethod === 0) {
         if (
           !parseDate(productionStartDate) ||
-          !parseDate(productionEndDate) ||
+          !parseDate(productionEndDate, true) ||
           !parseDate(deliveryStartDate) ||
-          !parseDate(deliveryEndDate)
+          !parseDate(deliveryEndDate, true)
         ) {
           return NextResponse.json(
             { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
@@ -351,7 +366,7 @@ export async function PATCH(
       } else {
         if (
           !parseDate(pickupStartDate) ||
-          !parseDate(pickupEndDate) ||
+          !parseDate(pickupEndDate, true) ||
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
           return NextResponse.json(
@@ -414,11 +429,11 @@ export async function PATCH(
               salesStartDate: salesStart,
               salesEndDate: salesEnd,
               productionStartDate: parseDate(productionStartDate) ?? undefined,
-              productionEndDate: parseDate(productionEndDate) ?? undefined,
+              productionEndDate: parseDate(productionEndDate, true) ?? undefined,
               deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-              deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+              deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
               pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-              pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+              pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
               pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
               receiveMethod,
             },
@@ -437,11 +452,11 @@ export async function PATCH(
               salesStartDate: salesStart,
               salesEndDate: salesEnd,
               productionStartDate: parseDate(productionStartDate) ?? undefined,
-              productionEndDate: parseDate(productionEndDate) ?? undefined,
+              productionEndDate: parseDate(productionEndDate, true) ?? undefined,
               deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-              deliveryEndDate: parseDate(deliveryEndDate) ?? undefined,
+              deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
               pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-              pickupEndDate: parseDate(pickupEndDate) ?? undefined,
+              pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
               pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
               receiveMethod,
             },
