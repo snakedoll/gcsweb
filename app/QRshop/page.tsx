@@ -5,15 +5,13 @@ import { useRouter } from 'next/navigation';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
+/** 카탈로그 API가 stock 등을 줄 수 있으나, 화면에는 표시·클라이언트 제한에 쓰지 않는다. */
 type FairShopCatalogItemRow = {
   id: string;
   name: string;
   option?: string;
   price: number;
   emoji?: string;
-  initStock: number;
-  currentStock: number;
-  stock: number;
 };
 
 function getOrCreateGuestToken(): string {
@@ -99,29 +97,25 @@ export default function QRshopPage() {
     };
   }, []);
 
+  const MAX_QTY_PER_LINE = 99;
+
   const addOne = useCallback((id: string) => {
     setCounts((prev) => {
-      const item = items.find((i) => i.id === id);
-      const stock = item?.stock ?? 0;
       const current = prev[id] ?? 0;
-      if (stock <= 0 || current + 1 > stock) return prev;
+      if (current >= MAX_QTY_PER_LINE) return prev;
       return { ...prev, [id]: current + 1 };
     });
     setError(null);
-  }, [items]);
+  }, []);
 
-  const setQty = useCallback(
-    (id: string, next: number) => {
-      setCounts((prev) => {
-        const stock = items.find((i) => i.id === id)?.stock ?? 0;
-        const copy = { ...prev };
-        if (next <= 0) delete copy[id];
-        else copy[id] = Math.min(stock, Math.min(99, next));
-        return copy;
-      });
-    },
-    [items],
-  );
+  const setQty = useCallback((id: string, next: number) => {
+    setCounts((prev) => {
+      const copy = { ...prev };
+      if (next <= 0) delete copy[id];
+      else copy[id] = Math.min(MAX_QTY_PER_LINE, next);
+      return copy;
+    });
+  }, []);
 
   const lines = useMemo(() => {
     const rows: { item: FairShopCatalogItemRow; qty: number }[] = [];
@@ -217,9 +211,8 @@ export default function QRshopPage() {
           <button
             key={item.id}
             type="button"
-            disabled={item.stock <= 0}
             onClick={() => addOne(item.id)}
-            className="flex flex-col items-start rounded-[20px] bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition active:scale-[0.98] active:bg-neutral-3 disabled:opacity-50 disabled:active:scale-100"
+            className="flex flex-col items-start rounded-[20px] bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition active:scale-[0.98] active:bg-neutral-3"
           >
             {item.emoji ? (
               <span className="mb-2 text-[28px] leading-none" aria-hidden>
@@ -230,9 +223,6 @@ export default function QRshopPage() {
             {item.option ? (
               <span className="mt-0.5 text-[13px] text-neutral-8">{item.option}</span>
             ) : null}
-            <span className="mt-1 text-[12px] text-neutral-8">
-              {item.stock <= 0 ? '품절' : `재고 ${item.stock}개`}
-            </span>
             <span className="mt-2 text-[16px] font-bold text-[#3182f6]">{formatWon(item.price)}</span>
           </button>
         ))}
@@ -267,7 +257,7 @@ export default function QRshopPage() {
                       type="button"
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-lg font-medium text-neutral-10 shadow-sm"
                       onClick={() => setQty(item.id, qty + 1)}
-                      disabled={qty >= item.stock}
+                      disabled={qty >= MAX_QTY_PER_LINE}
                       aria-label="한 개 더하기"
                     >
                       +
