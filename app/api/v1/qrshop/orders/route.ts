@@ -150,8 +150,14 @@ export async function POST(request: Request) {
     }
 
     const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
-    if (!product.isPublic || !product.isAdminApproved || saleStatus !== 'active') {
-      return jsonError(404, 'PRODUCT_NOT_FOUND', 'QR shop placeholder product is not available.');
+    if (!product.isPublic) {
+      return jsonError(404, 'PLACEHOLDER_NOT_PUBLIC', 'QR shop placeholder product is not public.');
+    }
+    if (!product.isAdminApproved) {
+      return jsonError(404, 'PLACEHOLDER_NOT_APPROVED', 'QR shop placeholder product is not approved.');
+    }
+    if (saleStatus !== 'active') {
+      return jsonError(404, 'PLACEHOLDER_SALE_INACTIVE', `QR shop placeholder sale is ${saleStatus}.`);
     }
     if (toTypeGroup(product.type) !== 1 || product.receiveMethod !== 1) {
       return jsonError(400, 'INVALID_PRODUCT_CONFIG', 'QR shop product must be Buy Now + pickup.');
