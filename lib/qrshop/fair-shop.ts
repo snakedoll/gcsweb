@@ -119,6 +119,7 @@ export async function fairShopDecrementStockAndWriteHistory(
   tx: Tx,
   params: {
     orderId: string;
+    orderCode?: string | null;
     paymentMethod: number;
     paymentAmount: number;
     resolved: ResolvedQrLine[];
@@ -137,6 +138,7 @@ export async function fairShopDecrementStockAndWriteHistory(
   await tx.fairShopHistory.create({
     data: {
       orderId: params.orderId,
+      orderCode: params.orderCode,
       paymentMethod: params.paymentMethod,
       paymentAmount: params.paymentAmount,
       linesSnapshot: linesSnapshotFromResolved(params.resolved),

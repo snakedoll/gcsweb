@@ -242,12 +242,12 @@ model ProductUpdateRequestOptionValue {
 }
 
 model Order {
-  id                    String      @id @default(cuid())
+  id                    String           @id @default(cuid())
   userId                String?
   paymentAmount         Int
-  orderDate             DateTime    @default(now())
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  orderDate             DateTime         @default(now())
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
   productType           Int
   receiveMethod         Int
   receiverName          String?
@@ -258,24 +258,24 @@ model Order {
   deliveryMessage       String?
   ordererName           String?
   ordererPhone          String?
-  paymentStatus         Int         @default(0)
+  paymentStatus         Int              @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int
   cardCompany           Int?
   bankCode              Int?
   easyPayProvider       Int?
   billingKey            String?
-  impUid                String?     @unique
   orderDateKey          String?
   orderSeq              Int?
-  orderCode             String?     @unique
+  orderCode             String?          @unique
   buyerType             BuyerType
-  buyerGuestTokenHash   String?     @db.VarChar(128)
-  bagOption             Boolean     @default(false)
-  inquiries             Inquiry[]
-  user                  User?       @relation(fields: [userId], references: [id])
-  items                 OrderItem[]
+  buyerGuestTokenHash   String?          @db.VarChar(128)
+  bagOption             Boolean          @default(false)
+  impUid                String?          @unique
   fairShopHistory       FairShopHistory?
+  inquiries             Inquiry[]
+  user                  User?            @relation(fields: [userId], references: [id])
+  items                 OrderItem[]
 
   @@unique([orderDateKey, productType, orderSeq])
   @@index([userId])
@@ -317,15 +317,15 @@ model OrderItem {
 
 /// QRshop(/Fair) 메뉴별 재고. qrItemId 는 app/QRshop/item.json 의 id 와 동일
 model FairShopProduct {
-  id        String   @id @default(cuid())
-  qrItemId  String   @unique
-  initStock Int
+  id           String   @id @default(cuid())
+  qrItemId     String   @unique
+  initStock    Int
   /// 판매 가능 재고(결제 확정 시 감소)
   stock        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   /// 미충족 수요 누적(판매 재고 0일 때 결제 시도마다 요청 수량만큼 감소 → 음수). 분석용.
-  currentStock Int       @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  currentStock Int      @default(0)
 
   @@map("FairShopProductTable")
 }
@@ -334,6 +334,7 @@ model FairShopProduct {
 model FairShopHistory {
   id            String   @id @default(cuid())
   orderId       String   @unique
+  orderCode     String?
   paymentMethod Int
   paymentAmount Int
   linesSnapshot Json
@@ -341,6 +342,7 @@ model FairShopHistory {
   order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+  @@index([orderCode])
   @@map("FairShopHistoryTable")
 }
 

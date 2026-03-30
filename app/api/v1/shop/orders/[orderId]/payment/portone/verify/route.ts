@@ -41,6 +41,7 @@ export async function POST(_request: Request, { params }: Params) {
       where: { id: orderId, productType: { in: [0, 1] } },
       select: {
         id: true,
+        orderCode: true,
         paymentAmount: true,
         paymentStatus: true,
         paymentMethod: true,
@@ -135,6 +136,7 @@ export async function POST(_request: Request, { params }: Params) {
             await tx.fairShopHistory.create({
               data: {
                 orderId: order.id,
+                orderCode: order.orderCode,
                 paymentMethod: order.paymentMethod,
                 paymentAmount: order.paymentAmount,
                 linesSnapshot: qrLinesSnapshotFromOrderItems(order.items),

@@ -290,6 +290,7 @@ export async function POST(request: Request) {
         if (isCounterPay) {
           await fairShopDecrementStockAndWriteHistory(tx, {
             orderId: order.id,
+            orderCode,
             paymentMethod,
             paymentAmount: computedPayment,
             resolved,

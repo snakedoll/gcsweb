@@ -171,16 +171,14 @@ function ResultContent() {
           <p className="mt-2 text-[14px] text-neutral-8">
             {isCounterPay
               ? '카운터에서 결제 시 주문번호를 알려 주세요.'
-              : '주문 확인을 위해 번호를 저장해 주세요.'}
+              : '카운터에서 상품 수령 시 주문번호를 알려 주세요.'}
           </p>
-          {isCounterPay ? (
-            <div
-              className="mt-4 w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[14px] font-semibold leading-snug text-amber-950"
-              role="status"
-            >
-              이 화면을 닫지 말고 카운터 직원에게 보여 주세요.
-            </div>
-          ) : null}
+          <div
+            className="mt-4 w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-[14px] font-semibold leading-snug text-amber-950"
+            role="status"
+          >
+            이 화면을 닫지 말고 카운터 직원에게 보여 주세요.
+          </div>
         </div>
 
         {orderLines.length > 0 ? (
