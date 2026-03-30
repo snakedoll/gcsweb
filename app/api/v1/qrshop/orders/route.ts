@@ -131,7 +131,6 @@ export async function POST(request: Request) {
         type: true,
         receiveMethod: true,
         status: true,
-        isPublic: true,
         isAdminApproved: true,
         salesStartDate: true,
         salesEndDate: true,
@@ -150,9 +149,6 @@ export async function POST(request: Request) {
     }
 
     const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
-    if (!product.isPublic) {
-      return jsonError(404, 'PLACEHOLDER_NOT_PUBLIC', 'QR shop placeholder product is not public.');
-    }
     if (!product.isAdminApproved) {
       return jsonError(404, 'PLACEHOLDER_NOT_APPROVED', 'QR shop placeholder product is not approved.');
     }
