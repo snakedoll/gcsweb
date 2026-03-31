@@ -43,8 +43,19 @@ type MappedOrder = {
   bagOption: boolean;
   requiresBagPackaging: boolean;
   bagNoticeMessage: string | null;
+  orderSource: 'QRSHOP' | 'SHOP';
   items: MappedOrderItem[];
 };
+
+function isQrShopOrder(items: unknown): boolean {
+  if (!Array.isArray(items)) return false;
+  return items.some((item) => {
+    const optionData = (item as { optionData?: unknown } | null)?.optionData;
+    if (!optionData || typeof optionData !== 'object' || Array.isArray(optionData)) return false;
+    const source = (optionData as { source?: unknown }).source;
+    return source === 'qrshop';
+  });
+}
 
 function extractOptionValues(optionData: unknown): string[] {
   if (Array.isArray(optionData)) {
@@ -99,6 +110,10 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() ?? '';
+    const sourceFilter = (searchParams.get('source')?.trim().toLowerCase() ?? 'all') as
+      | 'all'
+      | 'qrshop'
+      | 'shop';
 
     const where: any = {
       productType: 1,
@@ -158,6 +173,8 @@ export async function GET(req: Request) {
 
       const hasBagOption = order.bagOption === true;
 
+      const orderSource: 'QRSHOP' | 'SHOP' = isQrShopOrder(order.items) ? 'QRSHOP' : 'SHOP';
+
       return {
         id: String(order.id),
         productType: Number(order.productType ?? 1),
@@ -176,11 +193,19 @@ export async function GET(req: Request) {
         bagOption: hasBagOption,
         requiresBagPackaging: hasBagOption,
         bagNoticeMessage: hasBagOption ? '봉투에 담아주세요' : null,
+        orderSource,
         items,
       };
     });
 
-    const grouped = mappedData.reduce(
+    const sourceFilteredData = mappedData.filter((row) => {
+      if (sourceFilter === 'all') return true;
+      if (sourceFilter === 'qrshop') return row.orderSource === 'QRSHOP';
+      if (sourceFilter === 'shop') return row.orderSource === 'SHOP';
+      return true;
+    });
+
+    const grouped = sourceFilteredData.reduce(
       (acc, curr) => {
         const found = acc.find((x) => x.date === curr.orderDateRaw);
         if (found) found.items.push(curr);
