@@ -49,9 +49,9 @@ const BAG_PRODUCTS: ProductLine[] = [
 
 function rowHeightClass(variant: BuynowVariant) {
   if (variant === 'Header') return 'h-10';
-  if (variant === 'multiple') return 'h-[181px]';
-  if (variant === '봉투') return 'h-32';
-  return 'h-[121px]';
+  if (variant === 'multiple') return 'min-h-[181px]';
+  if (variant === '봉투') return 'min-h-32';
+  return 'min-h-[121px]';
 }
 
 function productColumnClass(variant: BuynowVariant) {
@@ -163,16 +163,20 @@ export default function PcTableRow_Buynow({
         ) : (
           resolvedProducts.map((product) => (
             <div key={product.id} className="flex w-full items-start justify-between gap-4">
-              <div className="flex w-[137px] flex-col gap-[3px] text-neutral-10">
+              <div className="flex min-w-0 w-[137px] flex-col gap-[3px] text-neutral-10">
                 {product.isBagNotice ? (
                   <div className="flex items-center gap-[5px]">
                     <Image src="/assets/icons/light/info-circle.svg" alt="" width={18} height={18} />
-                    <p className="typo-body-xsmall w-full">{product.name}</p>
+                    <p className="typo-body-xsmall w-full break-words whitespace-normal">{product.name}</p>
                   </div>
                 ) : (
                   <>
-                    <p className="typo-body-xsmall w-full">{product.name}</p>
-                    <p className="typo-body-xsmall w-full">{product.option}</p>
+                    <p className="typo-body-xsmall w-full break-words whitespace-normal font-semibold leading-[1.4]">
+                      {product.name}
+                    </p>
+                    <p className="typo-body-xsmall w-full break-words whitespace-normal leading-[1.4] text-neutral-8">
+                      {product.option}
+                    </p>
                   </>
                 )}
               </div>

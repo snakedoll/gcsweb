@@ -99,13 +99,11 @@ function toOptionQuantityText(optionData: unknown, quantity: number): string {
 function parseQrshopLabel(label: string): { itemName: string; optionOnly: string | null } {
   const trimmed = label.trim();
   if (!trimmed) return { itemName: '', optionOnly: null };
-  if (!trimmed.endsWith(')')) return { itemName: trimmed, optionOnly: null };
+  const splitIdx = trimmed.indexOf(' (');
+  if (splitIdx < 0 || !trimmed.endsWith(')')) return { itemName: trimmed, optionOnly: null };
 
-  const openIdx = trimmed.lastIndexOf('(');
-  if (openIdx < 0) return { itemName: trimmed, optionOnly: null };
-
-  const itemName = trimmed.slice(0, openIdx).trim();
-  const optionOnly = trimmed.slice(openIdx + 1, -1).trim();
+  const itemName = trimmed.slice(0, splitIdx).trim();
+  const optionOnly = trimmed.slice(splitIdx + 2, -1).trim();
   if (!itemName || !optionOnly) return { itemName: trimmed, optionOnly: null };
   return { itemName, optionOnly };
 }

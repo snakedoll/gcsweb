@@ -173,15 +173,17 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
           <div className="flex flex-col gap-6">
             <section className="rounded-lg border border-[#f1f1f1] bg-[#f1f1f1] p-4">
               <div className="flex flex-col gap-1">
-                <div className="flex h-[19.49px] items-center gap-4">
+                <div className="flex items-start gap-4">
                   <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 번호</span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.orderCode}</span>
                 </div>
-                <div className="flex h-[19.49px] items-center gap-4">
+                <div className="flex items-start gap-4">
                   <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">포트원 거래번호</span>
-                  <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{typeof detail.impUid === 'string' && detail.impUid.trim() ? detail.impUid : '-'}</span>
+                  <span className="min-w-0 flex-1 break-all whitespace-normal text-[13px] font-semibold leading-[1.4] tracking-[-0.26px] text-[#2f2824]">
+                    {typeof detail.impUid === 'string' && detail.impUid.trim() ? detail.impUid : '-'}
+                  </span>
                 </div>
-                <div className="flex h-[19.49px] items-center gap-4">
+                <div className="flex items-start gap-4">
                   <span className="w-24 shrink-0 text-[13px] font-semibold tracking-[-0.26px] text-[#5a5451]">주문 일시</span>
                   <span className="text-[13px] font-semibold tracking-[-0.26px] text-[#2f2824]">{detail.orderDate}</span>
                 </div>
@@ -216,15 +218,19 @@ export default function AdminOnsiteDetailPage({ params }: { params: { id: string
 
               {detail.items.map((item) => (
                 <article key={item.id} className="flex w-full flex-col gap-2 rounded-lg border border-[#f1f1f1] bg-[#fdfdfd] px-4 py-3">
-                  <div className="flex h-[19.49px] items-center gap-4">
+                  <div className="flex items-start gap-4">
                     <span className="w-16 shrink-0 text-[13px] text-[#3f3835]">상품명</span>
-                    <span className="text-[13px] font-semibold text-[#3f3835]">{item.name}</span>
+                    <span className="min-w-0 flex-1 break-words whitespace-normal text-[13px] font-semibold leading-[1.4] text-[#3f3835]">
+                      {item.name}
+                    </span>
                   </div>
-                  <div className="flex h-[19.49px] items-center gap-4">
+                  <div className="flex items-start gap-4">
                     <span className="w-16 shrink-0 text-[13px] text-[#6c6764]">옵션 / 수량</span>
-                    <span className="text-[13px] text-[#6c6764]">{formatOptionQuantityText(item.option, item.quantity)}</span>
+                    <span className="min-w-0 flex-1 break-words whitespace-normal text-[13px] leading-[1.4] text-[#6c6764]">
+                      {formatOptionQuantityText(item.option, item.quantity)}
+                    </span>
                   </div>
-                  <div className="flex h-[19.49px] items-center gap-4">
+                  <div className="flex items-start gap-4">
                     <span className="w-16 shrink-0 text-[13px] text-[#6c6764]">가격</span>
                     <span className="text-[13px] text-[#6c6764]">{item.price.toLocaleString()}원</span>
                   </div>
