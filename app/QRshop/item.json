@@ -354,7 +354,7 @@
                   {
                       "id":  "keycap-keyring_a",
                       "name":  "키캡키링",
-                      "option":  "A",
+                      "option":  "A (기본)",
                       "price":  8000,
                       "initStock":  2,
                       "currentStock":  2,
@@ -363,7 +363,7 @@
                   {
                       "id":  "keycap-keyring_b",
                       "name":  "키캡키링",
-                      "option":  "B",
+                      "option":  "B (헤드셋)",
                       "price":  8000,
                       "initStock":  2,
                       "currentStock":  2,
@@ -372,7 +372,7 @@
                   {
                       "id":  "keycap-keyring_c",
                       "name":  "키캡키링",
-                      "option":  "C",
+                      "option":  "C (안경)",
                       "price":  8000,
                       "initStock":  2,
                       "currentStock":  2,
