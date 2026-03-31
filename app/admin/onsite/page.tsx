@@ -49,7 +49,7 @@ type OnsiteListResponse = {
 export default function AdminOnsitePage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'qrshop' | 'shop'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'qrshop' | 'shop'>('qrshop');
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
