@@ -41,6 +41,7 @@ function toEpochDay(dateKey: string): number {
   return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
 }
 
+// 판매 시작일과 종료일을 입력받아 현재 판매 상태를 반환하는 함수
 export function getSaleStatusByDate(
   salesStartDate: string | Date | null,
   salesEndDate: string | Date | null,

@@ -59,7 +59,7 @@ function formatOutOfStockAlert(issues: OutOfStockIssue[]): string {
   }
   if (zeroLike.length > 0) {
     parts.push(
-      `장바구니에 담으신 상품 중 아래 상품은 재고가 없습니다. 해당 상품을 제외한 뒤 다시 결제해 주세요.\n\n${zeroLike
+      `아래 상품은 재고가 없습니다. 해당 상품을 제외한 뒤 다시 결제해 주세요.\n\n${zeroLike
         .map((i) => i.displayLabel)
         .join('\n')}`,
     );
