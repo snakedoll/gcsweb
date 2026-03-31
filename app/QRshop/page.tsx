@@ -277,7 +277,7 @@ export default function QRshopPage() {
               onChange={(e) => setAgreed(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-neutral-5 accent-[#3182f6]"
             />
-            <span>주문 내용을 확인했으며, 결제 진행 시 쇼핑몰 이용약관 및 결제에 동의합니다.</span>
+            <span>결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.</span>
           </label>
 
           <div className="mb-3 flex items-center justify-between">
