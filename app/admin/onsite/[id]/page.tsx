@@ -37,6 +37,8 @@ type OrderDetail = {
 type ItemOptionValue = {
   value?: unknown;
   optionValue?: unknown;
+  optionName?: unknown;
+  name?: unknown;
 };
 
 const formatOptionQuantityText = (option: unknown, quantity: number): string => {
@@ -47,7 +49,11 @@ const formatOptionQuantityText = (option: unknown, quantity: number): string => 
       return input
         .map((row) => {
           if (row && typeof row === 'object') {
-            const value = (row as ItemOptionValue).optionValue ?? (row as ItemOptionValue).value;
+            const value =
+              (row as ItemOptionValue).optionValue ??
+              (row as ItemOptionValue).value ??
+              (row as ItemOptionValue).optionName ??
+              (row as ItemOptionValue).name;
             return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
           }
           if (typeof row === 'string') return row.trim();
@@ -64,6 +70,10 @@ const formatOptionQuantityText = (option: unknown, quantity: number): string => 
       } catch {
         return [trimmed];
       }
+    }
+
+    if (input && typeof input === 'object') {
+      return extractValues([input]);
     }
 
     return [];

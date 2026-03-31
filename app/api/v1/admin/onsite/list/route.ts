@@ -16,6 +16,7 @@ function jsonError(status: number, code: string, message: string) {
 type OptionLike = {
   value?: unknown;
   optionValue?: unknown;
+  source?: unknown;
 };
 
 type MappedOrderItem = {
@@ -43,8 +44,19 @@ type MappedOrder = {
   bagOption: boolean;
   requiresBagPackaging: boolean;
   bagNoticeMessage: string | null;
+  orderSource: 'QRSHOP' | 'SHOP';
   items: MappedOrderItem[];
 };
+
+function isQrShopOrder(items: unknown): boolean {
+  if (!Array.isArray(items)) return false;
+  return items.some((item) => {
+    const optionData = (item as { optionData?: unknown } | null)?.optionData;
+    if (!optionData || typeof optionData !== 'object' || Array.isArray(optionData)) return false;
+    const source = (optionData as { source?: unknown }).source;
+    return source === 'qrshop';
+  });
+}
 
 function extractOptionValues(optionData: unknown): string[] {
   if (Array.isArray(optionData)) {
@@ -84,6 +96,51 @@ function toOptionQuantityText(optionData: unknown, quantity: number): string {
   return `${values.join(' · ')} / ${quantity}개`;
 }
 
+function parseQrshopLabel(label: string): { itemName: string; optionOnly: string | null } {
+  const trimmed = label.trim();
+  if (!trimmed) return { itemName: '', optionOnly: null };
+  if (!trimmed.endsWith(')')) return { itemName: trimmed, optionOnly: null };
+
+  const openIdx = trimmed.lastIndexOf('(');
+  if (openIdx < 0) return { itemName: trimmed, optionOnly: null };
+
+  const itemName = trimmed.slice(0, openIdx).trim();
+  const optionOnly = trimmed.slice(openIdx + 1, -1).trim();
+  if (!itemName || !optionOnly) return { itemName: trimmed, optionOnly: null };
+  return { itemName, optionOnly };
+}
+
+function mapOnsiteOrderItem(item: any): MappedOrderItem {
+  const quantity = Number(item.quantity ?? 1);
+  const fallbackName = String(item.product?.name ?? '알 수 없는 상품');
+  const optionData = item.optionData;
+
+  if (optionData && typeof optionData === 'object' && !Array.isArray(optionData)) {
+    const optionObj = optionData as OptionLike;
+    if (optionObj.source === 'qrshop') {
+      const label = typeof optionObj.optionValue === 'string' ? optionObj.optionValue : '';
+      const parsed = parseQrshopLabel(label);
+      const name = parsed.itemName || fallbackName;
+      const options = parsed.optionOnly ? `${parsed.optionOnly} / ${quantity}개` : `${quantity}개`;
+      return {
+        id: String(item.id ?? ''),
+        name,
+        options,
+        price: Number(item.price ?? 0),
+        quantity,
+      };
+    }
+  }
+
+  return {
+    id: String(item.id ?? ''),
+    name: fallbackName,
+    options: toOptionQuantityText(optionData, quantity),
+    price: Number(item.price ?? 0),
+    quantity,
+  };
+}
+
 function toPaymentMethodLabel(paymentMethod: number) {
   if (paymentMethod === 3) return '현장결제';
   return '온라인결제';
@@ -99,6 +156,10 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() ?? '';
+    const sourceFilter = (searchParams.get('source')?.trim().toLowerCase() ?? 'all') as
+      | 'all'
+      | 'qrshop'
+      | 'shop';
 
     const where: any = {
       productType: 1,
@@ -147,16 +208,12 @@ export async function GET(req: Request) {
       const receiptStatus = toOnsiteReceiptStatusLabel(fulfillmentStatusCode);
 
       const items: MappedOrderItem[] = Array.isArray(order.items)
-        ? order.items.map((item: any) => ({
-            id: String(item.id ?? ''),
-            name: String(item.product?.name ?? '알 수 없는 상품'),
-            options: toOptionQuantityText(item.optionData, Number(item.quantity ?? 1)),
-            price: Number(item.price ?? 0),
-            quantity: Number(item.quantity ?? 1),
-          }))
+        ? order.items.map((item: any) => mapOnsiteOrderItem(item))
         : [];
 
       const hasBagOption = order.bagOption === true;
+
+      const orderSource: 'QRSHOP' | 'SHOP' = isQrShopOrder(order.items) ? 'QRSHOP' : 'SHOP';
 
       return {
         id: String(order.id),
@@ -176,11 +233,19 @@ export async function GET(req: Request) {
         bagOption: hasBagOption,
         requiresBagPackaging: hasBagOption,
         bagNoticeMessage: hasBagOption ? '봉투에 담아주세요' : null,
+        orderSource,
         items,
       };
     });
 
-    const grouped = mappedData.reduce(
+    const sourceFilteredData = mappedData.filter((row) => {
+      if (sourceFilter === 'all') return true;
+      if (sourceFilter === 'qrshop') return row.orderSource === 'QRSHOP';
+      if (sourceFilter === 'shop') return row.orderSource === 'SHOP';
+      return true;
+    });
+
+    const grouped = sourceFilteredData.reduce(
       (acc, curr) => {
         const found = acc.find((x) => x.date === curr.orderDateRaw);
         if (found) found.items.push(curr);

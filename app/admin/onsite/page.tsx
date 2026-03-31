@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
+import Filter from '@/components/ui/admin/product/Filter';
 import TabBar from '@/components/ui/button/TabBar';
 import Modal from '@/components/ui/common/Modal';
 import SearchBar from '@/components/ui/common/SearchBar';
@@ -24,6 +25,7 @@ type ReceiptItem = {
   bagOption?: boolean;
   requiresBagPackaging?: boolean;
   bagNoticeMessage?: string | null;
+  orderSource?: 'QRSHOP' | 'SHOP';
   items: {
     id: string;
     name: string;
@@ -47,6 +49,7 @@ type OnsiteListResponse = {
 export default function AdminOnsitePage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'qrshop' | 'shop'>('all');
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export default function AdminOnsitePage() {
       setLoading(true);
       const query = new URLSearchParams();
       if (search.trim()) query.set('search', search.trim());
+      if (sourceFilter !== 'all') query.set('source', sourceFilter);
 
       const res = await fetch(`/api/v1/admin/onsite/list?${query.toString()}`, { cache: 'no-store' });
       const json = (await res.json()) as OnsiteListResponse;
@@ -79,7 +83,7 @@ export default function AdminOnsitePage() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, sourceFilter]);
 
   useEffect(() => {
     void fetchGroups();
@@ -188,60 +192,78 @@ export default function AdminOnsitePage() {
           }
         />
 
-        <TabBar
-          activeKey="receipt"
-          onChange={(key) => {
-            if (key === 'inventory') {
-              router.push('/admin/onsite/inventory');
-            }
-          }}
-          items={[
-            { key: 'receipt', title: '수령 관리' },
-            { key: 'inventory', title: '재고 관리' },
-          ]}
-        />
-
-        <div className="px-4 pb-4 pt-5">
-          <SearchBar
-            placeholder="주문번호로 검색"
-            value={search}
-            onChange={setSearch}
-            className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
+        <div className="flex flex-col gap-6">
+          <TabBar
+            activeKey="receipt"
+            onChange={(key) => {
+              if (key === 'inventory') {
+                router.push('/admin/onsite/inventory');
+              }
+            }}
+            items={[
+              { key: 'receipt', title: '수령 관리' },
+              { key: 'inventory', title: '재고 관리' },
+            ]}
           />
-        </div>
 
-        <div className="flex flex-col gap-6 px-2 pb-8">
-          {loading ? (
-            <div className="py-20 text-center text-[15px] text-[#6C6764]">불러오는 중...</div>
-          ) : groups.length === 0 ? (
-            <div className="py-20 text-center text-[15px] text-[#6C6764]">조회된 주문이 없습니다.</div>
-          ) : (
-            groups.map((group) => (
-              <section key={group.date} className="flex flex-col gap-0">
-                <div className="flex items-center px-3">
-                  <h2 className="typo-heading-xsmall text-neutral-10">{group.date}</h2>
-                </div>
+          <div className="px-4">
+            <div className="flex flex-col gap-3">
+              <SearchBar
+                placeholder="주문번호로 검색"
+                value={search}
+                onChange={setSearch}
+                className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
+              />
+              <div className="flex gap-2">
+                {[
+                  { key: 'all', label: '전체' },
+                  { key: 'qrshop', label: 'QRshop' },
+                  { key: 'shop', label: 'Shop' },
+                ].map((row) => (
+                  <Filter
+                    key={row.key}
+                    label={row.label}
+                    selected={sourceFilter === row.key}
+                    onClick={() => setSourceFilter(row.key as 'all' | 'qrshop' | 'shop')}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
 
-                <Matrix_Attribute_06 className="mt-0 w-full" />
+          <div className="flex flex-col gap-6 px-2 pb-8">
+            {loading ? (
+              <div className="py-20 text-center text-[15px] text-[#6C6764]">불러오는 중...</div>
+            ) : groups.length === 0 ? (
+              <div className="py-20 text-center text-[15px] text-[#6C6764]">조회된 주문이 없습니다.</div>
+            ) : (
+              groups.map((group) => (
+                <section key={group.date} className="flex flex-col gap-0">
+                  <div className="flex items-center px-3">
+                    <h2 className="typo-heading-xsmall text-neutral-10">{group.date}</h2>
+                  </div>
 
-                <div className="flex flex-col">
-                  {group.items.map((item) => (
-                    <Matrix_Contents_06
-                      key={item.id}
-                      className="w-full"
-                      orderCode={item.orderId}
-                      orderTime={item.orderTime}
-                      paymentLabel={item.paymentStatus}
-                      receiptLabel={item.receiptStatus}
-                      paymentTone={item.paymentStatus.includes('결제완료') ? 'orange' : 'gray'}
-                      receiptTone={item.receiptStatus.includes('수령완료') ? 'gray' : 'orange'}
-                      onClick={() => router.push(`/admin/onsite/${item.id}`)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))
-          )}
+                  <Matrix_Attribute_06 className="mt-0 w-full" />
+
+                  <div className="flex flex-col">
+                    {group.items.map((item) => (
+                      <Matrix_Contents_06
+                        key={item.id}
+                        className="w-full"
+                        orderCode={item.orderId}
+                        orderTime={item.orderTime}
+                        paymentLabel={item.paymentStatus}
+                        receiptLabel={item.receiptStatus}
+                        paymentTone={item.paymentStatus.includes('결제완료') ? 'orange' : 'gray'}
+                        receiptTone={item.receiptStatus.includes('수령완료') ? 'gray' : 'orange'}
+                        onClick={() => router.push(`/admin/onsite/${item.id}`)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
         </div>
       </div>
   
@@ -286,12 +308,28 @@ export default function AdminOnsitePage() {
             </button>
           </div>
 
-          <SearchBar
-            placeholder="주문번호로 검색"
-            value={search}
-            onChange={setSearch}
-            className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
-          />
+          <div className="flex flex-col gap-3">
+            <SearchBar
+              placeholder="주문번호로 검색"
+              value={search}
+              onChange={setSearch}
+              className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
+            />
+            <div className="flex gap-2">
+              {[
+                { key: 'all', label: '전체' },
+                { key: 'qrshop', label: 'QRshop' },
+                { key: 'shop', label: 'Shop' },
+              ].map((row) => (
+                <Filter
+                  key={row.key}
+                  label={row.label}
+                  selected={sourceFilter === row.key}
+                  onClick={() => setSourceFilter(row.key as 'all' | 'qrshop' | 'shop')}
+                />
+              ))}
+            </div>
+          </div>
 
           {loading ? (
             <div className="py-20 text-center text-[15px] text-[#6C6764]">불러오는 중...</div>

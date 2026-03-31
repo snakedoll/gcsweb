@@ -31,6 +31,69 @@ function normalizeTransactionId(impUid: unknown, fallbackOrderId: string): strin
   return cleaned;
 }
 
+type QrshopOptionDataLike = {
+  source?: unknown;
+  optionValue?: unknown;
+};
+
+function parseQrshopLabel(label: string): { itemName: string; optionOnly: string | null } {
+  const trimmed = label.trim();
+  if (!trimmed) return { itemName: '', optionOnly: null };
+  if (!trimmed.endsWith(')')) return { itemName: trimmed, optionOnly: null };
+
+  const openIdx = trimmed.lastIndexOf('(');
+  if (openIdx < 0) return { itemName: trimmed, optionOnly: null };
+
+  const itemName = trimmed.slice(0, openIdx).trim();
+  const optionOnly = trimmed.slice(openIdx + 1, -1).trim();
+
+  if (!itemName || !optionOnly) {
+    return { itemName: trimmed, optionOnly: null };
+  }
+  return { itemName, optionOnly };
+}
+
+function normalizeOnsiteItemDisplay(item: {
+  product?: { name?: string | null; images?: Array<{ thumbnailImgUrl?: string | null }> | null } | null;
+  optionData?: unknown;
+  id: string;
+  price: number;
+  quantity: number;
+}) {
+  const fallbackName = item.product?.name ?? '알 수 없는 상품';
+  const optionData = item.optionData;
+
+  if (
+    optionData &&
+    typeof optionData === 'object' &&
+    !Array.isArray(optionData) &&
+    (optionData as QrshopOptionDataLike).source === 'qrshop'
+  ) {
+    const labelRaw = (optionData as QrshopOptionDataLike).optionValue;
+    const label = typeof labelRaw === 'string' ? labelRaw : '';
+    const parsed = parseQrshopLabel(label);
+    const normalizedName = parsed.itemName || fallbackName;
+
+    return {
+      id: item.id,
+      name: normalizedName,
+      option: parsed.optionOnly ? { optionValue: parsed.optionOnly } : '옵션 없음',
+      price: item.price,
+      quantity: item.quantity,
+      imgUrl: item.product?.images?.[0]?.thumbnailImgUrl ?? null,
+    };
+  }
+
+  return {
+    id: item.id,
+    name: fallbackName,
+    option: optionData ?? '옵션 없음',
+    price: item.price,
+    quantity: item.quantity,
+    imgUrl: item.product?.images?.[0]?.thumbnailImgUrl ?? null,
+  };
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
@@ -85,14 +148,7 @@ export async function GET(
       bagOption: order.bagOption,
       requiresBagPackaging: order.bagOption === true,
       bagNoticeMessage: order.bagOption === true ? '봉투에 담아주세요' : null,
-      items: order.items.map((item) => ({
-        id: item.id,
-        name: item.product?.name ?? '알 수 없는 상품',
-        option: item.optionData ?? '옵션 없음',
-        price: item.price,
-        quantity: item.quantity,
-        imgUrl: item.product?.images?.[0]?.thumbnailImgUrl ?? null,
-      })),
+      items: order.items.map((item) => normalizeOnsiteItemDisplay(item)),
       payment: {
         method: toPaymentMethodLabel(order.paymentMethod),
         amount: `${order.paymentAmount.toLocaleString()}원`,
