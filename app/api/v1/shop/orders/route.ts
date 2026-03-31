@@ -272,9 +272,7 @@ export async function POST(request: Request) {
     if ((isBuyNow || isFundPickup) && data.isPolicyAgreed !== true) {
       return jsonError(400, 'POLICY_AGREEMENT_REQUIRED', 'policy agreement is required.');
     }
-    if (isBuyNow && (data.bagOption === null || data.bagOption === undefined)) {
-      return jsonError(400, 'BAG_OPTION_REQUIRED', 'bagOption is required for buy now orders.');
-    }
+    const bagOption = isBuyNow ? data.bagOption === true : false;
 
     let paymentAmount = 0;
     const itemRows = data.items.map((item) => {
@@ -294,7 +292,7 @@ export async function POST(request: Request) {
         optionData: toDbJson(item.optionData),
       };
     });
-    if (isBuyNow && data.bagOption === true) {
+    if (isBuyNow && bagOption) {
       paymentAmount += BUY_NOW_BAG_FEE;
     }
 
@@ -358,7 +356,7 @@ export async function POST(request: Request) {
             deliveryMessage: isFundDelivery ? data.deliveryMessage ?? null : null,
             ordererName,
             ordererPhone,
-            bagOption: isBuyNow ? data.bagOption : false,
+            bagOption,
             paymentMethod: data.paymentMethod,
             billingKey: isFund && data.paymentMethod === 0 ? normalizedBillingKey : null,
             // DB constraint(Order_payment_detail_by_method_check) requires cardCompany for paymentMethod=0.
