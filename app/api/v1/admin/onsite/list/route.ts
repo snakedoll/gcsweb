@@ -16,6 +16,7 @@ function jsonError(status: number, code: string, message: string) {
 type OptionLike = {
   value?: unknown;
   optionValue?: unknown;
+  source?: unknown;
 };
 
 type MappedOrderItem = {
@@ -95,6 +96,51 @@ function toOptionQuantityText(optionData: unknown, quantity: number): string {
   return `${values.join(' · ')} / ${quantity}개`;
 }
 
+function parseQrshopLabel(label: string): { itemName: string; optionOnly: string | null } {
+  const trimmed = label.trim();
+  if (!trimmed) return { itemName: '', optionOnly: null };
+  if (!trimmed.endsWith(')')) return { itemName: trimmed, optionOnly: null };
+
+  const openIdx = trimmed.lastIndexOf('(');
+  if (openIdx < 0) return { itemName: trimmed, optionOnly: null };
+
+  const itemName = trimmed.slice(0, openIdx).trim();
+  const optionOnly = trimmed.slice(openIdx + 1, -1).trim();
+  if (!itemName || !optionOnly) return { itemName: trimmed, optionOnly: null };
+  return { itemName, optionOnly };
+}
+
+function mapOnsiteOrderItem(item: any): MappedOrderItem {
+  const quantity = Number(item.quantity ?? 1);
+  const fallbackName = String(item.product?.name ?? '알 수 없는 상품');
+  const optionData = item.optionData;
+
+  if (optionData && typeof optionData === 'object' && !Array.isArray(optionData)) {
+    const optionObj = optionData as OptionLike;
+    if (optionObj.source === 'qrshop') {
+      const label = typeof optionObj.optionValue === 'string' ? optionObj.optionValue : '';
+      const parsed = parseQrshopLabel(label);
+      const name = parsed.itemName || fallbackName;
+      const options = parsed.optionOnly ? `${parsed.optionOnly} / ${quantity}개` : `${quantity}개`;
+      return {
+        id: String(item.id ?? ''),
+        name,
+        options,
+        price: Number(item.price ?? 0),
+        quantity,
+      };
+    }
+  }
+
+  return {
+    id: String(item.id ?? ''),
+    name: fallbackName,
+    options: toOptionQuantityText(optionData, quantity),
+    price: Number(item.price ?? 0),
+    quantity,
+  };
+}
+
 function toPaymentMethodLabel(paymentMethod: number) {
   if (paymentMethod === 3) return '현장결제';
   return '온라인결제';
@@ -162,13 +208,7 @@ export async function GET(req: Request) {
       const receiptStatus = toOnsiteReceiptStatusLabel(fulfillmentStatusCode);
 
       const items: MappedOrderItem[] = Array.isArray(order.items)
-        ? order.items.map((item: any) => ({
-            id: String(item.id ?? ''),
-            name: String(item.product?.name ?? '알 수 없는 상품'),
-            options: toOptionQuantityText(item.optionData, Number(item.quantity ?? 1)),
-            price: Number(item.price ?? 0),
-            quantity: Number(item.quantity ?? 1),
-          }))
+        ? order.items.map((item: any) => mapOnsiteOrderItem(item))
         : [];
 
       const hasBagOption = order.bagOption === true;
