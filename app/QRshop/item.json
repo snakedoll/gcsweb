@@ -1,7 +1,7 @@
 ﻿{
     "items":  [
                   {
-                      "id":  "acrylic-key-ring_1",
+                      "id":  "test",
                       "name":  "테스트 상품",
                       "option":  "옵션",
                       "price":  1000,
