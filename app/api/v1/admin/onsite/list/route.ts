@@ -228,8 +228,7 @@ export async function GET(req: Request) {
         paymentMethodStr: toPaymentMethodLabel(paymentMethodCode),
         paymentAmount: Number(order.paymentAmount ?? 0),
         receiptStatus,
-        // 과거 데이터는 impUid가 비어 있을 수 있어 paymentId(order.id)로 폴백해 화면에 거래 식별값을 노출한다.
-        impUid: String(order.impUid ?? order.id ?? '-'),
+        impUid: typeof order.impUid === 'string' && order.impUid.trim() ? order.impUid.trim() : '-',
         bagOption: hasBagOption,
         requiresBagPackaging: hasBagOption,
         bagNoticeMessage: hasBagOption ? '봉투에 담아주세요' : null,
