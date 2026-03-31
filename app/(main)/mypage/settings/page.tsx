@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { NavBar } from '@/components/layout';
+import { useUser } from '@/hooks/useUser';
 
 function SettingMenuCard({
   title,
@@ -32,6 +33,7 @@ function SettingMenuCard({
 
 export default function MypageSettingsPage() {
   const router = useRouter();
+  const { profile } = useUser();
 
   const handleLogout = async () => {
     if (confirm('로그아웃 하시겠습니까?')) {
@@ -46,7 +48,7 @@ export default function MypageSettingsPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-neutral-3">
       <NavBar variant="title-back" title="설정" />
-      
+
       <main className="mx-auto flex w-full max-w-[375px] flex-1 flex-col px-4 pb-[32px] pt-5">
         <div className="flex flex-col gap-[23px]">
           <SettingMenuCard
@@ -59,10 +61,12 @@ export default function MypageSettingsPage() {
             description="팀명, 팀장, 팀원, 정산 계좌"
             onClick={() => router.push('/mypage/settings/teams')}
           />
-          <SettingMenuCard
-            title="비밀번호 변경"
-            onClick={() => router.push('/mypage/settings/password')}
-          />
+          {profile?.hasPassword !== false && (
+            <SettingMenuCard
+              title="비밀번호 변경"
+              onClick={() => router.push('/mypage/settings/password')}
+            />
+          )}
         </div>
 
         <div className="mt-auto flex flex-col items-center gap-3 pt-6">

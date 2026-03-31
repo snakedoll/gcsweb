@@ -10,6 +10,8 @@ interface UserProfile {
   profileImage?: string;
   isSeller?: boolean;
   memberType?: number;
+  signupMethod?: 'EMAIL' | 'KAKAO';
+  hasPassword?: boolean;
   notificationCount?: number;
   createdAt: string;
 }
