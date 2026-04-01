@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BottomTabBar, NavBar } from '@/components/layout';
@@ -75,7 +75,7 @@ function ProductCard({
   );
 }
 
-export default function HomePage() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [buyNowProducts, setBuyNowProducts] = useState<HomeBuyNowProduct[]>([]);
@@ -460,5 +460,27 @@ export default function HomePage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function HomeFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-3">
+      <div className="mx-auto flex min-h-screen w-full max-w-[375px] flex-col bg-neutral-3">
+        <NavBar />
+        <main className="flex-1" />
+        <div className="sticky bottom-0 z-20 mt-auto">
+          <BottomTabBar variant="home" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomeFallback />}>
+      <HomeContent />
+    </Suspense>
   );
 }
