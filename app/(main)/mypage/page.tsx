@@ -203,7 +203,7 @@ export default function MypagePage() {
                   <NextImage src={profile.profileImage} alt="프로필" fill unoptimized className="object-cover" sizes="100px" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <NextImage src="/assets/icons/icon-user-nav.svg" alt="" width={38} height={38} />
+                    <NextImage src="/assets/images/profile_image.png" alt="" fill className="object-cover" sizes="100px" />
                   </div>
                 )}
               </div>

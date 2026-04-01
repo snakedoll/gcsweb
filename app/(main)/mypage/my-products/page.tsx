@@ -49,7 +49,7 @@ function NoPermissionView() {
       <p className="typo-heading-small mb-2 text-neutral-12">판매 권한이 없습니다.</p>
       <p className="typo-body-small mb-6 text-neutral-7">GCS:Web에서 상품을 등록하고 싶다면?</p>
       <Link
-        href="/mypage/creator-guide"
+        href="/mypage/inquiries"
         className="inline-flex h-12 shrink-0 items-center justify-center rounded-lg bg-neutral-10 px-8 typo-body-small-bold text-neutral-1"
       >
         창작자 가이드 보러가기
