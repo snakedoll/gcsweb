@@ -159,7 +159,7 @@ function ResultContent() {
     return (
       <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-8 pb-[max(32px,env(safe-area-inset-bottom))]">
         <div className="flex w-full max-w-[400px] flex-col items-center text-center">
-          <div className="rounded-full bg-orange-2 p-4 text-[40px]" aria-hidden>
+          <div className="rounded-full bg-orange-1 p-4 text-[40px]" aria-hidden>
             ✓
           </div>
           <p className="mt-4 text-[20px] font-bold text-neutral-12">

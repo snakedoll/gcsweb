@@ -35,7 +35,7 @@ export default function AboutPage() {
               <div className="flex w-full items-start justify-center gap-3">
                 <div className="relative h-[110px] w-[110px] overflow-hidden rounded-[4px]">
                   <Image
-                    src="/assets/images/about-site-1.svg"
+                    src="/assets/images/about-site-1.png"
                     alt="GCS 행사 현장"
                     fill
                     sizes="110px"
@@ -44,7 +44,7 @@ export default function AboutPage() {
                 </div>
                 <div className="relative h-[110px] w-[110px] overflow-hidden rounded-[4px]">
                   <Image
-                    src="/assets/images/about-site-2.svg"
+                    src="/assets/images/about-site-2.png"
                     alt="GCS 발표 현장"
                     fill
                     sizes="110px"
@@ -53,7 +53,7 @@ export default function AboutPage() {
                 </div>
                 <div className="relative h-[110px] w-[110px] overflow-hidden rounded-[4px]">
                   <Image
-                    src="/assets/images/about-site-3.svg"
+                    src="/assets/images/about-site-3.png"
                     alt="GCS 작업 공간"
                     fill
                     sizes="110px"
