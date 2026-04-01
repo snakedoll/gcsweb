@@ -334,11 +334,11 @@ model FairShopProduct {
 model FairShopHistory {
   id            String   @id @default(cuid())
   orderId       String   @unique
-  orderCode     String?
   paymentMethod Int
   paymentAmount Int
   linesSnapshot Json
   createdAt     DateTime @default(now())
+  orderCode     String?
   order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])

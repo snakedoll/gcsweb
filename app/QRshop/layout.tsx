@@ -12,7 +12,7 @@ export default function QRshopLayout({ children }: { children: React.ReactNode }
     <div className="min-h-dvh bg-[#f2f4f6] text-neutral-12 antialiased relative">
       <Link
         href="/"
-        className="fixed right-4 top-4 z-[100] flex items-center gap-1 rounded-full bg-white px-3 py-2 text-[13px] font-semibold text-neutral-11 shadow-[0_2px_8px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] transition-all active:scale-95"
+        className="fixed right-4 top-4 z-[100] flex items-center gap-1 rounded-full bg-white px-3 py-2 text-[13px] font-semibold text-neutral-11 shadow-[0_2px_8px_rgba(0,0,0,0.08)] ring-1 ring-orange-5 transition-all active:scale-95"
       >
         <span>GCS 더 알아보기</span>
         <svg
