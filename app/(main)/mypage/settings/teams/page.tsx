@@ -124,7 +124,7 @@ export default function TeamInfoPage() {
             <button 
               type="button"
               className="flex h-[47px] w-[182px] items-center justify-center rounded-[8px] bg-neutral-10 typo-body-small-bold text-neutral-2 transition-opacity active:opacity-90"
-              onClick={() => router.push('/guide')}
+              onClick={() => router.push('/mypage/inquires')}
             >
               창작자 가이드 보러가기
             </button>

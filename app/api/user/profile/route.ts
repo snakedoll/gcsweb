@@ -18,12 +18,14 @@ export async function GET() {
     select: {
       id: true,
       email: true,
+      password: true,
       name: true,
       nickname: true,
       phone: true,
       profileImage: true,
       memberType: true,
       isSeller: true,
+      signupMethod: true,
       createdAt: true,
     },
   });
@@ -60,6 +62,8 @@ export async function GET() {
     profileImage: user.profileImage ?? undefined,
     role: Number(user.memberType) === 2 ? 'admin' : 'user',
     memberType: user.memberType,
+    signupMethod: user.signupMethod,
+    hasPassword: Boolean(user.password),
     isSeller: resolvedIsSeller,
     notificationCount: unreadNotificationCount,
     createdAt: user.createdAt.toISOString(),

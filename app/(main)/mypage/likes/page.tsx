@@ -47,7 +47,7 @@ function ProductCard({ product }: { product: LikedProduct }) {
   const { bg, text } = STATUS_STYLE[statusLabel];
 
   return (
-    <Link href={`/products/${product.id}`} className="flex items-start gap-[15px] w-full">
+    <Link href={`/shop/${product.id}`} className="flex items-start gap-[15px] w-full">
       {/* 썸네일: 고정 너비 + 4:5 비율 (Figma: 120×150 scale) */}
       <div
         className="relative shrink-0 rounded-[5.333px] overflow-hidden bg-[#dddcdb]"
