@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
@@ -13,6 +14,23 @@ type FairShopCatalogItemRow = {
   price: number;
   emoji?: string;
 };
+
+type CategoryFilter = {
+  id: string;
+  label: string;
+  predicate: (item: FairShopCatalogItemRow) => boolean;
+};
+
+const GROUPED_CATEGORY_RULES: Array<{
+  id: string;
+  label: string;
+  keywords: string[];
+}> = [
+  { id: 'keyring', label: '키링', keywords: ['키링'] },
+  { id: 'doll', label: '인형', keywords: ['인형'] },
+  { id: 'sticker', label: '스티커', keywords: ['스티커'] },
+  { id: 'tshirt', label: '티셔츠', keywords: ['티셔츠'] },
+];
 
 function getOrCreateGuestToken(): string {
   const existing = localStorage.getItem(GUEST_TOKEN_STORAGE_KEY)?.trim();
@@ -72,6 +90,7 @@ export default function QRshopPage() {
   const [items, setItems] = useState<FairShopCatalogItemRow[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -98,6 +117,53 @@ export default function QRshopPage() {
   }, []);
 
   const MAX_QTY_PER_LINE = 99;
+
+  const categories = useMemo<CategoryFilter[]>(() => {
+    const next: CategoryFilter[] = [
+      { id: 'all', label: '전체', predicate: () => true },
+    ];
+
+    const isMatchedByGroupedRule = (name: string) =>
+      GROUPED_CATEGORY_RULES.some((rule) =>
+        rule.keywords.some((keyword) => name.includes(keyword)),
+      );
+
+    for (const rule of GROUPED_CATEGORY_RULES) {
+      const hasAny = items.some((item) =>
+        rule.keywords.some((keyword) => item.name.includes(keyword)),
+      );
+      if (!hasAny) continue;
+      next.push({
+        id: rule.id,
+        label: rule.label,
+        predicate: (item) => rule.keywords.some((keyword) => item.name.includes(keyword)),
+      });
+    }
+
+    const fallbackNames = Array.from(
+      new Set(items.map((item) => item.name).filter((name) => !isMatchedByGroupedRule(name))),
+    );
+    for (const name of fallbackNames) {
+      next.push({
+        id: `name:${name}`,
+        label: name,
+        predicate: (item) => item.name === name,
+      });
+    }
+
+    return next;
+  }, [items]);
+
+  useEffect(() => {
+    if (categories.some((category) => category.id === selectedCategory)) return;
+    setSelectedCategory('all');
+  }, [categories, selectedCategory]);
+
+  const filteredItems = useMemo(() => {
+    const selected = categories.find((category) => category.id === selectedCategory);
+    if (!selected) return items;
+    return items.filter(selected.predicate);
+  }, [categories, items, selectedCategory]);
 
   const addOne = useCallback((id: string) => {
     setCounts((prev) => {
@@ -206,8 +272,28 @@ export default function QRshopPage() {
         <p className="mt-1 text-[14px] text-neutral-8">원하시는 상품을 눌러 담아주세요</p>
       </header>
 
+      <div className="mt-2 grid grid-cols-4 gap-2 px-4 pb-2">
+        {categories.map((category) => {
+          const active = selectedCategory === category.id;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => setSelectedCategory(category.id)}
+              className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
+                active
+                  ? 'border-[#3182f6] bg-[#3182f6] text-white'
+                  : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
+              }`}
+            >
+              <span className="block break-keep text-center">{category.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 px-3">
-        {items.map((item) => (
+        {filteredItems.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -270,15 +356,34 @@ export default function QRshopPage() {
             <p className="mb-3 text-center text-[14px] text-neutral-8">메뉴를 선택해 주세요</p>
           )}
 
-          <label className="mb-3 flex cursor-pointer items-start gap-2 text-[13px] text-neutral-9">
+          <div className="mb-3 flex items-center gap-2 text-[13px] text-neutral-9">
             <input
+              id="qrshop-agree"
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-neutral-5 accent-[#3182f6]"
+              className="h-4 w-4 shrink-0 rounded border-neutral-5 accent-[#3182f6]"
             />
-            <span>결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.</span>
-          </label>
+            <div className="flex min-w-0 items-center gap-0.5">
+              <label htmlFor="qrshop-agree" className="cursor-pointer leading-[1.35]">
+                결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.
+              </label>
+              <button
+                type="button"
+                onClick={() => router.push('/terms/terms-of-service')}
+                className="shrink-0 rounded-md p-1 transition active:bg-neutral-3"
+                aria-label="약관 보기"
+              >
+                <Image
+                  src="/assets/icons/arrow/filled/Iconex/Filled/Right 2.svg"
+                  alt=""
+                  width={12}
+                  height={12}
+                  aria-hidden
+                />
+              </button>
+            </div>
+          </div>
 
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[15px] font-semibold text-neutral-10">결제 금액</span>
