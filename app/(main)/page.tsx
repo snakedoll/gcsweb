@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BottomTabBar, NavBar } from '@/components/layout';
-import { useRouter } from 'next/navigation';
+import Modal from '@/components/ui/common/Modal';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const heroImage = '/assets/images/poster.svg';
 const instagramIcon = '/assets/icons/icon-instagram-line.svg';
@@ -76,6 +77,7 @@ function ProductCard({
 
 export default function HomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [buyNowProducts, setBuyNowProducts] = useState<HomeBuyNowProduct[]>([]);
   const [buyNowIndex, setBuyNowIndex] = useState(0);
   const [isBuyNowAnimating, setIsBuyNowAnimating] = useState(false);
@@ -84,6 +86,11 @@ export default function HomePage() {
   const [fundIndex, setFundIndex] = useState(0);
   const [isFundAnimating, setIsFundAnimating] = useState(false);
   const [fundDirection, setFundDirection] = useState<1 | -1>(1);
+  const isRestockModalOpen = searchParams.get('restock') === '1';
+
+  const handleRestockSignup = () => {
+    router.push('/login?from=restock');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -438,6 +445,20 @@ export default function HomePage() {
           <BottomTabBar variant="home" />
         </div>
       </div>
+
+      {isRestockModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.23)] px-4">
+          <div onClick={(event) => event.stopPropagation()}>
+            <Modal
+              variant="one button"
+              className="shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]"
+              title={'회원가입 시 재입고 알림을 받을 수 있어요!'}
+              confirmText={'회원가입하기'}
+              onConfirm={handleRestockSignup}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

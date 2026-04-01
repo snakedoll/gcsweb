@@ -27,6 +27,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get('reset') === 'success';
+  const isFromRestock = searchParams.get('from') === 'restock';
 
   const [loginUiState, setLoginUiState] = useState<LoginUiState>('default');
   const [rememberEmail, setRememberEmail] = useState(false);
@@ -156,7 +157,13 @@ function LoginContent() {
       <div className="border-b border-neutral-4 px-4 pb-[10px] pt-[10px]">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (isFromRestock) {
+              router.push('/');
+              return;
+            }
+            router.back();
+          }}
           className="inline-flex h-6 w-3 items-center justify-center"
           aria-label="뒤로가기"
         >
