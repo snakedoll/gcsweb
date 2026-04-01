@@ -445,6 +445,14 @@
                       "initStock":  2,
                       "currentStock":  2,
                       "emoji":  "🛍️"
+                  },
+                  {
+                      "id":  "test",
+                      "name":  "테스트",
+                      "price":  1000,
+                      "initStock":  10,
+                      "currentStock":  10,
+                      "emoji":  "🛍️"
                   }
               ]
 }
