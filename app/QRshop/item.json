@@ -459,7 +459,6 @@
                       "name":  "노스탁",
                       "price":  1000,
                       "initStock":  10,
-                      "currentStock":  10,
                       "emoji":  "🛍️"
                   }
               ]
