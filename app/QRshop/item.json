@@ -447,8 +447,16 @@
                       "emoji":  "🛍️"
                   },
                   {
-                      "id":  "test",
+                      "id":  "test1",
                       "name":  "테스트",
+                      "price":  1000,
+                      "initStock":  10,
+                      "currentStock":  10,
+                      "emoji":  "🛍️"
+                  },
+                  {
+                      "id":  "test2",
+                      "name":  "노스탁",
                       "price":  1000,
                       "initStock":  10,
                       "currentStock":  10,
