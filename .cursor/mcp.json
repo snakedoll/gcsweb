@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "figma": {
+      "url": "http://127.0.0.1:3845/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:FIGMA_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
