@@ -159,14 +159,14 @@ function ResultContent() {
     return (
       <div className="flex min-h-dvh flex-col items-center gap-6 px-4 py-8 pb-[max(32px,env(safe-area-inset-bottom))]">
         <div className="flex w-full max-w-[400px] flex-col items-center text-center">
-          <div className="rounded-full bg-[#e8f3ff] p-4 text-[40px]" aria-hidden>
+          <div className="rounded-full bg-orange-4 p-4 text-[40px]" aria-hidden>
             ✓
           </div>
           <p className="mt-4 text-[20px] font-bold text-neutral-12">
             {isCounterPay ? '주문이 완료되었습니다' : '결제가 완료되었습니다'}
           </p>
           {orderCode ? (
-            <p className="mt-2 text-[16px] font-semibold text-[#3182f6]">주문번호 {orderCode}</p>
+            <p className="mt-2 text-[16px] font-semibold text-orange-5">주문번호 {orderCode}</p>
           ) : null}
           <p className="mt-2 text-[14px] text-neutral-8">
             {isCounterPay
@@ -215,7 +215,7 @@ function ResultContent() {
 
         <button
           type="button"
-          className="mt-auto w-full max-w-[320px] rounded-[14px] bg-[#3182f6] py-4 text-[16px] font-semibold text-white"
+          className="mt-auto w-full max-w-[320px] rounded-[14px] bg-orange-5 py-4 text-[16px] font-semibold text-white"
           onClick={() => router.push('/QRshop')}
         >
           처음으로
@@ -230,7 +230,7 @@ function ResultContent() {
       <p className="text-[14px] text-neutral-8">{message}</p>
       <button
         type="button"
-        className="w-full max-w-[320px] rounded-[14px] bg-[#3182f6] py-4 text-[16px] font-semibold text-white"
+        className="w-full max-w-[320px] rounded-[14px] bg-orange-5 py-4 text-[16px] font-semibold text-white"
         onClick={() => router.push('/QRshop')}
       >
         다시 주문하기

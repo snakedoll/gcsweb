@@ -256,7 +256,7 @@ export default function QRshopPage() {
         <p className="text-[15px] text-neutral-9">{catalogError ?? '표시할 메뉴가 없습니다.'}</p>
         <button
           type="button"
-          className="rounded-[14px] bg-[#3182f6] px-4 py-2 text-[14px] font-semibold text-white"
+          className="rounded-[14px] bg-orange-5 px-4 py-2 text-[14px] font-semibold text-white"
           onClick={() => window.location.reload()}
         >
           다시 시도
@@ -282,7 +282,7 @@ export default function QRshopPage() {
               onClick={() => setSelectedCategory(category.id)}
               className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
                 active
-                  ? 'border-[#3182f6] bg-[#3182f6] text-white'
+                  ? 'border-orange-5 bg-orange-5 text-white'
                   : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
               }`}
             >
@@ -309,7 +309,7 @@ export default function QRshopPage() {
             {item.option ? (
               <span className="mt-0.5 text-[13px] text-neutral-8">{item.option}</span>
             ) : null}
-            <span className="mt-2 text-[16px] font-bold text-[#3182f6]">{formatWon(item.price)}</span>
+            <span className="mt-2 text-[16px] font-bold text-orange-5">{formatWon(item.price)}</span>
           </button>
         ))}
       </div>
@@ -362,7 +362,7 @@ export default function QRshopPage() {
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="h-4 w-4 shrink-0 rounded border-neutral-5 accent-[#3182f6]"
+              className="h-4 w-4 shrink-0 rounded border-neutral-5 accent-orange-5"
             />
             <div className="flex min-w-0 items-center gap-0.5">
               <label htmlFor="qrshop-agree" className="cursor-pointer leading-[1.35]">
@@ -397,7 +397,7 @@ export default function QRshopPage() {
               type="button"
               disabled={lines.length === 0 || !agreed || submitting}
               onClick={() => void submitOrder(0)}
-              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] bg-[#3182f6] text-[15px] font-semibold text-white transition enabled:active:scale-[0.99] disabled:bg-neutral-5 disabled:text-neutral-8"
+              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] bg-orange-5 text-[15px] font-semibold text-white transition enabled:active:scale-[0.99] disabled:bg-neutral-5 disabled:text-neutral-8"
             >
               {submitting ? '처리 중…' : '결제하기'}
             </button>
@@ -405,7 +405,7 @@ export default function QRshopPage() {
               type="button"
               disabled={lines.length === 0 || !agreed || submitting}
               onClick={() => void submitOrder(3)}
-              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] border-2 border-[#3182f6] bg-white text-[15px] font-semibold text-[#3182f6] transition enabled:active:scale-[0.99] disabled:border-neutral-5 disabled:bg-neutral-3 disabled:text-neutral-8"
+              className="flex h-[52px] w-1/2 min-w-0 shrink-0 items-center justify-center rounded-[14px] border-2 border-orange-5 bg-white text-[15px] font-semibold text-orange-5 transition enabled:active:scale-[0.99] disabled:border-neutral-5 disabled:bg-neutral-3 disabled:text-neutral-8"
             >
               {submitting ? '처리 중…' : '현장결제'}
             </button>
