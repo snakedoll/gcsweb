@@ -5,8 +5,7 @@
                       "name":  "아크릴 키링",
                       "option":  "A (옆으로 누운 꾸벅꾸벅 부처님)",
                       "price":  4000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 0,
                       "emoji":  "🔑"
                   },
                   {
@@ -14,8 +13,7 @@
                       "name":  "아크릴 키링",
                       "option":  "B (명상 중 꾸벅꾸벅 부처님)",
                       "price":  4000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 0,
                       "emoji":  "🔑"
                   },
                   {
@@ -23,8 +21,7 @@
                       "name":  "반다나",
                       "option":  "A (연화)",
                       "price":  15000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "☸"
                   },
                   {
@@ -32,8 +29,7 @@
                       "name":  "반다나",
                       "option":  "B (비천상)",
                       "price":  15000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "☸"
                   },
                   {
@@ -41,8 +37,7 @@
                       "name":  "반다나",
                       "option":  "C (옴)",
                       "price":  15000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "☸"
                   },
                   {
@@ -50,8 +45,7 @@
                       "name":  "엽서",
                       "option":  "A (연꽃주황)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -59,8 +53,7 @@
                       "name":  "엽서",
                       "option":  "B (연꽃파랑)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -68,8 +61,7 @@
                       "name":  "엽서",
                       "option":  "C (꽃)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -77,8 +69,7 @@
                       "name":  "엽서",
                       "option":  "D (꽃봉오리)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -86,8 +77,7 @@
                       "name":  "엽서",
                       "option":  "E (소원촛불)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -95,8 +85,7 @@
                       "name":  "엽서",
                       "option":  "F (소원촛불)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -104,8 +93,7 @@
                       "name":  "엽서",
                       "option":  "G (소원돌탑)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -113,8 +101,7 @@
                       "name":  "엽서",
                       "option":  "H (지킴이)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💌"
                   },
                   {
@@ -122,8 +109,7 @@
                       "name":  "피그먼트 티셔츠",
                       "option":  "S",
                       "price":  55000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👕"
                   },
                   {
@@ -131,8 +117,7 @@
                       "name":  "피그먼트 티셔츠",
                       "option":  "L",
                       "price":  55000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👕"
                   },
                   {
@@ -140,8 +125,7 @@
                       "name":  "부처티셔츠",
                       "option":  "A (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -149,8 +133,7 @@
                       "name":  "부처티셔츠",
                       "option":  "A (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -158,8 +141,7 @@
                       "name":  "부처티셔츠",
                       "option":  "B (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -167,8 +149,7 @@
                       "name":  "부처티셔츠",
                       "option":  "B (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -176,8 +157,7 @@
                       "name":  "부처티셔츠",
                       "option":  "C (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -185,8 +165,7 @@
                       "name":  "부처티셔츠",
                       "option":  "C (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -194,8 +173,7 @@
                       "name":  "부처티셔츠",
                       "option":  "D (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -203,8 +181,7 @@
                       "name":  "부처티셔츠",
                       "option":  "D (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -212,8 +189,7 @@
                       "name":  "부처티셔츠",
                       "option":  "E (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -221,8 +197,7 @@
                       "name":  "부처티셔츠",
                       "option":  "E (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -230,8 +205,7 @@
                       "name":  "부처티셔츠",
                       "option":  "F (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -239,8 +213,7 @@
                       "name":  "부처티셔츠",
                       "option":  "F (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -248,8 +221,7 @@
                       "name":  "부처티셔츠",
                       "option":  "G (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -257,8 +229,7 @@
                       "name":  "부처티셔츠",
                       "option":  "G (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -266,8 +237,7 @@
                       "name":  "부처티셔츠",
                       "option":  "H (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -275,8 +245,7 @@
                       "name":  "부처티셔츠",
                       "option":  "H (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -284,8 +253,7 @@
                       "name":  "부처티셔츠",
                       "option":  "I (XS)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -293,8 +261,7 @@
                       "name":  "부처티셔츠",
                       "option":  "I (L)",
                       "price":  28000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "👘"
                   },
                   {
@@ -302,8 +269,7 @@
                       "name":  "스트레스볼",
                       "option":  "A (화이트)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🔴"
                   },
                   {
@@ -311,8 +277,7 @@
                       "name":  "스트레스볼",
                       "option":  "B (레드)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🔵"
                   },
                   {
@@ -320,8 +285,7 @@
                       "name":  "스트레스볼",
                       "option":  "C (블루)",
                       "price":  2000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "⚪"
                   },
                   {
@@ -329,8 +293,7 @@
                       "name":  "키캡키링",
                       "option":  "A (기본)",
                       "price":  8000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🔑"
                   },
                   {
@@ -338,8 +301,7 @@
                       "name":  "키캡키링",
                       "option":  "B (헤드셋)",
                       "price":  8000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🔑"
                   },
                   {
@@ -347,8 +309,7 @@
                       "name":  "키캡키링",
                       "option":  "C (안경)",
                       "price":  8000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🔑"
                   },
                   {
@@ -356,8 +317,7 @@
                       "name":  "말랑핀뱃지",
                       "option":  "A (수햄중)",
                       "price":  5000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "📌"
                   },
                   {
@@ -365,16 +325,14 @@
                       "name":  "말랑핀뱃지",
                       "option":  "B (번뇌햄)",
                       "price":  5000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "📌"
                   },
                   {
                       "id":  "bunnoe-ham-doll",
                       "name":  "번뇌햄 인형",
                       "price":  11000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🧸"
                   },
                   {
@@ -382,8 +340,7 @@
                       "name":  "마우스패드",
                       "option":  "A (꼬물꼬물 행운가득 수호동물)",
                       "price":  5000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🖱️"
                   },
                   {
@@ -391,8 +348,7 @@
                       "name":  "마우스패드",
                       "option":  "B (오늘도 평화로운 날)",
                       "price":  5000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🖱️"
                   },
                   {
@@ -400,24 +356,21 @@
                       "name":  "마우스패드",
                       "option":  " C (번뇌정지버튼)",
                       "price":  5000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🖱️"
                   },
                   {
                       "id":  "laptop-sticker-pack",
                       "name":  "노트북 스티커팩",
                       "price":  4000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "💻"
                   },
                   {
                       "id":  "bunnoe-ham-gyeongdan-doll",
                       "name":  "번뇌햄 경단인형",
                       "price":  12000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🧸"
                   },
                   {
@@ -425,8 +378,7 @@
                       "name":  "띠부 스티커 세트",
                       "option":  "A (연꽃배 동동 시리즈)",
                       "price":  3000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🪷"
                   },
                   {
@@ -434,34 +386,20 @@
                       "name":  "띠부 스티커 세트",
                       "option":  "B (정성 가득 사찰음식 시리즈)",
                       "price":  6000,
-                      "initStock":  2,
-                      "currentStock":  2,
+                      "initStock": 10,
                       "emoji":  "🍱"
                   },
                   {
                       "id":  "bag",
                       "name":  "봉투",
                       "price":  100,
-                      "initStock":  2,
-                      "currentStock":  2,
-                      "emoji":  "🛍️"
-                  },
-                  {
-                      "id":  "test1",
-                      "name":  "테스트",
-                      "price":  1000,
-                      "initStock":  10,
-                      "currentStock":  10,
-                      "emoji":  "🛍️"
-                  },
-                  {
-                      "id":  "test2",
-                      "name":  "노스탁",
-                      "price":  1000,
-                      "initStock":  10,
+                      "initStock": 10,
                       "emoji":  "🛍️"
                   }
               ]
 }
+
+
+
 
 
