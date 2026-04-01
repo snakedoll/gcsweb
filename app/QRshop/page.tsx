@@ -275,6 +275,7 @@ export default function QRshopPage() {
       <div className="mt-2 grid grid-cols-4 gap-2 px-4 pb-2">
         {categories.map((category) => {
           const active = selectedCategory === category.id;
+          const isBagCategory = category.label === '봉투';
           return (
             <button
               key={category.id}
@@ -283,7 +284,9 @@ export default function QRshopPage() {
               className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
                 active
                   ? 'border-orange-5 bg-orange-5 text-white'
-                  : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
+                  : isBagCategory
+                    ? 'border-neutral-4 bg-white text-orange-5 active:bg-neutral-2'
+                    : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
               }`}
             >
               <span className="block break-keep text-center">{category.label}</span>

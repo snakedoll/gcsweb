@@ -437,6 +437,14 @@
                       "initStock":  2,
                       "currentStock":  2,
                       "emoji":  "🍱"
+                  },
+                  {
+                      "id":  "bag",
+                      "name":  "봉투",
+                      "price":  100,
+                      "initStock":  2,
+                      "currentStock":  2,
+                      "emoji":  "🛍️"
                   }
               ]
 }
