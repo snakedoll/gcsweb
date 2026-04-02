@@ -1,7 +1,7 @@
 const ORDER_CODE_TIME_ZONE = 'Asia/Seoul';
 const ORDER_CODE_ALPHABET = 'ABCDEFGHKMNPQRSTWXYZ';
-const ORDER_SEQUENCE_WIDTH = 3;
-const ORDER_SEQUENCE_MAX = 999;
+const ORDER_SEQUENCE_WIDTH = 4;
+const ORDER_SEQUENCE_MAX = 9999;
 
 export type OrderProductTypeCode = 'F' | 'B';
 
@@ -36,14 +36,14 @@ export function mapProductTypeToOrderCode(productType: number): OrderProductType
 
 export function formatOrderSequence(orderSeq: number): string {
   if (!Number.isInteger(orderSeq) || orderSeq < 1 || orderSeq > ORDER_SEQUENCE_MAX) {
-    throw new Error('order sequence must be an integer between 1 and 999');
+    throw new Error('order sequence must be an integer between 1 and 9999');
   }
   return String(orderSeq).padStart(ORDER_SEQUENCE_WIDTH, '0');
 }
 
-// 주문 코드 앞 10자리(YYMMDD + ProductType + Sequence) 기반으로 검증문자 1자리 생성
+// 주문 코드 앞 11자리(YYMMDD + ProductType + Sequence) 기반으로 검증문자 1자리 생성
 export function calculateOrderCheckCharacter(base: string): string {
-  if (!/^\d{6}[FB]\d{3}$/.test(base)) {
+  if (!/^\d{6}[FB]\d{4}$/.test(base)) {
     throw new Error('invalid order code base format');
   }
 
@@ -71,12 +71,12 @@ export function buildOrderCode(params: {
 }
 
 export function isValidOrderCode(orderCode: string): boolean {
-  if (!/^\d{6}[FB]\d{3}[A-Z]$/.test(orderCode)) {
+  if (!/^\d{6}[FB]\d{4}[A-Z]$/.test(orderCode)) {
     return false;
   }
 
-  const base = orderCode.slice(0, 10);
-  const checkCharacter = orderCode.slice(10);
+  const base = orderCode.slice(0, 11);
+  const checkCharacter = orderCode.slice(11);
   if (!ORDER_CODE_ALPHABET.includes(checkCharacter)) {
     return false;
   }
