@@ -58,9 +58,10 @@ export default function AdminOnsitePage() {
   const [updatingCancelId, setUpdatingCancelId] = useState<string | null>(null);
   const [pendingCancelItem, setPendingCancelItem] = useState<ReceiptItem | null>(null);
 
-  const fetchGroups = useCallback(async () => {
+  const fetchGroups = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const query = new URLSearchParams();
       if (search.trim()) query.set('search', search.trim());
       if (sourceFilter !== 'all') query.set('source', sourceFilter);
@@ -85,12 +86,33 @@ export default function AdminOnsitePage() {
       console.error('Failed to fetch onsite orders:', error);
       setGroups([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [search, sourceFilter, payMethodFilter, payOutcomeFilter]);
 
   useEffect(() => {
     void fetchGroups();
+  }, [fetchGroups]);
+
+  /** 다른 기기·탭에서 수령 등을 바꾼 뒤 목록이 멀티 디바이스에 가까이 맞도록 동기화 (WebSocket 없이 폴링). */
+  useEffect(() => {
+    const POLL_MS = 3000;
+    const tick = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      void fetchGroups({ silent: true });
+    };
+    const id = window.setInterval(tick, POLL_MS);
+    return () => window.clearInterval(id);
+  }, [fetchGroups]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchGroups({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchGroups]);
 
   const totalCount = useMemo(
@@ -116,7 +138,7 @@ export default function AdminOnsitePage() {
         return;
       }
 
-      await fetchGroups();
+      await fetchGroups({ silent: true });
     } catch (error) {
       console.error('Failed to update receipt status:', error);
       alert('수령 상태 변경 중 오류가 발생했습니다.');
@@ -142,7 +164,7 @@ export default function AdminOnsitePage() {
         return false;
       }
 
-      await fetchGroups();
+      await fetchGroups({ silent: true });
       return true;
     } catch (error) {
       console.error('Failed to cancel order:', error);
