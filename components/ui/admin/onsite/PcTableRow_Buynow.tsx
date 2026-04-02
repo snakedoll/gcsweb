@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type BuynowVariant = 'Header' | '미수령' | '수령완료' | '주문취소완료' | 'multiple' | '봉투';
@@ -30,6 +31,8 @@ interface PcTableRowBuynowProps {
   receiptLabel?: string;
   cancelLabel?: string;
   hoverable?: boolean;
+  /** Header 전용: 결제 정보 칸에 드롭다운 등 커스텀 UI */
+  paymentInfoHeaderControl?: ReactNode;
 }
 
 const DEFAULT_PRODUCTS: ProductLine[] = [
@@ -48,7 +51,7 @@ const BAG_PRODUCTS: ProductLine[] = [
 ];
 
 function rowHeightClass(variant: BuynowVariant) {
-  if (variant === 'Header') return 'h-10';
+  if (variant === 'Header') return 'min-h-[52px]';
   if (variant === 'multiple') return 'min-h-[181px]';
   if (variant === '봉투') return 'min-h-32';
   return 'min-h-[121px]';
@@ -97,6 +100,7 @@ export default function PcTableRow_Buynow({
   receiptLabel,
   cancelLabel,
   hoverable = false,
+  paymentInfoHeaderControl,
 }: PcTableRowBuynowProps) {
   const isHeader = variant === 'Header';
   const isCanceled = variant === '주문취소완료';
@@ -191,7 +195,9 @@ export default function PcTableRow_Buynow({
 
       <div className={cn('flex w-[200px] border-r border-dashed border-neutral-5 px-[18px]', isHeader ? 'items-center py-[10px]' : 'items-start py-4')}>
         {isHeader ? (
-          <p className="typo-body-xsmall-bold w-full text-neutral-10">결제 정보</p>
+          paymentInfoHeaderControl ?? (
+            <p className="typo-body-xsmall-bold w-full text-neutral-10">결제 정보</p>
+          )
         ) : (
           <div className="flex w-full flex-col gap-[3px] text-neutral-10">
             <p className="typo-body-xsmall">{paymentInfoTitle}</p>

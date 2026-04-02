@@ -158,12 +158,22 @@ export async function GET(req: Request) {
       | 'all'
       | 'qrshop'
       | 'shop';
+    const payMethod = (searchParams.get('payMethod')?.trim().toLowerCase() ?? 'all') as
+      | 'all'
+      | 'online'
+      | 'counter';
 
     const where: any = {
       productType: 1,
       receiveMethod: 1,
       paymentStatus: { in: [0, 1, 2, 3, 4] },
     };
+
+    if (payMethod === 'online') {
+      where.paymentMethod = { not: 3 };
+    } else if (payMethod === 'counter') {
+      where.paymentMethod = 3;
+    }
 
     if (search) {
       where.OR = [

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -50,6 +50,7 @@ export default function AdminOnsitePage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'qrshop' | 'shop'>('qrshop');
+  const [payMethodFilter, setPayMethodFilter] = useState<'all' | 'online' | 'counter'>('all');
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export default function AdminOnsitePage() {
       const query = new URLSearchParams();
       if (search.trim()) query.set('search', search.trim());
       if (sourceFilter !== 'all') query.set('source', sourceFilter);
+      if (payMethodFilter !== 'all') query.set('payMethod', payMethodFilter);
 
       const res = await fetch(`/api/v1/admin/onsite/list?${query.toString()}`, { cache: 'no-store' });
       const json = (await res.json()) as OnsiteListResponse;
@@ -83,7 +85,7 @@ export default function AdminOnsitePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, sourceFilter]);
+  }, [search, sourceFilter, payMethodFilter]);
 
   useEffect(() => {
     void fetchGroups();
@@ -214,7 +216,7 @@ export default function AdminOnsitePage() {
                 onChange={setSearch}
                 className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   { key: 'all', label: '전체' },
                   { key: 'qrshop', label: 'QRshop' },
@@ -225,6 +227,20 @@ export default function AdminOnsitePage() {
                     label={row.label}
                     selected={sourceFilter === row.key}
                     onClick={() => setSourceFilter(row.key as 'all' | 'qrshop' | 'shop')}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all' as const, label: '결제 전체' },
+                  { key: 'online' as const, label: '온라인결제' },
+                  { key: 'counter' as const, label: '현장결제' },
+                ].map((row) => (
+                  <Filter
+                    key={row.key}
+                    label={row.label}
+                    selected={payMethodFilter === row.key}
+                    onClick={() => setPayMethodFilter(row.key)}
                   />
                 ))}
               </div>
@@ -315,7 +331,7 @@ export default function AdminOnsitePage() {
               onChange={setSearch}
               className="h-10 border-[#DDDCDB] bg-[#FDFDFD]"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
                 { key: 'all', label: '전체' },
                 { key: 'qrshop', label: 'QRshop' },
@@ -336,14 +352,39 @@ export default function AdminOnsitePage() {
           ) : groups.length === 0 ? (
             <div className="py-20 text-center text-[15px] text-[#6C6764]">조회된 주문이 없습니다.</div>
           ) : (
-            groups.map((group) => (
-              <section key={group.date} className="flex flex-col gap-3">
-                <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
+            <>
+              <div className="flex flex-col gap-3">
+                <PcTableRow_Buynow
+                  variant="Header"
+                  className="w-full"
+                  paymentInfoHeaderControl={
+                    <div className="flex w-full min-w-0 flex-col gap-1">
+                      <span className="typo-body-xsmall-bold shrink-0 leading-tight text-neutral-10">결제 정보</span>
+                      <label className="sr-only" htmlFor="admin-onsite-pay-method-filter">
+                        결제 수단 필터
+                      </label>
+                      <select
+                        id="admin-onsite-pay-method-filter"
+                        className="typo-body-xsmall w-full max-w-[164px] cursor-pointer rounded border border-neutral-5 bg-white py-1 pl-1.5 pr-0.5 text-neutral-10"
+                        value={payMethodFilter}
+                        onChange={(e) =>
+                          setPayMethodFilter(e.target.value as 'all' | 'online' | 'counter')
+                        }
+                      >
+                        <option value="all">전체</option>
+                        <option value="online">온라인결제</option>
+                        <option value="counter">현장결제</option>
+                      </select>
+                    </div>
+                  }
+                />
+              </div>
+              {groups.map((group) => (
+                <section key={group.date} className="flex flex-col gap-3">
+                  <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
-                <div className="flex flex-col gap-4">
-                  <PcTableRow_Buynow variant="Header" className="w-full" />
-
-                  {group.items.map((item, index) => {
+                  <div className="flex flex-col gap-4">
+                    {group.items.map((item, index) => {
                     const isCanceled = item.paymentStatusCode === 3;
                     const isReceiptUpdating = updatingReceiptId === item.id;
                     const isCancelUpdating = updatingCancelId === item.id;
@@ -407,9 +448,10 @@ export default function AdminOnsitePage() {
                       />
                     );
                   })}
-                </div>
-              </section>
-            ))
+                  </div>
+                </section>
+              ))}
+            </>
           )}
 
           <div className="pt-2 text-right text-[13px] text-[#6C6764]">총 {totalCount}건</div>
