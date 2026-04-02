@@ -289,7 +289,7 @@ export default function QRshopPage() {
         <p className="mt-1 text-[14px] text-neutral-8">원하시는 상품을 눌러 담아주세요</p>
       </header>
 
-      <div className={`relative mt-2 px-4 ${pickCategory ? 'pb-[108px]' : 'pb-2'}`}>
+      <div className={`relative mt-2 px-4 ${pickCategory ? 'pb-14' : 'pb-2'}`}>
         <div className="grid grid-cols-4 gap-2">
           {gridCategories.map((category) => {
             const active = selectedCategory === category.id;
@@ -316,7 +316,7 @@ export default function QRshopPage() {
           <button
             type="button"
             onClick={() => setSelectedCategory(pickCategory.id)}
-            className={`absolute bottom-2 left-4 right-4 flex min-h-[96px] w-auto items-center justify-center rounded-[14px] border px-4 py-3 text-[17px] font-bold leading-tight transition ${
+            className={`absolute bottom-2 left-4 right-4 flex min-h-[44px] w-auto items-center justify-center rounded-[14px] border px-4 py-1.5 text-[13px] font-semibold leading-tight transition ${
               selectedCategory === pickCategory.id
                 ? 'border-orange-5 bg-orange-5 text-white'
                 : 'border-orange-5 bg-white text-orange-5 shadow-sm active:bg-orange-1'
