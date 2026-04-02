@@ -60,9 +60,10 @@ function productColumnClass(variant: BuynowVariant) {
   return 'bg-orange-3';
 }
 
-function receiptButtonClass(variant: BuynowVariant) {
-  if (variant === '미수령' || variant === '봉투') return 'bg-orange-5';
-  return 'bg-orange-3';
+function receiptButtonClass(variant: BuynowVariant, resolvedReceiptLabel: string) {
+  if (variant === '봉투') return 'bg-orange-5';
+  if (resolvedReceiptLabel === '수령완료' || resolvedReceiptLabel === '수령') return 'bg-orange-3';
+  return 'bg-orange-5';
 }
 
 function cancelButtonClass(variant: BuynowVariant) {
@@ -219,7 +220,7 @@ export default function PcTableRow_Buynow({
             className={cn(
               'typo-body-xsmall-bold inline-flex h-[26px] w-full items-center justify-center rounded-[4px] text-neutral-2',
               receiptDisabled ? 'cursor-not-allowed opacity-60' : '',
-              receiptButtonClass(variant)
+              receiptButtonClass(variant, resolvedReceiptLabel)
             )}
           >
             {resolvedReceiptLabel}
