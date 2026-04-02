@@ -316,8 +316,7 @@ export default function QRshopPage() {
           <button
             type="button"
             onClick={() => setSelectedCategory(pickCategory.id)}
-            style={{ width: 'calc((100% - 24px) / 2 + 8px)' }}
-            className={`absolute bottom-2 right-4 flex min-h-[96px] max-w-none items-center justify-center rounded-[14px] border px-3 py-2 text-[16px] font-bold leading-tight transition ${
+            className={`absolute bottom-2 left-4 right-4 flex min-h-[96px] w-auto items-center justify-center rounded-[14px] border px-4 py-3 text-[17px] font-bold leading-tight transition ${
               selectedCategory === pickCategory.id
                 ? 'border-orange-5 bg-orange-5 text-white'
                 : 'border-orange-5 bg-white text-orange-5 shadow-sm active:bg-orange-1'
