@@ -33,6 +33,8 @@ interface PcTableRowBuynowProps {
   hoverable?: boolean;
   /** Header 전용: 결제 정보 칸에 드롭다운 등 커스텀 UI */
   paymentInfoHeaderControl?: ReactNode;
+  /** Header 전용: 결제여부 칸에 드롭다운 등 커스텀 UI */
+  paymentDoneHeaderControl?: ReactNode;
 }
 
 const DEFAULT_PRODUCTS: ProductLine[] = [
@@ -101,6 +103,7 @@ export default function PcTableRow_Buynow({
   cancelLabel,
   hoverable = false,
   paymentInfoHeaderControl,
+  paymentDoneHeaderControl,
 }: PcTableRowBuynowProps) {
   const isHeader = variant === 'Header';
   const isCanceled = variant === '주문취소완료';
@@ -207,9 +210,13 @@ export default function PcTableRow_Buynow({
       </div>
 
       <div className={cn('flex w-[140px] border-r border-dashed border-neutral-5 px-[18px]', isHeader ? 'items-center py-[10px]' : 'items-start py-4')}>
-        <p className={cn('w-full text-neutral-10', isHeader ? 'typo-body-xsmall-bold' : 'typo-body-xsmall')}>
-          {isHeader ? '결제여부' : paymentStatusText}
-        </p>
+        {isHeader ? (
+          paymentDoneHeaderControl ?? (
+            <p className="typo-body-xsmall-bold w-full text-neutral-10">결제여부</p>
+          )
+        ) : (
+          <p className={cn('w-full text-neutral-10', 'typo-body-xsmall')}>{paymentStatusText}</p>
+        )}
       </div>
 
       <div className={cn('flex w-[110px] border-r border-dashed border-neutral-5 px-[18px]', isHeader ? 'items-center py-[10px]' : 'items-start py-4')}>

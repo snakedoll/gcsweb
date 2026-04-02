@@ -18,6 +18,9 @@ export const ONSITE_FULFILLMENT_STATUS = {
   RECEIVED: 1,
 } as const;
 
+/** 어드민 수령 목록에서 [결제완료] 필터에 쓰는 표시 — `toOnsitePaymentStatusLabel` 결과와 동일해야 함 */
+export const ONSITE_ADMIN_PAYMENT_COMPLETED_LABEL = '결제완료';
+
 /** 온라인 결제는 verify 전까지 CREATED(0). 창 오픈~실패 복귀까지 걸린 뒤에도 미검증이면 실패·이탈로 본다. */
 const ADMIN_ONSITE_ONLINE_UNPAID_STALE_MS = 60 * 1000;
 

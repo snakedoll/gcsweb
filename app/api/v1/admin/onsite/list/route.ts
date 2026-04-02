@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { formatDateTimePartsInSeoul } from '@/lib/datetime';
 import {
+  ONSITE_ADMIN_PAYMENT_COMPLETED_LABEL,
   toOnsitePaymentStatusLabel,
   toOnsiteReceiptStatusLabel,
 } from '@/lib/admin-onsite-status';
@@ -162,6 +163,10 @@ export async function GET(req: Request) {
       | 'all'
       | 'online'
       | 'counter';
+    const payOutcome = (searchParams.get('payOutcome')?.trim().toLowerCase() ?? 'all') as
+      | 'all'
+      | 'completed'
+      | 'other';
 
     const where: any = {
       productType: 1,
@@ -256,7 +261,13 @@ export async function GET(req: Request) {
       return true;
     });
 
-    const grouped = sourceFilteredData.reduce(
+    const outcomeFilteredData = sourceFilteredData.filter((row) => {
+      if (payOutcome === 'completed') return row.paymentStatus === ONSITE_ADMIN_PAYMENT_COMPLETED_LABEL;
+      if (payOutcome === 'other') return row.paymentStatus !== ONSITE_ADMIN_PAYMENT_COMPLETED_LABEL;
+      return true;
+    });
+
+    const grouped = outcomeFilteredData.reduce(
       (acc, curr) => {
         const found = acc.find((x) => x.date === curr.orderDateRaw);
         if (found) found.items.push(curr);

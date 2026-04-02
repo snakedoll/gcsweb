@@ -51,6 +51,7 @@ export default function AdminOnsitePage() {
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'qrshop' | 'shop'>('qrshop');
   const [payMethodFilter, setPayMethodFilter] = useState<'all' | 'online' | 'counter'>('all');
+  const [payOutcomeFilter, setPayOutcomeFilter] = useState<'all' | 'completed' | 'other'>('all');
   const [groups, setGroups] = useState<ReceiptGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
@@ -64,6 +65,7 @@ export default function AdminOnsitePage() {
       if (search.trim()) query.set('search', search.trim());
       if (sourceFilter !== 'all') query.set('source', sourceFilter);
       if (payMethodFilter !== 'all') query.set('payMethod', payMethodFilter);
+      if (payOutcomeFilter !== 'all') query.set('payOutcome', payOutcomeFilter);
 
       const res = await fetch(`/api/v1/admin/onsite/list?${query.toString()}`, { cache: 'no-store' });
       const json = (await res.json()) as OnsiteListResponse;
@@ -85,7 +87,7 @@ export default function AdminOnsitePage() {
     } finally {
       setLoading(false);
     }
-  }, [search, sourceFilter, payMethodFilter]);
+  }, [search, sourceFilter, payMethodFilter, payOutcomeFilter]);
 
   useEffect(() => {
     void fetchGroups();
@@ -244,6 +246,20 @@ export default function AdminOnsitePage() {
                   />
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all' as const, label: '여부 전체' },
+                  { key: 'completed' as const, label: '결제완료' },
+                  { key: 'other' as const, label: '그 외' },
+                ].map((row) => (
+                  <Filter
+                    key={row.key}
+                    label={row.label}
+                    selected={payOutcomeFilter === row.key}
+                    onClick={() => setPayOutcomeFilter(row.key)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -374,6 +390,26 @@ export default function AdminOnsitePage() {
                         <option value="all">전체</option>
                         <option value="online">온라인결제</option>
                         <option value="counter">현장결제</option>
+                      </select>
+                    </div>
+                  }
+                  paymentDoneHeaderControl={
+                    <div className="flex w-full min-w-0 flex-col gap-1">
+                      <span className="typo-body-xsmall-bold shrink-0 leading-tight text-neutral-10">결제여부</span>
+                      <label className="sr-only" htmlFor="admin-onsite-pay-outcome-filter">
+                        결제 여부 필터
+                      </label>
+                      <select
+                        id="admin-onsite-pay-outcome-filter"
+                        className="typo-body-xsmall w-full max-w-[104px] cursor-pointer rounded border border-neutral-5 bg-white py-1 pl-1.5 pr-0.5 text-neutral-10"
+                        value={payOutcomeFilter}
+                        onChange={(e) =>
+                          setPayOutcomeFilter(e.target.value as 'all' | 'completed' | 'other')
+                        }
+                      >
+                        <option value="all">전체</option>
+                        <option value="completed">결제완료</option>
+                        <option value="other">그 외</option>
                       </select>
                     </div>
                   }
