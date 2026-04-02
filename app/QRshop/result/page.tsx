@@ -165,12 +165,11 @@ function ResultContent() {
           <p className="mt-4 text-[20px] font-bold leading-snug text-neutral-12">
             {isCounterPay ? (
               <>
-                <span className="text-[#dc2626]">현장결제</span>
-                주문이 완료되었습니다.
+                <span className="text-[#dc2626]">현장결제</span>{' '}주문이 완료되었습니다.
               </>
             ) : (
               <>
-                <span className="text-[#2563eb]">온라인</span> 결제가 완료되었습니다.
+                <span className="text-[#2563eb]">온라인</span>{' '}결제가 완료되었습니다.
               </>
             )}
           </p>
