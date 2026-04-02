@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -154,6 +154,23 @@ export default function QRshopPage() {
     return next;
   }, [items]);
 
+  /** 그리드용: 뽑기 제외, 봉투 바로 왼쪽·띠부씰 오른쪽으로 인접 배치 */
+  const { gridCategories, pickCategory } = useMemo(() => {
+    const pick = categories.find((c) => c.label === '뽑기') ?? null;
+    const grid = categories.filter((c) => c.label !== '뽑기');
+    const bag = grid.find((c) => c.label === '봉투');
+    const dd = grid.find((c) => c.label === '띠부씰');
+    if (!bag || !dd) {
+      return { gridCategories: grid, pickCategory: pick };
+    }
+    const idxBag = grid.indexOf(bag);
+    const idxDd = grid.indexOf(dd);
+    const first = Math.min(idxBag, idxDd);
+    const before = grid.slice(0, first).filter((c) => c !== bag && c !== dd);
+    const after = grid.slice(first).filter((c) => c !== bag && c !== dd);
+    return { gridCategories: [...before, bag, dd, ...after], pickCategory: pick };
+  }, [categories]);
+
   useEffect(() => {
     if (categories.some((category) => category.id === selectedCategory)) return;
     setSelectedCategory('all');
@@ -272,27 +289,43 @@ export default function QRshopPage() {
         <p className="mt-1 text-[14px] text-neutral-8">원하시는 상품을 눌러 담아주세요</p>
       </header>
 
-      <div className="mt-2 grid grid-cols-4 gap-2 px-4 pb-2">
-        {categories.map((category) => {
-          const active = selectedCategory === category.id;
-          const isBagCategory = category.label === '봉투';
-          return (
-            <button
-              key={category.id}
-              type="button"
-              onClick={() => setSelectedCategory(category.id)}
-              className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
-                active
-                  ? 'border-orange-5 bg-orange-5 text-white'
-                  : isBagCategory
-                    ? 'border-neutral-4 bg-white text-orange-5 active:bg-neutral-2'
-                    : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
-              }`}
-            >
-              <span className="block break-keep text-center">{category.label}</span>
-            </button>
-          );
-        })}
+      <div className={`relative mt-2 px-4 ${pickCategory ? 'pb-[108px]' : 'pb-2'}`}>
+        <div className="grid grid-cols-4 gap-2">
+          {gridCategories.map((category) => {
+            const active = selectedCategory === category.id;
+            const isBagCategory = category.label === '봉투';
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setSelectedCategory(category.id)}
+                className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
+                  active
+                    ? 'border-orange-5 bg-orange-5 text-white'
+                    : isBagCategory
+                      ? 'border-neutral-4 bg-white text-orange-5 active:bg-neutral-2'
+                      : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
+                }`}
+              >
+                <span className="block break-keep text-center">{category.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {pickCategory ? (
+          <button
+            type="button"
+            onClick={() => setSelectedCategory(pickCategory.id)}
+            style={{ width: 'calc((100% - 24px) / 2 + 8px)' }}
+            className={`absolute bottom-2 right-4 flex min-h-[96px] max-w-none items-center justify-center rounded-[14px] border px-3 py-2 text-[16px] font-bold leading-tight transition ${
+              selectedCategory === pickCategory.id
+                ? 'border-orange-5 bg-orange-5 text-white'
+                : 'border-orange-5 bg-white text-orange-5 shadow-sm active:bg-orange-1'
+            }`}
+          >
+            <span className="block text-center">뽑기 🎉</span>
+          </button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-3">
