@@ -19,7 +19,7 @@ export const ONSITE_FULFILLMENT_STATUS = {
 } as const;
 
 /** 온라인 결제는 verify 전까지 CREATED(0). 창 오픈~실패 복귀까지 걸린 뒤에도 미검증이면 실패·이탈로 본다. */
-const ADMIN_ONSITE_ONLINE_UNPAID_STALE_MS = 90 * 1000;
+const ADMIN_ONSITE_ONLINE_UNPAID_STALE_MS = 60 * 1000;
 
 export function isCounterPaymentMethod(paymentMethod: number) {
   return paymentMethod === ONSITE_PAYMENT_METHOD.COUNTER;
