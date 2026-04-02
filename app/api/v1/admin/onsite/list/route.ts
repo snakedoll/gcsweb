@@ -198,10 +198,14 @@ export async function GET(req: Request) {
       const fulfillmentStatusCode = Number(order.fulfillmentStatus ?? 0);
       const paymentMethodCode = Number(order.paymentMethod ?? 0);
 
+      const orderDate =
+        order.orderDate instanceof Date ? order.orderDate : new Date(order.orderDate as string);
+
       const paymentStatus = toOnsitePaymentStatusLabel({
         paymentMethod: paymentMethodCode,
         paymentStatus: paymentStatusCode,
         fulfillmentStatus: fulfillmentStatusCode,
+        orderDate,
       });
       const receiptStatus = toOnsiteReceiptStatusLabel(fulfillmentStatusCode);
 
