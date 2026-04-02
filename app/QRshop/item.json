@@ -1,7 +1,5 @@
 ﻿{
     "items":  [
-                {
-    "items":  [
                   {
                       "id":  "acrylic-key-ring_a",
                       "name":  "아크릴 키링",
@@ -251,7 +249,7 @@
                       "emoji":  "👘"
                   },
                   {
-                      "id":  "buddha-tshirt_i_xs",
+                      "id":  "buddha-tshirt_j_xs",
                       "name":  "부처티셔츠",
                       "option":  "J (XS)",
                       "price":  28000,
@@ -259,7 +257,7 @@
                       "emoji":  "👘"
                   },
                   {
-                      "id":  "buddha-tshirt_i_l",
+                      "id":  "buddha-tshirt_j_l",
                       "name":  "부처티셔츠",
                       "option":  "J (L)",
                       "price":  28000,
@@ -405,7 +403,5 @@
                       "initStock": 1000,
                       "emoji":  "🛍️"
                   }
-              ]
-                }
               ]
 }
