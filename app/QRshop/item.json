@@ -121,14 +121,6 @@
                       "emoji":  "👘"
                   },
                   {
-                      "id":  "buddha-tshirt_b_xl",
-                      "name":  "부처티셔츠",
-                      "option":  "B (XL)",
-                      "price":  28000,
-                      "initStock": 8,
-                      "emoji":  "👘"
-                  },
-                  {
                       "id":  "buddha-tshirt_c_xs",
                       "name":  "부처티셔츠",
                       "option":  "C (XS)",
@@ -395,6 +387,14 @@
                       "price":  3000,
                       "initStock": 300,
                       "emoji":  "🍱"
+                  },
+                                    {
+                      "id":  "buddha-tshirt_b_xl_day2",
+                      "name":  "부처티셔츠",
+                      "option":  "B (XL)",
+                      "price":  28000,
+                      "initStock": 3,
+                      "emoji":  "👘"
                   }
               ]
 }
