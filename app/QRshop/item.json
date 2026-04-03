@@ -389,8 +389,8 @@
                         "initStock": 95,
                         "emoji":  "🍱"
                     },
-                                      {
-                      "id":  "gatcha_day3",
+                    {
+                      "id":  "gatcha_day4",
                       "name":  "뽑기",
                       "price":  3000,
                       "initStock": 300,
