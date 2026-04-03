@@ -357,13 +357,6 @@
                       "initStock": 96,
                       "emoji":  "🧸"
                   },
-                  {
-                      "id":  "gatcha_day2",
-                      "name":  "뽑기",
-                      "price":  3000,
-                      "initStock": 300,
-                      "emoji":  "🍱"
-                  },
                     {
                         "id":  "acrylic-key-ring_a_day2",
                         "name":  "아크릴 키링",
@@ -395,6 +388,13 @@
                         "price":  4000,
                         "initStock": 95,
                         "emoji":  "🍱"
-                    }
+                    },
+                                      {
+                      "id":  "gatcha_day3",
+                      "name":  "뽑기",
+                      "price":  3000,
+                      "initStock": 300,
+                      "emoji":  "🍱"
+                  }
               ]
 }
