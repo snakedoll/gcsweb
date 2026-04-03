@@ -1,22 +1,6 @@
 ﻿{
     "items":  [
                   {
-                      "id":  "acrylic-key-ring_a",
-                      "name":  "아크릴 키링",
-                      "option":  "A. 옆으로 누운 꾸벅꾸벅 부처님",
-                      "price":  4000,
-                      "initStock": 122,
-                      "emoji":  "🗝️"
-                  },
-                  {
-                      "id":  "acrylic-key-ring_b",
-                      "name":  "아크릴 키링",
-                      "option":  "B. 명상 중 꾸벅꾸벅 부처님",
-                      "price":  4000,
-                      "initStock": 136,
-                      "emoji":  "🗝️"
-                  },
-                  {
                       "id":  "bandana_a",
                       "name":  "반다나",
                       "option":  "A. 홍색 연화",
@@ -374,34 +358,43 @@
                       "emoji":  "🧸"
                   },
                   {
-                      "id":  "ttibu-sticker-set_a",
-                      "name":  "띠부씰",
-                      "option":  "A. 연꽃배 동동 시리즈 3종",
-                      "price":  3000,
-                      "initStock": 98,
-                      "emoji":  "🪷"
-                  },
-                  {
-                      "id":  "ttibu-sticker-set_b",
-                      "name":  "띠부씰",
-                      "option":  "B. 정성 가득 사찰음식 시리즈 7종",
-                      "price":  6000,
-                      "initStock": 97,
-                      "emoji":  "🍱"
-                  },
-                  {
                       "id":  "gatcha_day2",
                       "name":  "뽑기",
                       "price":  3000,
                       "initStock": 300,
                       "emoji":  "🍱"
                   },
-                  {
-                      "id":  "bag",
-                      "name":  "봉투",
-                      "price":  100,
-                      "initStock": 1000,
-                      "emoji":  "🛍️"
-                  }
+                    {
+                        "id":  "acrylic-key-ring_a_day2",
+                        "name":  "아크릴 키링",
+                        "option":  "A. 옆으로 누운 꾸벅꾸벅 부처님",
+                        "price":  2000,
+                        "initStock": 110,
+                        "emoji":  "🗝️"
+                    },
+                    {
+                        "id":  "acrylic-key-ring_b_day2",
+                        "name":  "아크릴 키링",
+                        "option":  "B. 명상 중 꾸벅꾸벅 부처님",
+                        "price":  2000,
+                        "initStock": 122,
+                        "emoji":  "🗝️"
+                    },
+                    {
+                        "id":  "ttibu-sticker-set_a_day2",
+                        "name":  "띠부씰",
+                        "option":  "A. 연꽃배 동동 시리즈 3종",
+                        "price":  2000,
+                        "initStock": 94,
+                        "emoji":  "🪷"
+                    },
+                    {
+                        "id":  "ttibu-sticker-set_b_day2",
+                        "name":  "띠부씰",
+                        "option":  "B. 정성 가득 사찰음식 시리즈 7종",
+                        "price":  4000,
+                        "initStock": 95,
+                        "emoji":  "🍱"
+                    }
               ]
 }
