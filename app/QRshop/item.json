@@ -310,13 +310,6 @@
                       "initStock": 1500,
                       "emoji":  "💻"
                   },
-                  {
-                      "id":  "bunnoe-ham-gyeongdan-doll",
-                      "name":  "번뇌햄 경단인형",
-                      "price":  10000,
-                      "initStock": 96,
-                      "emoji":  "🧸"
-                  },
                     {
                         "id":  "acrylic-key-ring_a_day2",
                         "name":  "아크릴 키링",
