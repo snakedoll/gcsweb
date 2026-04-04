@@ -117,7 +117,7 @@ export default function AdminPage() {
           <AdminMenuSection
             title="설정"
             items={[
-              { label: '데이터', href: '#' },
+              { label: '데이터', href: '/admin/data' },
               { label: '약관 관리', href: '/admin/terms' },
               { label: '삭제된 항목', href: '#' },
             ]}
