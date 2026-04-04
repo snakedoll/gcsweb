@@ -169,14 +169,6 @@
                       "emoji":  "👘"
                   },
                   {
-                      "id":  "buddha-tshirt_f_xl",
-                      "name":  "부처티셔츠",
-                      "option":  "F (XL)",
-                      "price":  28000,
-                      "initStock": 13,
-                      "emoji":  "👘"
-                  },
-                  {
                       "id":  "buddha-tshirt_g_xs",
                       "name":  "부처티셔츠",
                       "option":  "G (XS)",
@@ -263,30 +255,6 @@
                       "price":  2000,
                       "initStock": 286,
                       "emoji":  "🔵"
-                  },
-                  {
-                      "id":  "keycap-keyring_a",
-                      "name":  "키캡키링",
-                      "option":  "A. 씩씩부처",
-                      "price":  8000,
-                      "initStock": 97,
-                      "emoji":  "⌨️"
-                  },
-                  {
-                      "id":  "keycap-keyring_b",
-                      "name":  "키캡키링",
-                      "option":  "B. 랄라부처",
-                      "price":  8000,
-                      "initStock": 97,
-                      "emoji":  "⌨️"
-                  },
-                  {
-                      "id":  "keycap-keyring_c",
-                      "name":  "키캡키링",
-                      "option":  "C. 긱시크부처",
-                      "price":  8000,
-                      "initStock": 93,
-                      "emoji":  "⌨️"
                   },
                   {
                       "id":  "soft-pin-badge_a",
@@ -403,6 +371,30 @@
                       "price":  28000,
                       "initStock": 1,
                       "emoji":  "👘"
+                  },
+                                    {
+                      "id":  "keycap-keyring_a",
+                      "name":  "키캡키링",
+                      "option":  "A. 씩씩부처",
+                      "price":  6000,
+                      "initStock": 85,
+                      "emoji":  "⌨️"
+                  },
+                  {
+                      "id":  "keycap-keyring_b",
+                      "name":  "키캡키링",
+                      "option":  "B. 랄라부처",
+                      "price":  6000,
+                      "initStock": 89,
+                      "emoji":  "⌨️"
+                  },
+                  {
+                      "id":  "keycap-keyring_c",
+                      "name":  "키캡키링",
+                      "option":  "C. 긱시크부처",
+                      "price":  6000,
+                      "initStock": 72,
+                      "emoji":  "⌨️"
                   }
               ]
 }
