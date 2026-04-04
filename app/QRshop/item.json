@@ -342,13 +342,6 @@
                         "initStock": 95,
                         "emoji":  "🍱"
                     },
-                    {
-                      "id":  "gatcha_day4",
-                      "name":  "뽑기",
-                      "price":  3000,
-                      "initStock": 300,
-                      "emoji":  "🍱"
-                  },
                 {
                       "id":  "buddha-tshirt_b_xl_day2",
                       "name":  "부처티셔츠",
@@ -388,6 +381,13 @@
                       "price":  6000,
                       "initStock": 72,
                       "emoji":  "⌨️"
+                  },
+                                      {
+                      "id":  "gatcha_day5",
+                      "name":  "뽑기",
+                      "price":  3000,
+                      "initStock": 300,
+                      "emoji":  "🍱"
                   }
               ]
 }
