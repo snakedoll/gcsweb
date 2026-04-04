@@ -430,7 +430,7 @@ export default function QRshopPage() {
 
           {postcardDiscount > 0 ? (
             <p className="mb-2 rounded-xl bg-orange-1 px-3 py-2 text-center text-[13px] font-medium text-orange-6">
-              엽서 2개 묶음 할인 적용 · {formatWon(postcardDiscount)} 절약
+              엽서 2개 묶음 할인 적용 · {formatWon(postcardDiscount)} 할인!
             </p>
           ) : null}
 
