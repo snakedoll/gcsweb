@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
@@ -47,18 +48,6 @@ function addDaysToDateKey(dateKey: string, days: number): string {
   return `${year}-${month}-${day}`;
 }
 
-function toSeoulDayUtcRange(dateKey: string): { utcStart: Date; utcEnd: Date } {
-  const parsed = parseDateKey(dateKey);
-  if (!parsed) {
-    throw new Error('invalid dateKey');
-  }
-
-  // KST(UTC+9) 자정 기준 일자 범위를 UTC로 변환한다.
-  const utcStart = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, -9, 0, 0, 0));
-  const utcEnd = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day + 1, -9, 0, 0, 0));
-  return { utcStart, utcEnd };
-}
-
 function toSeoulDateKey(date: Date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
@@ -78,6 +67,22 @@ function toSeoulDateKey(date: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function normalizeDateKey(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return value.toISOString().slice(0, 10);
+  }
+
+  if (typeof value === 'string') {
+    const matched = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+    return matched ? matched[1] : null;
+  }
+
+  return null;
+}
+
 export async function GET(request: Request) {
   try {
     const auth = await requireAdmin();
@@ -92,7 +97,15 @@ export async function GET(request: Request) {
     const startDateParam = searchParams.get('startDate')?.trim() ?? '';
     const daysParam = searchParams.get('days')?.trim() ?? '';
 
-    const startDate = startDateParam || toSeoulDateKey();
+    let startDate = startDateParam;
+    if (!startDate) {
+      const minDateRows = await prisma.$queryRaw<Array<{ minDate: Date | string | null }>>(
+        Prisma.sql`SELECT MIN("createdAt"::date) AS "minDate" FROM "FairShopHistoryTable"`
+      );
+      const minDate = normalizeDateKey(minDateRows[0]?.minDate);
+      startDate = minDate ?? toSeoulDateKey();
+    }
+
     if (!parseDateKey(startDate)) {
       return jsonError(400, 'INVALID_INPUT', 'startDate는 YYYY-MM-DD 형식이어야 합니다.');
     }
@@ -110,23 +123,17 @@ export async function GET(request: Request) {
 
     const dailyAmounts = await Promise.all(
       dateKeys.map(async (dateKey) => {
-        const { utcStart, utcEnd } = toSeoulDayUtcRange(dateKey);
-
-        const aggregated = await prisma.fairShopHistory.aggregate({
-          where: {
-            createdAt: {
-              gte: utcStart,
-              lt: utcEnd,
-            },
-          },
-          _sum: {
-            paymentAmount: true,
-          },
-        });
+        const sumRows = await prisma.$queryRaw<Array<{ total: bigint | number | null }>>(
+          Prisma.sql`
+            SELECT COALESCE(SUM("paymentAmount"), 0)::bigint AS total
+            FROM "FairShopHistoryTable"
+            WHERE "createdAt"::date = ${dateKey}::date
+          `
+        );
 
         return {
           date: dateKey,
-          salesAmount: Number(aggregated._sum.paymentAmount ?? 0),
+          salesAmount: Number(sumRows[0]?.total ?? 0),
         };
       })
     );
@@ -152,7 +159,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('[Admin Onsite Data Sales GET Error]', error);
+    console.error('[Admin Data Sales GET Error]', error);
     return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
   }
 }
