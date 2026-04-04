@@ -40,18 +40,6 @@ function formatAmount(value: number): string {
   return value.toLocaleString('ko-KR');
 }
 
-function getSeoulDateKeyMinusDays(days: number): string {
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const baseUtc = Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate());
-  const target = new Date(baseUtc - days * 24 * 60 * 60 * 1000);
-
-  const year = String(target.getUTCFullYear());
-  const month = String(target.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(target.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function SalesHeader() {
   return (
     <div className="flex w-full items-center rounded-tl-[8px] rounded-tr-[9px] bg-[#3F3835]">
@@ -69,6 +57,8 @@ function SalesHeader() {
 }
 
 function SalesRowItem({ row }: { row: SalesRow }) {
+  const shouldHideCumulative = row.day === 4 && row.salesAmount === 0;
+
   return (
     <div className="flex w-full items-center border-b border-t border-[#DDDCDB] bg-white">
       <div className="w-[106px] p-3">
@@ -78,7 +68,9 @@ function SalesRowItem({ row }: { row: SalesRow }) {
         <p className="typo-body-xsmall text-black">{formatAmount(row.salesAmount)}</p>
       </div>
       <div className="w-[110px] px-2 py-3">
-        <p className="typo-body-xsmall text-black">{formatAmount(row.cumulativeSalesAmount)}</p>
+        <p className="typo-body-xsmall text-black">
+          {shouldHideCumulative ? '-' : formatAmount(row.cumulativeSalesAmount)}
+        </p>
       </div>
     </div>
   );
@@ -108,9 +100,9 @@ function StockHeader() {
 
 function StockRowItem({ row }: { row: StockRow }) {
   return (
-    <div className="flex w-full items-center border-b border-t border-[#DDDCDB] bg-white">
+    <div className="flex w-full items-stretch border-b border-t border-[#DDDCDB] bg-white">
       <div className="w-[106px] p-3">
-        <p className="overflow-hidden text-ellipsis whitespace-nowrap typo-body-xsmall text-black">
+        <p className="break-all whitespace-normal typo-body-xsmall text-black">
           {row.qrItemId}
         </p>
       </div>
@@ -149,9 +141,8 @@ export default function AdminDataPage() {
       try {
         setLoading(true);
 
-        const startDate = getSeoulDateKeyMinusDays(3);
         const [salesRes, stockRes] = await Promise.all([
-          fetch(`/api/v1/admin/data/sales?startDate=${startDate}&days=4`, { cache: 'no-store' }),
+          fetch('/api/v1/admin/data/sales?days=4', { cache: 'no-store' }),
           fetch('/api/v1/admin/data/stock', { cache: 'no-store' }),
         ]);
 
