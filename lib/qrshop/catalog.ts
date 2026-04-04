@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import rawCatalog from '@/app/QRshop/item.json';
+import {
+  allocatePostcardLineDiscounts,
+  isPostcardCatalogItem,
+} from '@/lib/qrshop/postcard-pricing';
 
 const QrShopItemSchema = z.object({
   id: z.string().min(1),
@@ -62,6 +66,8 @@ export type ResolvedQrLine = {
   quantity: number;
   unitPrice: number;
   displayLabel: string;
+  /** 엽서 묶음 할인: 라인 소계 = unitPrice * quantity - lineDiscountWon */
+  lineDiscountWon?: number;
 };
 
 export function resolveQrShopOrderLines(
@@ -72,29 +78,64 @@ export function resolveQrShopOrderLines(
   }
 
   const merged = new Map<string, number>();
+  const mergeKeyOrder: string[] = [];
   for (const row of lines) {
     const id = row.itemId?.trim() ?? '';
     const qty = Math.floor(Number(row.quantity));
     if (!id || !Number.isFinite(qty) || qty < 1 || qty > MAX_QTY_PER_LINE) {
       return { ok: false, message: '수량이 올바르지 않습니다.' };
     }
+    if (!merged.has(id)) mergeKeyOrder.push(id);
     merged.set(id, (merged.get(id) ?? 0) + qty);
+  }
+
+  type Entry = {
+    itemId: string;
+    quantity: number;
+    meta: QrShopCatalogItem;
+  };
+  const orderedEntries: Entry[] = [];
+  const postcardEntries: Entry[] = [];
+
+  for (const itemId of mergeKeyOrder) {
+    const quantity = merged.get(itemId);
+    if (quantity === undefined) continue;
+    const meta = getQrShopItemById(itemId);
+    if (!meta) {
+      return { ok: false, message: '판매하지 않는 상품이 포함되어 있습니다.' };
+    }
+    const entry: Entry = { itemId, quantity, meta };
+    orderedEntries.push(entry);
+    if (isPostcardCatalogItem(meta)) postcardEntries.push(entry);
+  }
+
+  const postcardDiscountById = new Map<string, number>();
+  if (postcardEntries.length > 0) {
+    const catalogUnit = postcardEntries[0]!.meta.price;
+    try {
+      const allocated = allocatePostcardLineDiscounts(
+        postcardEntries.map((row) => ({ itemId: row.itemId, quantity: row.quantity })),
+        catalogUnit,
+      );
+      for (const [id, v] of allocated) postcardDiscountById.set(id, v);
+    } catch {
+      return { ok: false, message: '주문 금액 계산에 실패했습니다.' };
+    }
   }
 
   const resolved: ResolvedQrLine[] = [];
   let paymentAmount = 0;
 
-  for (const [itemId, quantity] of merged.entries()) {
-    const meta = getQrShopItemById(itemId);
-    if (!meta) {
-      return { ok: false, message: '판매하지 않는 상품이 포함되어 있습니다.' };
-    }
-    paymentAmount += meta.price * quantity;
+  for (const e of orderedEntries) {
+    const discount = postcardDiscountById.get(e.itemId) ?? 0;
+    const lineTotal = e.meta.price * e.quantity - discount;
+    paymentAmount += lineTotal;
     resolved.push({
-      itemId,
-      quantity,
-      unitPrice: meta.price,
-      displayLabel: meta.option ? `${meta.name} (${meta.option})` : meta.name,
+      itemId: e.itemId,
+      quantity: e.quantity,
+      unitPrice: e.meta.price,
+      displayLabel: e.meta.option ? `${e.meta.name} (${e.meta.option})` : e.meta.name,
+      ...(discount > 0 ? { lineDiscountWon: discount } : {}),
     });
   }
 

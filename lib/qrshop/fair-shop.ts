@@ -107,6 +107,7 @@ export function linesSnapshotFromResolved(resolved: ResolvedQrLine[]): Prisma.Js
     label: row.displayLabel,
     quantity: row.quantity,
     unitPrice: row.unitPrice,
+    ...(row.lineDiscountWon ? { lineDiscountWon: row.lineDiscountWon } : {}),
   })) as unknown as Prisma.JsonArray;
 }
 

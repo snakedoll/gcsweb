@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { computeQrShopCartTotal } from '@/lib/qrshop/postcard-pricing';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
@@ -209,8 +210,15 @@ export default function QRshopPage() {
     return rows;
   }, [counts, items]);
 
-  const total = useMemo(
-    () => lines.reduce((sum, row) => sum + row.item.price * row.qty, 0),
+  const { total, postcardDiscount } = useMemo(
+    () =>
+      computeQrShopCartTotal(
+        lines.map((row) => ({
+          name: row.item.name,
+          price: row.item.price,
+          qty: row.qty,
+        })),
+      ),
     [lines],
   );
 
@@ -419,6 +427,12 @@ export default function QRshopPage() {
               </button>
             </div>
           </div>
+
+          {postcardDiscount > 0 ? (
+            <p className="mb-2 rounded-xl bg-orange-1 px-3 py-2 text-center text-[13px] font-medium text-orange-6">
+              엽서 2개 묶음 할인 적용 · {formatWon(postcardDiscount)} 절약
+            </p>
+          ) : null}
 
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[15px] font-semibold text-neutral-10">결제 금액</span>

@@ -166,12 +166,14 @@ export async function POST(request: Request) {
     const bagOption = false;
 
     const itemRows = resolved.map((row) => {
+      const lineDiscountWon = row.lineDiscountWon ?? 0;
       const optionData = {
         source: 'qrshop',
         qrItemId: row.itemId,
         optionName: '상품',
         optionValue: row.displayLabel,
         additionalPrice: row.unitPrice,
+        ...(lineDiscountWon > 0 ? { lineDiscountWon } : {}),
       };
       if (isMatchedVariantSoldOut(product.variants, optionData)) {
         throw new Error('VARIANT_SOLD_OUT');
@@ -182,13 +184,14 @@ export async function POST(request: Request) {
         productId: product.id,
         quantity: row.quantity,
         price: unitPrice,
+        lineDiscountWon,
         optionData: toDbJson(optionData),
       };
     });
 
     let computedPayment = 0;
     for (const row of itemRows) {
-      computedPayment += row.price * row.quantity;
+      computedPayment += row.price * row.quantity - row.lineDiscountWon;
     }
     if (computedPayment !== paymentAmount) {
       console.error('[qrshop/orders] amount mismatch', { computedPayment, paymentAmount });
