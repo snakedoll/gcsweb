@@ -343,13 +343,6 @@
                       "initStock": 58,
                       "emoji":  "⌨️"
                   },
-                                      {
-                      "id":  "gatcha_day7",
-                      "name":  "뽑기",
-                      "price":  3000,
-                      "initStock": 300,
-                      "emoji":  "🍱"
-                  },
                                     {
                       "id":  "bandana_c_day4",
                       "name":  "반다나",
@@ -388,6 +381,13 @@
                       "price":  5000,
                       "initStock": 120,
                       "emoji":  "🖱️"
+                  },
+                                      {
+                      "id":  "gatcha_day8",
+                      "name":  "뽑기",
+                      "price":  3000,
+                      "initStock": 300,
+                      "emoji":  "🍱"
                   }
               ]
 }
