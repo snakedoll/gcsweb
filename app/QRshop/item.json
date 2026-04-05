@@ -177,14 +177,6 @@
                       "emoji":  "👘"
                   },
                   {
-                      "id":  "buddha-tshirt_g_xl",
-                      "name":  "부처티셔츠",
-                      "option":  "G (XL)",
-                      "price":  28000,
-                      "initStock": 15,
-                      "emoji":  "👘"
-                  },
-                  {
                       "id":  "buddha-tshirt_h_xs",
                       "name":  "부처티셔츠",
                       "option":  "H (XS)",
@@ -206,14 +198,6 @@
                       "option":  "I (XS)",
                       "price":  28000,
                       "initStock": 35,
-                      "emoji":  "👘"
-                  },
-                  {
-                      "id":  "buddha-tshirt_i_xl",
-                      "name":  "부처티셔츠",
-                      "option":  "I (XL)",
-                      "price":  28000,
-                      "initStock": 13,
                       "emoji":  "👘"
                   },
                   {
@@ -388,6 +372,30 @@
                       "price":  3000,
                       "initStock": 300,
                       "emoji":  "🍱"
-                  }
+                  },
+                    {
+                      "id":  "buddha-tshirt_f_xl_day4",
+                      "name":  "부처티셔츠",
+                      "option":  "F (XL)",
+                      "price":  28000,
+                      "initStock": 4,
+                      "emoji":  "👘"
+                  },
+                                    {
+                      "id":  "buddha-tshirt_g_xl_day4",
+                      "name":  "부처티셔츠",
+                      "option":  "G (XL)",
+                      "price":  28000,
+                      "initStock": 1,
+                      "emoji":  "👘"
+                  },
+                                    {
+                      "id":  "buddha-tshirt_i_xl",
+                      "name":  "부처티셔츠",
+                      "option":  "I (XL)",
+                      "price":  28000,
+                      "initStock": 1,
+                      "emoji":  "👘"
+                  },
               ]
 }
