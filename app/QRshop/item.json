@@ -272,14 +272,6 @@
                       "emoji":  "🖱️"
                   },
                   {
-                      "id":  "mousepad_b",
-                      "name":  "마우스패드",
-                      "option":  "B. 오늘도 내일도 평화로운 날",
-                      "price":  5000,
-                      "initStock": 106,
-                      "emoji":  "🖱️"
-                  },
-                  {
                       "id":  "mousepad_c",
                       "name":  "마우스패드",
                       "option":  " C. 번뇌정지버튼",
@@ -390,12 +382,20 @@
                       "emoji":  "👘"
                   },
                                     {
-                      "id":  "buddha-tshirt_i_xl",
+                      "id":  "buddha-tshirt_i_xl_day4",
                       "name":  "부처티셔츠",
                       "option":  "I (XL)",
                       "price":  28000,
                       "initStock": 1,
                       "emoji":  "👘"
                   },
+                                    {
+                      "id":  "mousepad_b_day4",
+                      "name":  "마우스패드",
+                      "option":  "B. 오늘도 내일도 평화로운 날",
+                      "price":  5000,
+                      "initStock": 4,
+                      "emoji":  "🖱️"
+                  }
               ]
 }
