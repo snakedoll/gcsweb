@@ -1,11 +1,11 @@
 ﻿{
     "items":  [
-                  {
-                      "id":  "bandana_a",
+                {
+                      "id":  "bandana_a_day4",
                       "name":  "반다나",
                       "option":  "A. 홍색 연화",
                       "price":  15000,
-                      "initStock": 87,
+                      "initStock": 13,
                       "emoji":  "☸"
                   },
                   {
