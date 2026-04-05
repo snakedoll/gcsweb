@@ -17,14 +17,6 @@
                       "emoji":  "☸"
                   },
                   {
-                      "id":  "bandana_c",
-                      "name":  "반다나",
-                      "option":  "C. 흑색 옴",
-                      "price":  15000,
-                      "initStock": 92,
-                      "emoji":  "☸"
-                  },
-                  {
                       "id":  "postcard_a",
                       "name":  "엽서",
                       "option":  "A. 연꽃주황",
@@ -295,29 +287,6 @@
                       "initStock": 98,
                       "emoji":  "🪆"
                   },
-                  {
-                      "id":  "mousepad_a",
-                      "name":  "마우스패드",
-                      "option":  "A. 꼬물꼬물 행운가득 수호동물",
-                      "price":  5000,
-                      "initStock": 106,
-                      "emoji":  "🖱️"
-                  },
-                  {
-                      "id":  "mousepad_c",
-                      "name":  "마우스패드",
-                      "option":  " C. 번뇌정지버튼",
-                      "price":  5000,
-                      "initStock": 108,
-                      "emoji":  "🖱️"
-                  },
-                  {
-                      "id":  "laptop-sticker-pack",
-                      "name":  "번뇌주의! 열반행 스티커팩 (9종)",
-                      "price":  4000,
-                      "initStock": 1500,
-                      "emoji":  "💻"
-                  },
                     {
                         "id":  "acrylic-key-ring_a_day2",
                         "name":  "아크릴 키링",
@@ -351,27 +320,27 @@
                         "emoji":  "🍱"
                     },
                                     {
-                      "id":  "keycap-keyring_a",
+                      "id":  "keycap-keyring_a_day4",
                       "name":  "키캡키링",
                       "option":  "A. 씩씩부처",
-                      "price":  6000,
-                      "initStock": 85,
+                      "price":  5000,
+                      "initStock": 67,
                       "emoji":  "⌨️"
                   },
                   {
-                      "id":  "keycap-keyring_b",
+                      "id":  "keycap-keyring_b_day4",
                       "name":  "키캡키링",
                       "option":  "B. 랄라부처",
-                      "price":  6000,
-                      "initStock": 89,
+                      "price":  5000,
+                      "initStock": 82,
                       "emoji":  "⌨️"
                   },
                   {
-                      "id":  "keycap-keyring_c",
+                      "id":  "keycap-keyring_c_day4",
                       "name":  "키캡키링",
                       "option":  "C. 긱시크부처",
-                      "price":  6000,
-                      "initStock": 72,
+                      "price":  5000,
+                      "initStock": 58,
                       "emoji":  "⌨️"
                   },
                                       {
@@ -382,11 +351,42 @@
                       "emoji":  "🍱"
                   },
                                     {
+                      "id":  "bandana_c_day4",
+                      "name":  "반다나",
+                      "option":  "C. 흑색 옴",
+                      "price":  15000,
+                      "initStock": 6,
+                      "emoji":  "☸"
+                  },
+                                    {
+                      "id":  "laptop-sticker-pack_day4",
+                      "name":  "번뇌주의! 열반행 스티커팩 (9종)",
+                      "price":  3000,
+                      "initStock": 1014,
+                      "emoji":  "💻"
+                  },
+                {
+                      "id":  "mousepad_a",
+                      "name":  "마우스패드",
+                      "option":  "A. 꼬물꼬물 행운가득 수호동물",
+                      "price":  5000,
+                      "initStock": 106,
+                      "emoji":  "🖱️"
+                  },
+                {
                       "id":  "mousepad_b_day4",
                       "name":  "마우스패드",
                       "option":  "B. 오늘도 내일도 평화로운 날",
                       "price":  5000,
                       "initStock": 4,
+                      "emoji":  "🖱️"
+                  },
+                  {
+                      "id":  "mousepad_c",
+                      "name":  "마우스패드",
+                      "option":  " C. 번뇌정지버튼",
+                      "price":  5000,
+                      "initStock": 120,
                       "emoji":  "🖱️"
                   }
               ]
