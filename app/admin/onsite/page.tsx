@@ -6,8 +6,11 @@ import { NavBar } from '@/components/layout';
 import Filter from '@/components/ui/admin/product/Filter';
 import TabBar from '@/components/ui/button/TabBar';
 import Modal from '@/components/ui/common/Modal';
+import Pagination from '@/components/ui/common/Pagination';
 import SearchBar from '@/components/ui/common/SearchBar';
 import { Matrix_Attribute_06, Matrix_Contents_06, PcTableRow_Buynow } from '@/components/ui/admin/onsite';
+
+const PAGE_SIZE = 20;
 
 type ReceiptItem = {
   id: string;
@@ -57,6 +60,7 @@ export default function AdminOnsitePage() {
   const [updatingReceiptId, setUpdatingReceiptId] = useState<string | null>(null);
   const [updatingCancelId, setUpdatingCancelId] = useState<string | null>(null);
   const [pendingCancelItem, setPendingCancelItem] = useState<ReceiptItem | null>(null);
+  const [page, setPage] = useState(1);
 
   const fetchGroups = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true;
@@ -94,6 +98,10 @@ export default function AdminOnsitePage() {
     void fetchGroups();
   }, [fetchGroups]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, sourceFilter, payMethodFilter, payOutcomeFilter]);
+
   /** 다른 기기·탭에서 수령 등을 바꾼 뒤 목록이 멀티 디바이스에 가까이 맞도록 동기화 (WebSocket 없이 폴링). */
   useEffect(() => {
     const POLL_MS = 3000;
@@ -119,6 +127,33 @@ export default function AdminOnsitePage() {
     () => groups.reduce((count, group) => count + group.items.length, 0),
     [groups]
   );
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const pagedGroups = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    let seen = 0;
+    const result: ReceiptGroup[] = [];
+
+    for (const group of groups) {
+      const groupStart = seen;
+      const groupEnd = seen + group.items.length;
+      seen = groupEnd;
+
+      if (groupEnd <= start || groupStart >= end) continue;
+
+      const sliceStart = Math.max(0, start - groupStart);
+      const sliceEnd = Math.min(group.items.length, end - groupStart);
+      result.push({ ...group, items: group.items.slice(sliceStart, sliceEnd) });
+    }
+
+    return result;
+  }, [groups, page]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const handleToggleReceipt = async (item: ReceiptItem) => {
     if (updatingReceiptId === item.id || item.paymentStatusCode === 3) return;
@@ -291,31 +326,35 @@ export default function AdminOnsitePage() {
             ) : groups.length === 0 ? (
               <div className="py-20 text-center text-[15px] text-[#6C6764]">조회된 주문이 없습니다.</div>
             ) : (
-              groups.map((group) => (
-                <section key={group.date} className="flex flex-col gap-0">
-                  <div className="flex items-center px-3">
-                    <h2 className="typo-heading-xsmall text-neutral-10">{group.date}</h2>
-                  </div>
+              <>
+                {pagedGroups.map((group) => (
+                  <section key={group.date} className="flex flex-col gap-0">
+                    <div className="flex items-center px-3">
+                      <h2 className="typo-heading-xsmall text-neutral-10">{group.date}</h2>
+                    </div>
 
-                  <Matrix_Attribute_06 className="mt-0 w-full" />
+                    <Matrix_Attribute_06 className="mt-0 w-full" />
 
-                  <div className="flex flex-col">
-                    {group.items.map((item) => (
-                      <Matrix_Contents_06
-                        key={item.id}
-                        className="w-full"
-                        orderCode={item.orderId}
-                        orderTime={item.orderTime}
-                        paymentLabel={item.paymentStatus}
-                        receiptLabel={item.receiptStatus}
-                        paymentTone={item.paymentStatus.includes('결제완료') ? 'orange' : 'gray'}
-                        receiptTone={item.receiptStatus.includes('수령완료') ? 'gray' : 'orange'}
-                        onClick={() => router.push(`/admin/onsite/${item.id}`)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))
+                    <div className="flex flex-col">
+                      {group.items.map((item) => (
+                        <Matrix_Contents_06
+                          key={item.id}
+                          className="w-full"
+                          orderCode={item.orderId}
+                          orderTime={item.orderTime}
+                          paymentLabel={item.paymentStatus}
+                          receiptLabel={item.receiptStatus}
+                          paymentTone={item.paymentStatus.includes('결제완료') ? 'orange' : 'gray'}
+                          receiptTone={item.receiptStatus.includes('수령완료') ? 'gray' : 'orange'}
+                          onClick={() => router.push(`/admin/onsite/${item.id}`)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+
+                <Pagination page={page} totalPages={totalPages} onChange={setPage} className="pt-2" />
+              </>
             )}
           </div>
         </div>
@@ -437,7 +476,7 @@ export default function AdminOnsitePage() {
                   }
                 />
               </div>
-              {groups.map((group) => (
+              {pagedGroups.map((group) => (
                 <section key={group.date} className="flex flex-col gap-3">
                   <h2 className="text-[17px] font-bold leading-[1.5] text-[#999694]">{group.date}</h2>
 
@@ -509,6 +548,8 @@ export default function AdminOnsitePage() {
                   </div>
                 </section>
               ))}
+
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} className="pt-2" />
             </>
           )}
 

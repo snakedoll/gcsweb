@@ -1,5 +1,6 @@
 export { default as EmptyviewText } from './EmptyviewText';
 export { default as Modal } from './Modal';
+export { default as Pagination } from './Pagination';
 export { default as SearchBar } from './SearchBar';
 export { default as SearchselectDropdown } from './SearchselectDropdown';
 export { default as Tag } from './Tag';
