@@ -14,12 +14,20 @@ export function formatPrice(value: number | string | null | undefined) {
   return `${numericValue.toLocaleString('ko-KR')}원`;
 }
 
-export function formatDate(date: Date | string) {
+export function formatDate(date: Date | string | null | undefined) {
+  if (date == null) return '';
+
+  const normalizedDate = typeof date === 'string' ? date.trim() : date;
+  if (!normalizedDate) return '';
+
+  const parsedDate = new Date(normalizedDate);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
   return new Intl.DateTimeFormat('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }).format(new Date(date));
+  }).format(parsedDate);
 }
 
 export function formatCurrency(amount: number) {

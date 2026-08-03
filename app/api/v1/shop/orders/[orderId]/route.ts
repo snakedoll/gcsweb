@@ -160,7 +160,7 @@ export async function GET(request: Request, { params }: Params) {
       teamName: item.product?.team?.teamName ?? '',
       thumbnailUrl: normalizeImageUrl(item.product?.images?.[0]?.thumbnailImgUrl ?? null) ?? '',
       optionText: toOptionQuantityText(item.optionData, item.quantity),
-      priceText: `${Number((item.price ?? 0) * (item.quantity ?? 1)).toLocaleString('ko-KR')}원`,
+      priceText: formatPrice((item.price ?? 0) * (item.quantity ?? 1)),
       fulfillmentLabel,
     }));
 

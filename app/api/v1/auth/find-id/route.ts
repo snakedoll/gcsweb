@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { normalizePhoneDigits } from '@/lib/format-phone';
 
 export const runtime = 'nodejs';
 
@@ -14,10 +15,6 @@ function jsonError(status: number, code: string, message: string) {
     { status: 'error', code, message },
     { status }
   );
-}
-
-function normalizePhone(value: string): string {
-  return value.replace(/\D/g, '');
 }
 
 function maskEmail(email: string): string {
@@ -39,7 +36,7 @@ export async function POST(request: Request) {
       return jsonError(400, 'INVALID_INPUT', '이름과 전화번호를 입력해주세요.');
     }
 
-    const phoneDigits = normalizePhone(phone);
+    const phoneDigits = normalizePhoneDigits(phone);
     if (phoneDigits.length < 10) {
       return jsonError(400, 'INVALID_PHONE', '올바른 전화번호를 입력해주세요.');
     }
@@ -49,7 +46,7 @@ export async function POST(request: Request) {
       select: { email: true, phone: true },
     });
 
-    const matched = users.find((u) => u.phone && normalizePhone(u.phone) === phoneDigits);
+    const matched = users.find((u) => u.phone && normalizePhoneDigits(u.phone) === phoneDigits);
 
     if (!matched) {
       return jsonError(404, 'NOT_FOUND', '해당하는 아이디를 찾을 수 없습니다.');

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { formatPrice } from '@/lib/utils';
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ status: 'error', code, message }, { status });
@@ -14,7 +15,7 @@ function isValidProductId(value: unknown): value is string {
 
 function formatAdditionalPriceText(additionalPrice: number): string | null {
   if (!Number.isFinite(additionalPrice) || additionalPrice <= 0) return null;
-  return `+${additionalPrice.toLocaleString('ko-KR')}원`;
+  return `+${formatPrice(additionalPrice)}`;
 }
 
 export async function GET(

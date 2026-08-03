@@ -8,6 +8,7 @@ import SearchBar from '@/components/ui/common/SearchBar';
 import Productcard from '@/components/ui/admin/product/Productcard';
 import Filter from '@/components/ui/admin/product/Filter';
 import ToastMessage from '@/components/ui/common/ToastMessage';
+import { formatDate, formatPrice } from '@/lib/utils';
 
 type ProductType = 0 | 1 | 2;
 type ProductTabKey = 'all' | 'fund' | 'buyNow' | 'partnerUp';
@@ -49,40 +50,13 @@ const TAB_OPTIONS: Array<{ key: ProductTabKey; label: string; type: ProductType 
   { key: 'partnerUp', label: 'Partner Up', type: 2 },
 ];
 
-function formatDate(value: string | null) {
-  if (!value) return null;
-  const ymd = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (ymd) return `${ymd[1]}.${ymd[2]}.${ymd[3]}`;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-
-  const yyyy = parts.find((part) => part.type === 'year')?.value;
-  const mm = parts.find((part) => part.type === 'month')?.value;
-  const dd = parts.find((part) => part.type === 'day')?.value;
-  if (!yyyy || !mm || !dd) return null;
-  return `${yyyy}.${mm}.${dd}`;
-}
-
 function formatDateRange(start: string | null, end: string | null) {
-  const startText = formatDate(start);
-  const endText = formatDate(end);
+  const startText = formatDate(start ?? undefined);
+  const endText = formatDate(end ?? undefined);
   if (startText && endText) return `${startText} - ${endText}`;
   if (startText) return `${startText} -`;
   if (endText) return `- ${endText}`;
   return '-';
-}
-
-function formatWon(value: number | null | undefined) {
-  const safe = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
-  return `${safe.toLocaleString('ko-KR')}원`;
 }
 
 function calcProgressPercent(currentAmount: number | null, goalAmount: number | null) {
@@ -324,8 +298,8 @@ export default function AdminProductPage() {
                       title={product.name || '상품명'}
                       description={product.description || ''}
                       periodText={formatDateRange(product.salesStartDate, product.salesEndDate)}
-                      achievedAmountText={isFund ? formatWon(product.currentAmount) : undefined}
-                      totalAmountText={isFund ? formatWon(product.goalAmount) : undefined}
+                      achievedAmountText={isFund ? formatPrice(product.currentAmount) : undefined}
+                      totalAmountText={isFund ? formatPrice(product.goalAmount) : undefined}
                       progressPercent={progressPercent}
                       likeCount={Number(product.likeCount ?? 0)}
                       liked={Boolean(product.isLiked)}

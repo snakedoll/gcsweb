@@ -128,11 +128,11 @@ function ResultContent() {
                   optionText: typeof item.optionText === 'string' ? item.optionText : '',
                 }),
                 quantity: qty,
-                unitPriceText: `${unit.toLocaleString('ko-KR')}원`,
+                unitPriceText: formatPrice(unit),
                 lineTotalText:
                   typeof item.priceText === 'string'
                     ? item.priceText
-                    : `${(unit * qty).toLocaleString('ko-KR')}원`,
+                    : formatPrice(unit * qty),
               };
             })
           : [];
