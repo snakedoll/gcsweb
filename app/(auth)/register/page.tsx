@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { NavBar } from '@/components/layout';
 import { Button, LogoSubtext, Subtitle, TextField } from '@/components/ui';
-import { formatPhoneWithHyphen } from '@/lib/format-phone';
+import { formatPhoneWithHyphen, normalizePhoneDigits } from '@/lib/format-phone';
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
 import Image from 'next/image';
 
@@ -17,10 +17,6 @@ type FocusField = 'name' | 'phone' | 'email' | 'verificationCode' | 'password' |
 
 function isPasswordValid(password: string): boolean {
   return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /^[A-Za-z\d]+$/.test(password);
-}
-
-function normalizePhoneDigits(phone: string): string {
-  return phone.replace(/\D/g, '');
 }
 
 export default function RegisterPage() {

@@ -1,8 +1,15 @@
 /**
+ * 숫자만 추출한 문자열 반환 (예: 01012345678)
+ */
+export function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 11);
+}
+
+/**
  * 숫자만 추출 후 한국 형식으로 하이픈 삽입 (예: 010-1234-5678)
  */
 export function formatPhoneWithHyphen(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 11);
+  const digits = normalizePhoneDigits(value);
   if (digits.length <= 2) return digits;
   if (digits.startsWith('02')) {
     if (digits.length <= 2) return digits;

@@ -4,22 +4,12 @@ import { useEffect, useState } from 'react';
 import { NavBar } from '@/components/layout';
 import { Modal, TextField } from '@/components/ui/common';
 import { useUser } from '@/hooks/useUser';
+import { formatPhoneWithHyphen } from '@/lib/format-phone';
 
 interface ProfileData {
   name: string;
   phone: string;
   email: string;
-}
-
-function formatPhoneNumber(phone: string) {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 11) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
-  }
-  if (cleaned.length === 10) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  return phone;
 }
 
 export default function MemberInfoPage() {
@@ -53,7 +43,7 @@ export default function MemberInfoPage() {
 
   const phoneValue = profile
     ? profile.phone
-      ? formatPhoneNumber(profile.phone)
+      ? formatPhoneWithHyphen(profile.phone)
       : '-'
     : loading
       ? '...'

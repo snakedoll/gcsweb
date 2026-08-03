@@ -8,20 +8,9 @@ import Button from "@/components/ui/button/Button";
 import RadioButton from "@/components/ui/button/RadioButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { formatPhoneWithHyphen } from "@/lib/format-phone";
 
 type UserItem = { id: string; name: string; phone: string; major: string };
-
-function formatPhone(phone?: string) {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 11) {
-    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-  }
-  if (digits.length === 10) {
-    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
-  return phone;
-}
 
 // Figma 아이콘 URL
 const CROWN_ICON = "/assets/icons/additional/tabler_crown.svg";

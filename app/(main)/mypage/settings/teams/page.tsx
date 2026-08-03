@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { formatPhoneWithHyphen } from '@/lib/format-phone';
 
 interface TeamMember {
   role: string;
@@ -18,17 +19,6 @@ interface TeamData {
   type: string;
   members: TeamMember[];
   accountUrl?: string;
-}
-
-function formatPhoneNumber(phone: string) {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 11) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
-  }
-  if (cleaned.length === 10) {
-    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  return phone;
 }
 
 function TeamInfoCard({ team, isAdmin }: { team: TeamData; isAdmin: boolean }) {
@@ -63,7 +53,7 @@ function TeamInfoCard({ team, isAdmin }: { team: TeamData; isAdmin: boolean }) {
               </span>
               <span className="typo-body-small text-neutral-10">{member.name}</span>
             </div>
-            <span className="typo-body-small text-neutral-8">{formatPhoneNumber(member.phone)}</span>
+            <span className="typo-body-small text-neutral-8">{formatPhoneWithHyphen(member.phone)}</span>
           </div>
         ))}
       </div>

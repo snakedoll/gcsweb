@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { NavBar } from '@/components/layout';
 import { LoginSupportLinks, LogoSubtext, Subtitle, TextField } from '@/components/ui';
+import { formatPhoneWithHyphen } from '@/lib/format-phone';
 import { cn } from '@/lib/utils';
 
 type ForgotIdUiState = 'default' | 'failure' | 'success';
@@ -75,14 +76,6 @@ export default function ForgotIdPage() {
     }
   };
 
-  const formatPhoneNumber = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-  };
-
   return (
     <div className="w-full max-w-[375px]">
       <NavBar variant="home" />
@@ -130,7 +123,7 @@ export default function ForgotIdPage() {
                     }),
                     onFocus: () => setFocusedField('phone'),
                     onChange: (event) => {
-                      const formattedPhone = formatPhoneNumber(event.target.value);
+                      const formattedPhone = formatPhoneWithHyphen(event.target.value);
                       setValue('phone', formattedPhone, { shouldDirty: true });
                       handleInputChange();
                     },
