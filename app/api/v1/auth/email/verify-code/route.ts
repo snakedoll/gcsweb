@@ -1,21 +1,9 @@
 import { createHash, randomBytes } from 'crypto';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { apiError as jsonError } from '@/lib/api-response';
 
 export const runtime = 'nodejs';
-
-type ErrorPayload = {
-  status: 'error';
-  code: string;
-  message: string;
-};
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json<ErrorPayload>(
-    { status: 'error', code, message },
-    { status }
-  );
-}
 
 function isEmail(value: unknown): value is string {
   return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);

@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 export async function GET() {
   try {

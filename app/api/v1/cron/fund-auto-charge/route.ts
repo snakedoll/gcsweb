@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { chargeWithBillingKey } from '@/lib/payment/portone';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 export async function POST(request: Request) {
   const configuredSecret = process.env.CRON_SECRET?.trim();

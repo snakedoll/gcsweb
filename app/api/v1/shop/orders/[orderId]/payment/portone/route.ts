@@ -4,10 +4,7 @@ import {
   getPortoneCheckoutPaymentConfig,
   isPortoneCheckoutConfigured,
 } from '@/lib/payment/portone';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function orderUsesQrShopRedirect(items: Array<{ optionData: unknown }>): boolean {
   return items.some((row) => {
