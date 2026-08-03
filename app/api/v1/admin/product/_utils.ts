@@ -1,26 +1,5 @@
-import { NextResponse } from 'next/server';
-import type { Session } from 'next-auth';
-import { requireAdmin as requireDbAdmin } from '@/lib/admin-auth';
-
-export function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
-
-type AdminAuthOk = { ok: true; session: Session };
-type AdminAuthFail = { ok: false; response: ReturnType<typeof jsonError> };
-
-export async function requireAdmin(): Promise<AdminAuthOk | AdminAuthFail> {
-  const auth = await requireDbAdmin();
-  if (!auth.ok) {
-    const status = auth.reason === 'UNAUTHORIZED' ? 401 : 403;
-    return {
-      ok: false as const,
-      response: jsonError(status, auth.reason, auth.reason === 'UNAUTHORIZED' ? 'Unauthorized' : 'Forbidden'),
-    };
-  }
-
-  return { ok: true as const, session: auth.session };
-}
+export { requireAdmin } from '@/lib/admin-auth';
+export { apiError as jsonError } from '@/lib/api-response';
 
 export function parseOptionalProductType(value: string | null) {
   if (value == null) return { ok: true as const, value: null as number | null };

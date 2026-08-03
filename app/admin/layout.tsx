@@ -7,11 +7,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const auth = await requireAdmin();
-  if (!auth.ok && auth.reason === 'UNAUTHORIZED') {
-    redirect('/login');
-  }
-  if (!auth.ok && auth.reason === 'FORBIDDEN') {
-    redirect('/');
+  if (!auth.ok) {
+    redirect(auth.response.status === 401 ? '/login' : '/');
   }
 
   return <>{children}</>;

@@ -1,22 +1,14 @@
 ﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import { apiError as jsonError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 export async function GET() {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') {
-        return jsonError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
-      }
-      return jsonError(403, 'FORBIDDEN', '관리자 권한이 필요합니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const products = await prisma.fairShopProduct.findMany({
       select: {

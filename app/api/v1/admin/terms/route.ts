@@ -8,12 +8,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      return NextResponse.json(
-        { status: 'error', message: auth.reason === 'UNAUTHORIZED' ? 'Unauthorized' : 'Forbidden' },
-        { status: auth.reason === 'UNAUTHORIZED' ? 401 : 403 }
-      );
-    }
+    if (!auth.ok) return auth.response;
 
     const prismaTermDelegate = (prisma as unknown as {
       term?: {
