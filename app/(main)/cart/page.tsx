@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/hooks/useUser';
 import Modal from '@/components/ui/common/Modal';
+import { formatPrice } from '@/lib/utils';
 
 const GUEST_CART_STORAGE_KEY = 'shop:guest-cart-items';
 const GUEST_ORDER_STORAGE_KEY = 'shop:buynow-guest-order-items';
@@ -316,7 +317,7 @@ function CartItemCard({
 
           {/* 가격 – Figma: 품절 시 opacity-40 */}
           <span className={`text-[17px] font-bold text-[#3f3835] ${isDisabled ? 'opacity-40' : ''}`}>
-            {(item.price * item.quantity).toLocaleString()}원
+            {formatPrice(item.price * item.quantity)}
           </span>
         </div>
       </div>
@@ -703,7 +704,7 @@ export default function CartPage() {
           brand: item.teamName,
           title: item.productName,
           optionText: `${(item.options ?? []).join(' / ')} / ${item.quantity}개`,
-          priceText: `${Number(item.price * item.quantity).toLocaleString('ko-KR')}원`,
+          priceText: formatPrice(item.price * item.quantity),
           imageUrl: item.imageUrl,
         }));
         sessionStorage.setItem(GUEST_ORDER_STORAGE_KEY, JSON.stringify(guestOrderItems));
@@ -907,7 +908,7 @@ export default function CartPage() {
               <div className="flex items-start justify-between px-5 leading-[1.5] text-[15px] text-black">
                 <span>총 금액</span>
                 <span className="font-bold">
-                  {totalPrice.toLocaleString()}원
+                  {formatPrice(totalPrice)}
                 </span>
               </div>
               <div className="px-5">

@@ -7,6 +7,7 @@ import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
 import Dropdown from '@/components/ui/button/Dropdown';
+import { formatPrice } from '@/lib/utils';
 
 type CartApiItem = {
   cartItemId: string;
@@ -184,7 +185,7 @@ function ShopOrdersPickupPageContent() {
             brand: row.teamName ?? '',
             title: row.productName ?? '',
             optionText: `${toOptionText(options)} / ${row.quantity ?? 1}개`,
-            priceText: `${Number((row.price ?? 0) * (row.quantity ?? 1)).toLocaleString('ko-KR')}원`,
+            priceText: formatPrice((row.price ?? 0) * (row.quantity ?? 1)),
             imageUrl: row.thumbnailUrl ?? '',
           };
         });
@@ -225,7 +226,7 @@ function ShopOrdersPickupPageContent() {
 
   const calculatedTotal = useMemo(() => items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [items]);
   const displayedTotal = confirmedPaymentAmount ?? calculatedTotal;
-  const totalPriceText = `${displayedTotal.toLocaleString('ko-KR')}원`;
+  const totalPriceText = formatPrice(displayedTotal);
   const pickupPeriodText = `${formatDate(pickupStartDate)} ~ ${formatDate(pickupEndDate)}`;
 
   const isPayEnabled =

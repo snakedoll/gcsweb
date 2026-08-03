@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { formatPrice } from '@/lib/utils';
 import { computeQrShopCartTotal } from '@/lib/qrshop/postcard-pricing';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
@@ -43,10 +44,6 @@ function getOrCreateGuestToken(): string {
     .join('');
   localStorage.setItem(GUEST_TOKEN_STORAGE_KEY, token);
   return token;
-}
-
-function formatWon(n: number) {
-  return `${n.toLocaleString('ko-KR')}원`;
 }
 
 type OutOfStockIssue = {
@@ -352,7 +349,7 @@ export default function QRshopPage() {
             {item.option ? (
               <span className="mt-0.5 text-[13px] text-neutral-8">{item.option}</span>
             ) : null}
-            <span className="mt-2 text-[16px] font-bold text-orange-5">{formatWon(item.price)}</span>
+            <span className="mt-2 text-[16px] font-bold text-orange-5">{formatPrice(item.price)}</span>
           </button>
         ))}
       </div>
@@ -430,13 +427,13 @@ export default function QRshopPage() {
 
           {postcardDiscount > 0 ? (
             <p className="mb-2 rounded-xl bg-orange-1 px-3 py-2 text-center text-[13px] font-medium text-orange-6">
-              엽서 2개 묶음 할인 적용 · {formatWon(postcardDiscount)} 할인!
+              엽서 2개 묶음 할인 적용 · {formatPrice(postcardDiscount)} 할인!
             </p>
           ) : null}
 
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[15px] font-semibold text-neutral-10">결제 금액</span>
-            <span className="text-[20px] font-bold text-neutral-12">{formatWon(total)}</span>
+            <span className="text-[20px] font-bold text-neutral-12">{formatPrice(total)}</span>
           </div>
 
           {error ? <p className="mb-2 text-center text-[13px] text-red-600">{error}</p> : null}

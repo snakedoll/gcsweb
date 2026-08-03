@@ -9,7 +9,7 @@ import ProductDDay, { type ProductDDayColor } from '@/components/ui/admin/produc
 import BottomSheet, { type BottomSheetOption } from '@/components/ui/shop/BottomSheet';
 import ShopCard from '@/components/ui/shop/ShopCard';
 import { useUser } from '@/hooks/useUser';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { getSaleStatusByDate, type SaleStatus } from '@/lib/sale-date';
 
 type ProductType = 0 | 1 | 2;
@@ -82,10 +82,6 @@ type ProductDetailResponse = {
     product?: ShopProductDetail;
   };
 };
-
-function formatWon(value: number | null | undefined) {
-  return `${Number(value ?? 0).toLocaleString('ko-KR')}원`;
-}
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '-';

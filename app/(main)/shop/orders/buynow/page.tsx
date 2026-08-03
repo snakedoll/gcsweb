@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { NavBar } from '@/components/layout';
 import Button from '@/components/ui/button/Button';
 import CheckboxButton from '@/components/ui/button/CheckboxButton';
+import { formatPrice } from '@/lib/utils';
 
 type CartApiItem = {
   cartItemId: string;
@@ -196,7 +197,7 @@ function ShopOrdersBuyNowPageContent() {
             brand: item.brand ?? '',
             title: item.title ?? '',
             optionText: item.optionText ?? '',
-            priceText: item.priceText ?? `${Number(item.unitPrice ?? 0).toLocaleString('ko-KR')}원`,
+            priceText: item.priceText ?? formatPrice(item.unitPrice ?? 0),
             imageUrl: item.imageUrl ?? '',
           }));
         };
@@ -249,7 +250,7 @@ function ShopOrdersBuyNowPageContent() {
             brand: row.teamName ?? '',
             title: row.productName ?? '',
             optionText: `${toOptionText(options)} / ${row.quantity ?? 1}개`,
-            priceText: `${Number((row.price ?? 0) * (row.quantity ?? 1)).toLocaleString('ko-KR')}원`,
+            priceText: formatPrice((row.price ?? 0) * (row.quantity ?? 1)),
             imageUrl: row.thumbnailUrl ?? '',
           };
         });
@@ -272,7 +273,7 @@ function ShopOrdersBuyNowPageContent() {
   const totalPriceText = useMemo(() => {
     const baseTotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const total = baseTotal + (bagOption === true ? 100 : 0);
-    return `${total.toLocaleString('ko-KR')}원`;
+    return formatPrice(total);
   }, [bagOption, items]);
 
   const isPayEnabled = items.length > 0 && (paymentMethod === 0 || paymentMethod === 3) && bagOption !== null;

@@ -7,6 +7,7 @@ import { NavBar } from '@/components/layout';
 import TextField from '@/components/ui/common/TextField';
 import Button from '@/components/ui/button/Button';
 import Dropdown from '@/components/ui/button/Dropdown';
+import { formatPrice } from '@/lib/utils';
 
 const POSTCODE_SCRIPT = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
 
@@ -197,7 +198,7 @@ function ShopOrdersPageContent() {
             brand: row.teamName ?? '',
             title: row.productName ?? '',
             optionText: `${optionText ? `${optionText} / ` : ''}${row.quantity ?? 1}개`,
-            priceText: `${Number((row.price ?? 0) * (row.quantity ?? 1)).toLocaleString('ko-KR')}원`,
+            priceText: formatPrice((row.price ?? 0) * (row.quantity ?? 1)),
             imageUrl: row.thumbnailUrl ?? '',
           };
         });
@@ -224,7 +225,7 @@ function ShopOrdersPageContent() {
 
   const calculatedTotal = useMemo(() => items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [items]);
   const displayedTotal = confirmedPaymentAmount ?? calculatedTotal;
-  const totalPriceText = `${displayedTotal.toLocaleString('ko-KR')}원`;
+  const totalPriceText = formatPrice(displayedTotal);
 
   const isPayEnabled =
     items.length > 0 &&

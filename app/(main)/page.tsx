@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { BottomTabBar, NavBar } from '@/components/layout';
 import Modal from '@/components/ui/common/Modal';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { formatPrice } from '@/lib/utils';
 
 const heroImage = '/assets/images/poster.svg';
 const instagramIcon = '/assets/icons/icon-instagram-line.svg';
@@ -248,7 +249,7 @@ function HomeContent() {
       ? Math.max(0, Math.min(100, Math.round((activeFund.currentAmount / activeFund.goalAmount) * 100)))
       : 0;
   const fundStatusLabel = fundPercent >= 100 ? '달성' : '미달성';
-  const fundAmountLabel = `${(activeFund?.currentAmount ?? 0).toLocaleString()}원`;
+  const fundAmountLabel = formatPrice(activeFund?.currentAmount ?? 0);
 
   return (
     <div className="min-h-screen bg-neutral-3">
