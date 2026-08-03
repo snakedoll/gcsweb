@@ -2,12 +2,9 @@
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { apiError as errorResponse } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function errorResponse(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 export async function GET() {
   try {

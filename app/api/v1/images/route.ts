@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { apiError as errorResponse } from '@/lib/api-response';
 
 export const runtime = 'nodejs';
 
@@ -56,10 +57,6 @@ const USAGE_POLICIES: Record<string, UsagePolicy> = {
     requiresAdmin: false,
   },
 };
-
-function errorResponse(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function getUsageFromRequest(request: Request, formData: FormData) {
   const url = new URL(request.url);

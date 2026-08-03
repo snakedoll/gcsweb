@@ -3,12 +3,9 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { apiError as errorResponse } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function errorResponse(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function parseSingleQueryParam(values: string[]) {
   if (values.length === 0) return { ok: true as const, value: null as string | null };
