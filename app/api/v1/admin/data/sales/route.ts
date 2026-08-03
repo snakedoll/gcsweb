@@ -2,15 +2,12 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import { apiError as jsonError, apiErrors } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_DAYS = 4;
 const MAX_DAYS = 31;
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function parseDateKey(input: string): { year: number; month: number; day: number } | null {
   const match = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -86,12 +83,7 @@ function normalizeDateKey(value: Date | string | null | undefined): string | nul
 export async function GET(request: Request) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') {
-        return jsonError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
-      }
-      return jsonError(403, 'FORBIDDEN', '관리자 권한이 필요합니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const startDateParam = searchParams.get('startDate')?.trim() ?? '';
@@ -160,6 +152,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[Admin Data Sales GET Error]', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
+    return apiErrors.serverError();
   }
 }

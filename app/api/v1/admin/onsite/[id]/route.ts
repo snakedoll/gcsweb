@@ -7,10 +7,7 @@ import {
   ONSITE_PAYMENT_STATUS,
   isCounterPaymentMethod,
 } from '@/lib/admin-onsite-status';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function toPaymentMethodLabel(paymentMethod: number): string {
   return isCounterPaymentMethod(paymentMethod) ? '현장결제' : '온라인결제';
@@ -98,10 +95,7 @@ export async function GET(
 ) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') return jsonError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
-      return jsonError(403, 'FORBIDDEN', '어드민 권한이 필요합니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = params;
     if (!id) return jsonError(400, 'INVALID_INPUT', '주문 ID가 없습니다.');
@@ -171,10 +165,7 @@ export async function PATCH(
 ) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') return jsonError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
-      return jsonError(403, 'FORBIDDEN', '어드민 권한이 필요합니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const { id } = params;
     if (!id) return jsonError(400, 'INVALID_INPUT', '주문 ID가 없습니다.');

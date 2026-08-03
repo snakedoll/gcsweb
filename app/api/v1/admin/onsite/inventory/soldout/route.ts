@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function getProductStatus(
   salesStartDate: Date,
@@ -21,12 +18,7 @@ export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') {
-        return jsonError(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
-      }
-      return jsonError(403, 'FORBIDDEN', '관리자 권한이 없습니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const body = await request.json().catch(() => null);
     const variantId = typeof body?.variantId === 'string' ? body.variantId.trim() : '';

@@ -4,12 +4,7 @@ import { prisma } from '@/lib/db';
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
-  if (!auth.ok) {
-    return NextResponse.json(
-      { message: auth.reason === 'UNAUTHORIZED' ? 'Unauthorized' : 'Forbidden' },
-      { status: auth.reason === 'UNAUTHORIZED' ? 401 : 403 }
-    );
-  }
+  if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search')?.trim() ?? '';

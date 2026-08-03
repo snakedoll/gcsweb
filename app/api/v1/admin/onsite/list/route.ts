@@ -7,12 +7,9 @@ import {
   toOnsitePaymentStatusLabel,
   toOnsiteReceiptStatusLabel,
 } from '@/lib/admin-onsite-status';
+import { apiError as jsonError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 type OptionLike = {
   value?: unknown;
@@ -148,10 +145,7 @@ function toPaymentMethodLabel(paymentMethod: number) {
 export async function GET(req: Request) {
   try {
     const auth = await requireAdmin();
-    if (!auth.ok) {
-      if (auth.reason === 'UNAUTHORIZED') return jsonError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
-      return jsonError(403, 'FORBIDDEN', '어드민 권한이 필요합니다.');
-    }
+    if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() ?? '';
