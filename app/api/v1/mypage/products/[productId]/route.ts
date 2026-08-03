@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { apiError } from '@/lib/api-response';
 
 function toDateOnlyInKst(date: Date | null | undefined): string {
   if (!date) return '';
@@ -77,26 +78,17 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', 'Login required.');
     }
 
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const teamIds = await getMyTeamIds(session.user.id);
     if (teamIds.length === 0) {
-      return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' },
-        { status: 403 }
-      );
+      return apiError(403, 'FORBIDDEN', 'Forbidden.');
     }
 
     const product = await prisma.product.findFirst({
@@ -120,10 +112,7 @@ export async function GET(
     });
 
     if (!product) {
-      return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
-        { status: 404 }
-      );
+      return apiError(404, 'NOT_FOUND', 'Not found.');
     }
 
     const image = product.images?.[0] ?? null;
@@ -166,10 +155,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('My product detail error:', error);
-    return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
-      { status: 500 }
-    );
+    return apiError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
 
@@ -180,18 +166,12 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: 'Login required.' },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', 'Login required.');
     }
 
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -240,10 +220,7 @@ export async function PATCH(
     };
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const team = await prisma.team.findUnique({
@@ -251,19 +228,13 @@ export async function PATCH(
       select: { id: true, userId: true, teamMember: true },
     });
     if (!team) {
-      return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
-        { status: 404 }
-      );
+      return apiError(404, 'NOT_FOUND', 'Not found.');
     }
 
     const memberIds = Array.isArray(team.teamMember) ? team.teamMember : [];
     const canUpdate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canUpdate) {
-      return NextResponse.json(
-        { status: 'error', code: 'FORBIDDEN', message: 'Forbidden.' },
-        { status: 403 }
-      );
+      return apiError(403, 'FORBIDDEN', 'Forbidden.');
     }
 
     const targetProduct = await prisma.product.findFirst({
@@ -276,10 +247,7 @@ export async function PATCH(
     });
 
     if (!targetProduct) {
-      return NextResponse.json(
-        { status: 'error', code: 'NOT_FOUND', message: 'Not found.' },
-        { status: 404 }
-      );
+      return apiError(404, 'NOT_FOUND', 'Not found.');
     }
 
     const priceNum =
@@ -293,17 +261,11 @@ export async function PATCH(
           : 0;
 
     if (priceNum < 0) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const normalizedThumbnailImgUrl = normalizeImageUrl(thumbnailImgUrl.trim());
@@ -315,41 +277,26 @@ export async function PATCH(
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
 
     if (!normalizedThumbnailImgUrl) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     if (detailUrls.length === 0) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     if (!normalizedNoticeImgUrl) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     const salesStart = parseDate(salesStartDate);
     const salesEnd = parseDate(salesEndDate, true);
     if (!salesStart || !salesEnd) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
     }
 
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
-        return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-          { status: 400 }
-        );
+        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
       if (receiveMethod === 0) {
         if (
@@ -358,10 +305,7 @@ export async function PATCH(
           !parseDate(deliveryStartDate) ||
           !parseDate(deliveryEndDate, true)
         ) {
-          return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-            { status: 400 }
-          );
+          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
         }
       } else {
         if (
@@ -369,25 +313,16 @@ export async function PATCH(
           !parseDate(pickupEndDate, true) ||
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
-          return NextResponse.json(
-            { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-            { status: 400 }
-          );
+          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
         }
       }
     } else if (type === 1) {
       if (receiveMethod !== 1) {
-        return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-          { status: 400 }
-        );
+        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
     } else {
       if (receiveMethod !== null) {
-        return NextResponse.json(
-          { status: 'error', code: 'INVALID_INPUT', message: 'Invalid request input.' },
-          { status: 400 }
-        );
+        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
       }
     }
 
@@ -402,10 +337,7 @@ export async function PATCH(
 
     const parsedOptions = parseAndValidateOptions(options);
     if (!parsedOptions.ok) {
-      return NextResponse.json(
-        { status: 'error', code: 'INVALID_OPTION_INPUT', message: 'Invalid option payload.' },
-        { status: 400 }
-      );
+      return apiError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
     }
     const optionList = parsedOptions.value;
 
@@ -511,10 +443,7 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Product update request error:', error);
-    return NextResponse.json(
-      { status: 'error', code: 'SERVER_ERROR', message: 'Server error.' },
-      { status: 500 }
-    );
+    return apiError(500, 'SERVER_ERROR', 'Server error.');
   }
 }
 

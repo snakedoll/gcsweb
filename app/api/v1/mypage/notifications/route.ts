@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { apiError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,14 +10,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json(
-        {
-          status: 'error',
-          code: 'UNAUTHORIZED',
-          message: '로그인이 필요한 서비스입니다.',
-        },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -29,14 +23,7 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        {
-          status: 'error',
-          code: 'UNAUTHORIZED',
-          message: '사용자를 찾을 수 없습니다.',
-        },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
     }
 
     const rows = await prisma.notification.findMany({
@@ -77,13 +64,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Notifications list error:', error);
-    return NextResponse.json(
-      {
-        status: 'error',
-        code: 'SERVER_ERROR',
-        message: '알림 목록을 불러오지 못했습니다.',
-      },
-      { status: 500 }
-    );
+    return apiError(500, 'SERVER_ERROR', '알림 목록을 불러오지 못했습니다.');
   }
 }
