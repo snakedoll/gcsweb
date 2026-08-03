@@ -12,7 +12,7 @@ export async function requireAdmin(): Promise<AdminAuthResult> {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return { ok: false, response: apiError(401, 'UNAUTHORIZED', '로그인이 필요합니다.') };
+    return { ok: false, response: apiError(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.') };
   }
 
   const user = await prisma.user.findUnique({
@@ -21,7 +21,7 @@ export async function requireAdmin(): Promise<AdminAuthResult> {
   });
 
   if (!user || Number(user.memberType) !== 2) {
-    return { ok: false, response: apiError(403, 'FORBIDDEN', '관리자 권한이 필요합니다.') };
+    return { ok: false, response: apiError(403, 'FORBIDDEN', '어드민 권한이 필요합니다.') };
   }
 
   return { ok: true, session };

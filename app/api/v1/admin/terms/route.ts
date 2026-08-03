@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 export const runtime = 'nodejs';
 
@@ -18,21 +19,14 @@ export async function POST(request: NextRequest) {
     }).term;
     if (!prismaTermDelegate?.deleteMany || !prismaTermDelegate?.createMany) {
       console.error('Terms POST error: Prisma client is missing `term` delegate. Run prisma generate and redeploy.');
-      return NextResponse.json(
-        {
-          status: 'error',
-          code: 'PRISMA_CLIENT_OUTDATED',
-          message: 'Terms model is not available in Prisma Client. Run prisma generate and redeploy.',
-        },
-        { status: 500 }
-      );
+      return apiError(500, 'PRISMA_CLIENT_OUTDATED', 'Terms model is not available in Prisma Client. Run prisma generate and redeploy.');
     }
 
     const body = await request.json();
     const { type, terms } = body; // terms: Array<{ mainTitle, subTitle, body }>
 
     if (!type || !Array.isArray(terms)) {
-      return NextResponse.json({ status: 'error', message: 'Invalid input' }, { status: 400 });
+      return apiErrors.invalidInput('Invalid input');
     }
 
     // Process update in a transaction: delete existing for this type and insert new ones
@@ -67,6 +61,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 'success', message: 'Terms updated successfully' });
   } catch (error) {
     console.error('Terms POST error:', error);
-    return NextResponse.json({ status: 'error', message: 'Failed to update terms' }, { status: 500 });
+    return apiErrors.serverError('Failed to update terms');
   }
 }

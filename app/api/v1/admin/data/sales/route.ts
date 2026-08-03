@@ -2,7 +2,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
-import { apiError as jsonError } from '@/lib/api-response';
+import { apiError as jsonError, apiErrors } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,6 +152,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[Admin Data Sales GET Error]', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
+    return apiErrors.serverError();
   }
 }

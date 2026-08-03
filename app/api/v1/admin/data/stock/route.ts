@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
-import { apiError as jsonError } from '@/lib/api-response';
+import { apiErrors } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +44,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[Admin Onsite Data Stock GET Error]', error);
-    return jsonError(500, 'SERVER_ERROR', '서버 오류가 발생했습니다.');
+    return apiErrors.serverError();
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
+import { apiErrors } from '@/lib/api-response';
 
 export async function GET(
   _request: Request,
@@ -27,7 +28,7 @@ export async function GET(
   });
 
   if (!user) {
-    return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    return apiErrors.notFound('User not found');
   }
 
   return NextResponse.json({
@@ -57,7 +58,7 @@ export async function DELETE(
   });
 
   if (!user) {
-    return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    return apiErrors.notFound('User not found');
   }
 
   await prisma.user.delete({
