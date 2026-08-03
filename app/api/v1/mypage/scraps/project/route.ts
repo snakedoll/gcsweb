@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { apiError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,10 +11,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요한 서비스입니다.' },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -22,10 +20,7 @@ export async function GET(request: Request) {
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return NextResponse.json(
-        { status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' },
-        { status: 401 }
-      );
+      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
     }
 
     const totalCount = await prisma.scrap.count({
@@ -65,6 +60,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { hasNext, projects, totalCount } });
   } catch (error: any) {
     console.error('Scraps project list error:', error);
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });
+    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
   }
 }

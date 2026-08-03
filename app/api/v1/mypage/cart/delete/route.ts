@@ -2,24 +2,25 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { apiError } from '@/lib/api-response';
 
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요한 서비스입니다.' }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
     }
 
     const body = await request.json().catch(() => null);
     const cartItemIds = Array.isArray(body?.cartItemIds) ? body.cartItemIds : null;
 
     if (!cartItemIds || !cartItemIds.length) {
-      return NextResponse.json({ status: 'error', code: 'EMPTY_LIST', message: '삭제할 상품을 선택해 주세요.' }, { status: 400 });
+      return apiError(400, 'EMPTY_LIST', '삭제할 상품을 선택해 주세요.');
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
     }
 
     // CartItem 조회 및 소유권 확인
@@ -29,12 +30,12 @@ export async function DELETE(request: Request) {
     });
 
     if (found.length !== cartItemIds.length) {
-      return NextResponse.json({ status: 'error', code: 'CART_ITEM_NOT_FOUND', message: '존재하지 않는 장바구니 아이템이 있습니다.' }, { status: 404 });
+      return apiError(404, 'CART_ITEM_NOT_FOUND', '존재하지 않는 장바구니 아이템이 있습니다.');
     }
 
     const notOwner = found.find((f) => f.cart.userId !== user.id);
     if (notOwner) {
-      return NextResponse.json({ status: 'error', code: 'FORBIDDEN', message: '해당 장바구니 항목에 대한 권한이 없습니다.' }, { status: 403 });
+      return apiError(403, 'FORBIDDEN', '해당 장바구니 항목에 대한 권한이 없습니다.');
     }
 
     // 삭제
@@ -43,6 +44,6 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ status: 'success', message: '선택한 상품이 장바구니에서 삭제되었습니다.' });
   } catch (error: any) {
     console.error('Cart delete error:', error);
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });
+    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
   }
 }

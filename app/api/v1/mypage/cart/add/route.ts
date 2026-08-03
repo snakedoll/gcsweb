@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { getSaleStatusByDate } from '@/lib/sale-date';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
+import { apiError } from '@/lib/api-response';
 
 function toDbJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
   if (value === undefined || value === null) return Prisma.JsonNull;
@@ -19,12 +20,12 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요한 서비스입니다.' }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
     }
 
     const body = await request.json();
@@ -36,11 +37,11 @@ export async function POST(request: Request) {
     };
 
     if (!productId || typeof productId !== 'string' || !productId.trim()) {
-      return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'productId가 필요합니다.' }, { status: 400 });
+      return apiError(400, 'INVALID_INPUT', 'productId가 필요합니다.');
     }
 
     if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
-      return NextResponse.json({ status: 'error', code: 'INVALID_INPUT', message: 'quantity는 1 이상의 정수여야 합니다.' }, { status: 400 });
+      return apiError(400, 'INVALID_INPUT', 'quantity는 1 이상의 정수여야 합니다.');
     }
 
     // 상품 존재 확인
@@ -64,19 +65,19 @@ export async function POST(request: Request) {
       },
     });
     if (!product) {
-      return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_FOUND', message: '상품을 찾을 수 없습니다.' }, { status: 404 });
+      return apiError(404, 'PRODUCT_NOT_FOUND', '상품을 찾을 수 없습니다.');
     }
 
     const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
     if (!product.isPublic || !product.isAdminApproved || saleStatus !== 'active') {
-      return NextResponse.json({ status: 'error', code: 'PRODUCT_NOT_AVAILABLE', message: '현재 판매 중인 상품이 아닙니다.' }, { status: 400 });
+      return apiError(400, 'PRODUCT_NOT_AVAILABLE', '현재 판매 중인 상품이 아닙니다.');
     }
 
     if (product.status === 2) {
-      return NextResponse.json({ status: 'error', code: 'PRODUCT_SOLD_OUT', message: '품절된 상품입니다.' }, { status: 400 });
+      return apiError(400, 'PRODUCT_SOLD_OUT', '품절된 상품입니다.');
     }
     if (isMatchedVariantSoldOut(product.variants, optionData)) {
-      return NextResponse.json({ status: 'error', code: 'PRODUCT_SOLD_OUT', message: '품절된 상품입니다.' }, { status: 400 });
+      return apiError(400, 'PRODUCT_SOLD_OUT', '품절된 상품입니다.');
     }
 
     // 유저의 장바구니 조회 또는 생성
@@ -93,14 +94,7 @@ export async function POST(request: Request) {
     const existingTypeGroups = new Set(existingCartItems.map((item) => toTypeGroup(item.product.type)));
     const targetTypeGroup = toTypeGroup(product.type);
     if (existingTypeGroups.size > 0 && !existingTypeGroups.has(targetTypeGroup)) {
-      return NextResponse.json(
-        {
-          status: 'error',
-          code: 'MIXED_PRODUCT_TYPE_NOT_ALLOWED',
-          message: '상품 유형이 다른 상품은 동시에 장바구니에 담을 수 없습니다.',
-        },
-        { status: 400 }
-      );
+      return apiError(400, 'MIXED_PRODUCT_TYPE_NOT_ALLOWED', '상품 유형이 다른 상품은 동시에 장바구니에 담을 수 없습니다.');
     }
 
     // 추가 금액 계산
@@ -162,6 +156,6 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Cart add error:', error);
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '장바구니에 추가하는 중 문제가 발생했습니다.' }, { status: 500 });
+    return apiError(500, 'SERVER_ERROR', '장바구니에 추가하는 중 문제가 발생했습니다.');
   }
 }

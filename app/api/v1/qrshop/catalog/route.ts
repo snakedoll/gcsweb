@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ensureFairShopProductsSeeded } from '@/lib/qrshop/fair-shop';
 import { getQrShopCatalog } from '@/lib/qrshop/catalog';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 /** QR 메뉴(공개 정보만). 재고는 응답에 포함하지 않는다. */
 export async function GET() {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { apiError as errorResponse } from '@/lib/api-response';
 
 type ProjectAddBody = {
   title?: string;
@@ -15,10 +16,6 @@ type ProjectAddBody = {
   detailUrl?: string;
   isPublic?: boolean;
 };
-
-function errorResponse(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;

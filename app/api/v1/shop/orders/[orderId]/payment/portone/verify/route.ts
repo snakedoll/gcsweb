@@ -3,10 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getPayment } from '@/lib/payment/portone';
 import { fairShopDecrementFromOrderItems, tryParseQrDeductionsFromOrderItems } from '@/lib/qrshop/fair-shop';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 type Params = { params: { orderId: string } };
 

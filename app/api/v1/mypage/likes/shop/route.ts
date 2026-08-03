@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { apiError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,11 +43,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({
-        status: 'error',
-        code: 'UNAUTHORIZED',
-        message: '로그인이 필요한 서비스입니다.',
-      }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -58,18 +55,14 @@ export async function GET(request: Request) {
     if (typeParam !== null) {
       const t = Number(typeParam);
       if (![0, 1, 2].includes(t)) {
-        return NextResponse.json({
-          status: 'error',
-          code: 'INVALID_INPUT',
-          message: '유효하지 않은 상품 유형입니다.',
-        }, { status: 400 });
+        return apiError(400, 'INVALID_INPUT', '유효하지 않은 상품 유형입니다.');
       }
       typeFilter = t;
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '사용자를 찾을 수 없습니다.' }, { status: 401 });
+      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
     }
 
     const whereLike = { userId: user.id, productId: { not: null } };
@@ -125,6 +118,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { hasNext, products, totalCount } });
   } catch (error: any) {
     console.error('Likes shop list error:', error);
-    return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 내부 오류' }, { status: 500 });
+    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
   }
 }

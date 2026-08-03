@@ -4,12 +4,9 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
+import { apiError as jsonError } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function parseQueryInt(value: string | null, allowed: number[], fallback: number) {
   if (value == null) return { ok: true as const, value: fallback };

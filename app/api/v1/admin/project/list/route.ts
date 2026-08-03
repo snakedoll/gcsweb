@@ -3,12 +3,9 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
+import { apiError as errorResponse } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
-
-function errorResponse(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
 
 function parseBooleanQuery(value: string | null): boolean | undefined | 'invalid' {
   if (value == null) return undefined;

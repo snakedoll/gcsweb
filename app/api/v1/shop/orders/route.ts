@@ -13,10 +13,7 @@ import {
   getOrderDateKeyYYMMDD,
   mapProductTypeToOrderCode,
 } from '@/lib/order-code';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function parsePositiveInt(value: string | null, fallback: number) {
   if (!value) return fallback;

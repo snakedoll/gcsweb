@@ -4,10 +4,7 @@ import crypto from 'crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function hashGuestToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');

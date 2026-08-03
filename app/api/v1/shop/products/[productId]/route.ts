@@ -4,10 +4,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { formatPrice } from '@/lib/utils';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 function isValidProductId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && !/\s/.test(value);

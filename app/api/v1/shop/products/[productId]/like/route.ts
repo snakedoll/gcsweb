@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { apiError } from '@/lib/api-response';
 
 export async function POST(
     request: Request,
@@ -10,7 +11,7 @@ export async function POST(
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
-            return NextResponse.json({ status: 'error', code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' }, { status: 401 });
+            return apiError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
         }
 
         const userId = session.user.id;
@@ -47,6 +48,6 @@ export async function POST(
 
     } catch (error) {
         console.error('Like Toggle API Error:', error);
-        return NextResponse.json({ status: 'error', code: 'SERVER_ERROR', message: '서버 에러가 발생했습니다.' }, { status: 500 });
+        return apiError(500, 'SERVER_ERROR', '서버 에러가 발생했습니다.');
     }
 }

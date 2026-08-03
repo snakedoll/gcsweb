@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { cancelV1Payment, getBillingAuthAmount, issueBillingKeyWithOnetime } from '@/lib/payment/portone';
-
-function jsonError(status: number, code: string, message: string) {
-  return NextResponse.json({ status: 'error', code, message }, { status });
-}
+import { apiError as jsonError } from '@/lib/api-response';
 
 type ReserveRequestBody = {
   customerUid?: unknown;
