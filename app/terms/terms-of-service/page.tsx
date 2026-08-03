@@ -24,10 +24,10 @@ export default function TermsOfServicePage() {
             .join('\n\n');
           setTermsText(joined);
         } else {
-          setTermsText(DEFAULT_SERVICE_TERMS);
+          setTermsText('약관 내용이 없습니다.');
         }
       } catch (e) {
-        setTermsText(DEFAULT_SERVICE_TERMS);
+        setTermsText('약관 내용이 없습니다.');
       } finally {
         setLoading(false);
       }
@@ -39,8 +39,3 @@ export default function TermsOfServicePage() {
 
   return <TermsDetailLayout title="서비스 이용약관" text={termsText} />;
 }
-
-const DEFAULT_SERVICE_TERMS = `제1장 총칙
-
-제1조 목적
-본 약관은 서비스 이용과 관련한 제반 사항을 규정함을 목적으로 합니다.`;
