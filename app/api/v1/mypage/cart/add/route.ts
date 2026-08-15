@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
+      return apiErrors.unauthorized('로그인이 필요한 서비스입니다.');
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
+      return apiErrors.unauthorized('사용자를 찾을 수 없습니다.');
     }
 
     const body = await request.json();
@@ -37,11 +37,11 @@ export async function POST(request: Request) {
     };
 
     if (!productId || typeof productId !== 'string' || !productId.trim()) {
-      return apiError(400, 'INVALID_INPUT', 'productId가 필요합니다.');
+      return apiErrors.invalidInput('productId가 필요합니다.');
     }
 
     if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
-      return apiError(400, 'INVALID_INPUT', 'quantity는 1 이상의 정수여야 합니다.');
+      return apiErrors.invalidInput('quantity는 1 이상의 정수여야 합니다.');
     }
 
     // 상품 존재 확인
@@ -65,19 +65,19 @@ export async function POST(request: Request) {
       },
     });
     if (!product) {
-      return apiError(404, 'PRODUCT_NOT_FOUND', '상품을 찾을 수 없습니다.');
+      return apiErrors.notFound('상품을 찾을 수 없습니다.');
     }
 
     const saleStatus = getSaleStatusByDate(product.salesStartDate, product.salesEndDate);
     if (!product.isPublic || !product.isAdminApproved || saleStatus !== 'active') {
-      return apiError(400, 'PRODUCT_NOT_AVAILABLE', '현재 판매 중인 상품이 아닙니다.');
+      return apiErrors.invalidInput('현재 판매 중인 상품이 아닙니다.');
     }
 
     if (product.status === 2) {
-      return apiError(400, 'PRODUCT_SOLD_OUT', '품절된 상품입니다.');
+      return apiErrors.invalidInput('품절된 상품입니다.');
     }
     if (isMatchedVariantSoldOut(product.variants, optionData)) {
-      return apiError(400, 'PRODUCT_SOLD_OUT', '품절된 상품입니다.');
+      return apiErrors.invalidInput('품절된 상품입니다.');
     }
 
     // 유저의 장바구니 조회 또는 생성
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const existingTypeGroups = new Set(existingCartItems.map((item) => toTypeGroup(item.product.type)));
     const targetTypeGroup = toTypeGroup(product.type);
     if (existingTypeGroups.size > 0 && !existingTypeGroups.has(targetTypeGroup)) {
-      return apiError(400, 'MIXED_PRODUCT_TYPE_NOT_ALLOWED', '상품 유형이 다른 상품은 동시에 장바구니에 담을 수 없습니다.');
+      return apiErrors.invalidInput('상품 유형이 다른 상품은 동시에 장바구니에 담을 수 없습니다.');
     }
 
     // 추가 금액 계산
@@ -156,6 +156,6 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('Cart add error:', error);
-    return apiError(500, 'SERVER_ERROR', '장바구니에 추가하는 중 문제가 발생했습니다.');
+    return apiErrors.serverError('장바구니에 추가하는 중 문제가 발생했습니다.');
   }
 }

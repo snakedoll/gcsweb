@@ -13,12 +13,12 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '토큰이 없거나 만료되었습니다.');
+      return apiErrors.unauthorized('토큰이 없거나 만료되었습니다.');
     }
 
     const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
-      return apiError(401, 'UNAUTHORIZED', '접근 권한이 없습니다.');
+      return apiErrors.unauthorized('접근 권한이 없습니다.');
     }
 
     const team = await prisma.team.findUnique({
@@ -39,7 +39,7 @@ export async function GET(
     });
 
     if (!team) {
-      return apiError(404, 'NOT_FOUND', '팀을 찾을 수 없습니다.');
+      return apiErrors.notFound('팀을 찾을 수 없습니다.');
     }
 
     // Resolve member user info where possible
@@ -93,7 +93,7 @@ export async function GET(
     return NextResponse.json({ status: 'success', data });
   } catch (error: any) {
     console.error('Admin team detail error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
+    return apiErrors.serverError('서버 내부 오류');
   }
 }
 
@@ -104,12 +104,12 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '토큰이 없거나 만료되었습니다.');
+      return apiErrors.unauthorized('토큰이 없거나 만료되었습니다.');
     }
 
     const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
-      return apiError(401, 'UNAUTHORIZED', '접근 권한이 없습니다.');
+      return apiErrors.unauthorized('접근 권한이 없습니다.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -124,7 +124,7 @@ export async function PATCH(
     // Fetch existing team
     const existing = await prisma.team.findUnique({ where: { id: params.id } });
     if (!existing) {
-      return apiError(404, 'NOT_FOUND', '팀을 찾을 수 없습니다.');
+      return apiErrors.notFound('팀을 찾을 수 없습니다.');
     }
 
     const oldMemberIds = Array.isArray(existing.teamMember) ? existing.teamMember.filter(Boolean) : [];
@@ -132,19 +132,19 @@ export async function PATCH(
 
     // Validate provided fields
     if (teamType !== undefined && ![0, 1].includes(teamType)) {
-      return apiError(400, 'INVALID_INPUT', 'teamType은 0 또는 1이어야 합니다.');
+      return apiErrors.invalidInput('teamType은 0 또는 1이어야 합니다.');
     }
 
     if (memberIds !== undefined && (!Array.isArray(memberIds) || memberIds.length === 0)) {
-      return apiError(400, 'INVALID_INPUT', 'memberIds는 최소 한 명 이상이어야 합니다.');
+      return apiErrors.invalidInput('memberIds는 최소 한 명 이상이어야 합니다.');
     }
 
     if (leaderId !== undefined && leaderId !== null && typeof leaderId !== 'string') {
-      return apiError(400, 'INVALID_INPUT', 'leaderId 형식이 올바르지 않습니다.');
+      return apiErrors.invalidInput('leaderId 형식이 올바르지 않습니다.');
     }
 
     if (accountUrl !== undefined && accountUrl !== null && typeof accountUrl !== 'string') {
-      return apiError(400, 'INVALID_INPUT', 'accountUrl 형식이 올바르지 않습니다.');
+      return apiErrors.invalidInput('accountUrl 형식이 올바르지 않습니다.');
     }
 
     // If memberIds provided, validate users exist
@@ -153,7 +153,7 @@ export async function PATCH(
       uniqueMemberIds = Array.from(new Set(memberIds));
       const foundMembers = await prisma.user.findMany({ where: { id: { in: uniqueMemberIds } }, select: { id: true } });
       if (foundMembers.length !== uniqueMemberIds.length) {
-        return apiError(400, 'INVALID_INPUT', 'memberIds 중 존재하지 않는 사용자가 있습니다.');
+        return apiErrors.invalidInput('memberIds 중 존재하지 않는 사용자가 있습니다.');
       }
     }
 
@@ -166,7 +166,7 @@ export async function PATCH(
         newOwnerId = existing.userId;
       } else {
         const leader = await prisma.user.findUnique({ where: { id: leaderId }, select: { id: true, name: true, nickname: true } });
-        if (!leader) return apiError(400, 'INVALID_INPUT', 'leaderId에 해당하는 사용자가 없습니다.');
+        if (!leader) return apiErrors.invalidInput('leaderId에 해당하는 사용자가 없습니다.');
         newOwnerId = leader.id;
         representativeName = leader.name ?? '';
         representativeNickname = leader.nickname ?? '';
@@ -176,7 +176,7 @@ export async function PATCH(
     // If accountUrl provided and non-null, validate URL format
     if (accountUrl !== undefined && accountUrl !== null) {
       if (!accountUrl.trim().startsWith('/')) {
-        try { new URL(accountUrl); } catch { return apiError(400, 'INVALID_INPUT', 'accountUrl이 올바른 URL이 아닙니다.'); }
+        try { new URL(accountUrl); } catch { return apiErrors.invalidInput('accountUrl이 올바른 URL이 아닙니다.'); }
       }
     }
 
@@ -234,6 +234,6 @@ export async function PATCH(
     return NextResponse.json({ status: 'success', data: { team: responseTeam } });
   } catch (error: any) {
     console.error('Admin team update error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+    return apiErrors.serverError('서버 내부 로직 오류');
   }
 }

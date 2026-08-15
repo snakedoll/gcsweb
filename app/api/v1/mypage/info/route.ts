@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
+      return apiErrors.unauthorized('로그인이 필요한 서비스입니다.');
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email },
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
+      return apiErrors.unauthorized('사용자를 찾을 수 없습니다.');
     }
 
     // 읽지 않은 알림만 카운트
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Mypage info error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+    return apiErrors.serverError('서버 내부 로직 오류');
   }
 }
 

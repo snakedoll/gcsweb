@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
+      return apiErrors.unauthorized('로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
+      return apiErrors.unauthorized('사용자를 찾을 수 없습니다.');
     }
 
     const totalCount = await prisma.scrap.count({
@@ -60,6 +60,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { hasNext, projects, totalCount } });
   } catch (error: any) {
     console.error('Scraps project list error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
+    return apiErrors.serverError('서버 내부 오류');
   }
 }

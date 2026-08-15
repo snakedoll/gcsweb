@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
+      return apiErrors.unauthorized('로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
+      return apiErrors.unauthorized('사용자를 찾을 수 없습니다.');
     }
 
     // 유저의 장바구니(Cart) 찾기
@@ -144,6 +144,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { cartItems } });
   } catch (error: any) {
     console.error('Cart list error:', error);
-    return apiError(500, 'SERVER_ERROR', '장바구니 정보를 불러오는 중 문제가 발생했습니다.');
+    return apiErrors.serverError('장바구니 정보를 불러오는 중 문제가 발생했습니다.');
   }
 }

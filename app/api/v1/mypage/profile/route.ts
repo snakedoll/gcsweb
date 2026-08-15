@@ -13,19 +13,19 @@ export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '토큰이 없거나 만료되어 접근할 수 없습니다.');
+      return apiErrors.unauthorized('토큰이 없거나 만료되어 접근할 수 없습니다.');
     }
 
     const body = (await request.json().catch(() => ({}))) as Body;
 
     if (!Object.prototype.hasOwnProperty.call(body, 'profileImageUrl')) {
-      return apiError(400, 'INVALID_INPUT', 'profileImageUrl 필드가 필요합니다.');
+      return apiErrors.invalidInput('profileImageUrl 필드가 필요합니다.');
     }
 
     const { profileImageUrl } = body;
 
     if (profileImageUrl !== null && typeof profileImageUrl !== 'string') {
-      return apiError(400, 'INVALID_INPUT', 'profileImageUrl은 문자열이거나 null이어야 합니다.');
+      return apiErrors.invalidInput('profileImageUrl은 문자열이거나 null이어야 합니다.');
     }
 
     if (typeof profileImageUrl === 'string' && !profileImageUrl.trim().startsWith('/')) {
@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
         // eslint-disable-next-line no-new
         new URL(profileImageUrl);
       } catch (e) {
-        return apiError(400, 'INVALID_INPUT', '올바른 URL 형식이 아닙니다.');
+        return apiErrors.invalidInput('올바른 URL 형식이 아닙니다.');
       }
     }
 
@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
     });
 
     if (!user) {
-      return apiError(404, 'USER_NOT_FOUND', '사용자를 찾을 수 없습니다.');
+      return apiErrors.notFound('사용자를 찾을 수 없습니다.');
     }
 
     const updated = await prisma.user.update({
@@ -67,6 +67,6 @@ export async function PATCH(request: Request) {
     });
   } catch (error: any) {
     console.error('Profile update error:', error);
-    return apiError(500, 'SERVER_ERROR', '프로필 변경 중 오류가 발생했습니다.');
+    return apiErrors.serverError('프로필 변경 중 오류가 발생했습니다.');
   }
 }
