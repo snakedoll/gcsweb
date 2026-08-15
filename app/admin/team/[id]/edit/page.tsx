@@ -8,7 +8,7 @@ import Button from "@/components/ui/button/Button";
 import RadioButton from "@/components/ui/button/RadioButton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { formatPhoneWithHyphen } from "@/lib/format-phone";
+import { formatPhoneWithHyphen as formatPhone } from "@/lib/format-phone";
 
 // local icons
 const CROWN_ICON = "/assets/icons/additional/tabler_crown.svg";
