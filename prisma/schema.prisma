@@ -34,7 +34,6 @@ model User {
   orders                Order[]
   posts                 Post[]
   productUpdateRequests ProductUpdateRequest[] @relation("ProductUpdateRequestRequestedBy")
-  reviews               Review[]
   scraps                Scrap[]
   teams                 Team[]
 
@@ -102,7 +101,6 @@ model Product {
   options             ProductOption[]
   updateRequests      ProductUpdateRequest?
   variants            ProductVariant[]
-  reviews             Review[]
   scraps              Scrap[]
 
   @@index([teamId])
@@ -272,7 +270,6 @@ model Order {
   buyerGuestTokenHash   String?          @db.VarChar(128)
   bagOption             Boolean          @default(false)
   impUid                String?          @unique
-  fairShopHistory       FairShopHistory?
   inquiries             Inquiry[]
   user                  User?            @relation(fields: [userId], references: [id])
   items                 OrderItem[]
@@ -330,22 +327,6 @@ model FairShopProduct {
   @@map("FairShopProductTable")
 }
 
-/// Fair shop 결제 완료 시점 스냅샷 (주문 1건당 1행)
-model FairShopHistory {
-  id            String   @id @default(cuid())
-  orderId       String   @unique
-  paymentMethod Int
-  paymentAmount Int
-  linesSnapshot Json
-  createdAt     DateTime @default(now())
-  orderCode     String?
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([createdAt])
-  @@index([orderCode])
-  @@map("FairShopHistoryTable")
-}
-
 model Scrap {
   id        String   @id @default(cuid())
   userId    String
@@ -367,33 +348,6 @@ model Scrap {
   @@index([postId])
 }
 
-model Review {
-  id        String        @id @default(cuid())
-  userId    String
-  productId String
-  orderId   String?
-  rating    Int
-  content   String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  images    ReviewImage[]
-
-  @@index([userId])
-  @@index([productId])
-  @@index([rating])
-}
-
-model ReviewImage {
-  id        String   @id @default(cuid())
-  reviewId  String
-  url       String[]
-  createdAt DateTime @default(now())
-  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-
-  @@index([reviewId])
-}
 
 model Image {
   id        String   @id @default(cuid()) @map("imageId")
@@ -483,24 +437,7 @@ model Project {
   @@index([softDeletedAt])
 }
 
-model News {
-  id              String    @id @default(cuid())
-  title           String
-  startDate       DateTime?
-  endDate         DateTime?
-  thumbnailImgUrl String?
-  detailImgUrl    String[]
-  isHeadline      Boolean   @default(false)
-  likeCount       Int       @default(0)
-  viewCount       Int       @default(0)
-  isPublic        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  likes           Like[]
 
-  @@index([isHeadline])
-  @@index([isPublic])
-}
 
 model Inquiry {
   id        String   @id @default(cuid())
@@ -546,9 +483,7 @@ model Like {
   productId String?
   postId    String?
   projectId String?
-  newsId    String?
   createdAt DateTime @default(now())
-  news      News?    @relation(fields: [newsId], references: [id], onDelete: Cascade)
   post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -557,7 +492,6 @@ model Like {
   @@unique([userId, productId])
   @@unique([userId, postId])
   @@unique([userId, projectId])
-  @@unique([userId, newsId])
   @@index([userId])
 }
 
