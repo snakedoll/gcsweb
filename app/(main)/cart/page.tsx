@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -624,8 +624,8 @@ export default function CartPage() {
       return next;
     });
 
-    if (pairsToSync && pairsToSync.length > 0) {
-      void updateCartOptions(id, pairsToSync);
+    if (pairsToSync && (pairsToSync as OptionPair[]).length > 0) {
+      void updateCartOptions(id, pairsToSync as OptionPair[]);
     }
   }
 
