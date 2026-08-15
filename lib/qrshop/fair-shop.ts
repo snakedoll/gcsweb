@@ -101,28 +101,13 @@ export async function recordFairShopUnmetDemandForZeroStockLines(
   }
 }
 
-export function linesSnapshotFromResolved(resolved: ResolvedQrLine[]): Prisma.JsonArray {
-  return resolved.map((row) => ({
-    itemId: row.itemId,
-    label: row.displayLabel,
-    quantity: row.quantity,
-    unitPrice: row.unitPrice,
-    ...(row.lineDiscountWon ? { lineDiscountWon: row.lineDiscountWon } : {}),
-  })) as unknown as Prisma.JsonArray;
-}
-
 type Tx = {
   fairShopProduct: PrismaClient['fairShopProduct'];
-  fairShopHistory: PrismaClient['fairShopHistory'];
 };
 
-export async function fairShopDecrementStockAndWriteHistory(
+export async function fairShopDecrementStock(
   tx: Tx,
   params: {
-    orderId: string;
-    orderCode?: string | null;
-    paymentMethod: number;
-    paymentAmount: number;
     resolved: ResolvedQrLine[];
   },
 ): Promise<void> {
@@ -135,16 +120,6 @@ export async function fairShopDecrementStockAndWriteHistory(
       throw new Error('FAIR_SHOP_STOCK_UNDERFLOW');
     }
   }
-
-  await tx.fairShopHistory.create({
-    data: {
-      orderId: params.orderId,
-      orderCode: params.orderCode,
-      paymentMethod: params.paymentMethod,
-      paymentAmount: params.paymentAmount,
-      linesSnapshot: linesSnapshotFromResolved(params.resolved),
-    },
-  });
 }
 
 export type QrOrderItemRow = { quantity: number; optionData: unknown };

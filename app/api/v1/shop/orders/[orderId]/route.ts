@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { apiError as jsonError } from '@/lib/api-response';
+import { formatPrice } from '@/lib/utils';
 
 function hashGuestToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');

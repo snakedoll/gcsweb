@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { formatPrice } from '@/lib/utils';
 
 const GUEST_TOKEN_STORAGE_KEY = 'shop:guest-token';
 
