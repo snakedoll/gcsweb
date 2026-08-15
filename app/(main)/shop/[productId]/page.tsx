@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -9,7 +9,7 @@ import ProductDDay, { type ProductDDayColor } from '@/components/ui/admin/produc
 import BottomSheet, { type BottomSheetOption } from '@/components/ui/shop/BottomSheet';
 import ShopCard from '@/components/ui/shop/ShopCard';
 import { useUser } from '@/hooks/useUser';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatPrice, formatWon } from '@/lib/utils';
 import { getSaleStatusByDate, type SaleStatus } from '@/lib/sale-date';
 
 type ProductType = 0 | 1 | 2;
