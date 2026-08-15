@@ -45,16 +45,7 @@ type ArchiveListResponse = {
   message?: string;
 };
 
-function ProjectNewsTabs() {
-  return (
-    <div className="flex w-full items-center">
-      <div className="h-[43px] w-4 border-b border-neutral-4" />
-      <Tab title="Project" active className="flex-1" />
-      <Tab title="News" active={false} className="flex-1" />
-      <div className="h-[43px] w-4 border-b border-neutral-4" />
-    </div>
-  );
-}
+
 
 function ArchiveListSkeleton() {
   return (
@@ -181,7 +172,6 @@ export default function ArchivePage() {
 
         <main className="flex-1 pb-[72px]">
           <section className="border-b border-neutral-4 bg-neutral-3">
-            <ProjectNewsTabs />
             <div className="flex items-center gap-[9px] px-4 py-[10px]">
               <Dropdown
                 className="w-[110px]"
