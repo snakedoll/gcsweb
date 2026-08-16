@@ -404,7 +404,7 @@ model ProjectYear {
   year     Int
   projects Project[]
 
-  @@map("Proejct Year")
+  @@map("Project Year")
 }
 
 model Project {
