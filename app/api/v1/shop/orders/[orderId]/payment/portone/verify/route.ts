@@ -7,25 +7,12 @@ import { apiError as jsonError } from '@/lib/api-response';
 
 type Params = { params: { orderId: string } };
 
-function qrLinesSnapshotFromOrderItems(
-  items: Array<{ quantity: number; price: number; optionData: unknown }>,
-): Prisma.InputJsonValue {
-  return items.map((item) => {
-    const od = item.optionData as { qrItemId?: string; optionValue?: string } | null;
-    return {
-      itemId: typeof od?.qrItemId === 'string' ? od.qrItemId : '',
-      label: typeof od?.optionValue === 'string' ? od.optionValue : '',
-      quantity: item.quantity,
-      unitPrice: item.price,
-    };
-  });
-}
 
 /**
  * 포트원 결제 결과 검증.
  * 결제창 리다이렉트 후 클라이언트에서 paymentId로 호출.
  * 금액 일치·상태 확인 후 paymentStatus=1 갱신.
- * Fair shop(QR) 주문은 재고 차감·FairShopHistory 기록을 동일 트랜잭션에서 처리한다.
+ * Fair shop(QR) 주문은 재고 차감을 동일 트랜잭션에서 처리한다.
  */
 export async function POST(_request: Request, { params }: Params) {
   try {
@@ -121,24 +108,11 @@ export async function POST(_request: Request, { params }: Params) {
       if (deductions) {
         await prisma.$transaction(
           async (tx) => {
-            const dup = await tx.fairShopHistory.findUnique({ where: { orderId: order.id } });
-            if (dup) {
-              await tx.order.update({
-                where: { id: orderId },
-                data: { paymentStatus: 1, impUid: payment.impUid },
-              });
-              return;
+            const currentOrder = await tx.order.findUnique({ where: { id: order.id }, select: { paymentStatus: true } });
+            if (currentOrder?.paymentStatus === 1) {
+              return; // Already paid and processed
             }
             await fairShopDecrementFromOrderItems(tx, deductions);
-            await tx.fairShopHistory.create({
-              data: {
-                orderId: order.id,
-                orderCode: order.orderCode,
-                paymentMethod: order.paymentMethod,
-                paymentAmount: order.paymentAmount,
-                linesSnapshot: qrLinesSnapshotFromOrderItems(order.items),
-              },
-            });
             await tx.order.update({
               where: { id: orderId },
               data: { paymentStatus: 1, impUid: payment.impUid },

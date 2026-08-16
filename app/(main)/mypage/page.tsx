@@ -298,13 +298,7 @@ export default function MypagePage() {
         </section>
 
         <div className="space-y-3">
-          <MenuSection
-            title="나의 쇼핑 정보"
-            items={[
-              { label: '주문 내역', href: '/mypage/orders' },
-              { label: '상품 리뷰', href: '/mypage/reviews' },
-            ]}
-          />
+
           <MenuSection
             title="나의 판매 정보"
             items={[

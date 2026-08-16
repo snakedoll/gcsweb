@@ -25,7 +25,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return apiError(401, 'UNAUTHORIZED', 'Login required.');
+      return apiErrors.unauthorized('Login required.');
     }
 
     const myTeams = await prisma.team.findMany({
@@ -75,7 +75,7 @@ export async function GET() {
     return NextResponse.json({ status: 'success', data: { products: list } });
   } catch (error) {
     console.error('My products list error:', error);
-    return apiError(500, 'SERVER_ERROR', 'Server error.');
+    return apiErrors.serverError('Server error.');
   }
 }
 
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return apiError(401, 'UNAUTHORIZED', 'Login required.');
+      return apiErrors.unauthorized('Login required.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
     };
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const team = await prisma.team.findUnique({
@@ -177,12 +177,12 @@ export async function POST(request: Request) {
       select: { id: true, userId: true, teamMember: true },
     });
     if (!team) {
-      return apiError(404, 'NOT_FOUND', 'Not found.');
+      return apiErrors.notFound('Not found.');
     }
     const memberIds = Array.isArray(team.teamMember) ? team.teamMember : [];
     const canCreate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canCreate) {
-      return apiError(403, 'FORBIDDEN', 'Forbidden.');
+      return apiErrors.forbidden('Forbidden.');
     }
 
     const priceNum =
@@ -195,11 +195,11 @@ export async function POST(request: Request) {
             })()
           : 0;
     if (priceNum < 0) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
     const normalizedThumbnailImgUrl = normalizeImageUrl(thumbnailImgUrl.trim());
     const detailUrls = Array.isArray(detailImgUrls)
@@ -209,25 +209,25 @@ export async function POST(request: Request) {
       : [];
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
     if (!normalizedThumbnailImgUrl) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
     if (detailUrls.length === 0) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (normalizedNoticeImgUrl) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const salesStart = parseDate(salesStartDate);
     const salesEnd = parseDate(salesEndDate, true);
     if (!salesStart || !salesEnd) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
       if (receiveMethod === 0) {
         if (
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
           !parseDate(deliveryStartDate) ||
           !parseDate(deliveryEndDate, true)
         ) {
-          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+          return apiErrors.invalidInput('Invalid request input.');
         }
       } else {
         if (
@@ -244,16 +244,16 @@ export async function POST(request: Request) {
           !parseDate(pickupEndDate, true) ||
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
-          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+          return apiErrors.invalidInput('Invalid request input.');
         }
       }
     } else if (type === 1) {
       if (receiveMethod !== 1) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
     } else {
       if (receiveMethod !== null) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
     }
 
@@ -286,7 +286,7 @@ export async function POST(request: Request) {
 
     const parsedOptions = parseAndValidateOptions(options);
     if (!parsedOptions.ok) {
-      return apiError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
+      return apiErrors.invalidInput('Invalid option payload.');
     }
     const optionList = parsedOptions.value;
 
@@ -402,7 +402,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Product registration error:', error);
-    return apiError(500, 'SERVER_ERROR', 'Server error.');
+    return apiErrors.serverError('Server error.');
   }
 }
 

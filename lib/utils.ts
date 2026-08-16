@@ -8,10 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPrice(value: number | string | null | undefined) {
   const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
   if (!Number.isFinite(numericValue)) {
-    return '0원';
+    return '0';
   }
+  return numericValue.toLocaleString('ko-KR');
+}
 
-  return `${numericValue.toLocaleString('ko-KR')}원`;
+export function formatWon(value: number | string | null | undefined) {
+  return `${formatPrice(value)}원`;
 }
 
 export function formatDate(date: Date | string | null | undefined) {

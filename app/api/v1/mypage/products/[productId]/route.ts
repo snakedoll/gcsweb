@@ -78,17 +78,17 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return apiError(401, 'UNAUTHORIZED', 'Login required.');
+      return apiErrors.unauthorized('Login required.');
     }
 
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const teamIds = await getMyTeamIds(session.user.id);
     if (teamIds.length === 0) {
-      return apiError(403, 'FORBIDDEN', 'Forbidden.');
+      return apiErrors.forbidden('Forbidden.');
     }
 
     const product = await prisma.product.findFirst({
@@ -112,7 +112,7 @@ export async function GET(
     });
 
     if (!product) {
-      return apiError(404, 'NOT_FOUND', 'Not found.');
+      return apiErrors.notFound('Not found.');
     }
 
     const image = product.images?.[0] ?? null;
@@ -155,7 +155,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('My product detail error:', error);
-    return apiError(500, 'SERVER_ERROR', 'Server error.');
+    return apiErrors.serverError('Server error.');
   }
 }
 
@@ -166,12 +166,12 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return apiError(401, 'UNAUTHORIZED', 'Login required.');
+      return apiErrors.unauthorized('Login required.');
     }
 
     const productId = params?.productId;
     if (!isValidProductId(productId)) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -220,7 +220,7 @@ export async function PATCH(
     };
 
     if (!teamId || typeof teamId !== 'string' || !name?.trim() || typeof type !== 'number' || ![0, 1, 2].includes(type)) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const team = await prisma.team.findUnique({
@@ -228,13 +228,13 @@ export async function PATCH(
       select: { id: true, userId: true, teamMember: true },
     });
     if (!team) {
-      return apiError(404, 'NOT_FOUND', 'Not found.');
+      return apiErrors.notFound('Not found.');
     }
 
     const memberIds = Array.isArray(team.teamMember) ? team.teamMember : [];
     const canUpdate = team.userId === session.user.id || memberIds.includes(session.user.id);
     if (!canUpdate) {
-      return apiError(403, 'FORBIDDEN', 'Forbidden.');
+      return apiErrors.forbidden('Forbidden.');
     }
 
     const targetProduct = await prisma.product.findFirst({
@@ -247,7 +247,7 @@ export async function PATCH(
     });
 
     if (!targetProduct) {
-      return apiError(404, 'NOT_FOUND', 'Not found.');
+      return apiErrors.notFound('Not found.');
     }
 
     const priceNum =
@@ -261,11 +261,11 @@ export async function PATCH(
           : 0;
 
     if (priceNum < 0) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (!thumbnailImgUrl || typeof thumbnailImgUrl !== 'string' || !thumbnailImgUrl.trim()) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const normalizedThumbnailImgUrl = normalizeImageUrl(thumbnailImgUrl.trim());
@@ -277,26 +277,26 @@ export async function PATCH(
     const normalizedNoticeImgUrl = normalizeImageUrl(typeof noticeImgUrl === 'string' ? noticeImgUrl : null);
 
     if (!normalizedThumbnailImgUrl) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (detailUrls.length === 0) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (!normalizedNoticeImgUrl) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     const salesStart = parseDate(salesStartDate);
     const salesEnd = parseDate(salesEndDate, true);
     if (!salesStart || !salesEnd) {
-      return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+      return apiErrors.invalidInput('Invalid request input.');
     }
 
     if (type === 0) {
       if (!(receiveMethod === 0 || receiveMethod === 1)) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
       if (receiveMethod === 0) {
         if (
@@ -305,7 +305,7 @@ export async function PATCH(
           !parseDate(deliveryStartDate) ||
           !parseDate(deliveryEndDate, true)
         ) {
-          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+          return apiErrors.invalidInput('Invalid request input.');
         }
       } else {
         if (
@@ -313,16 +313,16 @@ export async function PATCH(
           !parseDate(pickupEndDate, true) ||
           !(typeof pickupLocation === 'string' && pickupLocation.trim())
         ) {
-          return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+          return apiErrors.invalidInput('Invalid request input.');
         }
       }
     } else if (type === 1) {
       if (receiveMethod !== 1) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
     } else {
       if (receiveMethod !== null) {
-        return apiError(400, 'INVALID_INPUT', 'Invalid request input.');
+        return apiErrors.invalidInput('Invalid request input.');
       }
     }
 
@@ -337,7 +337,7 @@ export async function PATCH(
 
     const parsedOptions = parseAndValidateOptions(options);
     if (!parsedOptions.ok) {
-      return apiError(400, 'INVALID_OPTION_INPUT', 'Invalid option payload.');
+      return apiErrors.invalidInput('Invalid option payload.');
     }
     const optionList = parsedOptions.value;
 
@@ -443,7 +443,7 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Product update request error:', error);
-    return apiError(500, 'SERVER_ERROR', 'Server error.');
+    return apiErrors.serverError('Server error.');
   }
 }
 

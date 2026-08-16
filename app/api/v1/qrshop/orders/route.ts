@@ -16,7 +16,7 @@ import { resolveQrShopOrderLines } from '@/lib/qrshop/catalog';
 import {
   assertFairShopStockForLines,
   ensureFairShopProductsSeeded,
-  fairShopDecrementStockAndWriteHistory,
+  fairShopDecrementStock,
   loadFairShopStockMap,
   recordFairShopUnmetDemandForZeroStockLines,
 } from '@/lib/qrshop/fair-shop';
@@ -291,11 +291,7 @@ export async function POST(request: Request) {
         );
 
         if (isCounterPay) {
-          await fairShopDecrementStockAndWriteHistory(tx, {
-            orderId: order.id,
-            orderCode,
-            paymentMethod,
-            paymentAmount: computedPayment,
+          await fairShopDecrementStock(tx, {
             resolved,
           });
         }

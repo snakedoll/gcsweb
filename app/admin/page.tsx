@@ -110,7 +110,6 @@ export default function AdminPage() {
             items={[
               { label: 'About GCS 관리', href: '#' },
               { label: 'Project 관리', href: '/admin/project' },
-              { label: 'News 관리', href: '#' },
             ]}
           />
 

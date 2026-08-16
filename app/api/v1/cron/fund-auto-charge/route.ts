@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         billingKey,
         orderName: product.name?.slice(0, 80) ?? 'Fund 주문',
         totalAmount: order.paymentAmount,
-        customerName: order.ordererName,
+        customerName: order.ordererName ?? undefined,
         customerMobile: order.ordererPhone ?? undefined,
       });
 

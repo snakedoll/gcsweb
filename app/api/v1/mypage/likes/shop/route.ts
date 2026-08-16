@@ -43,7 +43,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '로그인이 필요한 서비스입니다.');
+      return apiErrors.unauthorized('로그인이 필요한 서비스입니다.');
     }
 
     const url = new URL(request.url);
@@ -55,14 +55,14 @@ export async function GET(request: Request) {
     if (typeParam !== null) {
       const t = Number(typeParam);
       if (![0, 1, 2].includes(t)) {
-        return apiError(400, 'INVALID_INPUT', '유효하지 않은 상품 유형입니다.');
+        return apiErrors.invalidInput('유효하지 않은 상품 유형입니다.');
       }
       typeFilter = t;
     }
 
     const user = await prisma.user.findFirst({ where: { email: session.user.email }, select: { id: true } });
     if (!user) {
-      return apiError(401, 'UNAUTHORIZED', '사용자를 찾을 수 없습니다.');
+      return apiErrors.unauthorized('사용자를 찾을 수 없습니다.');
     }
 
     const whereLike = { userId: user.id, productId: { not: null } };
@@ -118,6 +118,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { hasNext, products, totalCount } });
   } catch (error: any) {
     console.error('Likes shop list error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
+    return apiErrors.serverError('서버 내부 오류');
   }
 }

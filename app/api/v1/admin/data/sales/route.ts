@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
     let startDate = startDateParam;
     if (!startDate) {
       const minDateRows = await prisma.$queryRaw<Array<{ minDate: Date | string | null }>>(
-        Prisma.sql`SELECT MIN("createdAt"::date) AS "minDate" FROM "FairShopHistoryTable"`
+        Prisma.sql`SELECT MIN("createdAt"::date) AS "minDate" FROM "Order" WHERE "productType" = 1 AND "paymentStatus" IN (1, 2)`
       );
       const minDate = normalizeDateKey(minDateRows[0]?.minDate);
       startDate = minDate ?? toSeoulDateKey();
@@ -118,8 +118,8 @@ export async function GET(request: Request) {
         const sumRows = await prisma.$queryRaw<Array<{ total: bigint | number | null }>>(
           Prisma.sql`
             SELECT COALESCE(SUM("paymentAmount"), 0)::bigint AS total
-            FROM "FairShopHistoryTable"
-            WHERE "createdAt"::date = ${dateKey}::date
+            FROM "Order"
+            WHERE "productType" = 1 AND "paymentStatus" IN (1, 2) AND "createdAt"::date = ${dateKey}::date
           `
         );
 

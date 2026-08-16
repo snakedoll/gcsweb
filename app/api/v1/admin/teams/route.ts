@@ -10,12 +10,12 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '토큰이 없거나 만료되었습니다.');
+      return apiErrors.unauthorized('토큰이 없거나 만료되었습니다.');
     }
 
     const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
-      return apiError(401, 'UNAUTHORIZED', '접근 권한이 없습니다.');
+      return apiErrors.unauthorized('접근 권한이 없습니다.');
     }
 
     const url = new URL(request.url);
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'success', data: { totalCount, teams: result } });
   } catch (error: any) {
     console.error('Admin teams list error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 오류');
+    return apiErrors.serverError('서버 내부 오류');
   }
 }
 
@@ -106,12 +106,12 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return apiError(401, 'UNAUTHORIZED', '토큰이 만료되었거나 유효하지 않습니다.');
+      return apiErrors.unauthorized('토큰이 만료되었거나 유효하지 않습니다.');
     }
 
     const adminUser = await prisma.user.findFirst({ where: { email: session.user.email } });
     if (!adminUser || Number(adminUser.memberType) !== 2) {
-      return apiError(401, 'UNAUTHORIZED', '접근 권한이 없습니다.');
+      return apiErrors.unauthorized('접근 권한이 없습니다.');
     }
 
     const body = await request.json().catch(() => ({}));
@@ -124,25 +124,25 @@ export async function POST(request: Request) {
     };
 
     if (typeof teamType !== 'number' || ![0, 1].includes(teamType)) {
-      return apiError(400, 'INVALID_INPUT', 'teamType은 0 또는 1이어야 합니다.');
+      return apiErrors.invalidInput('teamType은 0 또는 1이어야 합니다.');
     }
     if (!teamName || typeof teamName !== 'string') {
-      return apiError(400, 'INVALID_INPUT', 'teamName은 필수입니다.');
+      return apiErrors.invalidInput('teamName은 필수입니다.');
     }
     if (!Array.isArray(memberIds) || memberIds.length === 0) {
-      return apiError(400, 'INVALID_INPUT', 'memberIds는 최소 한 명 이상의 ID를 포함해야 합니다.');
+      return apiErrors.invalidInput('memberIds는 최소 한 명 이상의 ID를 포함해야 합니다.');
     }
 
     if (teamType === 1) {
       // seller: leaderId and accountUrl required
       if (!leaderId || typeof leaderId !== 'string') {
-        return apiError(400, 'INVALID_INPUT', '판매팀 등록에는 leaderId가 필요합니다.');
+        return apiErrors.invalidInput('판매팀 등록에는 leaderId가 필요합니다.');
       }
       if (!accountUrl || typeof accountUrl !== 'string') {
-        return apiError(400, 'INVALID_INPUT', '판매팀 등록에는 accountUrl이 필요합니다.');
+        return apiErrors.invalidInput('판매팀 등록에는 accountUrl이 필요합니다.');
       }
       if (!accountUrl.trim().startsWith('/')) {
-        try { new URL(accountUrl); } catch { return apiError(400, 'INVALID_INPUT', 'accountUrl이 올바른 URL이 아닙니다.'); }
+        try { new URL(accountUrl); } catch { return apiErrors.invalidInput('accountUrl이 올바른 URL이 아닙니다.'); }
       }
     }
 
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
     const uniqueMemberIds = Array.from(new Set(memberIds));
     const foundMembers = await prisma.user.findMany({ where: { id: { in: uniqueMemberIds } }, select: { id: true, name: true, nickname: true } });
     if (foundMembers.length !== uniqueMemberIds.length) {
-      return apiError(400, 'INVALID_INPUT', 'memberIds 중 존재하지 않는 사용자가 있습니다.');
+      return apiErrors.invalidInput('memberIds 중 존재하지 않는 사용자가 있습니다.');
     }
 
     // If leaderId provided, validate exists and not duplicated in memberIds
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
     let representativeNickname = null as string | null;
     if (leaderId) {
       const leader = await prisma.user.findUnique({ where: { id: leaderId }, select: { id: true, name: true, nickname: true } });
-      if (!leader) return apiError(400, 'INVALID_INPUT', 'leaderId에 해당하는 사용자가 없습니다.');
+      if (!leader) return apiErrors.invalidInput('leaderId에 해당하는 사용자가 없습니다.');
       ownerId = leaderId;
       representativeName = leader.name;
       representativeNickname = leader.nickname ?? null;
@@ -211,6 +211,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: 'success', data: { team: responseTeam } });
   } catch (error: any) {
     console.error('Admin team add error:', error);
-    return apiError(500, 'SERVER_ERROR', '서버 내부 로직 오류');
+    return apiErrors.serverError('서버 내부 로직 오류');
   }
 }

@@ -11,7 +11,7 @@ export async function POST(
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
-            return apiError(401, 'UNAUTHORIZED', '로그인이 필요합니다.');
+            return apiErrors.unauthorized('로그인이 필요합니다.');
         }
 
         const userId = session.user.id;
@@ -48,6 +48,6 @@ export async function POST(
 
     } catch (error) {
         console.error('Like Toggle API Error:', error);
-        return apiError(500, 'SERVER_ERROR', '서버 에러가 발생했습니다.');
+        return apiErrors.serverError('서버 에러가 발생했습니다.');
     }
 }
