@@ -341,87 +341,56 @@ export async function PATCH(
     }
     const optionList = parsedOptions.value;
 
-    const requestRow = await prisma.$transaction(async (tx) => {
-      const existingRequest = await tx.productUpdateRequest.findFirst({
-        where: { productId: targetProduct.id, requestType: 1 },
-        select: { id: true },
-      });
-
-      const savedRequest = existingRequest
-        ? await tx.productUpdateRequest.update({
-            where: { id: existingRequest.id },
-            data: {
-              requestedByUserId: session.user.id,
-              teamId,
-              name: name.trim(),
-              description: typeof description === 'string' ? description.trim() : '',
-              type,
-              price: priceNum,
-              goalAmount: resolvedGoalAmount,
-              salesStartDate: salesStart,
-              salesEndDate: salesEnd,
-              productionStartDate: parseDate(productionStartDate) ?? undefined,
-              productionEndDate: parseDate(productionEndDate, true) ?? undefined,
-              deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-              deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
-              pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-              pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
-              pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-              receiveMethod,
-            },
-          })
-        : await tx.productUpdateRequest.create({
-            data: {
-              productId: targetProduct.id,
-              requestedByUserId: session.user.id,
-              teamId,
-              requestType: 1,
-              name: name.trim(),
-              description: typeof description === 'string' ? description.trim() : '',
-              type,
-              price: priceNum,
-              goalAmount: resolvedGoalAmount,
-              salesStartDate: salesStart,
-              salesEndDate: salesEnd,
-              productionStartDate: parseDate(productionStartDate) ?? undefined,
-              productionEndDate: parseDate(productionEndDate, true) ?? undefined,
-              deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-              deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
-              pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-              pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
-              pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-              receiveMethod,
-            },
-          });
-
-      await tx.productUpdateRequestImage.deleteMany({
-        where: { productUpdateRequestId: savedRequest.id },
-      });
-      await tx.productUpdateRequestImage.create({
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      const productRow = await tx.product.update({
+        where: { id: targetProduct.id },
         data: {
-          productUpdateRequestId: savedRequest.id,
-          thumbnailImgUrl: normalizedThumbnailImgUrl,
-          detailImgUrl: detailUrls,
-          noticeImgUrl: normalizedNoticeImgUrl,
+          name: name.trim(),
+          description: typeof description === 'string' ? description.trim() : '',
+          type,
+          price: priceNum,
+          goalAmount: resolvedGoalAmount,
+          salesStartDate: salesStart,
+          salesEndDate: salesEnd,
+          productionStartDate: parseDate(productionStartDate) ?? null,
+          productionEndDate: parseDate(productionEndDate, true) ?? null,
+          deliveryStartDate: parseDate(deliveryStartDate) ?? null,
+          deliveryEndDate: parseDate(deliveryEndDate, true) ?? null,
+          pickupStartDate: parseDate(pickupStartDate) ?? null,
+          pickupEndDate: parseDate(pickupEndDate, true) ?? null,
+          pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : null,
+          receiveMethod,
         },
       });
 
-      await tx.productUpdateRequestOption.deleteMany({
-        where: { productUpdateRequestId: savedRequest.id },
+      await tx.productImage.deleteMany({
+        where: { productId: targetProduct.id },
+      });
+      await tx.productImage.create({
+        data: {
+          productId: targetProduct.id,
+          thumbnailImgUrl: normalizedThumbnailImgUrl,
+          detailImgUrl: detailUrls,
+          noticeImgUrl: normalizedNoticeImgUrl ?? null,
+        },
+      });
+
+      await tx.productOption.deleteMany({
+        where: { productId: targetProduct.id },
       });
       for (const opt of optionList) {
         const optionName = opt.optionName;
-        const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: savedRequest.id, optionName },
+        const reqOption = await tx.productOption.create({
+          data: { productId: targetProduct.id, optionName },
         });
 
         for (const v of opt.values) {
           const value = v.value;
           const additionalPrice = v.extraPrice;
-          await tx.productUpdateRequestOptionValue.create({
+          await tx.productOptionValue.create({
             data: {
               optionId: reqOption.id,
-              productId: savedRequest.productId,
+              productId: targetProduct.id,
               optionName,
               value,
               additionalPrice,
@@ -430,15 +399,14 @@ export async function PATCH(
         }
       }
 
-      return savedRequest;
+      return productRow;
     });
 
     return NextResponse.json({
       status: 'success',
       data: {
-        requestId: requestRow.id,
         productId: targetProduct.id,
-        message: 'Product update request submitted.',
+        message: 'Product successfully updated.',
       },
     });
   } catch (error) {

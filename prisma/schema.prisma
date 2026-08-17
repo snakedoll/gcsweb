@@ -33,7 +33,6 @@ model User {
   notifications         Notification[]
   orders                Order[]
   posts                 Post[]
-  productUpdateRequests ProductUpdateRequest[] @relation("ProductUpdateRequestRequestedBy")
   scraps                Scrap[]
   teams                 Team[]
 
@@ -56,7 +55,6 @@ model Team {
   updatedAt              DateTime               @updatedAt
   isSalesTeam            Boolean                @default(false)
   products               Product[]
-  productUpdateRequests  ProductUpdateRequest[]
   projects               Project[]
   settlements            Settlement[]
   user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -99,7 +97,6 @@ model Product {
   team                Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   images              ProductImage[]        @relation("ProductImages")
   options             ProductOption[]
-  updateRequests      ProductUpdateRequest?
   variants            ProductVariant[]
   scraps              Scrap[]
 
@@ -157,87 +154,12 @@ model ProductImage {
   thumbnailImgUrl String
   detailImgUrl    String[]
   createdAt       DateTime @default(now())
-  noticeImgUrl    String
+  noticeImgUrl    String?
   product         Product  @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
 
-model ProductUpdateRequest {
-  id                  String                       @id @default(cuid())
-  productId           String                       @unique
-  requestedByUserId   String
-  teamId              String
-  requestType         Int                          @default(0)
-  name                String
-  description         String
-  type                Int                          @default(0)
-  status              Int                          @default(0)
-  price               Int
-  goalAmount          Int?
-  salesStartDate      DateTime
-  salesEndDate        DateTime
-  productionStartDate DateTime?
-  productionEndDate   DateTime?
-  deliveryStartDate   DateTime?
-  deliveryEndDate     DateTime?
-  pickupStartDate     DateTime?
-  pickupEndDate       DateTime?
-  pickupLocation      String?
-  receiveMethod       Int?
-  requestedAt         DateTime                     @default(now())
-  updatedAt           DateTime                     @updatedAt
-  product             Product                      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  requestedBy         User                         @relation("ProductUpdateRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
-  team                Team                         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  images              ProductUpdateRequestImage[]
-  options             ProductUpdateRequestOption[]
-
-  @@index([productId])
-  @@index([requestedByUserId])
-  @@index([teamId])
-  @@index([requestType])
-  @@index([requestedAt])
-}
-
-model ProductUpdateRequestImage {
-  id                     String               @id @default(cuid())
-  productUpdateRequestId String
-  thumbnailImgUrl        String
-  detailImgUrl           String[]
-  noticeImgUrl           String?
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  productUpdateRequest   ProductUpdateRequest @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
-
-  @@index([productUpdateRequestId])
-}
-
-model ProductUpdateRequestOption {
-  id                     String                            @id @default(cuid())
-  productUpdateRequestId String
-  optionName             String
-  productUpdateRequest   ProductUpdateRequest              @relation(fields: [productUpdateRequestId], references: [id], onDelete: Cascade)
-  values                 ProductUpdateRequestOptionValue[]
-
-  @@unique([productUpdateRequestId, optionName])
-  @@index([productUpdateRequestId])
-}
-
-model ProductUpdateRequestOptionValue {
-  id              String                     @id @default(cuid())
-  optionId        String
-  value           String
-  additionalPrice Int                        @default(0)
-  productId       String
-  optionName      String
-  option          ProductUpdateRequestOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
-
-  @@unique([optionId, value])
-  @@index([optionId])
-  @@index([productId])
-  @@index([productId, optionName])
-}
 
 model Order {
   id                    String           @id @default(cuid())
@@ -325,6 +247,21 @@ model FairShopProduct {
   currentStock Int      @default(0)
 
   @@map("FairShopProductTable")
+}
+
+model OnsiteProduct {
+  id           String   @id @default(cuid())
+  qrItemId     String   @unique
+  name         String
+  option       String?
+  price        Int
+  emoji        String?
+  initStock    Int
+  stock        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([qrItemId])
 }
 
 model Scrap {
