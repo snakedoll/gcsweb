@@ -294,8 +294,8 @@ export async function POST(request: Request) {
       const createdProduct = await tx.product.create({
         data: {
           ...productData,
-          isAdminApproved: false,
-          isPublic: false,
+          isAdminApproved: true,
+          isPublic: true,
           isHome: false,
         },
       });
@@ -305,8 +305,7 @@ export async function POST(request: Request) {
           productId: createdProduct.id,
           thumbnailImgUrl: normalizedThumbnailImgUrl,
           detailImgUrl: detailUrls,
-          // ProductImage.noticeImgUrl is non-null in schema, keep empty until admin approval.
-          noticeImgUrl: normalizedNoticeImgUrl ?? '',
+          noticeImgUrl: normalizedNoticeImgUrl ?? null,
         },
       });
 
@@ -331,65 +330,6 @@ export async function POST(request: Request) {
         }
       }
 
-      const requestRow = await tx.productUpdateRequest.create({
-        data: {
-          productId: createdProduct.id,
-          requestedByUserId: session.user.id,
-          teamId,
-          requestType: 0,
-          name: name.trim(),
-          description: typeof description === 'string' ? description.trim() : '',
-          type,
-          price: priceNum,
-          goalAmount: resolvedGoalAmount,
-          salesStartDate: salesStart,
-          salesEndDate: salesEnd,
-          productionStartDate: parseDate(productionStartDate) ?? undefined,
-          productionEndDate: parseDate(productionEndDate, true) ?? undefined,
-          deliveryStartDate: parseDate(deliveryStartDate) ?? undefined,
-          deliveryEndDate: parseDate(deliveryEndDate, true) ?? undefined,
-          pickupStartDate: parseDate(pickupStartDate) ?? undefined,
-          pickupEndDate: parseDate(pickupEndDate, true) ?? undefined,
-          pickupLocation: typeof pickupLocation === 'string' && pickupLocation.trim() ? pickupLocation.trim() : undefined,
-          receiveMethod,
-        },
-      });
-
-      await tx.productUpdateRequestImage.create({
-        data: {
-          productUpdateRequestId: requestRow.id,
-          thumbnailImgUrl: normalizedThumbnailImgUrl,
-          detailImgUrl: detailUrls,
-          // Policy: register request notice image must be null until admin approval.
-          noticeImgUrl: null,
-        },
-      });
-
-      for (const opt of optionList) {
-        const optionName = typeof opt?.optionName === 'string' ? opt.optionName.trim() : '';
-        if (!optionName) continue;
-
-        const reqOption = await tx.productUpdateRequestOption.create({
-          data: { productUpdateRequestId: requestRow.id, optionName },
-        });
-
-        const values = Array.isArray(opt.values) ? opt.values : [];
-        for (const v of values) {
-          const value = typeof v?.value === 'string' ? v.value.trim() : '';
-          if (!value) continue;
-          const additionalPrice = typeof v?.extraPrice === 'number' ? Math.max(0, v.extraPrice) : 0;
-          await tx.productUpdateRequestOptionValue.create({
-            data: {
-              optionId: reqOption.id,
-              productId: requestRow.productId,
-              optionName,
-              value,
-              additionalPrice,
-            },
-          });
-        }
-      }
-
       return createdProduct;
     });
 
@@ -397,7 +337,7 @@ export async function POST(request: Request) {
       status: 'success',
       data: {
         productId: product.id,
-        message: '등록 요청이 접수되었습니다. 관리자 확인 후 노출됩니다.',
+        message: '상품이 성공적으로 등록되었습니다.',
       },
     });
   } catch (error) {
