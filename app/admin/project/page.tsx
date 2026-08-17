@@ -182,7 +182,7 @@ export default function AdminProjectPage() {
   return (
     <div className="min-h-screen bg-neutral-3 font-pretendard">
       <div className="mx-auto w-full max-w-[375px] bg-neutral-3">
-        <NavBar variant="title-back" title="Project 관리" />
+        <NavBar variant="title-back" title="Project 관리" onBack={() => router.push('/admin')} />
 
         <main className="px-4 pt-4 pb-12">
           <div className="flex flex-col gap-6">

@@ -41,4 +41,7 @@ next-env.d.ts
 # uploaded files
 /public/uploads/
 
+# mcp config (local server settings)
+.vscode/mcp.json
+
 .agents/rules/commit-convention.md
