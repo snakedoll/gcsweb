@@ -45,3 +45,4 @@ next-env.d.ts
 .vscode/mcp.json
 
 .agents/rules/commit-convention.md
+.agents/mcp_config.json
