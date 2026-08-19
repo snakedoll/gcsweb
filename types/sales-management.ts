@@ -19,6 +19,33 @@ export interface SalesProduct {
   price: number;
   imageUrl?: string;
   isVisible: boolean;
+  category: string;
+  stock: number;
+  options: ProductOption[];
+}
+
+export interface ProductOption {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+}
+
+export interface ProductFormOptionInput {
+  name: string;
+  price: number;
+  stock: number;
+}
+
+export interface ProductFormInput {
+  storeId: SalesStore['id'];
+  name: string;
+  category: string;
+  imageUrl?: string;
+  usesOptions: boolean;
+  options: ProductFormOptionInput[];
+  price: number;
+  stock: number;
 }
 
 export type SalesOrderStatus = 'new' | 'confirmed' | 'completed' | 'cancelled';
