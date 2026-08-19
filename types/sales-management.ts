@@ -12,6 +12,13 @@ export interface SalesStore {
   imageUrl?: string;
 }
 
+export interface SellerSummary {
+  store: SalesStore | null;
+  productCount: number;
+  orderCount: number;
+  lowStockCount: number;
+}
+
 export interface SalesProduct {
   id: string;
   storeId: SalesStore['id'];

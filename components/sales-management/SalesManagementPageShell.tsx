@@ -42,7 +42,10 @@ export default function SalesManagementPageShell({
         </div>
 
         {tabs.length > 0 ? (
-          <nav aria-label={`${title} 메뉴`} className="mx-auto flex w-full max-w-[1248px] px-6 xl:px-0">
+          <nav
+            aria-label={`${title} 메뉴`}
+            className="mx-auto flex w-full max-w-[1248px] overflow-x-auto px-6 xl:px-0"
+          >
             {tabs.map((tab) => {
               const isActive = tab.href === activeTabHref;
 
@@ -52,7 +55,7 @@ export default function SalesManagementPageShell({
                   href={tab.href}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'border-b-2 px-4 py-3 typo-body-small-bold transition-colors',
+                    'shrink-0 whitespace-nowrap border-b-2 px-4 py-3 typo-body-small-bold transition-colors',
                     isActive
                       ? 'border-orange-5 text-orange-5'
                       : 'border-transparent text-neutral-7 hover:text-neutral-10',
