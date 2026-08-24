@@ -277,19 +277,21 @@ model OnsiteProductCategory {
 /// hasOption=true이면 OnsiteProductOption 에서 관리하므로 상품 레벨 값은 NULL.
 /// price/initStock/currentStock >= 0 은 DB CHECK 제약으로 강제(마이그레이션 참고, Prisma 스키마 문법상 표현 불가).
 model OnsiteProduct {
-  productId    String                 @id @default(cuid())
-  storeId      String
-  categoryId   String?
-  name         String                 @db.VarChar(20)
-  hasOption    Boolean                @default(false)
-  price        Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
-  initStock    Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
-  currentStock Int? /// 판매 가능 재고(결제 확정 시 차감). hasOption=false 일 때 필수, hasOption=true 일 때 NULL
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  store        Store                  @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
-  category     OnsiteProductCategory? @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
-  options      OnsiteProductOption[]
+  productId      String                 @id @default(cuid())
+  storeId        String
+  categoryId     String?
+  name           String                 @db.VarChar(20)
+  hasOption      Boolean                @default(false)
+  price          Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
+  initStock      Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
+  currentStock   Int? /// 판매 가능 재고(결제 확정 시 차감). hasOption=false 일 때 필수, hasOption=true 일 때 NULL
+  /// item.json/FairShopProductTable 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
+  legacyQrItemId String?                @unique
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  store          Store                  @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  category       OnsiteProductCategory? @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
+  options        OnsiteProductOption[]
 
   @@index([storeId])
   @@index([categoryId])
@@ -298,13 +300,14 @@ model OnsiteProduct {
 /// QRshop 상품 옵션. 상품이 hasOption=true 일 때만 사용되며, 가격/재고는 옵션 단위로 관리.
 /// price/initStock/currentStock >= 0 은 DB CHECK 제약으로 강제(마이그레이션 참고, Prisma 스키마 문법상 표현 불가).
 model OnsiteProductOption {
-  optionId     String        @id @default(cuid())
-  productId    String
-  name         String        @db.VarChar(18)
-  price        Int
-  initStock    Int
-  currentStock Int /// 판매 가능 재고(결제 확정 시 차감)
-  product      OnsiteProduct @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  optionId       String        @id @default(cuid())
+  productId      String
+  name           String        @db.VarChar(18)
+  price          Int
+  initStock      Int
+  currentStock   Int /// 판매 가능 재고(결제 확정 시 차감)
+  legacyQrItemId String?       @unique      /// item.json 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
+  product        OnsiteProduct @relation(fields: [productId], references: [productId], onDelete: Cascade)
 
   @@unique([productId, name])
   @@index([productId])
