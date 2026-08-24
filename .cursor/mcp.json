@@ -12,6 +12,12 @@
       "env": {
         "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ${env:NOTION_TOKEN}\", \"Notion-Version\": \"2022-06-28\"}"
       }
+    },
+    "erdcloud": {
+      "url": "${env:ERDCLOUD_MCP_URL}",
+      "headers": {
+        "Authorization": "Bearer ${env:ERDCLOUD_MCP_TOKEN}"
+      }
     }
   }
 }
