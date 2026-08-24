@@ -52,7 +52,7 @@ export default function Footer() {
             href="/terms/privacy-policy"
             className="text-[11px] leading-[1.5] text-neutral-10 underline decoration-[1px] underline-offset-[2px]"
           >
-            개인정보처리방침 테스트
+            개인정보처리방침
           </Link>
 
           {showAdminButton ? (
