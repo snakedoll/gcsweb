@@ -35,8 +35,8 @@ export async function GET(request: Request) {
     };
 
     const [registerRequestCount, updateRequestCount, products] = await Promise.all([
-      repo.productUpdateRequest.count({ where: { requestType: 0 } }),
-      repo.productUpdateRequest.count({ where: { requestType: 1 } }),
+      repo.product.count({ where: { isAdminApproved: false } }),
+      Promise.resolve(0),
       repo.product.findMany({
         where,
         orderBy: { createdAt: 'desc' },
