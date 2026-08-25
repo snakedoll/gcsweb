@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { normalizeImageUrl } from '@/lib/image-url';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 function toDateOnlyInKst(date: Date | null | undefined): string {
   if (!date) return '';
@@ -95,7 +95,6 @@ export async function GET(
       where: {
         id: productId.trim(),
         teamId: { in: teamIds },
-        isAdminApproved: true,
       },
       include: {
         team: { select: { teamName: true } },
@@ -241,7 +240,6 @@ export async function PATCH(
       where: {
         id: productId.trim(),
         teamId: { in: await getMyTeamIds(session.user.id) },
-        isAdminApproved: true,
       },
       select: { id: true },
     });
