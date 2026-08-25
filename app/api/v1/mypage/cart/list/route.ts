@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 

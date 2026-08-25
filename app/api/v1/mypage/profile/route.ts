@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 type Body = {
   profileImageUrl?: string | null;

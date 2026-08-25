@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { compare, hash } from 'bcryptjs';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 export async function POST(request: Request) {
   try {

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { getSaleStatusByDate } from '@/lib/sale-date';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 

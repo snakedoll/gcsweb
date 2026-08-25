@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { normalizeImageUrl } from '@/lib/image-url';
 import { syncSellerFlags } from '@/lib/seller-membership';
-import { apiError } from '@/lib/api-response';
+import { apiError, apiErrors } from '@/lib/api-response';
 
 export async function GET(request: Request) {
   try {
