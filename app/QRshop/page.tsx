@@ -152,21 +152,11 @@ export default function QRshopPage() {
     return next;
   }, [items]);
 
-  /** 그리드용: 뽑기 제외, 봉투 바로 왼쪽·띠부씰 오른쪽으로 인접 배치 */
+  /** 그리드용: 뽑기 제외 */
   const { gridCategories, pickCategory } = useMemo(() => {
     const pick = categories.find((c) => c.label === '뽑기') ?? null;
     const grid = categories.filter((c) => c.label !== '뽑기');
-    const bag = grid.find((c) => c.label === '봉투');
-    const dd = grid.find((c) => c.label === '띠부씰');
-    if (!bag || !dd) {
-      return { gridCategories: grid, pickCategory: pick };
-    }
-    const idxBag = grid.indexOf(bag);
-    const idxDd = grid.indexOf(dd);
-    const first = Math.min(idxBag, idxDd);
-    const before = grid.slice(0, first).filter((c) => c !== bag && c !== dd);
-    const after = grid.slice(first).filter((c) => c !== bag && c !== dd);
-    return { gridCategories: [...before, bag, dd, ...after], pickCategory: pick };
+    return { gridCategories: grid, pickCategory: pick };
   }, [categories]);
 
   useEffect(() => {
@@ -298,7 +288,6 @@ export default function QRshopPage() {
         <div className="grid grid-cols-4 gap-2">
           {gridCategories.map((category) => {
             const active = selectedCategory === category.id;
-            const isBagCategory = category.label === '봉투';
             return (
               <button
                 key={category.id}
@@ -307,9 +296,7 @@ export default function QRshopPage() {
                 className={`min-h-[44px] rounded-[14px] border px-2 py-1.5 text-[13px] font-semibold leading-tight transition ${
                   active
                     ? 'border-orange-5 bg-orange-5 text-white'
-                    : isBagCategory
-                      ? 'border-neutral-4 bg-white text-orange-5 active:bg-neutral-2'
-                      : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
+                    : 'border-neutral-4 bg-white text-neutral-9 active:bg-neutral-2'
                 }`}
               >
                 <span className="block break-keep text-center">{category.label}</span>

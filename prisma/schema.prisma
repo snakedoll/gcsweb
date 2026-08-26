@@ -8,33 +8,33 @@ datasource db {
 }
 
 model User {
-  id                    String                 @id @default(cuid())
-  email                 String                 @unique
-  password              String?
-  nickname              String                 @unique
-  name                  String
-  phone                 String?
-  memberType            Int                    @default(0)
-  isSeller              Boolean                @default(false)
-  studentId             String?
-  major                 String?
-  profileImage          String?
-  isVerified            Boolean                @default(false)
-  signupMethod          SignupMethod           @default(EMAIL)
-  isRepresentative      Boolean                @default(false)
-  failedLoginAttempts   Int                    @default(0)
-  lockedUntil           DateTime?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  providerId            String?
-  carts                 Cart[]
-  inquiries             Inquiry[]
-  likes                 Like[]
-  notifications         Notification[]
-  orders                Order[]
-  posts                 Post[]
-  scraps                Scrap[]
-  teams                 Team[]
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  password            String?
+  nickname            String         @unique
+  name                String
+  phone               String?
+  memberType          Int            @default(0)
+  isSeller            Boolean        @default(false)
+  studentId           String?
+  major               String?
+  profileImage        String?
+  isVerified          Boolean        @default(false)
+  signupMethod        SignupMethod   @default(EMAIL)
+  isRepresentative    Boolean        @default(false)
+  failedLoginAttempts Int            @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  providerId          String?
+  carts               Cart[]
+  inquiries           Inquiry[]
+  likes               Like[]
+  notifications       Notification[]
+  orders              Order[]
+  posts               Post[]
+  scraps              Scrap[]
+  teams               Team[]
 
   @@index([email])
   @@index([nickname])
@@ -42,60 +42,60 @@ model User {
 }
 
 model Team {
-  id                     String                 @id @default(cuid())
+  id                     String       @id @default(cuid())
   userId                 String
-  teamName               String                 @unique
+  teamName               String       @unique
   representativeName     String
   representativeNickname String
   teamMember             String[]
   teamMemberNickname     String[]
   accountUrl             String
   totalSales             Int?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  isSalesTeam            Boolean                @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  isSalesTeam            Boolean      @default(false)
   products               Product[]
   projects               Project[]
   settlements            Settlement[]
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([teamName])
 }
 
 model Product {
-  id                  String                @id @default(cuid())
+  id                  String           @id @default(cuid())
   teamId              String
   name                String
   description         String
-  type                Int                   @default(0)
-  status              Int                   @default(0)
+  type                Int              @default(0)
+  status              Int              @default(0)
   price               Int
   goalAmount          Int?
-  currentAmount       Int                   @default(0)
+  currentAmount       Int              @default(0)
   salesStartDate      DateTime
   salesEndDate        DateTime
   productionStartDate DateTime?
   deliveryStartDate   DateTime?
   receiveMethod       Int?
-  isPublic            Boolean               @default(false)
-  likeCount           Int                   @default(0)
-  viewCount           Int                   @default(0)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  isPublic            Boolean          @default(false)
+  likeCount           Int              @default(0)
+  viewCount           Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   productionEndDate   DateTime?
   deliveryEndDate     DateTime?
   pickupStartDate     DateTime?
   pickupEndDate       DateTime?
   pickupLocation      String?
-  isHome              Boolean               @default(false)
-  isAdminApproved     Boolean               @default(false)
+  isHome              Boolean          @default(false)
+  isAdminApproved     Boolean          @default(false)
   publicAt            DateTime?
   cartItems           CartItem[]
   likes               Like[]
   orderItems          OrderItem[]
-  team                Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  images              ProductImage[]        @relation("ProductImages")
+  team                Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  images              ProductImage[]   @relation("ProductImages")
   options             ProductOption[]
   variants            ProductVariant[]
   scraps              Scrap[]
@@ -160,14 +160,13 @@ model ProductImage {
   @@index([productId])
 }
 
-
 model Order {
-  id                    String           @id @default(cuid())
+  id                    String      @id @default(cuid())
   userId                String?
   paymentAmount         Int
-  orderDate             DateTime         @default(now())
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  orderDate             DateTime    @default(now())
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
   productType           Int
   receiveMethod         Int
   receiverName          String?
@@ -178,7 +177,7 @@ model Order {
   deliveryMessage       String?
   ordererName           String?
   ordererPhone          String?
-  paymentStatus         Int              @default(0)
+  paymentStatus         Int         @default(0)
   fulfillmentStatus     Int?
   paymentMethod         Int
   cardCompany           Int?
@@ -187,13 +186,13 @@ model Order {
   billingKey            String?
   orderDateKey          String?
   orderSeq              Int?
-  orderCode             String?          @unique
+  orderCode             String?     @unique
   buyerType             BuyerType
-  buyerGuestTokenHash   String?          @db.VarChar(128)
-  bagOption             Boolean          @default(false)
-  impUid                String?          @unique
+  buyerGuestTokenHash   String?     @db.VarChar(128)
+  bagOption             Boolean     @default(false)
+  impUid                String?     @unique
   inquiries             Inquiry[]
-  user                  User?            @relation(fields: [userId], references: [id])
+  user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
 
   @@unique([orderDateKey, productType, orderSeq])
@@ -249,19 +248,69 @@ model FairShopProduct {
   @@map("FairShopProductTable")
 }
 
-model OnsiteProduct {
-  id           String   @id @default(cuid())
-  qrItemId     String   @unique
-  name         String
-  option       String?
-  price        Int
-  emoji        String?
-  initStock    Int
-  stock        Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+/// QRshop 상점. storeSlug는 상점URL 식별자
+model Store {
+  storeId    String                  @id @default(cuid())
+  name       String
+  storeSlug  String                  @unique
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  categories OnsiteProductCategory[]
+  products   OnsiteProduct[]
+}
 
-  @@index([qrItemId])
+/// QRshop 상점별 상품 카테고리. 상품은 카테고리를 갖지 않을 수 있음
+model OnsiteProductCategory {
+  categoryId String          @id @default(cuid())
+  storeId    String
+  name       String
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  store      Store           @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  products   OnsiteProduct[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+/// QRshop 상품. price/initStock/currentStock는 hasOption=false이면 상품 레벨에서 직접 사용.
+/// hasOption=true이면 OnsiteProductOption 에서 관리하므로 상품 레벨 값은 NULL.
+/// price/initStock/currentStock >= 0 은 DB CHECK 제약으로 강제(마이그레이션 참고, Prisma 스키마 문법상 표현 불가).
+model OnsiteProduct {
+  productId      String                 @id @default(cuid())
+  storeId        String
+  categoryId     String?
+  name           String                 @db.VarChar(20)
+  hasOption      Boolean                @default(false)
+  price          Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
+  initStock      Int? /// hasOption=false 일 때 필수(0 이상), hasOption=true 일 때 NULL
+  currentStock   Int? /// 판매 가능 재고(결제 확정 시 차감). hasOption=false 일 때 필수, hasOption=true 일 때 NULL
+  /// item.json/FairShopProductTable 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
+  legacyQrItemId String?                @unique
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  store          Store                  @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  category       OnsiteProductCategory? @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
+  options        OnsiteProductOption[]
+
+  @@index([storeId])
+  @@index([categoryId])
+}
+
+/// QRshop 상품 옵션. 상품이 hasOption=true 일 때만 사용되며, 가격/재고는 옵션 단위로 관리.
+/// price/initStock/currentStock >= 0 은 DB CHECK 제약으로 강제(마이그레이션 참고, Prisma 스키마 문법상 표현 불가).
+model OnsiteProductOption {
+  optionId       String        @id @default(cuid())
+  productId      String
+  name           String        @db.VarChar(18)
+  price          Int
+  initStock      Int
+  currentStock   Int /// 판매 가능 재고(결제 확정 시 차감)
+  legacyQrItemId String?       @unique      /// item.json 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
+  product        OnsiteProduct @relation(fields: [productId], references: [productId], onDelete: Cascade)
+
+  @@unique([productId, name])
+  @@index([productId])
 }
 
 model Scrap {
@@ -284,7 +333,6 @@ model Scrap {
   @@index([productId])
   @@index([postId])
 }
-
 
 model Image {
   id        String   @id @default(cuid()) @map("imageId")
@@ -373,8 +421,6 @@ model Project {
   @@index([isHome])
   @@index([softDeletedAt])
 }
-
-
 
 model Inquiry {
   id        String   @id @default(cuid())
