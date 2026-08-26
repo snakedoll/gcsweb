@@ -13,7 +13,15 @@ function createService(overrides: Partial<SalesManagementService> = {}): SalesMa
       visitorOrderUrl: '/QRshop?store=paper-shop',
     }),
     getProducts: async () => ({ items: [], total: 0 }),
-    saveProduct: async (product) => ({ ...product, id: 'product-1' }),
+    saveProduct: async (product) => ({
+      ...product,
+      id: 'product-1',
+      isVisible: true,
+      options: product.options.map((option, index) => ({
+        ...option,
+        id: `option-${index + 1}`,
+      })),
+    }),
     getOrders: async () => ({ items: [], total: 0 }),
     getInventory: async () => ({ items: [], total: 0 }),
     ...overrides,
