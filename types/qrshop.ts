@@ -26,6 +26,12 @@ export interface QrshopOrderDraft {
 }
 
 export type QrshopOrderStatus = 'pending' | 'paid' | 'failed';
+export type QrshopPaymentOutcome = 'success' | 'failure';
+export type QrshopPaymentState =
+  | 'idle'
+  | 'processing'
+  | 'succeeded'
+  | 'failed';
 
 export interface QrshopOrderResult {
   orderId: string;
@@ -33,4 +39,9 @@ export interface QrshopOrderResult {
   status: QrshopOrderStatus;
   totalAmount: number;
   lines: QrshopCartLine[];
+  buyerName: string;
+  buyerPhone: string;
+  paymentMethod: QrshopPaymentMethod;
+  createdAt: string;
+  failureMessage?: string;
 }
