@@ -1,5 +1,6 @@
 import type {
   InventoryItem,
+  ProductFormInput,
   SalesOrder,
   SalesProduct,
   SalesStore,
@@ -17,7 +18,7 @@ export interface SalesManagementService {
   checkStoreIdentifier(storeIdentifier: StoreFormInput['storeIdentifier']): Promise<boolean>;
   saveStore(store: StoreFormInput): Promise<SalesStore>;
   getProducts(): Promise<ListResult<SalesProduct>>;
-  saveProduct(product: Omit<SalesProduct, 'id'>): Promise<SalesProduct>;
+  saveProduct(product: ProductFormInput): Promise<SalesProduct>;
   getOrders(): Promise<ListResult<SalesOrder>>;
   getInventory(): Promise<ListResult<InventoryItem>>;
 }

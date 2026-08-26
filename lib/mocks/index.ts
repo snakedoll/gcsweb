@@ -14,4 +14,5 @@ export {
   createSalesManagementMockService,
   salesManagementMockService,
   type SalesManagementLandingMockState,
+  type SalesManagementMockOptions,
 } from './sales-management-service';

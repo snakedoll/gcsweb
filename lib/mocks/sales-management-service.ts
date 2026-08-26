@@ -8,6 +8,8 @@ import type {
   SalesManagementService,
 } from '@/lib/services/sales-management-service';
 import type {
+  ProductFormInput,
+  SalesProduct,
   SalesStore,
   SellerSummary,
   StoreFormInput,
@@ -67,12 +69,30 @@ export function createMockSalesManagementLandingService(
 
 const unavailableStoreIdentifiers = new Set(['gcs', 'admin', 'taken-shop']);
 
+const defaultStore: SalesStore = {
+  id: 'store-itjang',
+  name: '잇장샵',
+  storeIdentifier: 'itjang-shop',
+  visitorOrderUrl: '/QRshop?store=itjang-shop',
+  description: '일상의 즐거움을 소개하는 상점',
+};
+
+export interface SalesManagementMockOptions {
+  store?: SalesStore | null;
+  products?: SalesProduct[];
+  saveProductScenario?: MockScenario<SalesProduct>;
+}
+
 function normaliseStoreIdentifier(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function createSalesManagementMockService(): SalesManagementService {
-  let registeredStore: SalesStore | null = null;
+export function createSalesManagementMockService(
+  options: SalesManagementMockOptions = {},
+): SalesManagementService {
+  let registeredStore: SalesStore | null =
+    options.store === undefined ? defaultStore : options.store;
+  const products = [...(options.products ?? [])];
 
   return {
     async getStore() {
@@ -114,11 +134,32 @@ export function createSalesManagementMockService(): SalesManagementService {
     },
 
     async getProducts() {
-      return resolveMockScenario({ kind: 'empty', data: { items: [], total: 0 } });
+      return resolveMockScenario({
+        kind: products.length === 0 ? 'empty' : 'success',
+        data: { items: products, total: products.length },
+      });
     },
 
-    async saveProduct(product) {
-      return resolveMockScenario({ kind: 'success', data: { ...product, id: 'product-mock' } });
+    async saveProduct(input: ProductFormInput) {
+      const product: SalesProduct = {
+        id: `product-${products.length + 1}`,
+        storeId: input.storeId,
+        name: input.name,
+        category: input.category,
+        price: input.price,
+        stock: input.stock,
+        imageUrl: input.imageUrl,
+        isVisible: true,
+        options: input.options.map((option, index) => ({
+          id: `option-${index + 1}`,
+          ...option,
+        })),
+      };
+      const saved = options.saveProductScenario
+        ? await resolveMockScenario(options.saveProductScenario)
+        : product;
+      products.unshift(saved);
+      return saved;
     },
 
     async getOrders() {
