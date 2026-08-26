@@ -8,8 +8,15 @@ export type SalesManagementSection =
 export interface SalesStore {
   id: string;
   name: string;
+  storeIdentifier: string;
+  visitorOrderUrl: string;
   description?: string;
   imageUrl?: string;
+}
+
+export interface StoreFormInput {
+  name: string;
+  storeIdentifier: string;
 }
 
 export interface SellerSummary {

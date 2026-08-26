@@ -1,6 +1,17 @@
-import { resolveMockScenario, type MockScenario } from '@/lib/mocks/mock-service';
-import type { SalesManagementLandingService } from '@/lib/services/sales-management-service';
-import type { SellerSummary } from '@/types/sales-management';
+import {
+  MockServiceError,
+  resolveMockScenario,
+  type MockScenario,
+} from '@/lib/mocks/mock-service';
+import type {
+  SalesManagementLandingService,
+  SalesManagementService,
+} from '@/lib/services/sales-management-service';
+import type {
+  SalesStore,
+  SellerSummary,
+  StoreFormInput,
+} from '@/types/sales-management';
 
 export type SalesManagementLandingMockState =
   | 'success'
@@ -12,6 +23,8 @@ const registeredSellerSummary: SellerSummary = {
   store: {
     id: 'store-itjang',
     name: '잇장샵',
+    storeIdentifier: 'itjang-shop',
+    visitorOrderUrl: '/QRshop?store=itjang-shop',
     description: 'ygygygy23233',
   },
   productCount: 0,
@@ -51,3 +64,71 @@ export function createMockSalesManagementLandingService(
     getSellerSummary: () => resolveMockScenario(getScenario(state)),
   };
 }
+
+const unavailableStoreIdentifiers = new Set(['gcs', 'admin', 'taken-shop']);
+
+function normaliseStoreIdentifier(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function createSalesManagementMockService(): SalesManagementService {
+  let registeredStore: SalesStore | null = null;
+
+  return {
+    async getStore() {
+      return resolveMockScenario({ kind: 'success', data: registeredStore });
+    },
+
+    async checkStoreIdentifier(storeIdentifier) {
+      const identifier = normaliseStoreIdentifier(storeIdentifier);
+
+      if (identifier === 'error-shop') {
+        throw new MockServiceError('아이디 확인 중 일시적인 오류가 발생했습니다.');
+      }
+
+      return resolveMockScenario({
+        kind: 'success',
+        data: !unavailableStoreIdentifiers.has(identifier),
+      });
+    },
+
+    async saveStore(input: StoreFormInput) {
+      const storeIdentifier = normaliseStoreIdentifier(input.storeIdentifier);
+
+      if (storeIdentifier === 'error-shop') {
+        throw new MockServiceError('상점 등록 중 일시적인 오류가 발생했습니다. 다시 시도해주세요.');
+      }
+
+      if (unavailableStoreIdentifiers.has(storeIdentifier)) {
+        throw new MockServiceError('이미 사용 중인 상점 아이디입니다.');
+      }
+
+      registeredStore = {
+        id: `store-${storeIdentifier}`,
+        name: input.name.trim(),
+        storeIdentifier,
+        visitorOrderUrl: `/QRshop?store=${encodeURIComponent(storeIdentifier)}`,
+      };
+
+      return resolveMockScenario({ kind: 'success', data: registeredStore });
+    },
+
+    async getProducts() {
+      return resolveMockScenario({ kind: 'empty', data: { items: [], total: 0 } });
+    },
+
+    async saveProduct(product) {
+      return resolveMockScenario({ kind: 'success', data: { ...product, id: 'product-mock' } });
+    },
+
+    async getOrders() {
+      return resolveMockScenario({ kind: 'empty', data: { items: [], total: 0 } });
+    },
+
+    async getInventory() {
+      return resolveMockScenario({ kind: 'empty', data: { items: [], total: 0 } });
+    },
+  };
+}
+
+export const salesManagementMockService = createSalesManagementMockService();

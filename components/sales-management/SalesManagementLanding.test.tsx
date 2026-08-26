@@ -7,6 +7,8 @@ const registeredSummary: SellerSummary = {
   store: {
     id: 'store-1',
     name: '잇장샵',
+    storeIdentifier: 'itjang-shop',
+    visitorOrderUrl: '/QRshop?store=itjang-shop',
     description: '상점 한 줄 소개',
   },
   productCount: 0,

@@ -11,5 +11,7 @@ export {
 export { qrshopProducts } from './qrshop-data';
 export {
   createMockSalesManagementLandingService,
+  createSalesManagementMockService,
+  salesManagementMockService,
   type SalesManagementLandingMockState,
 } from './sales-management-service';
