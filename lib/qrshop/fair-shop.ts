@@ -158,3 +158,41 @@ export async function fairShopDecrementFromOrderItems(
     }
   }
 }
+
+export type OnsiteRef = { onsiteProductId: string; onsiteOptionId: string | null };
+
+type OnsiteRefClient = {
+  onsiteProduct: PrismaClient['onsiteProduct'];
+  onsiteProductOption: PrismaClient['onsiteProductOption'];
+};
+
+/**
+ * item.json id(레거시) → 새 OnsiteProduct/OnsiteProductOption id 매핑을 legacyQrItemId 기준으로 조회한다.
+ * Phase 2 이관 시 legacyQrItemId 에 item.json id 를 그대로 심어뒀다는 전제.
+ * 매핑을 못 찾은 id 는 결과 Map 에 아예 없음(호출부에서 null 로 취급).
+ */
+export async function loadOnsiteRefsByLegacyIds(
+  client: OnsiteRefClient,
+  legacyIds: string[],
+): Promise<Map<string, OnsiteRef>> {
+  const uniq = [...new Set(legacyIds)];
+  const [products, options] = await Promise.all([
+    client.onsiteProduct.findMany({
+      where: { legacyQrItemId: { in: uniq } },
+      select: { productId: true, legacyQrItemId: true },
+    }),
+    client.onsiteProductOption.findMany({
+      where: { legacyQrItemId: { in: uniq } },
+      select: { optionId: true, productId: true, legacyQrItemId: true },
+    }),
+  ]);
+
+  const map = new Map<string, OnsiteRef>();
+  for (const p of products) {
+    if (p.legacyQrItemId) map.set(p.legacyQrItemId, { onsiteProductId: p.productId, onsiteOptionId: null });
+  }
+  for (const o of options) {
+    if (o.legacyQrItemId) map.set(o.legacyQrItemId, { onsiteProductId: o.productId, onsiteOptionId: o.optionId });
+  }
+  return map;
+}

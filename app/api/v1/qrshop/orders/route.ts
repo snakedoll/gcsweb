@@ -18,6 +18,7 @@ import {
   ensureFairShopProductsSeeded,
   fairShopDecrementStock,
   loadFairShopStockMap,
+  loadOnsiteRefsByLegacyIds,
   recordFairShopUnmetDemandForZeroStockLines,
 } from '@/lib/qrshop/fair-shop';
 import { isMatchedVariantSoldOut } from '@/lib/variant-signature';
@@ -165,6 +166,11 @@ export async function POST(request: Request) {
     const isCounterPay = paymentMethod === 3;
     const bagOption = false;
 
+    const onsiteRefs = await loadOnsiteRefsByLegacyIds(
+      prisma,
+      resolved.map((r) => r.itemId),
+    );
+
     const itemRows = resolved.map((row) => {
       const lineDiscountWon = row.lineDiscountWon ?? 0;
       const optionData = {
@@ -180,8 +186,11 @@ export async function POST(request: Request) {
       }
       // 금액은 item.json(서버 검증)만 신뢰. 플레이스홀더 Product.price 가 0이 아니어도 Buynow 일반식(product.price+옵션)과 맞추지 않음
       const unitPrice = row.unitPrice;
+      const ref = onsiteRefs.get(row.itemId) ?? null;
       return {
         productId: product.id,
+        onsiteProductId: ref?.onsiteProductId ?? null,
+        onsiteOptionId: ref?.onsiteOptionId ?? null,
         quantity: row.quantity,
         price: unitPrice,
         lineDiscountWon,
@@ -275,6 +284,8 @@ export async function POST(request: Request) {
               data: {
                 orderId: order.id,
                 productId: row.productId,
+                onsiteProductId: row.onsiteProductId,
+                onsiteOptionId: row.onsiteOptionId,
                 productType,
                 quantity: row.quantity,
                 price: row.price,
