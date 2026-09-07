@@ -218,19 +218,25 @@ model OrderSequence {
 }
 
 model OrderItem {
-  id          String   @id @default(cuid())
-  orderId     String
-  productId   String
-  quantity    Int
-  price       Int
-  optionData  Json?
-  createdAt   DateTime @default(now())
-  productType Int
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product  @relation(fields: [productId], references: [id])
+  id              String               @id @default(cuid())
+  orderId         String
+  productId       String
+  quantity        Int
+  price           Int
+  optionData      Json?
+  createdAt       DateTime             @default(now())
+  productType     Int
+  onsiteProductId String?
+  onsiteOptionId  String?
+  order           Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product              @relation(fields: [productId], references: [id])
+  onsiteProduct   OnsiteProduct?       @relation(fields: [onsiteProductId], references: [productId], onDelete: SetNull)
+  onsiteOption    OnsiteProductOption? @relation(fields: [onsiteOptionId], references: [optionId], onDelete: SetNull)
 
   @@index([orderId])
   @@index([productId])
+  @@index([onsiteProductId])
+  @@index([onsiteOptionId])
 }
 
 /// QRshop(/Fair) 메뉴별 재고. qrItemId 는 app/QRshop/item.json 의 id 와 동일
@@ -292,6 +298,7 @@ model OnsiteProduct {
   store          Store                  @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
   category       OnsiteProductCategory? @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
   options        OnsiteProductOption[]
+  orderItems     OrderItem[]
 
   @@index([storeId])
   @@index([categoryId])
@@ -306,8 +313,9 @@ model OnsiteProductOption {
   price          Int
   initStock      Int
   currentStock   Int /// 판매 가능 재고(결제 확정 시 차감)
-  legacyQrItemId String?       @unique      /// item.json 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
+  legacyQrItemId String?       @unique /// item.json 이관 추적용(임시). 이관 검증 끝나면 삭제 예정.
   product        OnsiteProduct @relation(fields: [productId], references: [productId], onDelete: Cascade)
+  orderItems     OrderItem[]
 
   @@unique([productId, name])
   @@index([productId])
