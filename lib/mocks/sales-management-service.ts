@@ -26,7 +26,7 @@ const registeredSellerSummary: SellerSummary = {
     id: 'store-itjang',
     name: '잇장샵',
     storeIdentifier: 'itjang-shop',
-    visitorOrderUrl: '/QRshop?store=itjang-shop',
+    visitorOrderUrl: '/QRshop/v2?store=itjang-shop',
     description: 'ygygygy23233',
   },
   productCount: 0,
@@ -73,7 +73,7 @@ const defaultStore: SalesStore = {
   id: 'store-itjang',
   name: '잇장샵',
   storeIdentifier: 'itjang-shop',
-  visitorOrderUrl: '/QRshop?store=itjang-shop',
+  visitorOrderUrl: '/QRshop/v2?store=itjang-shop',
   description: '일상의 즐거움을 소개하는 상점',
 };
 
@@ -127,7 +127,7 @@ export function createSalesManagementMockService(
         id: `store-${storeIdentifier}`,
         name: input.name.trim(),
         storeIdentifier,
-        visitorOrderUrl: `/QRshop?store=${encodeURIComponent(storeIdentifier)}`,
+        visitorOrderUrl: `/QRshop/v2?store=${encodeURIComponent(storeIdentifier)}`,
       };
 
       return resolveMockScenario({ kind: 'success', data: registeredStore });

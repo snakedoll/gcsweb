@@ -57,4 +57,32 @@ describe('QrshopCartPanel', () => {
     expect(props.onQuantityChange).toHaveBeenCalledWith('keyring-black', 2);
     expect(props.onRemove).toHaveBeenCalledWith('keyring-black');
   });
+
+  it('핸들을 아래로 충분히 끌면 주문 정보를 접는다', () => {
+    renderPanel();
+    const panel = screen.getByRole('region', { name: '주문 정보' });
+    const handle = screen.getByRole('button', { name: '주문 정보 접기' });
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 500 });
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 100 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientY: 100 });
+
+    expect(screen.getByRole('button', { name: '주문 정보 펼치기' })).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveStyle({ transform: 'translateY(calc(100% - 26px))' });
+  });
+
+  it('짧은 아래 드래그는 주문 정보를 원위치시킨다', () => {
+    renderPanel();
+    const panel = screen.getByRole('region', { name: '주문 정보' });
+    const handle = screen.getByRole('button', { name: '주문 정보 접기' });
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 500 });
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientY: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientY: 40 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientY: 40 });
+
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).toHaveStyle({ transform: 'translateY(0)' });
+  });
 });

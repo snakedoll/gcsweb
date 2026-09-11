@@ -55,14 +55,14 @@ export default function QrshopOrderClient() {
     setSubmitting(true); setSubmitError(null);
     try {
       const order = await service.createOrder({ lines, buyerName, buyerPhone, paymentMethod });
-      router.push(`/QRshop/pay?orderId=${encodeURIComponent(order.orderId)}`);
+      router.push(`/QRshop/v2/pay?orderId=${encodeURIComponent(order.orderId)}`);
     } catch (error) { setSubmitError(error instanceof Error ? error.message : '주문을 저장하지 못했습니다.'); }
     finally { setSubmitting(false); }
   };
 
   if (catalog.status === 'loading') return <div role="status" className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pt-[34px]"><div className="h-9 w-28 animate-pulse rounded bg-neutral-5" /><div className="mt-5 h-7 w-full animate-pulse rounded bg-neutral-5" /><div className="mt-4 grid grid-cols-2 gap-x-[5px] gap-y-3">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-[244px] animate-pulse rounded bg-neutral-5" />)}</div><span className="sr-only">상품을 불러오는 중입니다.</span></div>;
-  if (catalog.status === 'error') return <QrshopStateView title="상품을 불러오지 못했습니다" description={catalog.message} actionLabel="다시 시도" onAction={() => router.replace('/QRshop')} />;
-  if (catalog.products.length === 0) return <QrshopStateView title="아직 등록된 상품이 없어요" description="새 상품이 준비되면 이곳에서 바로 주문할 수 있습니다." actionLabel="다시 확인" onAction={() => router.replace('/QRshop')} />;
+  if (catalog.status === 'error') return <QrshopStateView title="상품을 불러오지 못했습니다" description={catalog.message} actionLabel="다시 시도" onAction={() => router.replace('/QRshop/v2')} />;
+  if (catalog.products.length === 0) return <QrshopStateView title="아직 등록된 상품이 없어요" description="새 상품이 준비되면 이곳에서 바로 주문할 수 있습니다." actionLabel="다시 확인" onAction={() => router.replace('/QRshop/v2')} />;
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[430px] pb-[360px]">
