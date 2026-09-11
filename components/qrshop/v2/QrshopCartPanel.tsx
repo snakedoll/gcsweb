@@ -1,6 +1,13 @@
+'use client';
+
+import { useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import Button from '@/components/ui/button/Button';
 import { formatWon } from '@/lib/utils';
 import type { QrshopCartLine, QrshopPaymentMethod } from '@/types/qrshop';
+
+const HANDLE_HEIGHT = 26;
+const COLLAPSE_THRESHOLD = 80;
 
 type Props = {
   lines: QrshopCartLine[]; buyerName: string; buyerPhone: string; paymentMethod: QrshopPaymentMethod;
@@ -12,11 +19,73 @@ type Props = {
 
 export default function QrshopCartPanel(props: Props) {
   const { lines, buyerName, buyerPhone, paymentMethod, agreed, submitting, error } = props;
+  const panelRef = useRef<HTMLElement>(null);
+  const dragRef = useRef({ pointerId: -1, startY: 0, startOffset: 0, currentOffset: 0, moved: false });
+  const [collapsed, setCollapsed] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
   const total = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const canSubmit = Boolean(lines.length && buyerName.trim() && buyerPhone.trim() && agreed && !submitting);
 
+  const getCollapsedOffset = () => Math.max(0, (panelRef.current?.offsetHeight ?? 0) - HANDLE_HEIGHT);
+
+  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const startOffset = collapsed ? getCollapsedOffset() : 0;
+    dragRef.current = { pointerId: event.pointerId, startY: event.clientY, startOffset, currentOffset: startOffset, moved: false };
+    setDragOffset(startOffset);
+    setDragging(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const moveDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current.pointerId !== event.pointerId) return;
+    const delta = event.clientY - dragRef.current.startY;
+    const nextOffset = Math.min(getCollapsedOffset(), Math.max(0, dragRef.current.startOffset + delta));
+    dragRef.current.currentOffset = nextOffset;
+    dragRef.current.moved ||= Math.abs(delta) > 4;
+    setDragOffset(nextOffset);
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current.pointerId !== event.pointerId) return;
+    const distance = dragRef.current.currentOffset - dragRef.current.startOffset;
+    if (dragRef.current.moved) {
+      setCollapsed(collapsed ? distance > -COLLAPSE_THRESHOLD : distance >= COLLAPSE_THRESHOLD);
+    }
+    setDragging(false);
+    setDragOffset(0);
+    dragRef.current.pointerId = -1;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
+  const cancelDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragRef.current.pointerId !== event.pointerId) return;
+    setDragging(false);
+    setDragOffset(0);
+    dragRef.current.pointerId = -1;
+  };
+
   return (
-    <section aria-label="주문 정보" className="fixed inset-x-0 bottom-0 z-30 mx-auto max-h-[72dvh] w-full max-w-[430px] overflow-y-auto bg-white px-4 pt-[13px] shadow-[0_0_5px_rgba(0,0,0,0.1)]" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+    <section
+      ref={panelRef}
+      aria-label="주문 정보"
+      className={`fixed inset-x-0 bottom-0 z-30 mx-auto max-h-[72dvh] w-full max-w-[430px] overflow-hidden bg-white shadow-[0_0_5px_rgba(0,0,0,0.1)] ${dragging ? '' : 'transition-transform duration-200 ease-out'}`}
+      style={{ transform: dragging ? `translateY(${dragOffset}px)` : collapsed ? `translateY(calc(100% - ${HANDLE_HEIGHT}px))` : 'translateY(0)' }}
+    >
+      <button
+        type="button"
+        aria-label={collapsed ? '주문 정보 펼치기' : '주문 정보 접기'}
+        aria-expanded={!collapsed}
+        className="flex h-[26px] w-full touch-none cursor-grab items-center justify-center active:cursor-grabbing"
+        onClick={() => { if (!dragRef.current.moved) setCollapsed((current) => !current); dragRef.current.moved = false; }}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={cancelDrag}
+      >
+        <span aria-hidden className="h-1 w-10 rounded-full bg-neutral-5" />
+      </button>
+      <div className="max-h-[calc(72dvh-26px)] overflow-y-auto px-4" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
       {lines.length > 0 ? (
         <ul className="mb-[10px] space-y-2">
           {lines.map((line) => (
@@ -50,6 +119,7 @@ export default function QrshopCartPanel(props: Props) {
       <label className="mt-[10px] flex cursor-pointer items-center gap-[5px] typo-body-xxsmall text-neutral-7"><input type="checkbox" checked={agreed} disabled={lines.length === 0} onChange={(event) => props.onAgreementChange(event.target.checked)} className="h-[13px] w-[13px] rounded accent-orange-5" />결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.</label>
       {error ? <p role="alert" className="mt-2 typo-body-xxsmall text-danger">{error}</p> : null}
       <Button color="orange" size="s" status={canSubmit ? 'default' : 'disabled'} disabled={!canSubmit} className="mt-[14px] h-[35px] rounded-[4px]" onClick={props.onSubmit}>{submitting ? '주문 정보를 저장하는 중…' : '결제하기'}</Button>
+      </div>
     </section>
   );
 }

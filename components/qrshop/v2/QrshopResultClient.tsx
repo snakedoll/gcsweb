@@ -21,7 +21,7 @@ export default function QrshopResultClient() {
     return () => { cancelled = true; };
   }, [orderId]);
 
-  if (error) return <QrshopStateView title="주문 결과를 확인할 수 없습니다" description={error} actionLabel="처음으로" onAction={() => router.push('/QRshop')} />;
+  if (error) return <QrshopStateView title="주문 결과를 확인할 수 없습니다" description={error} actionLabel="처음으로" onAction={() => router.push('/QRshop/v2')} />;
   if (!order) return <div role="status" className="flex min-h-dvh items-center justify-center typo-body-small text-neutral-8">주문 결과를 확인하는 중입니다.</div>;
 
   if (order.status === 'failed') {
@@ -31,15 +31,15 @@ export default function QrshopResultClient() {
         <h1 className="typo-heading-small mt-5 text-neutral-12">결제에 실패했습니다</h1>
         <p className="typo-body-small mt-2 text-neutral-8">{order.failureMessage ?? '결제를 완료하지 못했습니다.'}</p>
         <div className="mt-8 w-full max-w-[343px] space-y-2">
-          <Button color="orange" onClick={() => router.push(`/QRshop/pay?orderId=${encodeURIComponent(order.orderId)}`)}>결제 다시 시도</Button>
-          <Button color="white" onClick={() => router.push('/QRshop')}>상품 다시 고르기</Button>
+          <Button color="orange" onClick={() => router.push(`/QRshop/v2/pay?orderId=${encodeURIComponent(order.orderId)}`)}>결제 다시 시도</Button>
+          <Button color="white" onClick={() => router.push('/QRshop/v2')}>상품 다시 고르기</Button>
         </div>
       </main>
     );
   }
 
   if (order.status === 'pending') {
-    return <QrshopStateView title="아직 결제가 끝나지 않았습니다" description="결제 화면에서 가짜 결제를 완료해 주세요." actionLabel="결제 화면으로" onAction={() => router.push(`/QRshop/pay?orderId=${encodeURIComponent(order.orderId)}`)} />;
+    return <QrshopStateView title="아직 결제가 끝나지 않았습니다" description="결제 화면에서 가짜 결제를 완료해 주세요." actionLabel="결제 화면으로" onAction={() => router.push(`/QRshop/v2/pay?orderId=${encodeURIComponent(order.orderId)}`)} />;
   }
 
   const date = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).format(new Date(order.createdAt));
@@ -60,7 +60,7 @@ export default function QrshopResultClient() {
           ))}
         </ul>
       </section>
-      <Button className="mt-auto rounded-[4px]" color="orange" onClick={() => router.push('/QRshop')}>처음으로</Button>
+      <Button className="mt-auto rounded-[4px]" color="orange" onClick={() => router.push('/QRshop/v2')}>처음으로</Button>
     </main>
   );
 }
