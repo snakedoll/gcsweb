@@ -225,7 +225,7 @@ function ResultContent() {
         <button
           type="button"
           className="mt-auto w-full max-w-[320px] rounded-[14px] bg-orange-5 py-4 text-[16px] font-semibold text-white"
-          onClick={() => router.push('/QRshop')}
+          onClick={() => router.push('/QRshop/v1')}
         >
           처음으로
         </button>
@@ -240,7 +240,7 @@ function ResultContent() {
       <button
         type="button"
         className="w-full max-w-[320px] rounded-[14px] bg-orange-5 py-4 text-[16px] font-semibold text-white"
-        onClick={() => router.push('/QRshop')}
+        onClick={() => router.push('/QRshop/v1')}
       >
         다시 주문하기
       </button>

@@ -32,14 +32,14 @@ export default function QrshopPayClient() {
     try {
       await qrshopMockService.processPayment(orderId, outcome);
       setPaymentState(outcome === 'success' ? 'succeeded' : 'failed');
-      router.push(`/QRshop/v2/result?orderId=${encodeURIComponent(orderId)}`);
+      router.push(`/QRshop/result?orderId=${encodeURIComponent(orderId)}`);
     } catch (reason) {
       setPaymentState('failed');
       setError(reason instanceof Error ? reason.message : '가짜 결제를 처리하지 못했습니다.');
     }
   };
 
-  if (error && !order) return <QrshopStateView title="결제를 시작할 수 없습니다" description={error} actionLabel="상품 다시 고르기" onAction={() => router.push('/QRshop/v2')} />;
+  if (error && !order) return <QrshopStateView title="결제를 시작할 수 없습니다" description={error} actionLabel="상품 다시 고르기" onAction={() => router.push('/QRshop')} />;
   if (!order) return <div role="status" className="flex min-h-dvh items-center justify-center typo-body-small text-neutral-8">주문 정보를 불러오는 중입니다.</div>;
 
   return (
@@ -64,7 +64,7 @@ export default function QrshopPayClient() {
       <div className="mt-auto space-y-2 pt-10">
         <Button color="orange" disabled={paymentState === 'processing'} onClick={() => void process('success')}>{paymentState === 'processing' ? '처리 중…' : order.status === 'failed' ? '결제 다시 시도' : '결제 완료하기'}</Button>
         <Button color="white" disabled={paymentState === 'processing'} onClick={() => void process('failure')}>결제 실패 상태 확인</Button>
-        <button type="button" className="w-full py-2 typo-body-xsmall text-neutral-8" onClick={() => router.push('/QRshop/v2')}>상품 선택으로 돌아가기</button>
+        <button type="button" className="w-full py-2 typo-body-xsmall text-neutral-8" onClick={() => router.push('/QRshop')}>상품 선택으로 돌아가기</button>
       </div>
     </main>
   );

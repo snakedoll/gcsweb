@@ -45,7 +45,7 @@ describe('salesManagementMockService', () => {
     ).resolves.toMatchObject({
       id: 'store-paper-shop',
       name: '종이 상점',
-      visitorOrderUrl: '/QRshop/v2?store=paper-shop',
+      visitorOrderUrl: '/QRshop?store=paper-shop',
     });
   });
 

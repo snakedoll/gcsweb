@@ -26,7 +26,7 @@ async function createOrderThroughScreen() {
   fireEvent.change(screen.getByLabelText('휴대폰 번호'), { target: { value: '010-1234-5678' } });
   fireEvent.click(screen.getByRole('checkbox'));
   fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
-  await waitFor(() => expect(navigation.push).toHaveBeenCalledWith(expect.stringMatching(/^\/QRshop\/v2\/pay\?orderId=.+/)));
+  await waitFor(() => expect(navigation.push).toHaveBeenCalledWith(expect.stringMatching(/^\/QRshop\/pay\?orderId=.+/)));
   const payUrl = new URL(navigation.push.mock.lastCall![0], 'https://example.test');
   navigation.query = payUrl.search;
   view.unmount();
@@ -38,20 +38,20 @@ describe('QRshop v2 화면 연결', () => {
     const payUrl = await createOrderThroughScreen();
     const pay = render(<QrshopPayClient />);
     fireEvent.click(await screen.findByRole('button', { name: '결제 완료하기' }));
-    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/v2/result${payUrl.search}`));
+    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
     pay.unmount();
 
     render(<QrshopResultClient />);
     expect(await screen.findByRole('heading', { name: '결제가 완료되었습니다' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '처음으로' }));
-    expect(navigation.push).toHaveBeenLastCalledWith('/QRshop/v2');
+    expect(navigation.push).toHaveBeenLastCalledWith('/QRshop');
   });
 
   it('실패한 결제의 재시도도 같은 v2 주문으로 연결한다', async () => {
     const payUrl = await createOrderThroughScreen();
     const pay = render(<QrshopPayClient />);
     fireEvent.click(await screen.findByRole('button', { name: '결제 실패 상태 확인' }));
-    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/v2/result${payUrl.search}`));
+    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
     pay.unmount();
 
     render(<QrshopResultClient />);
