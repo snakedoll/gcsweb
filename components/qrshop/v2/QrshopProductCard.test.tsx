@@ -32,4 +32,14 @@ describe('QrshopProductCard', () => {
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('img', { name: '장바구니에 담김' })).toHaveClass('bg-orange-5');
   });
+
+  it('모든 옵션이 품절된 상품은 품절 상태를 표시하고 선택할 수 없다', () => {
+    const onSelect = vi.fn();
+    render(<QrshopProductCard product={product} selected={false} soldOut onSelect={onSelect} />);
+
+    expect(screen.getByText('품절')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /무슨무슨 키링 BLACK 품절/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button'));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });

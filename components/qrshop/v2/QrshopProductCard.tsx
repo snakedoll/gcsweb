@@ -2,20 +2,21 @@ import Image from 'next/image';
 import { formatWon } from '@/lib/utils';
 import type { QrshopProduct } from '@/types/qrshop';
 
-type QrshopProductCardProps = { product: QrshopProduct; selected: boolean; onSelect: () => void };
+type QrshopProductCardProps = { product: QrshopProduct; selected: boolean; soldOut?: boolean; onSelect: () => void };
 
-export default function QrshopProductCard({ product, selected, onSelect }: QrshopProductCardProps) {
+export default function QrshopProductCard({ product, selected, soldOut = false, onSelect }: QrshopProductCardProps) {
   return (
-    <button type="button" aria-pressed={selected} aria-label={`${product.name} ${product.option ?? ''} 담기`} className="group flex min-w-0 flex-col overflow-hidden rounded-[4px] bg-neutral-1 text-left transition active:scale-[0.98]" onClick={onSelect}>
+    <button type="button" disabled={soldOut} aria-pressed={selected} aria-label={`${product.name} ${product.option ?? ''} ${soldOut ? '품절' : '담기'}`} className={`group flex min-w-0 flex-col overflow-hidden rounded-[4px] bg-neutral-1 text-left transition ${soldOut ? 'cursor-not-allowed' : 'active:scale-[0.98]'}`} onClick={onSelect}>
       <span className="relative block aspect-square w-full overflow-hidden rounded-t-[4px] bg-neutral-4">
-        <Image src={product.imageUrl ?? '/assets/qrshop/product-placeholder.png'} alt="" fill sizes="(max-width: 430px) 46vw, 180px" className="object-cover" />
+        <Image src={product.imageUrl ?? '/assets/qrshop/product-placeholder.png'} alt="" fill sizes="(max-width: 430px) 46vw, 180px" className={`object-cover ${soldOut ? 'opacity-50' : ''}`} />
       </span>
       <span className="flex h-[75px] w-full flex-col px-3 pb-[9px] pt-[7px]">
         <span className="typo-body-xsmall-bold truncate text-neutral-13">{product.name}</span>
         <span className="typo-body-xxsmall truncate text-neutral-7">{product.option ?? '단일 옵션'}</span>
         <span className="mt-auto flex items-center justify-between gap-2">
           <span className="typo-body-xsmall-bold text-neutral-12">{formatWon(product.price)}</span>
-          {selected ? (
+          {soldOut ? <span className="typo-body-xsmall-bold text-orange-5">품절</span> : null}
+          {!soldOut && selected ? (
             <span
               role="img"
               aria-label="장바구니에 담김"
