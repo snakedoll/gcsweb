@@ -40,7 +40,11 @@ export default function QrshopOrderClient() {
   const categories = useMemo(() => {
     const unique = new Map<string, string>();
     for (const product of catalog.products) unique.set(product.categoryId, product.categoryName);
-    return [{ id: 'all', name: '전체' }, ...[...unique].map(([id, name]) => ({ id, name }))];
+    return [
+      { id: 'all', name: '전체' },
+      ...[...unique].map(([id, name]) => ({ id, name })),
+      ...(catalog.products.some((product) => product.soldOut) ? [{ id: 'soldout', name: '품절' }] : []),
+    ];
   }, [catalog.products]);
   const productGroups = useMemo(() => {
     const groups = new Map<string, QrshopProduct[]>();
@@ -50,9 +54,11 @@ export default function QrshopOrderClient() {
     }
     return [...groups.entries()].map(([key, products]) => ({ key, products }));
   }, [catalog.products]);
-  const visibleGroups = useMemo(() => selectedCategory === 'all'
-    ? productGroups
-    : productGroups.filter(({ products }) => products[0]?.categoryId === selectedCategory), [productGroups, selectedCategory]);
+  const visibleGroups = useMemo(() => {
+    if (selectedCategory === 'all') return productGroups;
+    if (selectedCategory === 'soldout') return productGroups.filter(({ products }) => products.some((product) => product.soldOut));
+    return productGroups.filter(({ products }) => products[0]?.categoryId === selectedCategory);
+  }, [productGroups, selectedCategory]);
   const lines = useMemo<QrshopCartLine[]>(() => catalog.products.flatMap((product) => {
     const quantity = quantities[product.id] ?? 0;
     return quantity > 0 ? [{ productId: product.id, productName: product.name, option: product.option, quantity, unitPrice: product.price }] : [];
@@ -63,7 +69,7 @@ export default function QrshopOrderClient() {
   };
   const submit = async () => {
     if (submitting) return;
-    if (scenario === 'soldout' && lines[0]) {
+    if ((scenario === 'soldout' || selectedCategory === 'soldout') && lines[0]) {
       updateQuantity(lines[0].productId, 0);
       setAgreed(false);
       setSoldOutProductName(lines[0].productName);
@@ -88,7 +94,8 @@ export default function QrshopOrderClient() {
       <section aria-label="상품 목록" className="grid grid-cols-2 gap-x-[5px] gap-y-3 px-4 pt-4">
         {visibleGroups.map(({ key, products }) => {
           const product = products.reduce((lowest, current) => current.price < lowest.price ? current : lowest);
-          return <QrshopProductCard key={key} product={product} selected={products.some((item) => (quantities[item.id] ?? 0) > 0)} onSelect={() => setOptionProducts(products)} />;
+          const soldOut = products.every((item) => item.soldOut);
+          return <QrshopProductCard key={key} product={product} selected={products.some((item) => (quantities[item.id] ?? 0) > 0)} soldOut={soldOut} onSelect={() => setOptionProducts(products)} />;
         })}
       </section>
       <QrshopCartPanel lines={lines} agreed={agreed} submitting={submitting} error={submitError} onAgreementChange={setAgreed} onQuantityChange={updateQuantity} onRemove={(productId) => updateQuantity(productId, 0)} onSubmit={() => void submit()} />

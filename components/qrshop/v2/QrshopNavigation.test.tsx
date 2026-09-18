@@ -34,15 +34,33 @@ async function createOrderThroughScreen() {
 }
 
 describe('QRshop v2 화면 연결', () => {
-  it('상품 클릭 시 옵션을 복수 선택해 결제 목록에 반영한다', async () => {
+  it('상품 클릭 시 판매 중인 옵션을 결제 목록에 반영한다', async () => {
     render(<QrshopOrderClient />);
     fireEvent.click(await screen.findByRole('button', { name: '무슨무슨 키링 BLACK 담기' }));
     expect(screen.getByText('옵션은 복수선택 가능합니다.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
-    fireEvent.click(screen.getByRole('button', { name: 'ORANGE' }));
+    expect(screen.getByRole('button', { name: /ORANGE.*품절/ })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: '완료' }));
     expect(screen.getAllByText('BLACK')).toHaveLength(2);
-    expect(screen.getAllByText('ORANGE')).toHaveLength(2);
+  });
+
+  it('품절 탭에서 카드·옵션·결제 시 품절 자동 제외 흐름을 확인한다', async () => {
+    render(<QrshopOrderClient />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '품절' }));
+    expect(screen.getByRole('button', { name: /소원 엽서 BLUE 품절/ })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '무슨무슨 키링 BLACK 담기' }));
+    expect(screen.getByRole('button', { name: /ORANGE.*품절/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
+
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('무슨무슨 키링이 품절되었습니다.');
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('품절된 상품은 자동으로 결제 목록에서 제외됩니다.');
+    expect(screen.queryByText('무슨무슨 키링 BLACK')).not.toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
   });
 
   it('상품 주문부터 결제 완료와 처음으로 이동까지 v2 주소를 유지한다', async () => {

@@ -20,6 +20,7 @@ export const qrshopProducts: QrshopProduct[] = [
     option: 'ORANGE',
     price: 15_000,
     imageUrl: PRODUCT_IMAGE,
+    soldOut: true,
   },
   {
     id: 'postcard-lotus',
@@ -38,6 +39,7 @@ export const qrshopProducts: QrshopProduct[] = [
     option: 'BLUE',
     price: 2_000,
     imageUrl: PRODUCT_IMAGE,
+    soldOut: true,
   },
   {
     id: 'tshirt-small',
