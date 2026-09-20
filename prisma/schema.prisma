@@ -32,7 +32,6 @@ model User {
   likes               Like[]
   notifications       Notification[]
   orders              Order[]
-  posts               Post[]
   scraps              Scrap[]
   teams               Team[]
 
@@ -327,19 +326,15 @@ model Scrap {
   projectId String?
   productId String?
   createdAt DateTime @default(now())
-  postId    String?
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
   @@unique([userId, productId])
-  @@unique([userId, postId])
   @@index([userId])
   @@index([projectId])
   @@index([productId])
-  @@index([postId])
 }
 
 model Image {
@@ -353,30 +348,6 @@ model Image {
 
   @@index([usage])
   @@map("Image")
-}
-
-model Post {
-  id           String   @id @default(cuid())
-  userId       String
-  category     Int      @default(0)
-  title        String
-  subTitle     String?
-  content      String
-  thumbnailUrl String?
-  images       String[]
-  likeCount    Int      @default(0)
-  viewCount    Int      @default(0)
-  isPublic     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  likes        Like[]
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scraps       Scrap[]
-
-  @@index([userId])
-  @@index([category])
-  @@index([isPublic])
-  @@index([createdAt])
 }
 
 model Category {
@@ -472,16 +443,13 @@ model Like {
   id        String   @id @default(cuid())
   userId    String
   productId String?
-  postId    String?
   projectId String?
   createdAt DateTime @default(now())
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
-  @@unique([userId, postId])
   @@unique([userId, projectId])
   @@index([userId])
 }
