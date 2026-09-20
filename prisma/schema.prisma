@@ -350,11 +350,6 @@ model Image {
   @@map("Image")
 }
 
-model Category {
-  id       String @id @default(cuid())
-  category String @unique
-}
-
 model ProjectCategory {
   id       String    @id @default(cuid()) @map("categoryId")
   category String
