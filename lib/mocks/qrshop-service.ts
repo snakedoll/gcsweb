@@ -7,7 +7,7 @@ import type {
   QrshopProduct,
 } from '@/types/qrshop';
 import { resolveMockScenario, type MockScenario } from './mock-service';
-import { qrshopProducts } from './qrshop-data';
+import { qrshopQaProducts } from './qrshop-data';
 
 const STORAGE_KEY = 'gcs:qrshop:mock-orders';
 
@@ -67,8 +67,8 @@ export function createQrshopMockService(
 ): QrshopService {
   const delayMs = Math.max(0, options.delayMs ?? 250);
   const defaultCatalog: ListResult<QrshopProduct> = {
-    items: qrshopProducts,
-    total: qrshopProducts.length,
+    items: qrshopQaProducts,
+    total: qrshopQaProducts.length,
   };
 
   return {

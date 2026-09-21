@@ -33,7 +33,7 @@ export default function QrshopOptionModal({ products, selectedIds, onClose, onCo
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="qrshop-option-title" className="w-full max-w-[343px] rounded-[12px] bg-white px-[21px] pb-8 pt-7">
         <header className="text-center">
-          <h2 id="qrshop-option-title" className="typo-heading-xsmall text-black">{products[0]?.name}</h2>
+          <h2 id="qrshop-option-title" className="typo-heading-xsmall break-words text-black">{products[0]?.name}</h2>
           <p className="mt-0.5 typo-body-xsmall text-neutral-8">옵션은 복수선택 가능합니다.</p>
         </header>
         <div className="mt-[17px] max-h-[268px] space-y-2 overflow-y-auto">

@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createQrshopMockService, qrshopMockService } from '@/lib/mocks';
+import {
+  createQrshopMockService,
+  qrshopMockService,
+  qrshopQaProducts,
+} from '@/lib/mocks';
 import type { QrshopCartLine, QrshopProduct } from '@/types/qrshop';
 import QrshopCartPanel from './QrshopCartPanel';
 import QrshopOptionModal from './QrshopOptionModal';
@@ -19,6 +23,13 @@ export default function QrshopOrderClient() {
   const service = useMemo(() => {
     if (scenario === 'empty') return createQrshopMockService({ catalogScenario: { kind: 'empty', data: { items: [], total: 0 }, delayMs: 200 } });
     if (scenario === 'error') return createQrshopMockService({ catalogScenario: { kind: 'error', message: '상품을 불러오지 못했습니다.', delayMs: 200 } });
+    if (scenario === 'edge-cases') return createQrshopMockService({
+      catalogScenario: {
+        kind: 'success',
+        data: { items: qrshopQaProducts, total: qrshopQaProducts.length },
+        delayMs: 100,
+      },
+    });
     return qrshopMockService;
   }, [scenario]);
   const [catalog, setCatalog] = useState<CatalogState>({ status: 'loading', products: [] });
@@ -95,7 +106,19 @@ export default function QrshopOrderClient() {
         {visibleGroups.map(({ key, products }) => {
           const product = products.reduce((lowest, current) => current.price < lowest.price ? current : lowest);
           const soldOut = products.every((item) => item.soldOut);
-          return <QrshopProductCard key={key} product={product} selected={products.some((item) => (quantities[item.id] ?? 0) > 0)} soldOut={soldOut} onSelect={() => setOptionProducts(products)} />;
+          return (
+            <QrshopProductCard
+              key={key}
+              product={product}
+              optionNames={products.flatMap((item) => item.option ? [item.option] : [])}
+              selected={products.some((item) => (quantities[item.id] ?? 0) > 0)}
+              soldOut={soldOut}
+              onSelect={() => {
+                if (soldOut) setSoldOutProductName(product.name);
+                else setOptionProducts(products);
+              }}
+            />
+          );
         })}
       </section>
       <QrshopCartPanel lines={lines} agreed={agreed} submitting={submitting} error={submitError} onAgreementChange={setAgreed} onQuantityChange={updateQuantity} onRemove={(productId) => updateQuantity(productId, 0)} onSubmit={() => void submit()} />
