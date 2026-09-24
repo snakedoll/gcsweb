@@ -22,6 +22,14 @@ export interface SalesManagementLandingV2Service extends SalesManagementLandingS
   getVisitorOrderQr(): Promise<VisitorOrderQr>;
 }
 
+export interface SalesManagementV2Service extends SalesManagementLandingV2Service {
+  getProducts(): Promise<ListResult<SalesProduct> & { newestProductId: string | null }>;
+  getCategories(): Promise<string[]>;
+  createCategory(name: string): Promise<string>;
+  // Product price is the base price; option.price is an additional amount in v2.
+  saveProduct(input: ProductFormInput, id?: string): Promise<SalesProduct>;
+}
+
 export interface SalesManagementService {
   getStore(): Promise<SalesStore | null>;
   checkStoreIdentifier(storeIdentifier: StoreFormInput['storeIdentifier']): Promise<boolean>;

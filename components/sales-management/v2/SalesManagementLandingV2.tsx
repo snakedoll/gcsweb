@@ -9,6 +9,7 @@ import { createMockLandingV2Service, type LandingV2MockState } from '@/lib/mocks
 import type { SalesManagementLandingV2Service } from '@/lib/services/sales-management-service';
 import type { SalesProduct, SellerLandingSummary, VisitorOrderQr } from '@/types/sales-management';
 import VisitorQrDialog, { LandingDialog } from './VisitorQrDialog';
+import { useSalesManagementV2Service } from './SalesManagementV2Provider';
 import styles from './landing.module.css';
 
 const assetRoot = '/assets/sales-management/v2';
@@ -40,7 +41,8 @@ export function LandingV2Loading() {
 export default function SalesManagementLandingV2({ mockState = 'success', service: providedService }: {
   mockState?: LandingV2MockState; service?: SalesManagementLandingV2Service;
 }) {
-  const [service] = useState(() => providedService ?? createMockLandingV2Service(mockState));
+  const sharedService = useSalesManagementV2Service();
+  const [service] = useState(() => providedService ?? sharedService ?? createMockLandingV2Service(mockState));
   const [summary, setSummary] = useState<SellerLandingSummary | null>(null);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string } | null>(null);
@@ -160,7 +162,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
     </section>
 
     {summary.productCount ? <section className={styles.products} aria-label="상품 관리">
-      <button type="button" className={styles.sectionHeading} onClick={comingSoon}>상품 관리<Image src={`${assetRoot}/right.svg`} alt="" width={24} height={24} /></button>
+      <Link className={styles.sectionHeading} href="/sales-management/v2/products">상품 관리<Image src={`${assetRoot}/right.svg`} alt="" width={24} height={24} /></Link>
       <p className={styles.recentLabel}>최근 등록 상품</p>
       <div className={styles.carousel}>
         <ul ref={productsRef} className={styles.productList} aria-label="최근 등록 상품" onScroll={event => {
@@ -168,14 +170,14 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
           setAtEnd(list.scrollLeft + list.clientWidth >= list.scrollWidth - 1);
         }}>
           {summary.recentProducts.map(product => <li key={product.id} className={styles.productCard}>
-            <Image src={product.imageUrl ?? '/assets/qrshop/product-placeholder.png'} alt={product.name} width={140} height={140} className={styles.productImage} />
+            <Image src={product.imageUrl ?? '/assets/qrshop/product-placeholder.png'} alt={product.name} width={140} height={140} className={styles.productImage} unoptimized />
             <div className={styles.productInfo}>
               <div><div className={styles.productName}><span>{product.category}</span><h3>{product.name}</h3></div>
                 <p className={styles.price}>{format(product.price)}원</p>
                 <p className={styles.stock}>옵션 {product.options.length}개 / 재고 {format(product.stock)}개</p>
               </div>
               <div className={styles.productActions}>
-                <Button color="white" size="s" onClick={comingSoon} aria-label={`${product.name} 수정`}>수정</Button>
+                <Link href={`/sales-management/v2/products/${product.id}/edit`} aria-label={`${product.name} 수정`}>수정</Link>
                 <Button color="white" size="s" onClick={() => { setDeleteError(''); setDeleting(product); }} aria-label={`${product.name} 삭제`}>삭제</Button>
               </div>
             </div>
@@ -187,7 +189,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
       </div>
     </section> : <section className={`${styles.emptyProducts} ${summary.store ? styles.storeOnly : ''}`} aria-label="상품 관리">
       <h2>아직 상품이 등록 되지 않았어요!</h2>
-      {summary.store ? <Link href="/sales-management/products" className={styles.registerLink}>상품 등록 하러가기</Link>
+      {summary.store ? <Link href="/sales-management/v2/products/new" className={styles.registerLink}>상품 등록 하러가기</Link>
         : <p>상점 등록 후 상품 등록이 가능해요</p>}
     </section>}
 

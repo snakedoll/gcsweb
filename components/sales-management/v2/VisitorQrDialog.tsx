@@ -21,7 +21,7 @@ export function LandingDialog({ children, label, onDismiss, className = '' }: {
       dialog?.close();
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected) previousFocus.focus();
-      else document.getElementById('landing-title')?.focus();
+      else (document.getElementById('landing-title') ?? document.getElementById('products-title'))?.focus();
     };
   }, []);
 
