@@ -5,12 +5,21 @@ import type {
   SalesProduct,
   SalesStore,
   SellerSummary,
+  SellerLandingSummary,
+  VisitorOrderQr,
   StoreFormInput,
 } from '@/types/sales-management';
 import type { ListResult } from './contracts';
 
 export interface SalesManagementLandingService {
   getSellerSummary(): Promise<SellerSummary>;
+}
+
+export interface SalesManagementLandingV2Service extends SalesManagementLandingService {
+  getSellerSummary(): Promise<SellerLandingSummary>;
+  updateStoreImage(file: File): Promise<SalesStore>;
+  deleteProduct(productId: SalesProduct['id']): Promise<SellerLandingSummary>;
+  getVisitorOrderQr(): Promise<VisitorOrderQr>;
 }
 
 export interface SalesManagementService {

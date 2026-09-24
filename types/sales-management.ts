@@ -26,6 +26,17 @@ export interface SellerSummary {
   lowStockCount: number;
 }
 
+export interface SellerLandingSummary extends SellerSummary {
+  todayRevenue: number;
+  todaySalesCount: number;
+  recentProducts: SalesProduct[];
+}
+
+export interface VisitorOrderQr {
+  imageUrl: string;
+  visitorOrderUrl: string;
+}
+
 export interface SalesProduct {
   id: string;
   storeId: SalesStore['id'];
