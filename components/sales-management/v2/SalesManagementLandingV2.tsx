@@ -142,7 +142,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
           <div className={styles.profileInfo}>
             <div><h2>{summary.store.name}</h2><p>@{summary.store.storeIdentifier}</p></div>
             <div className={styles.profileActions}>
-              <Button color="white" size="s" className={styles.editStore} onClick={comingSoon}>수정하기</Button>
+              <Link className={styles.editStore} href="/sales-management/v2/store">수정하기</Link>
               <Button color="white" size="s" className={styles.qrButton} disabled={qrPending} onClick={openQr}
                 leftIcon={<Image src={`${assetRoot}/qr-icon.svg`} alt="" width={17} height={17} />}>QR 발급받기</Button>
             </div>
@@ -150,7 +150,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
         </> : <>
           <div className={styles.photo} aria-hidden="true" />
           <div className={styles.noStore}><h2>아직 상점이 등록되지 않았어요!</h2>
-            <Link className={styles.registerLink} href="/sales-management/store">상점 등록 하러가기</Link>
+            <Link className={styles.registerLink} href="/sales-management/v2/store">상점 등록 하러가기</Link>
           </div>
         </>}
       </div>

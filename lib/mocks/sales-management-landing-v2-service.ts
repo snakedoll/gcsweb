@@ -60,7 +60,36 @@ export function createMockLandingV2Service(
     recentProducts: products.slice(0, 6).map(product => ({ ...product, options: product.options.map(option => ({ ...option })) })),
   });
 
+  const unavailableIdentifiers = new Set(['admin', 'taken123']);
+  const validIdentifier = (value: string) => /^[a-z0-9]{4,20}$/.test(value);
+
   return {
+    async getStore() { return store ? { ...store } : null; },
+    async checkStoreIdentifier(identifier) {
+      return validIdentifier(identifier) && (identifier === store?.storeIdentifier || !unavailableIdentifiers.has(identifier));
+    },
+    async saveStore(input) {
+      const identifier = input.storeIdentifier;
+      if (input.name.trim().length < 2 || !validIdentifier(identifier)) {
+        throw new MockServiceError('상점명과 상점 아이디를 확인해주세요.');
+      }
+      if (identifier !== store?.storeIdentifier && unavailableIdentifiers.has(identifier)) {
+        throw new MockServiceError('이미 사용 중인 상점 아이디입니다.');
+      }
+      store = {
+        ...store, id: store?.id ?? 'landing-store', hasSalesHistory: store?.hasSalesHistory ?? false,
+        name: input.name.trim(), storeIdentifier: identifier,
+        visitorOrderUrl: `https://www.gcsweb.kr/QRshop/v2?store=${encodeURIComponent(identifier)}`,
+      };
+      return { ...store };
+    },
+    async deleteStore() {
+      if (!store) throw new MockServiceError('상점을 찾을 수 없어요.');
+      if (store.hasSalesHistory) throw new MockServiceError('판매 이력이 있는 상점은 삭제할 수 없어요.');
+      products = products.filter(product => product.storeId !== store!.id);
+      newestProductId = null;
+      store = null;
+    },
     async getProducts() { return { items: products.map(copy), total: products.length, newestProductId }; },
     async getCategories() { return [...categories]; },
     async createCategory(name) {

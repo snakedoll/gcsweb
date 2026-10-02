@@ -23,6 +23,10 @@ export interface SalesManagementLandingV2Service extends SalesManagementLandingS
 }
 
 export interface SalesManagementV2Service extends SalesManagementLandingV2Service {
+  getStore(): Promise<SalesStore | null>;
+  checkStoreIdentifier(identifier: string): Promise<boolean>;
+  saveStore(input: StoreFormInput): Promise<SalesStore>;
+  deleteStore(): Promise<void>;
   getProducts(): Promise<ListResult<SalesProduct> & { newestProductId: string | null }>;
   getCategories(): Promise<string[]>;
   createCategory(name: string): Promise<string>;
