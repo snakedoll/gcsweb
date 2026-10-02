@@ -5,6 +5,7 @@ import Tag from '@/components/ui/common/Tag';
 import type { SalesProduct } from '@/types/sales-management';
 import { productAssets, productsPath } from './ProductsShell';
 import styles from './products.module.css';
+import { truncate } from '../truncate';
 
 export default function ProductGrid({ products, newestProductId, onDelete }: {
   products: SalesProduct[]; newestProductId?: string | null; onDelete: (product: SalesProduct) => void;
@@ -19,11 +20,11 @@ export default function ProductGrid({ products, newestProductId, onDelete }: {
         <div className={styles.cardName}>
           {newestProductId === product.id && <span className={styles.newTag}>NEW</span>}
           {product.category && <Tag contents={product.category} className={styles.tag} />}
-          <h2>{product.name}</h2>
+          <h2 title={product.name}>{truncate(product.name, 11)}</h2>
         </div>
         <p className={styles.price}>{product.price.toLocaleString('ko-KR')}원</p>
         <div className={styles.inventory}>
-          {product.options.length > 0 && <p>{product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', ')}</p>}
+          {product.options.length > 0 && <p title={product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', ')}>{truncate(product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', '), 21)}</p>}
           <p>총재고 {product.stock.toLocaleString('ko-KR')}개</p>
         </div>
         <div className={styles.cardActions}>

@@ -11,6 +11,7 @@ import type { SalesProduct, SellerLandingSummary, VisitorOrderQr } from '@/types
 import VisitorQrDialog, { LandingDialog } from './VisitorQrDialog';
 import { useSalesManagementV2Service } from './SalesManagementV2Provider';
 import styles from './landing.module.css';
+import { truncate } from './truncate';
 
 const assetRoot = '/assets/sales-management/v2';
 const format = (value: number) => value.toLocaleString('ko-KR');
@@ -172,7 +173,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
           {summary.recentProducts.map(product => <li key={product.id} className={styles.productCard}>
             <Image src={product.imageUrl ?? '/assets/qrshop/product-placeholder.png'} alt={product.name} width={140} height={140} className={styles.productImage} unoptimized />
             <div className={styles.productInfo}>
-              <div><div className={styles.productName}><span>{product.category}</span><h3>{product.name}</h3></div>
+              <div><div className={styles.productName}><span>{product.category}</span><h3 title={product.name}>{truncate(product.name, 8)}</h3></div>
                 <p className={styles.price}>{format(product.price)}원</p>
                 <p className={styles.stock}>옵션 {product.options.length}개 / 재고 {format(product.stock)}개</p>
               </div>

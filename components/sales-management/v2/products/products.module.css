@@ -29,11 +29,12 @@
 .bagImage { position: absolute; width: 100%; height: 125.93%; max-width: none; left: .11%; top: -6.61%; }
 .cardInfo { min-width: 0; flex: 1; }
 .cardName { display: flex; gap: 12px; align-items: center; }
-.cardName h2 { font-size: 24px; line-height: 36px; font-weight: 700; overflow-wrap: anywhere; }
+.cardName h2 { font-size: 24px; line-height: 36px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tag { max-width: 40%; overflow: hidden; padding: 1px 10px; background: var(--color-orange-3); border-radius: 4px; flex-shrink: 0; height: 32px; }
 .tag > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; line-height: 30px; color: var(--color-neutral-10); }
 .price { font-size: 24px; font-weight: 700; line-height: 36px; margin-top: 10px; }
-.inventory { margin-top: 8px; color: var(--color-neutral-8); font-size: 17px; line-height: 25.5px; overflow-wrap: anywhere; }
+.inventory { margin-top: 8px; color: var(--color-neutral-8); font-size: 17px; line-height: 25.5px; min-height: 55px; }
+.inventory p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inventory p + p { margin-top: 4px; }
 .cardActions { display: flex; gap: 11px; margin-top: 19px; }
 .cardActions a, .cardActions button { display: flex; justify-content: center; align-items: center; width: 100px; height: 45px; padding: 8px; border: 1px solid var(--color-neutral-6); border-radius: 6px; color: var(--color-neutral-7); background: var(--color-neutral-1); font-size: 19px; font-weight: 700; line-height: 28.5px; }
@@ -87,7 +88,8 @@
 .fields .submit:disabled { background: var(--color-orange-3); color: var(--color-neutral-2); }
 .registered { margin-top: 53px; }
 .registered > h2 { font-size: 22px; line-height: 33px; font-weight: 700; margin-bottom: 20px; }
-.dialog { width: min(497px, calc(100vw - 32px)); background: var(--color-neutral-2); border-radius: 12px; }
+.dialog { width: min(497px, calc(100vw - 32px)); background: var(--color-neutral-2); border-radius: 17.4px; }
+dialog.dialog::backdrop { background: rgb(0 0 0 / .3); }
 .dialog .modal { width: 100%; padding: 58px 40.5px 33px; }
 .dialog .modalTitle { width: 100%; font-size: 21.733px; line-height: 33px; }
 .modal > div { gap: 43.5px; }
@@ -99,7 +101,7 @@
   .main { margin: 0 32px; }
   .card { gap: 20px; padding: 22px; }
   .photo { width: 170px; height: 170px; }
-  .cardName { flex-wrap: wrap; gap: 4px 8px; }
+  .cardName { flex-wrap: nowrap; gap: 4px 8px; }
   .cardName h2 { font-size: 21px; line-height: 31px; }
   .cardActions { margin-top: 12px; }
   .optionPanel { padding: 20px; }
