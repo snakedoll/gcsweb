@@ -5,6 +5,7 @@ import SalesManagementLanding from './SalesManagementLanding';
 
 const registeredSummary: SellerSummary = {
   store: {
+    hasSalesHistory: true,
     id: 'store-1',
     name: '잇장샵',
     storeIdentifier: 'itjang-shop',

@@ -178,7 +178,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
               </div>
               <div className={styles.productActions}>
                 <Link href={`/sales-management/v2/products/${product.id}/edit`} aria-label={`${product.name} 수정`}>수정</Link>
-                <Button color="white" size="s" onClick={() => { setDeleteError(''); setDeleting(product); }} aria-label={`${product.name} 삭제`}>삭제</Button>
+                {!product.hasSalesHistory && <Button color="white" size="s" onClick={() => { setDeleteError(''); setDeleting(product); }} aria-label={`${product.name} 삭제`}>삭제</Button>}
               </div>
             </div>
           </li>)}

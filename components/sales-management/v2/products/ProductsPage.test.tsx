@@ -24,6 +24,13 @@ async function ready({ form = false, count = 36, id }: { form?: boolean; count?:
 }
 
 describe('상품 관리 v2 화면', () => {
+  it.each([false, true])('목록 및 등록 화면에서 판매 이력이 있는 큰 카드는 수정만 표시한다 (form=%s)', async form => {
+    await ready({ form, count: 3 });
+    const cards = within(screen.getByRole('list', { name: '상품 목록' })).getAllByRole('listitem');
+    expect(within(cards[0]).getByRole('button', { name: /삭제/ })).toBeInTheDocument();
+    expect(within(cards[2]).queryByRole('button', { name: /삭제/ })).not.toBeInTheDocument();
+    expect(within(cards[2]).getByRole('link', { name: /수정/ })).toBeInTheDocument();
+  });
   it('20개 경계, 검색과 카테고리 조합, 조건 변경 시 1페이지를 적용한다', async () => {
     await ready();
     const items = () => within(screen.getByRole('list', { name: '상품 목록' })).getAllByRole('listitem');

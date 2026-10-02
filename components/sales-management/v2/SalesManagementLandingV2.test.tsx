@@ -30,6 +30,14 @@ describe('판매관리 랜딩 v2', () => {
     expect(screen.getByRole('status')).toHaveTextContent('해당 기능은 상점/상품 등록 후 이용 가능합니다.');
   });
 
+  it('판매 이력이 있는 작은 카드는 수정만 표시한다', async () => {
+    await ready();
+    const cards = within(screen.getByRole('list', { name: '최근 등록 상품' })).getAllByRole('listitem');
+    expect(within(cards[0]).getByRole('button', { name: /삭제/ })).toBeInTheDocument();
+    expect(within(cards[2]).queryByRole('button', { name: /삭제/ })).not.toBeInTheDocument();
+    expect(within(cards[2]).getByRole('link', { name: /수정/ })).toBeInTheDocument();
+  });
+
   it('상점만 등록되어도 QR은 허용하고 바로가기는 상품 등록까지 제한한다', async () => {
     await ready(createMockLandingV2Service('store-only'));
     expect(screen.getByRole('link', { name: '상품 등록 하러가기' })).toHaveAttribute('href', '/sales-management/v2/products/new');

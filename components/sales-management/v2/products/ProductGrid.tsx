@@ -28,7 +28,7 @@ export default function ProductGrid({ products, newestProductId, onDelete }: {
         </div>
         <div className={styles.cardActions}>
           <Link href={`${productsPath}/${product.id}/edit`} aria-label={`${product.name} 수정`}>수정</Link>
-          <Button color="white" size="s" onClick={() => onDelete(product)} aria-label={`${product.name} 삭제`}>삭제</Button>
+          {!product.hasSalesHistory && <Button color="white" size="s" onClick={() => onDelete(product)} aria-label={`${product.name} 삭제`}>삭제</Button>}
         </div>
       </div>
     </li>)}

@@ -23,6 +23,7 @@ export type SalesManagementLandingMockState =
 
 const registeredSellerSummary: SellerSummary = {
   store: {
+    hasSalesHistory: true,
     id: 'store-itjang',
     name: '잇장샵',
     storeIdentifier: 'itjang-shop',
@@ -70,6 +71,7 @@ export function createMockSalesManagementLandingService(
 const unavailableStoreIdentifiers = new Set(['gcs', 'admin', 'taken-shop']);
 
 const defaultStore: SalesStore = {
+  hasSalesHistory: true,
   id: 'store-itjang',
   name: '잇장샵',
   storeIdentifier: 'itjang-shop',
@@ -124,6 +126,7 @@ export function createSalesManagementMockService(
       }
 
       registeredStore = {
+        hasSalesHistory: registeredStore?.hasSalesHistory ?? false,
         id: `store-${storeIdentifier}`,
         name: input.name.trim(),
         storeIdentifier,
@@ -150,6 +153,7 @@ export function createSalesManagementMockService(
         stock: input.stock,
         imageUrl: input.imageUrl,
         isVisible: true,
+        hasSalesHistory: false,
         options: input.options.map((option, index) => ({
           id: `option-${index + 1}`,
           ...option,

@@ -2,11 +2,11 @@ import type { SalesManagementV2Service } from '@/lib/services/sales-management-s
 import type { SalesProduct, SellerLandingSummary } from '@/types/sales-management';
 import { MockServiceError } from './mock-service';
 
-export type LandingV2MockState = 'success' | 'empty' | 'store-only' | 'no-image' | 'loading' | 'error';
+export type LandingV2MockState = 'success' | 'empty' | 'store-only' | 'no-image' | 'loading' | 'error' | 'no-sales';
 
 export function parseLandingV2MockState(value?: string): LandingV2MockState {
   switch (value) {
-    case 'empty': case 'store-only': case 'no-image': case 'loading': case 'error': return value;
+    case 'no-sales': case 'empty': case 'store-only': case 'no-image': case 'loading': case 'error': return value;
     default: return 'success';
   }
 }
@@ -29,9 +29,11 @@ export function createMockLandingV2Service(
     category: '태그',
     stock: 30,
     isVisible: true,
+    hasSalesHistory: state !== 'no-sales' && index === 2,
     options: Array.from({ length: 8 }, (_, option) => ({ id: `option-${option}`, name: `옵션 ${option + 1}`, price: 0, stock: 0 })),
   }));
   let store: SellerLandingSummary['store'] = state === 'empty' ? null : {
+    hasSalesHistory: products.some(product => product.hasSalesHistory),
     id: 'landing-store', name: '잇장샵', storeIdentifier: 'ybbybby0308', visitorOrderUrl,
     imageUrl: state === 'no-image' ? undefined : `${assetRoot}/store.png`,
   };
@@ -50,10 +52,10 @@ export function createMockLandingV2Service(
   const snapshot = (): SellerLandingSummary => ({
     store: store ? { ...store } : null,
     productCount: products.length,
-    orderCount: emptyProducts ? 0 : 128,
+    orderCount: store?.hasSalesHistory ? 128 : 0,
     lowStockCount: 0,
-    todayRevenue: emptyProducts ? 0 : 128000,
-    todaySalesCount: emptyProducts ? 0 : 128,
+    todayRevenue: store?.hasSalesHistory ? 128000 : 0,
+    todaySalesCount: store?.hasSalesHistory ? 128 : 0,
     // Fixtures are already ordered newest first. Deletion refills the recent window.
     recentProducts: products.slice(0, 6).map(product => ({ ...product, options: product.options.map(option => ({ ...option })) })),
   });
@@ -80,6 +82,7 @@ export function createMockLandingV2Service(
       if (!validNumber(stock)) throw new MockServiceError('총재고를 확인해주세요.');
       const productId = id ?? `landing-product-${++sequence}`;
       const product: SalesProduct = {
+        hasSalesHistory: previous?.hasSalesHistory ?? false,
         id: productId, storeId: store.id, name: input.name.trim(), category: input.category.trim(),
         price: input.price, stock, imageUrl: input.imageUrl, isVisible: previous?.isVisible ?? true,
         options: input.usesOptions ? input.options.map((option, i) => ({ ...option, name: option.name.trim(), id: `${productId}-option-${i}` })) : [],
@@ -107,7 +110,9 @@ export function createMockLandingV2Service(
       return { ...store };
     },
     async deleteProduct(productId) {
-      if (!products.some(product => product.id === productId)) throw new MockServiceError('상품을 찾을 수 없어요.');
+      const product = products.find(product => product.id === productId);
+      if (!product) throw new MockServiceError('상품을 찾을 수 없어요.');
+      if (product.hasSalesHistory) throw new MockServiceError('판매 이력이 있는 상품은 삭제할 수 없어요.');
       products = products.filter(product => product.id !== productId);
       if (newestProductId === productId) newestProductId = null;
       return snapshot();

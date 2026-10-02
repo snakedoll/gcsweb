@@ -8,6 +8,7 @@ function createService(overrides: Partial<SalesManagementService> = {}): SalesMa
     getStore: async () => null,
     checkStoreIdentifier: async () => true,
     saveStore: async (input) => ({
+      hasSalesHistory: false,
       id: 'store-paper-shop',
       ...input,
       visitorOrderUrl: '/QRshop?store=paper-shop',
@@ -17,6 +18,7 @@ function createService(overrides: Partial<SalesManagementService> = {}): SalesMa
       ...product,
       id: 'product-1',
       isVisible: true,
+      hasSalesHistory: false,
       options: product.options.map((option, index) => ({
         ...option,
         id: `option-${index + 1}`,

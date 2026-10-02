@@ -6,6 +6,7 @@ export type SalesManagementSection =
   | 'inventory';
 
 export interface SalesStore {
+  hasSalesHistory: boolean;
   id: string;
   name: string;
   storeIdentifier: string;
@@ -38,6 +39,7 @@ export interface VisitorOrderQr {
 }
 
 export interface SalesProduct {
+  hasSalesHistory: boolean;
   id: string;
   storeId: SalesStore['id'];
   name: string;
