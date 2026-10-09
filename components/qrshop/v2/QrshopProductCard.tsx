@@ -7,16 +7,17 @@ type QrshopProductCardProps = {
   optionNames?: string[];
   selected: boolean;
   soldOut?: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 };
 
-export default function QrshopProductCard({ product, optionNames, selected, soldOut = false, onSelect }: QrshopProductCardProps) {
+export default function QrshopProductCard({ product, optionNames, selected, soldOut = false, disabled = false, onSelect }: QrshopProductCardProps) {
   const visibleOptionNames = optionNames?.filter((option): option is string => Boolean(option)) ?? (product.option ? [product.option] : []);
   const hasProductNameOverLimit = Array.from(product.name).length > 18;
   const hasOptionNameOverLimit = visibleOptionNames.some((option) => Array.from(option).length > 18);
 
   return (
-    <button type="button" aria-pressed={selected} aria-label={`${product.name} ${visibleOptionNames.join(' ')} ${soldOut ? '품절' : '담기'}`} className={`group flex min-w-0 flex-col overflow-hidden rounded-[4px] bg-neutral-1 text-left transition ${soldOut ? 'cursor-pointer' : 'active:scale-[0.98]'}`} onClick={onSelect}>
+    <button type="button" disabled={disabled} aria-pressed={selected} aria-label={`${product.name} ${visibleOptionNames.join(' ')} ${soldOut ? '품절' : '담기'}`} className={`group flex min-w-0 flex-col overflow-hidden rounded-[4px] bg-neutral-1 text-left transition ${disabled ? 'cursor-default' : soldOut ? 'cursor-pointer' : 'active:scale-[0.98]'}`} onClick={onSelect}>
       <span className={`relative block aspect-square w-full overflow-hidden rounded-t-[4px] ${product.imageUrl ? 'bg-neutral-4' : 'bg-orange-2'}`}>
         {product.imageUrl ? (
           <Image src={product.imageUrl} alt="" fill sizes="(max-width: 430px) 46vw, 180px" className={`object-cover ${soldOut ? 'opacity-40' : ''}`} />

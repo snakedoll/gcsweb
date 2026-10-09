@@ -34,6 +34,31 @@ async function createOrderThroughScreen() {
 }
 
 describe('QRshop v2 화면 연결', () => {
+  it('닫힌 상점에서는 목록과 카테고리만 보여주고 상품 선택과 결제를 막는다', async () => {
+    navigation.query = '?scenario=closed';
+    render(<QrshopOrderClient />);
+    await screen.findByText('상점이 아직 오픈되지 않았어요!');
+    expect(screen.getByRole('status')).toHaveTextContent('상점이 아직 오픈되지 않았어요!');
+    const product = screen.getByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' });
+    expect(product).toBeDisabled();
+    fireEvent.click(product);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '결제하기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: '선택 상품 목록' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).not.toHaveClass('pb-[360px]');
+    fireEvent.click(screen.getByRole('button', { name: '키링' }));
+    expect(screen.getByRole('button', { name: '키링' })).toHaveClass('text-orange-5');
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it.each([['empty', '해당 샵에 아직 등록된 상품이 없습니다!'], ['error', '존재하지 않는 상점입니다']])('%s 상태를 유지한다', async (scenario, title) => {
+    navigation.query = `?scenario=${scenario}`;
+    render(<QrshopOrderClient />);
+    expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '결제하기' })).not.toBeInTheDocument();
+  });
+
   it('기본 목록에서 기존 상품과 QA 예외 상품을 함께 표시한다', async () => {
     render(<QrshopOrderClient />);
 

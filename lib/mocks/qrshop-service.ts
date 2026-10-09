@@ -1,5 +1,5 @@
 import type { ListResult } from '@/lib/services/contracts';
-import type { QrshopService } from '@/lib/services/qrshop-service';
+import type { QrshopCatalogResult, QrshopService } from '@/lib/services/qrshop-service';
 import type {
   QrshopOrderDraft,
   QrshopOrderResult,
@@ -14,6 +14,7 @@ const STORAGE_KEY = 'gcs:qrshop:mock-orders';
 type QrshopMockServiceOptions = {
   catalogScenario?: MockScenario<ListResult<QrshopProduct>>;
   delayMs?: number;
+  storeStatus?: QrshopCatalogResult['storeStatus'];
 };
 
 const memoryOrders = new Map<string, QrshopOrderResult>();
@@ -65,6 +66,7 @@ function validateDraft(draft: QrshopOrderDraft): void {
 export function createQrshopMockService(
   options: QrshopMockServiceOptions = {},
 ): QrshopService {
+  const storeStatus = options.storeStatus ?? 'open';
   const delayMs = Math.max(0, options.delayMs ?? 250);
   const defaultCatalog: ListResult<QrshopProduct> = {
     items: qrshopQaProducts,
@@ -72,17 +74,19 @@ export function createQrshopMockService(
   };
 
   return {
-    getCatalog() {
-      return resolveMockScenario(
+    async getCatalog() {
+      const catalog = await resolveMockScenario(
         options.catalogScenario ?? {
           kind: 'success',
           data: defaultCatalog,
           delayMs,
         },
       );
+      return { ...catalog, storeStatus };
     },
 
     async createOrder(draft: QrshopOrderDraft) {
+      if (storeStatus === 'closed') throw new Error('상점이 아직 오픈되지 않았어요!');
       validateDraft(draft);
       const result: QrshopOrderResult = {
         orderId: makeOrderId(),

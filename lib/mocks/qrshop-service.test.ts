@@ -27,9 +27,18 @@ describe('QRshop Mock Service', () => {
     });
 
     await expect(normal.getCatalog()).resolves.toEqual(
-      expect.objectContaining({ total: expect.any(Number) }),
+      expect.objectContaining({ total: expect.any(Number), storeStatus: 'open' }),
     );
-    await expect(empty.getCatalog()).resolves.toEqual({ items: [], total: 0 });
+    await expect(empty.getCatalog()).resolves.toEqual({ items: [], total: 0, storeStatus: 'open' });
+  });
+
+  it('닫힌 상점도 상품을 반환하지만 주문 생성은 거절한다', async () => {
+    const service = createQrshopMockService({ delayMs: 0, storeStatus: 'closed' });
+    const catalog = await service.getCatalog();
+    expect(catalog.storeStatus).toBe('closed');
+    expect(catalog.items.length).toBeGreaterThan(0);
+    await expect(service.createOrder(draft)).rejects.toThrow('상점이 아직 오픈되지 않았어요!');
+    expect(sessionStorage.getItem('gcs:qrshop:mock-orders')).toBeNull();
   });
 
   it('카탈로그 오류 상태를 전달한다', async () => {
