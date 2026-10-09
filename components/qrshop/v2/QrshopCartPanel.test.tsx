@@ -118,4 +118,63 @@ describe('QrshopCartPanel', () => {
     expect(screen.getByRole('button', { name: '주문 정보 펼치기' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: '결제하기' })).toBeVisible();
   });
+
+  it('상품 한 개의 접힌 높이에서도 터치로 다시 펼치고 아래로 접는다', () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: '주문 정보 접기' }));
+    const handle = screen.getByRole('button', { name: '주문 정보 펼치기' });
+    const panel = handle.parentElement!;
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 26 });
+    Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 127 });
+    const touch = { pointerId: 7, pointerType: 'touch', isPrimary: true };
+
+    fireEvent.pointerDown(handle, { ...touch, clientY: 500 });
+    fireEvent.pointerMove(handle, { ...touch, clientY: 390 });
+    expect(panel).toHaveStyle({ height: '127px' });
+    fireEvent.pointerUp(handle, { ...touch, clientY: 390 });
+    fireEvent.click(handle);
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 137 });
+    fireEvent.pointerDown(handle, { ...touch, clientY: 390 });
+    fireEvent.pointerMove(handle, { ...touch, clientY: 500 });
+    expect(panel).toHaveStyle({ height: '27px' });
+    fireEvent.pointerUp(handle, { ...touch, clientY: 500 });
+    fireEvent.click(handle);
+    expect(handle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: '결제하기' })).toBeVisible();
+  });
+
+  it('짧은 터치 드래그는 접힘 상태를 유지하고 뒤따르는 click으로 뒤집지 않는다', () => {
+    renderPanel();
+    const handle = screen.getByRole('button', { name: '주문 정보 접기' });
+    const panel = handle.parentElement!;
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 137 });
+    Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 137 });
+    const touch = { pointerId: 7, pointerType: 'touch', isPrimary: true };
+    fireEvent.pointerDown(handle, { ...touch, clientY: 400 });
+    fireEvent.pointerMove(handle, { ...touch, clientY: 430 });
+    fireEvent.pointerUp(handle, { ...touch, clientY: 430 });
+    fireEvent.click(handle);
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(panel.style.height).toBe('');
+  });
+
+  it('브라우저가 터치를 취소하면 드래그 높이를 해제하고 다음 터치를 처리한다', () => {
+    renderPanel();
+    const handle = screen.getByRole('button', { name: '주문 정보 접기' });
+    const panel = handle.parentElement!;
+    Object.defineProperty(panel, 'offsetHeight', { configurable: true, value: 137 });
+    Object.defineProperty(panel, 'scrollHeight', { configurable: true, value: 137 });
+    const touch = { pointerId: 7, pointerType: 'touch', isPrimary: true };
+    fireEvent.pointerDown(handle, { ...touch, clientY: 400 });
+    fireEvent.pointerMove(handle, { ...touch, clientY: 500 });
+    fireEvent.pointerCancel(handle, touch);
+    expect(handle).toHaveAttribute('aria-expanded', 'true');
+    expect(panel.style.height).toBe('');
+    fireEvent.pointerDown(handle, { ...touch, pointerId: 8, clientY: 400 });
+    fireEvent.pointerMove(handle, { ...touch, pointerId: 8, clientY: 510 });
+    fireEvent.pointerUp(handle, { ...touch, pointerId: 8, clientY: 510 });
+    expect(handle).toHaveAttribute('aria-expanded', 'false');
+  });
 });
