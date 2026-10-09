@@ -6,7 +6,7 @@ import { LandingDialog } from '../VisitorQrDialog';
 import styles from './products.module.css';
 
 export default function ProductDialog({ kind, onConfirm, onDismiss }: {
-  kind: 'create' | 'delete'; onConfirm: () => Promise<void>; onDismiss: () => void;
+  kind: 'create' | 'delete' | 'updated'; onConfirm?: () => Promise<void>; onDismiss: () => void;
 }) {
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
@@ -14,10 +14,14 @@ export default function ProductDialog({ kind, onConfirm, onDismiss }: {
   async function confirm() {
     if (busy.current) return;
     busy.current = true; setPending(true); setError('');
-    try { await onConfirm(); onDismiss(); }
+    try { await onConfirm?.(); onDismiss(); }
     catch { setError('처리하지 못했어요. 다시 시도해주세요.'); }
     finally { busy.current = false; setPending(false); }
   }
+  if (kind === 'updated') return <LandingDialog label="상품 수정 완료" className={styles.dialog} onDismiss={onDismiss}>
+    <Modal variant="one button" className={`${styles.modal} ${styles.completedModal}`} titleClassName={styles.modalTitle}
+      title="상품 수정이 완료되었습니다." onConfirm={onDismiss} />
+  </LandingDialog>;
   return <LandingDialog label={kind === 'create' ? '상품 등록 확인' : '상품 삭제 확인'}
     className={styles.dialog} onDismiss={() => { if (!busy.current) onDismiss(); }}>
     <Modal variant="Large" className={styles.modal} titleClassName={styles.modalTitle} disabled={pending}

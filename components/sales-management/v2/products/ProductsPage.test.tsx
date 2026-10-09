@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockLandingV2Service } from '@/lib/mocks/sales-management-landing-v2-service';
 import SalesManagementV2Provider from '../SalesManagementV2Provider';
@@ -14,7 +14,7 @@ beforeEach(() => {
     close: { configurable: true, value: function (this: HTMLDialogElement) { this.removeAttribute('open'); } },
   });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 const change = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 async function ready({ form = false, count = 36, id }: { form?: boolean; count?: number; id?: string } = {}) {
   const service = createMockLandingV2Service('success', { catalog: true, productCount: count });
@@ -92,14 +92,18 @@ describe('상품 관리 v2 화면', () => {
     const { service } = await ready({ form: true, id: 'landing-product-2', count: 3 });
     expect(screen.getByLabelText('상품명')).toHaveValue('무슨무슨가방');
     expect(screen.getByLabelText('가격')).toHaveValue('126,000');
-    change('상품명', '이름 수정'); fireEvent.click(screen.getByRole('button', { name: '수정 완료' }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/sales-management/v2/products'));
+    change('상품명', '이름 수정'); fireEvent.click(screen.getByRole('button', { name: '상품 수정하기' }));
+    const dialog = await screen.findByRole('dialog', { name: '상품 수정 완료' });
+    expect(dialog).toHaveTextContent('상품 수정이 완료되었습니다.');
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: '확인' }));
+    expect(push).toHaveBeenCalledWith('/sales-management/v2/products');
     expect((await service.getProducts()).items[1].name).toBe('이름 수정'); expect((await service.getProducts()).total).toBe(3);
     expect(screen.queryByText('NEW')).not.toBeInTheDocument();
   });
   it('이미지 파일을 미리보고 저장하며 등록 하단 목록은 페이지로 나누지 않는다', async () => {
     const { service } = await ready({ form: true, count: 21 });
-    expect(within(screen.getByRole('list', { name: '상품 목록' })).getAllByRole('listitem')).toHaveLength(21);
+    expect(within(screen.getByRole('list', { name: '상품 목록' })).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.queryByRole('navigation', { name: '페이지네이션' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('상품 이미지 선택'), { target: { files: [new File(['image'], 'sample.png', { type: 'image/png' })] } });
     await waitFor(() => expect(screen.getByAltText('상품 이미지 미리보기')).toHaveAttribute('src', expect.stringContaining('data:image/png')));
@@ -123,15 +127,120 @@ describe('상품 관리 v2 화면', () => {
     release(); await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect((await service.getProducts()).total).toBe(1);
     fireEvent.click(screen.getByRole('button', { name: '한 번만 등록 삭제' })); fireEvent.click(screen.getByRole('button', { name: '확인' }));
-    await screen.findByText('아직 상품이 등록되지 않았어요!'); expect((await service.getSellerSummary()).productCount).toBe(0);
+    await screen.findByText('아직 등록된 상품이 없습니다.'); expect((await service.getSellerSummary()).productCount).toBe(0);
   });
   it('수정 실패 시 입력과 저장된 데이터를 유지한다', async () => {
     const { service } = await ready({ form: true, id: 'landing-product-1', count: 1 });
     vi.spyOn(service, 'saveProduct').mockRejectedValueOnce(new Error('failure'));
-    change('상품명', '수정 중인 이름'); fireEvent.click(screen.getByRole('button', { name: '수정 완료' }));
+    change('상품명', '수정 중인 이름'); fireEvent.click(screen.getByRole('button', { name: '상품 수정하기' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('수정하지 못했어요.');
     expect(screen.getByLabelText('상품명')).toHaveValue('수정 중인 이름');
     expect((await service.getProducts()).items[0].name).toBe('무슨무슨가방'); expect(push).not.toHaveBeenCalled();
+  });
+
+  it.each([0, 1, 6, 7])('최근 상품은 등록 수 %i개에서 최대 6개를 표시한다', async count => {
+    await ready({ form: true, count });
+    const section = screen.getByRole('region', { name: '최근 등록된 상품' });
+    expect(within(section).getByRole('heading', { name: '최근 등록된 상품' })).toBeInTheDocument();
+    if (!count) expect(within(section).getByText('아직 등록된 상품이 없습니다.')).toBeInTheDocument();
+    else expect(within(section).getAllByRole('listitem')).toHaveLength(Math.min(6, count));
+  });
+  it('최근 상품 삭제 후 다음 상품으로 6개를 채운다', async () => {
+    const { service } = await ready({ form: true, count: 7 });
+    const cards = () => screen.getAllByRole('listitem');
+    fireEvent.click(within(cards()[0]).getByRole('button', { name: /삭제/ }));
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(cards()).toHaveLength(6);
+    expect(within(cards()[5]).getByRole('link')).toHaveAttribute('href', expect.stringContaining('landing-product-7/edit'));
+    expect((await service.getProducts()).total).toBe(6);
+  });
+  it.each(['image/jpeg', 'image/png'])('%s 이미지와 최대 허용 용량을 처리하고 같은 파일을 재선택한다', async type => {
+    await ready({ form: true, count: 0 });
+    const input = screen.getByLabelText('상품 이미지 선택');
+    expect(input).toHaveAttribute('accept', 'image/jpeg,image/png');
+    expect(input).toHaveAccessibleDescription('JPEG,PNG / 50MB 이하');
+    const file = new File(['image'], 'sample', { type });
+    Object.defineProperty(file, 'size', { value: 50 * 1024 * 1024 });
+    for (let i = 0; i < 2; i++) {
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => expect(screen.getByAltText('상품 이미지 미리보기')).toHaveAttribute('src', expect.stringContaining(`data:${type}`)));
+      expect(input).toHaveValue('');
+      fireEvent.click(screen.getByRole('button', { name: '상품 이미지 삭제' }));
+      expect(screen.queryByAltText('상품 이미지 미리보기')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '상품 이미지 삭제' })).not.toBeInTheDocument();
+    }
+  });
+  it.each([['image/gif', 1], ['text/plain', 1], ['image/png', 50 * 1024 * 1024 + 1]])('허용하지 않는 파일 %s/%i는 토스트를 표시하고 기존 이미지를 유지한다', async (type, size) => {
+    await ready({ form: true, id: 'landing-product-1', count: 1 });
+    const src = screen.getByAltText('상품 이미지 미리보기').getAttribute('src');
+    const file = new File(['image'], 'sample', { type });
+    Object.defineProperty(file, 'size', { value: size });
+    fireEvent.change(screen.getByLabelText('상품 이미지 선택'), { target: { files: [file] } });
+    expect(screen.getByRole('alert')).toHaveTextContent('업로드 할 수 없는 파일입니다. 파일 형식이나 용량을 확인해주세요.');
+    expect(screen.getByAltText('상품 이미지 미리보기')).toHaveAttribute('src', src);
+    expect(screen.getByRole('button', { name: '상품 수정하기' })).toBeEnabled();
+  });
+  it('파일 읽기 실패 시 처리 잠금을 해제하고 기존 이미지를 유지한다', async () => {
+    await ready({ form: true, id: 'landing-product-1', count: 1 });
+    const src = screen.getByAltText('상품 이미지 미리보기').getAttribute('src');
+    let reader!: FileReader;
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) { reader = this; });
+    fireEvent.change(screen.getByLabelText('상품 이미지 선택'), { target: { files: [new File(['image'], 'sample.png', { type: 'image/png' })] } });
+    expect(screen.getByRole('button', { name: '상품 이미지 등록' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '상품 이미지 삭제' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '상품 수정하기' })).toBeDisabled();
+    act(() => reader.dispatchEvent(new ProgressEvent('error')));
+    expect(await screen.findByRole('alert')).toHaveTextContent('이미지를 불러오지 못했어요. 다시 선택해주세요.');
+    expect(screen.getByAltText('상품 이미지 미리보기')).toHaveAttribute('src', src);
+    expect(screen.getByRole('button', { name: '상품 수정하기' })).toBeEnabled();
+  });
+  it('이미지 오류 토스트는 4초 후 닫힌다', async () => {
+    await ready({ form: true, count: 0 });
+    vi.useFakeTimers();
+    fireEvent.change(screen.getByLabelText('상품 이미지 선택'), { target: { files: [new File(['bad'], 'bad.gif', { type: 'image/gif' })] } });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    await act(() => vi.advanceTimersByTimeAsync(4000));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('이미지를 삭제한 수정값을 저장하고 Escape로 모달을 닫으면 목록으로 이동한다', async () => {
+    const { service } = await ready({ form: true, id: 'landing-product-1', count: 1 });
+    fireEvent.click(screen.getByRole('button', { name: '상품 이미지 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '상품 수정하기' }));
+    const dialog = await screen.findByRole('dialog', { name: '상품 수정 완료' });
+    expect((await service.getProducts()).items[0].imageUrl).toBeUndefined();
+    expect(push).not.toHaveBeenCalled();
+    fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }));
+    expect(push).toHaveBeenCalledWith('/sales-management/v2/products');
+  });
+  it('수정 처리 중과 완료 모달 표시 중에 중복 제출을 막는다', async () => {
+    const { service } = await ready({ form: true, id: 'landing-product-1', count: 1 });
+    const original = service.saveProduct;
+    let release!: () => void;
+    const save = vi.spyOn(service, 'saveProduct').mockImplementation(async (...args) => {
+      await new Promise<void>(resolve => { release = resolve; });
+      return original(...args);
+    });
+    const button = screen.getByRole('button', { name: '상품 수정하기' });
+    fireEvent.click(button); fireEvent.click(button);
+    expect(button).toBeDisabled(); expect(save).toHaveBeenCalledTimes(1);
+    release(); await screen.findByRole('dialog', { name: '상품 수정 완료' });
+    fireEvent.submit(screen.getByRole('form', { name: '상품 수정' }));
+    expect(save).toHaveBeenCalledTimes(1); expect(push).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('저장 후 재조회 실패는 저장 실패와 구분한다 (edit=%s)', async edit => {
+    const { service } = await ready({ form: true, count: 1, id: edit ? 'landing-product-1' : undefined });
+    const save = vi.spyOn(service, 'saveProduct');
+    vi.spyOn(service, 'getProducts').mockRejectedValueOnce(new Error('refresh failed'));
+    change('상품명', '저장된 상품');
+    if (!edit) { change('가격', '0'); change('총재고', '0'); }
+    fireEvent.click(screen.getByRole('button', { name: edit ? '상품 수정하기' : '상품 등록하기' }));
+    if (!edit) fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('상품은 저장되었지만 목록을 불러오지 못했어요.');
+    expect(save).toHaveBeenCalledTimes(1);
+    if (edit) expect(screen.getByRole('dialog', { name: '상품 수정 완료' })).toBeInTheDocument();
+    else { expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(screen.getByLabelText('상품명')).toHaveValue(''); }
+    expect((await service.getProducts()).items[0].name).toBe('저장된 상품');
   });
 
 });

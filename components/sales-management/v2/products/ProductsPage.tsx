@@ -51,10 +51,10 @@ export default function ProductsPage({ form = false, productId }: { form?: boole
         {productId && !editing ? <p className={styles.empty}>상품을 찾을 수 없어요. <Link href={productsPath}>전체 상품으로</Link></p>
           : <ProductForm key={productId ?? 'new'} product={editing} storeId={data.store.id} categories={data.categories}
             service={service} onSaved={refresh} onCategoryCreated={name => setData(current => current ? { ...current, categories: [...new Set([...current.categories, name])] } : current)} />}
-        {(!productId || editing) && <section className={styles.registered} aria-label="등록된 상품">
-          <h2>등록된 상품</h2>
-          {data.products.length ? <ProductGrid products={data.products} newestProductId={data.newestProductId} onDelete={setDeleting} />
-            : <p className={styles.empty}>아직 상품이 등록되지 않았어요!</p>}
+        {(!productId || editing) && <section className={styles.registered} aria-label="최근 등록된 상품">
+          <h2>최근 등록된 상품</h2>
+          {data.products.length ? <ProductGrid products={data.products.slice(0, 6)} newestProductId={data.newestProductId} onDelete={setDeleting} />
+            : <p className={styles.recentEmpty}>아직 등록된 상품이 없습니다.</p>}
         </section>}
       </> : <>
         <div className={styles.filters}>
