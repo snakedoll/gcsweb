@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearQrshopMockOrders, qrshopMockService } from '@/lib/mocks/qrshop-service';
@@ -92,7 +93,24 @@ describe('QRshop v2 화면 연결', () => {
     expect(within(selectedProducts).getByText('BLACK')).toBeInTheDocument();
   });
 
-  it('품절 탭에서 카드·옵션·결제 시 품절 자동 제외 흐름을 확인한다', async () => {
+  it('옵션 없는 상품은 모달 없이 결제 목록에 바로 담는다', async () => {
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: '옵션이 없는 기본 상품 담기' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).getByText('옵션이 없는 기본 상품')).toBeInTheDocument();
+  });
+
+  it('결제 목록 상품을 누르면 해당 상품의 기존 선택으로 옵션 모달을 연다', async () => {
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    fireEvent.click(screen.getByRole('button', { name: '무슨무슨 키링 옵션 변경' }));
+    expect(screen.getByRole('dialog', { name: '무슨무슨 키링' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'BLACK' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('품절 탭에서 품절 상품은 선택할 수 없고 판매 중인 옵션은 결제한다', async () => {
     render(<QrshopOrderClient />);
 
     fireEvent.click(await screen.findByRole('button', { name: '품절' }));
@@ -107,9 +125,48 @@ describe('QRshop v2 화면 연결', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
 
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('무슨무슨 키링이 품절되었습니다.');
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('품절된 상품은 자동으로 결제 목록에서 제외됩니다.');
-    expect(screen.queryByText('무슨무슨 키링 BLACK')).not.toBeInTheDocument();
+    await waitFor(() => expect(navigation.push).toHaveBeenCalledWith(expect.stringMatching(/^\/QRshop\/pay\?orderId=.+/)));
+  });
+
+  it('결제 직전에 품절된 옵션만 제외하고 나머지 상품은 유지한다', async () => {
+    navigation.query = '?scenario=soldout';
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    fireEvent.click(screen.getByRole('button', { name: '피그먼트 티셔츠 S L 담기' }));
+    fireEvent.click(screen.getByRole('button', { name: 'S' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('무슨무슨 키링이 품절되었습니다.');
+    expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).queryByText('BLACK')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).getByText('S')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 품절' })).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it('StrictMode의 초기 중복 조회에서도 재고 변경 시나리오는 결제 확인 전까지 판매 중이다', async () => {
+    navigation.query = '?scenario=soldout';
+    render(<StrictMode><QrshopOrderClient /></StrictMode>);
+    fireEvent.click(await screen.findByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' }));
+    expect(screen.getByRole('button', { name: 'BLACK' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).getByText('BLACK')).toBeInTheDocument();
+  });
+
+  it('결제 재확인 중 상점이 닫히면 주문을 만들지 않고 기존 선택을 보존한다', async () => {
+    navigation.query = '?scenario=closed-on-refresh';
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BLACK' }));
+    fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('상점이 아직 오픈되지 않았어요!');
+    expect(screen.getByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 담기' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(navigation.push).not.toHaveBeenCalled();
   });
 

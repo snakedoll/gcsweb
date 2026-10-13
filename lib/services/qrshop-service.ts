@@ -11,7 +11,7 @@ export interface QrshopCatalogResult extends ListResult<QrshopProduct> {
 }
 
 export interface QrshopService {
-  getCatalog(): Promise<QrshopCatalogResult>;
+  getCatalog(options?: { refresh?: boolean }): Promise<QrshopCatalogResult>;
   createOrder(order: QrshopOrderDraft): Promise<QrshopOrderResult>;
   getOrder(orderId: string): Promise<QrshopOrderResult>;
   processPayment(

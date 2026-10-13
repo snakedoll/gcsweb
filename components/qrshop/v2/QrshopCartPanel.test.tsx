@@ -21,6 +21,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof QrshopCartPa
     onAgreementChange: vi.fn(),
     onQuantityChange: vi.fn(),
     onRemove: vi.fn(),
+    onSelectLine: vi.fn(),
     onSubmit: vi.fn(),
     ...overrides,
   };
@@ -52,6 +53,12 @@ describe('QrshopCartPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '무슨무슨 키링 삭제' }));
     expect(props.onQuantityChange).toHaveBeenCalledWith('keyring-black', 2);
     expect(props.onRemove).toHaveBeenCalledWith('keyring-black');
+  });
+
+  it('결제 목록의 상품을 선택하면 옵션 변경을 요청한다', () => {
+    const props = renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: '무슨무슨 키링 옵션 변경' }));
+    expect(props.onSelectLine).toHaveBeenCalledWith('keyring-black');
   });
 
   it('선택 상품이 6개 이상이면 상품 목록만 제한 높이로 스크롤한다', () => {

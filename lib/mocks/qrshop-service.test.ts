@@ -32,6 +32,23 @@ describe('QRshop Mock Service', () => {
     await expect(empty.getCatalog()).resolves.toEqual({ items: [], total: 0, storeStatus: 'open' });
   });
 
+  it('결제 확인용 재조회에서만 선택한 옵션의 Mock 재고 변경을 반환한다', async () => {
+    const service = createQrshopMockService({ delayMs: 0, soldOutOnRefreshIds: ['keyring-black'] });
+    const initial = await service.getCatalog();
+    const repeatedInitial = await service.getCatalog();
+    const refreshed = await service.getCatalog({ refresh: true });
+    expect(initial.items.find((item) => item.id === 'keyring-black')?.soldOut).toBeFalsy();
+    expect(repeatedInitial.items.find((item) => item.id === 'keyring-black')?.soldOut).toBeFalsy();
+    expect(refreshed.items.find((item) => item.id === 'keyring-black')?.soldOut).toBe(true);
+    expect(refreshed.items.find((item) => item.id === 'tshirt-small')?.soldOut).toBeFalsy();
+  });
+
+  it('결제 확인용 재조회에서 상점이 닫힌 상태를 반환할 수 있다', async () => {
+    const service = createQrshopMockService({ delayMs: 0, storeStatusOnRefresh: 'closed' });
+    expect((await service.getCatalog()).storeStatus).toBe('open');
+    expect((await service.getCatalog({ refresh: true })).storeStatus).toBe('closed');
+  });
+
   it('닫힌 상점도 상품을 반환하지만 주문 생성은 거절한다', async () => {
     const service = createQrshopMockService({ delayMs: 0, storeStatus: 'closed' });
     const catalog = await service.getCatalog();

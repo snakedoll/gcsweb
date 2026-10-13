@@ -23,4 +23,20 @@ describe('QrshopOptionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: '완료' }));
     expect(onConfirm).toHaveBeenCalledWith(['s', 'l']);
   });
+
+  it('이미 선택된 옵션이 품절되면 완료해도 담지 않는다', () => {
+    const onConfirm = vi.fn();
+    render(<QrshopOptionModal products={products} selectedIds={['xl']} onClose={() => undefined} onConfirm={onConfirm} />);
+    expect(screen.getByRole('button', { name: '완료' })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('모든 옵션이 품절이면 어떤 옵션도 선택하거나 담을 수 없다', () => {
+    const onConfirm = vi.fn();
+    render(<QrshopOptionModal products={products.map((product) => ({ ...product, soldOut: true }))} selectedIds={['s']} onClose={() => undefined} onConfirm={onConfirm} />);
+    expect(screen.getByRole('button', { name: /^S.*품절$/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^L.*품절$/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '완료' })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
 });

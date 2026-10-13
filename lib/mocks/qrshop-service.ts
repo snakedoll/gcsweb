@@ -15,6 +15,8 @@ type QrshopMockServiceOptions = {
   catalogScenario?: MockScenario<ListResult<QrshopProduct>>;
   delayMs?: number;
   storeStatus?: QrshopCatalogResult['storeStatus'];
+  storeStatusOnRefresh?: QrshopCatalogResult['storeStatus'];
+  soldOutOnRefreshIds?: string[];
 };
 
 const memoryOrders = new Map<string, QrshopOrderResult>();
@@ -72,9 +74,8 @@ export function createQrshopMockService(
     items: qrshopQaProducts,
     total: qrshopQaProducts.length,
   };
-
   return {
-    async getCatalog() {
+    async getCatalog(request) {
       const catalog = await resolveMockScenario(
         options.catalogScenario ?? {
           kind: 'success',
@@ -82,7 +83,13 @@ export function createQrshopMockService(
           delayMs,
         },
       );
-      return { ...catalog, storeStatus };
+      const refresh = request?.refresh === true;
+      const newlySoldOut = refresh ? new Set(options.soldOutOnRefreshIds) : new Set<string>();
+      return {
+        ...catalog,
+        items: catalog.items.map((item) => newlySoldOut.has(item.id) ? { ...item, soldOut: true } : { ...item }),
+        storeStatus: refresh ? options.storeStatusOnRefresh ?? storeStatus : storeStatus,
+      };
     },
 
     async createOrder(draft: QrshopOrderDraft) {

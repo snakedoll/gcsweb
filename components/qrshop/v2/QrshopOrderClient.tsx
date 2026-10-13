@@ -25,6 +25,8 @@ export default function QrshopOrderClient() {
     if (scenario === 'closed') return createQrshopMockService({ storeStatus: 'closed' });
     if (scenario === 'empty') return createQrshopMockService({ catalogScenario: { kind: 'empty', data: { items: [], total: 0 }, delayMs: 200 } });
     if (scenario === 'error') return createQrshopMockService({ catalogScenario: { kind: 'error', message: '상품을 불러오지 못했습니다.', delayMs: 200 } });
+    if (scenario === 'soldout') return createQrshopMockService({ soldOutOnRefreshIds: ['keyring-black'] });
+    if (scenario === 'closed-on-refresh') return createQrshopMockService({ storeStatusOnRefresh: 'closed' });
     if (scenario === 'edge-cases') return createQrshopMockService({
       catalogScenario: {
         kind: 'success',
@@ -83,14 +85,23 @@ export default function QrshopOrderClient() {
   };
   const submit = async () => {
     if (submitting || closed) return;
-    if ((scenario === 'soldout' || selectedCategory === 'soldout') && lines[0]) {
-      updateQuantity(lines[0].productId, 0);
-      setAgreed(false);
-      setSoldOutProductName(lines[0].productName);
-      return;
-    }
     setSubmitting(true); setSubmitError(null);
     try {
+      const latestCatalog = await service.getCatalog({ refresh: true });
+      if (latestCatalog.storeStatus === 'closed') {
+        setCatalog({ status: 'ready', products: latestCatalog.items, storeStatus: latestCatalog.storeStatus });
+        return;
+      }
+      const availableIds = new Set(latestCatalog.items.filter((product) => !product.soldOut).map((product) => product.id));
+      const unavailable = lines.filter((line) => !availableIds.has(line.productId));
+      if (unavailable.length) {
+        const unavailableIds = new Set(unavailable.map((line) => line.productId));
+        setQuantities((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !unavailableIds.has(id))));
+        setCatalog({ status: 'ready', products: latestCatalog.items, storeStatus: latestCatalog.storeStatus });
+        setAgreed(false);
+        setSoldOutProductName(unavailable[0].productName);
+        return;
+      }
       const order = await service.createOrder({ lines, buyerName: '', buyerPhone: '', paymentMethod: 'online' });
       router.push(`/QRshop/pay?orderId=${encodeURIComponent(order.orderId)}`);
     } catch (error) { setSubmitError(error instanceof Error ? error.message : '주문을 저장하지 못했습니다.'); }
@@ -121,13 +132,14 @@ export default function QrshopOrderClient() {
               onSelect={() => {
                 if (closed) return;
                 if (soldOut) setSoldOutProductName(product.name);
+                else if (products.length === 1 && !product.option) updateQuantity(product.id, (quantities[product.id] ?? 0) + 1);
                 else setOptionProducts(products);
               }}
             />
           );
         })}
       </section>
-      {!closed && <QrshopCartPanel lines={lines} agreed={agreed} submitting={submitting} error={submitError} onAgreementChange={setAgreed} onQuantityChange={updateQuantity} onRemove={(productId) => updateQuantity(productId, 0)} onSubmit={() => void submit()} />}
+      {!closed && <QrshopCartPanel lines={lines} agreed={agreed} submitting={submitting} error={submitError} onAgreementChange={setAgreed} onQuantityChange={updateQuantity} onRemove={(productId) => updateQuantity(productId, 0)} onSelectLine={(productId) => { const group = productGroups.find(({ products }) => products.some((item) => item.id === productId)); if (group) setOptionProducts(group.products); }} onSubmit={() => void submit()} />}
       {!closed && optionProducts ? (
         <QrshopOptionModal
           products={optionProducts}
@@ -137,7 +149,7 @@ export default function QrshopOrderClient() {
             setQuantities((current) => {
               const next = { ...current };
               for (const product of optionProducts) {
-                if (selectedIds.includes(product.id)) next[product.id] = next[product.id] || 1;
+                if (selectedIds.includes(product.id) && !product.soldOut) next[product.id] = next[product.id] || 1;
                 else delete next[product.id];
               }
               return next;

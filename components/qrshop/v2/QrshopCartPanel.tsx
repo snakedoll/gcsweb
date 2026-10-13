@@ -15,6 +15,7 @@ type Props = {
   lines: QrshopCartLine[]; agreed: boolean; submitting: boolean; error: string | null;
   onAgreementChange: (value: boolean) => void;
   onQuantityChange: (productId: string, next: number) => void; onRemove: (productId: string) => void; onSubmit: () => void;
+  onSelectLine: (productId: string) => void;
 };
 
 export default function QrshopCartPanel(props: Props) {
@@ -95,7 +96,7 @@ export default function QrshopCartPanel(props: Props) {
               {lines.map((line) => (
                 <li key={line.productId} className="rounded-[4px] bg-[#f2f4f6] px-[14px] py-[11px]">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0"><p className="typo-body-xsmall-bold truncate text-neutral-12">{line.productName}</p><p className="typo-body-xxsmall truncate text-neutral-7">{line.option ?? '단일 옵션'}</p></div>
+                    <button type="button" className="min-w-0 flex-1 text-left" aria-label={`${line.productName} 옵션 변경`} onClick={() => props.onSelectLine(line.productId)}><span className="typo-body-xsmall-bold block truncate text-neutral-12">{line.productName}</span><span className="typo-body-xxsmall block truncate text-neutral-7">{line.option ?? '단일 옵션'}</span></button>
                     <button type="button" className="h-5 w-5 text-xl leading-none text-neutral-6" aria-label={`${line.productName} 삭제`} onClick={() => props.onRemove(line.productId)}>×</button>
                   </div>
                   <div className="mt-2 flex items-center justify-between">

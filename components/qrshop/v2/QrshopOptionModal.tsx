@@ -13,7 +13,8 @@ type Props = {
 };
 
 export default function QrshopOptionModal({ products, selectedIds, onClose, onConfirm }: Props) {
-  const [draft, setDraft] = useState(selectedIds);
+  const [draft, setDraft] = useState(() => selectedIds.filter((id) => products.some((product) => product.id === id && !product.soldOut)));
+  const availableDraft = draft.filter((id) => products.some((product) => product.id === id && !product.soldOut));
   const basePrice = Math.min(...products.map((product) => product.price));
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function QrshopOptionModal({ products, selectedIds, onClose, onCo
             );
           })}
         </div>
-        <Button color="orange" size="s" status={draft.length ? 'default' : 'disabled'} disabled={!draft.length} className="mt-[21px] h-[35px] rounded-[4px]" onClick={() => onConfirm(draft)}>완료</Button>
+        <Button color="orange" size="s" status={availableDraft.length ? 'default' : 'disabled'} disabled={!availableDraft.length} className="mt-[21px] h-[35px] rounded-[4px]" onClick={() => onConfirm(availableDraft)}>완료</Button>
       </section>
     </div>
   );
