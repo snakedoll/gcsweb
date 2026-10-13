@@ -16,6 +16,8 @@ export function LandingDialog({ children, label, onDismiss, className = '' }: {
     const previousOverflow = document.body.style.overflow;
     const dialog = ref.current;
     dialog?.showModal();
+    // Focus the dialog itself so opening it does not draw an action-button ring.
+    dialog?.focus();
     document.body.style.overflow = 'hidden';
     return () => {
       dialog?.close();
@@ -26,7 +28,7 @@ export function LandingDialog({ children, label, onDismiss, className = '' }: {
   }, []);
 
   return createPortal(
-    <dialog ref={ref} aria-label={label} className={`${styles.dialog} ${className}`}
+    <dialog ref={ref} tabIndex={-1} aria-label={label} className={`${styles.dialog} ${className}`}
       onCancel={event => { event.preventDefault(); onDismiss(); }}>
       {children}
     </dialog>, document.body,
@@ -64,7 +66,7 @@ export default function VisitorQrDialog({ qr, onDismiss }: { qr: VisitorOrderQr;
         <div className={styles.qrUrl}>
           <input id="visitor-order-url" value={qr.visitorOrderUrl} readOnly onFocus={event => event.currentTarget.select()} />
           <button type="button" aria-label="방문객 주문 URL 복사" onClick={copyUrl}>
-            <Image src="/assets/icons/light/copy.svg" alt="" width={24} height={24} />
+            <span className={styles.copyIcon} aria-hidden="true" />
           </button>
         </div>
         <p className={styles.qrHelp}>해당 QR코드와 URL을 사용해 방문객들이 상점 사이트로 바로 진입할 수 있습니다.</p>

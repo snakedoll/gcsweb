@@ -26,6 +26,8 @@ describe('판매관리 랜딩 v2', () => {
     expect(await screen.findByRole('link', { name: '상점 등록 하러가기' })).toHaveAttribute('href', '/sales-management/v2/store');
     expect(screen.queryByRole('link', { name: '상품 등록 하러가기' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'QR 발급받기' })).not.toBeInTheDocument();
+    expect(screen.getByAltText('상점 미등록 프로필')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '상점 이미지 등록' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /현장 포스/ }));
     expect(screen.getByRole('status')).toHaveTextContent('해당 기능은 상점/상품 등록 후 이용 가능합니다.');
   });

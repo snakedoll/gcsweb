@@ -149,7 +149,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
             </div>
           </div>
         </> : <>
-          <div className={styles.photo} aria-hidden="true" />
+          <div className={styles.photo}><Image src="/assets/images/default-avatar.svg" alt="상점 미등록 프로필" width={161} height={161} /></div>
           <div className={styles.noStore}><h2>아직 상점이 등록되지 않았어요!</h2>
             <Link className={styles.registerLink} href="/sales-management/v2/store">상점 등록 하러가기</Link>
           </div>

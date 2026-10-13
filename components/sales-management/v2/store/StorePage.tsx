@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/common/Modal';
-import type { SalesStore } from '@/types/sales-management';
+import type { SalesStore, VisitorOrderQr } from '@/types/sales-management';
 import type { SalesManagementV2Service } from '@/lib/services/sales-management-service';
 import { useStoreForm } from '../../useStoreForm';
 import { useRequiredSalesManagementV2Service } from '../SalesManagementV2Provider';
-import { LandingDialog } from '../VisitorQrDialog';
+import VisitorQrDialog, { LandingDialog } from '../VisitorQrDialog';
 import styles from './store.module.css';
 
 export default function StorePage() {
@@ -42,6 +42,18 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [qr, setQr] = useState<VisitorOrderQr | null>(null);
+  const [qrPending, setQrPending] = useState(false);
+  const [qrError, setQrError] = useState('');
+  const identifierError = form.identifierStatus === 'unavailable' ? '중복된 아이디입니다.' : form.errors.storeIdentifier;
+  async function openQr() {
+    if (qrPending) return;
+    setQrPending(true); setQrError('');
+    try { setQr(await service.getVisitorOrderQr()); }
+    catch { setQrError('QR을 불러오지 못했어요. 다시 시도해주세요.'); }
+    finally { setQrPending(false); }
+  }
+
 
   async function copyUrl() {
     if (!store) return;
@@ -53,29 +65,34 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
       <fieldset disabled={form.isSubmitting} className={styles.fields}>
         <div className={styles.field}>
           <label htmlFor="store-name">상점명{editing && <span aria-hidden="true">*</span>}</label>
-          <input id="store-name" value={editing ? form.input.name : store?.name ?? ''} readOnly={!editing} required={editing}
+          <div className={styles.inputWithIcon}><input autoComplete="off" id="store-name" value={editing ? form.input.name : store?.name ?? ''} readOnly={!editing} required={editing}
             onChange={event => form.updateInput('name', event.target.value)} placeholder="상점명을 입력해주세요"
             aria-invalid={Boolean(form.errors.name)} aria-describedby={form.errors.name ? 'store-name-error' : undefined} />
+            {editing && form.input.name && <button type="button" className={styles.clearName} aria-label="상점명 지우기" onClick={() => { form.updateInput('name', ''); document.getElementById('store-name')?.focus(); }}><Image src="/assets/icons/icon-clear.svg" alt="" width={20} height={20} /></button>}
+          </div>
           {editing && form.errors.name && <p id="store-name-error" className={styles.error}>{form.errors.name}</p>}
         </div>
         <div className={styles.field}>
           <label htmlFor="store-identifier">상점 아이디{editing && <span aria-hidden="true">*</span>}</label>
           <div className={styles.identifier}>
-            <input id="store-identifier" value={editing ? form.input.storeIdentifier : store?.storeIdentifier ?? ''} readOnly={!editing}
+            <div className={styles.inputWithIcon}><input autoComplete="off" id="store-identifier" value={editing ? form.input.storeIdentifier : store?.storeIdentifier ?? ''} readOnly={!editing}
               required={editing} maxLength={20} onChange={event => form.updateInput('storeIdentifier', event.target.value)}
-              placeholder="상점 아이디를 입력해주세요" aria-invalid={Boolean(form.errors.storeIdentifier)} aria-describedby={editing ? 'store-identifier-help' : undefined} />
+              placeholder="상점 아이디를 입력해주세요" aria-invalid={Boolean(identifierError)} aria-describedby={editing ? 'store-identifier-help' : undefined} />
+              {editing && (identifierError ? <span className={styles.statusIcon} role="img" aria-label="아이디 확인 오류"><Image src="/assets/icons/filled/Filled/Danger.svg" alt="" width={20} height={20} /></span>
+                : form.identifierStatus === 'available' ? <span className={`${styles.statusIcon} ${styles.available}`} role="img" aria-label="사용 가능한 아이디">✓</span> : null)}
+            </div>
             {editing && <button type="button" onClick={form.checkIdentifier} disabled={form.identifierStatus === 'checking'}>
               {form.identifierStatus === 'checking' ? '확인 중' : '중복 확인'}
             </button>}
           </div>
-          {editing && <p id="store-identifier-help" className={form.errors.storeIdentifier ? styles.error : styles.help}>
-            {form.errors.storeIdentifier ?? (form.identifierStatus === 'available' ? '사용 가능한 아이디입니다.' : '4자 이상 영문 소문자, 숫자 조합으로 입력해주세요. (최대 20자)')}
+          {editing && <p id="store-identifier-help" className={identifierError ? styles.error : styles.help}>
+            {identifierError ?? '4자 이상 영문 소문자 / 숫자 조합'}
           </p>}
         </div>
       </fieldset>
       {form.submitError && <p role="alert" className={styles.error}>{form.submitError}</p>}
       <div className={`${styles.actions} ${editing ? styles.editActions : ''}`}>
-        {editing ? <button className={styles.primary} type="submit" disabled={form.isSubmitting}>
+        {editing ? <button className={styles.primary} type="submit" disabled={form.isSubmitting || form.identifierStatus === 'unavailable' || form.identifierStatus === 'checking'}>
           {form.isSubmitting ? '저장 중...' : store ? '상점 정보 수정하기' : '상점 등록하기'}
         </button> : <button className={styles.primary} type="button" onClick={event => { event.preventDefault(); setEditing(true); setCopied(false); }}>상점 정보 수정하기</button>}
         {store && !store.hasSalesHistory && <button type="button" disabled={form.isSubmitting} onClick={() => setDeleting(true)}>상점 삭제하기</button>}
@@ -86,7 +103,7 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
       {store ? <>
         <h2>QR샵 URL</h2>
         <div className={styles.qrRow}>
-          <Image src="/assets/sales-management/v2/visitor-order-qr.png" alt="방문객 주문 QR 코드 미리보기" width={170} height={170} unoptimized />
+          <button type="button" className={styles.qrPreview} aria-label="방문객 주문 QR 열기" disabled={qrPending} onClick={openQr}><Image src="/assets/sales-management/v2/visitor-order-qr.png" alt="방문객 주문 QR 코드 미리보기" width={170} height={170} unoptimized /></button>
           <div className={styles.qrInfo}>
             <label htmlFor="visitor-url">방문객 주문 URL</label>
             <div className={styles.urlRow}>
@@ -99,6 +116,8 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
         </div>
       </> : <p className={styles.emptyQr}>상점 등록 시 방문객들이 사용할 상점 바로가기 URL과 QR코드가 발급됩니다</p>}
     </section>
+    {qrError && <p role="alert" className={styles.error}>{qrError}</p>}
+    {qr && <VisitorQrDialog qr={qr} onDismiss={() => setQr(null)} />}
     {deleting && <StoreDeleteDialog onDismiss={() => setDeleting(false)} onConfirm={async () => {
       await service.deleteStore();
       router.push('/sales-management/v2');

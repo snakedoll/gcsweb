@@ -43,9 +43,9 @@ describe('v2 상점 수정·삭제', () => {
     fireEvent.click(screen.getByRole('button', { name: '상점 등록하기' }));
     expect(screen.getByText('영문 소문자와 숫자로 4~20자 입력해주세요.')).toBeInTheDocument();
     change('상점 아이디', 'taken123'); fireEvent.click(screen.getByRole('button', { name: '중복 확인' }));
-    expect(await screen.findByText('이미 사용 중인 상점 아이디입니다.')).toBeInTheDocument();
+    expect(await screen.findByText('중복된 아이디입니다.')).toBeInTheDocument();
     change('상점 아이디', 'myshop123'); fireEvent.click(screen.getByRole('button', { name: '중복 확인' }));
-    await screen.findByText('사용 가능한 아이디입니다.');
+    await screen.findByRole('img', { name: '사용 가능한 아이디' });
     fireEvent.click(screen.getByRole('button', { name: '상점 등록하기' }));
     await screen.findByLabelText('방문객 주문 URL');
     fireEvent.click(screen.getByRole('button', { name: '상점 정보 수정하기' }));
@@ -96,4 +96,34 @@ describe('v2 상점 수정·삭제', () => {
     expect(screen.getByText('상점 아이디 중복 확인을 해주세요.')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
+  it('QA: 상점명 지우기와 아이디 오류·성공 상태를 표시한다', async () => {
+    await ready('empty');
+    change('상점명', '새 상점');
+    fireEvent.click(screen.getByRole('button', { name: '상점명 지우기' }));
+    expect(screen.getByRole('textbox', { name: '상점명' })).toHaveValue('');
+    change('상점 아이디', 'taken123');
+    fireEvent.click(screen.getByRole('button', { name: '중복 확인' }));
+    await screen.findByText('중복된 아이디입니다.');
+    expect(screen.getByRole('img', { name: '아이디 확인 오류' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '상점 등록하기' })).toBeDisabled();
+    change('상점 아이디', 'myshop123');
+    fireEvent.click(screen.getByRole('button', { name: '중복 확인' }));
+    await screen.findByRole('img', { name: '사용 가능한 아이디' });
+    expect(screen.getByText('4자 이상 영문 소문자 / 숫자 조합')).toBeInTheDocument();
+  });
+  it('QA: 상점 QR에서 저장과 인쇄를 열고 실패 후 재시도한다', async () => {
+    const { service } = await ready();
+    vi.spyOn(service, 'getVisitorOrderQr').mockRejectedValueOnce(new Error('failure'));
+    fireEvent.click(screen.getByRole('button', { name: '방문객 주문 QR 열기' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('QR을 불러오지 못했어요.');
+    fireEvent.click(screen.getByRole('button', { name: '방문객 주문 QR 열기' }));
+    await screen.findByRole('dialog', { name: '방문객 주문 QR' });
+    expect(screen.getByRole('button', { name: '인쇄' })).toBeDisabled();
+    fireEvent.load(screen.getByAltText('방문객 주문 QR 코드'));
+    expect(await screen.findByRole('link', { name: '이미지 저장' })).toHaveAttribute('download', '방문객-주문-QR.png');
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    fireEvent.click(screen.getByRole('button', { name: '인쇄' }));
+    expect(print).toHaveBeenCalledOnce();
+  });
+
 });
