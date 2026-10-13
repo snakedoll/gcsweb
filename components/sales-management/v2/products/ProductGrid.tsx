@@ -13,18 +13,18 @@ export default function ProductGrid({ products, newestProductId, onDelete }: {
   return <ul className={styles.grid} aria-label="상품 목록">
     {products.map(product => <li key={product.id} className={styles.card}>
       <div className={`${styles.photo} ${!product.imageUrl ? styles.placeholder : ''}`}>
-        <Image src={product.imageUrl || `${productAssets}/placeholder.png`} alt={product.imageUrl ? product.name : '상품 이미지 없음'}
-          width={210} height={210} unoptimized className={product.imageUrl === `${productAssets}/bag.png` ? styles.bagImage : styles.productImage} />
+        <Image src={product.imageUrl || '/assets/icons/light/image.svg'} alt={product.imageUrl ? product.name : '상품 이미지 없음'}
+          width={210} height={210} unoptimized className={product.imageUrl === `${productAssets}/bag.png` ? styles.bagImage : product.imageUrl ? styles.productImage : styles.placeholderImage} />
       </div>
       <div className={styles.cardInfo}>
         <div className={styles.cardName}>
           {newestProductId === product.id && <span className={styles.newTag}>NEW</span>}
           {product.category && <Tag contents={product.category} className={styles.tag} />}
-          <h2 title={product.name}>{truncate(product.name, 11)}</h2>
+          <h2 title={product.name}>{truncate(product.name, 20)}</h2>
         </div>
         <p className={styles.price}>{product.price.toLocaleString('ko-KR')}원</p>
         <div className={styles.inventory}>
-          {product.options.length > 0 && <p title={product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', ')}>{truncate(product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', '), 21)}</p>}
+          {product.options.length > 0 && <p title={product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', ')}>{truncate(product.options.map(option => `${option.name}(${option.stock.toLocaleString('ko-KR')})`).join(', '), 20)}</p>}
           <p>총재고 {product.stock.toLocaleString('ko-KR')}개</p>
         </div>
         <div className={styles.cardActions}>

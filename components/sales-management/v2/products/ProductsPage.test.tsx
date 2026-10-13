@@ -243,4 +243,36 @@ describe('상품 관리 v2 화면', () => {
     expect((await service.getProducts()).items[0].name).toBe('저장된 상품');
   });
 
+  it('QA: 상품명을 지우고 숫자 이외 입력을 차단하며 등록 확인 문구와 대체 이미지를 표시한다', async () => {
+    await ready({ form: true, count: 0 });
+    change('상품명', '임시 상품');
+    fireEvent.click(screen.getByRole('button', { name: '상품명 지우기' }));
+    expect(screen.getByLabelText('상품명')).toHaveValue('');
+    change('상품명', '이미지 없는 상품');
+    change('가격', '1000');
+    for (const value of ['-1', '1.5', '문자', '1e3']) {
+      change('가격', value);
+      expect(screen.getByLabelText('가격')).toHaveValue('1,000');
+    }
+    change('총재고', '1');
+    fireEvent.click(screen.getByRole('button', { name: '상품 등록하기' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('상품 등록을 완료하시겠습니까?');
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByAltText('상품 이미지 없음')).toHaveAttribute('src', '/assets/icons/light/image.svg');
+  });
+  it('QA: 카테고리는 8자까지 생성하고 초과값은 저장하지 않는다', async () => {
+    const { service } = await ready({ form: true, count: 0 });
+    fireEvent.focus(screen.getByLabelText('카테고리'));
+    const input = screen.getByLabelText('카테고리 검색 및 생성');
+    expect(input).toHaveAttribute('maxlength', '8');
+    change('카테고리 검색 및 생성', '일이삼사오육칠팔구');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(await service.getCategories()).not.toContain('일이삼사오육칠팔구');
+    change('카테고리 검색 및 생성', '일이삼사오육칠팔');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await screen.findByRole('button', { name: '카테고리 해제' });
+    expect(await service.getCategories()).toContain('일이삼사오육칠팔');
+  });
+
 });

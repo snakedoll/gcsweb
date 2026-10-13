@@ -25,7 +25,7 @@ export default function ProductDialog({ kind, onConfirm, onDismiss }: {
   return <LandingDialog label={kind === 'create' ? '상품 등록 확인' : '상품 삭제 확인'}
     className={styles.dialog} onDismiss={() => { if (!busy.current) onDismiss(); }}>
     <Modal variant="Large" className={styles.modal} titleClassName={styles.modalTitle} disabled={pending}
-      title={kind === 'create' ? '상품 등록을 완료하실건가요?' : '상품을 삭제하시겠습니까?'}
+      title={kind === 'create' ? '상품 등록을 완료하시겠습니까?' : '상품을 삭제하시겠습니까?'}
       description={kind === 'create' ? '상품 정보는 언제든지 수정가능합니다.' : '삭제된 상품은 다시 복구할 수 없습니다.'}
       onConfirm={confirm} onCancel={onDismiss} />
     {error && <p role="alert" className={styles.error}>{error}</p>}

@@ -95,6 +95,7 @@ export function createMockLandingV2Service(
     async createCategory(name) {
       const value = name.trim();
       if (!value) throw new MockServiceError('카테고리를 입력해주세요.');
+      if (Array.from(value).length > 8) throw new MockServiceError('카테고리는 최대 8자까지 입력해주세요.');
       if (!categories.includes(value)) categories = [...categories, value];
       return value;
     },
@@ -103,6 +104,7 @@ export function createMockLandingV2Service(
       const previous = id ? products.find(product => product.id === id) : undefined;
       if (id && !previous) throw new MockServiceError('상품을 찾을 수 없어요.');
       const validNumber = (value: number) => Number.isSafeInteger(value) && value >= 0;
+      if (Array.from(input.category.trim()).length > 8) throw new MockServiceError('카테고리는 최대 8자까지 입력해주세요.');
       if (!input.name.trim() || input.name.trim().length > 20 || !validNumber(input.price) ||
           (input.usesOptions ? !input.options.length || input.options.some(option => !option.name.trim() || option.name.trim().length > 18 || !validNumber(option.price) || !validNumber(option.stock)) : !validNumber(input.stock))) {
         throw new MockServiceError('상품명, 가격, 재고와 옵션을 확인해주세요.');

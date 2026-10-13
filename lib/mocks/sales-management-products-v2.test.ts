@@ -40,4 +40,11 @@ describe('상품 관리 v2 공유 서비스', () => {
     expect((await first.getProducts()).items[0].name).toBe('신상품');
     expect((await second.getProducts()).total).toBe(0);
   });
+  it('카테고리 8자 제한을 생성과 상품 저장 모두에서 검증한다', async () => {
+    const service = createMockLandingV2Service('store-only');
+    await expect(service.createCategory('일이삼사오육칠팔')).resolves.toBe('일이삼사오육칠팔');
+    await expect(service.createCategory('일이삼사오육칠팔구')).rejects.toThrow();
+    await expect(service.saveProduct({ ...input, category: '일이삼사오육칠팔구' })).rejects.toThrow();
+  });
+
 });

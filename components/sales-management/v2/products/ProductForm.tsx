@@ -15,7 +15,8 @@ import landingStyles from '../landing.module.css';
 type OptionRow = { key: number; name: string; price: string; stock: string };
 const validNumber = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
 const displayNumber = (value: string) => validNumber(value) ? Number(value).toLocaleString('ko-KR') : value;
-const numberInput = (value: string) => value.replaceAll(',', '');
+// Reject invalid edits instead of turning a negative/decimal into a different number.
+const numberInput = (value: string, previous: string) => /^[\d,]*$/.test(value) ? value.replaceAll(',', '') : previous;
 
 export default function ProductForm({ product, storeId, categories, service, onSaved, onCategoryCreated }: {
   product?: SalesProduct; storeId: string; categories: string[]; service: SalesManagementV2Service;
@@ -56,6 +57,7 @@ export default function ProductForm({ product, storeId, categories, service, onS
     setOptions(current => current.map(option => option.key === key ? { ...option, [field]: value } : option));
   }
   async function selectCategory(value: string) {
+    if (Array.from(value.trim()).length > 8) { setError('카테고리는 최대 8자까지 입력해주세요.'); return; }
     try {
       const selected = await service.createCategory(value);
       onCategoryCreated(selected); setCategory(selected); setCategoryQuery(''); setCategoryOpen(false); setError('');
@@ -129,17 +131,16 @@ export default function ProductForm({ product, storeId, categories, service, onS
           <p id="product-image-help" className={styles.imageHelp}>JPEG,PNG / 50MB 이하</p>
         </div>
         <div className={styles.fields}>
-          <div className={styles.field}><TextField id="product-name" label="상품명" showStar placeholder="상품명을 입력해주세요." inputProps={{ value: name, maxLength: 20, onChange: event => setName(event.target.value), className: styles.input, disabled: locked }} /></div>
+          <div className={styles.field}><TextField id="product-name" label="상품명" showStar placeholder="상품명을 입력해주세요." rightSlot={name && <button type="button" className={styles.clearName} aria-label="상품명 지우기" disabled={locked} onClick={() => { setName(''); document.getElementById('product-name')?.focus(); }}><Image src="/assets/icons/icon-clear.svg" alt="" width={20} height={20} /></button>} inputProps={{ autoComplete: 'off', value: name, maxLength: 20, onChange: event => setName(event.target.value), className: styles.input, disabled: locked }} /></div>
           <div className={styles.categoryField} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setCategoryOpen(false); }}>
             <label htmlFor="product-category">카테고리</label>
             <div className={styles.categoryInput}>
               {category ? <span className={styles.categoryTag}>{category}<button type="button" aria-label="카테고리 해제" disabled={locked} onClick={() => setCategory('')}><Image src={`${productAssets}/category-close.svg`} width={22} height={22} alt="" /></button></span>
-                : <input id="product-category" aria-label="카테고리" value="" readOnly disabled={locked} placeholder="카테고리를 입력해주세요."
+                : <input id="product-category" role="combobox" aria-haspopup="dialog" aria-label="카테고리" aria-expanded={categoryOpen} aria-controls="form-categories" value="" readOnly disabled={locked} placeholder="카테고리를 입력해주세요."
                   onFocus={() => setCategoryOpen(true)} onClick={() => setCategoryOpen(true)} />}
-              <button type="button" aria-label="카테고리 목록" disabled={locked} aria-expanded={categoryOpen} onClick={() => setCategoryOpen(!categoryOpen)}><Image src={`${productAssets}/down.svg`} width={20} height={20} alt="" className={categoryOpen ? styles.rotated : ''} /></button>
             </div>
-            {categoryOpen && <div id="form-categories" className={styles.categoryMenu} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setCategoryOpen(false); } }}>
-              <input disabled={locked} autoFocus aria-label="카테고리 검색 및 생성" placeholder="카테고리 검색 및 생성" value={categoryQuery}
+            {categoryOpen && <div id="form-categories" role="dialog" aria-label="카테고리 선택" className={styles.categoryMenu} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setCategoryOpen(false); } }}>
+              <input disabled={locked} autoFocus aria-label="카테고리 검색 및 생성" maxLength={8} autoComplete="off" placeholder="카테고리 검색 및 생성" value={categoryQuery}
                 onChange={event => setCategoryQuery(event.target.value)} onKeyDown={event => {
                   if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); if (categoryQuery.trim()) void selectCategory(categoryQuery); }
                 }} />
@@ -149,26 +150,26 @@ export default function ProductForm({ product, storeId, categories, service, onS
             </div>}
           </div>
           <div className={styles.priceStock}>
-            <div className={styles.field}><TextField id="product-price" label="가격" showStar placeholder="가격을 입력해주세요." inputProps={{ value: displayNumber(price), inputMode: 'numeric', onChange: event => setPrice(numberInput(event.target.value)), className: styles.input, disabled: locked }} /></div>
-            <div className={styles.field}><TextField id="product-stock" label="총재고" showStar placeholder="재고를 입력해주세요." inputProps={{ value: usesOptions ? totalStock.toLocaleString('ko-KR') : displayNumber(stock), readOnly: usesOptions, inputMode: 'numeric', onChange: event => setStock(numberInput(event.target.value)), className: styles.input, disabled: locked }} /></div>
+            <div className={styles.field}><TextField id="product-price" label="가격" showStar placeholder="가격을 입력해주세요." inputProps={{ value: displayNumber(price), inputMode: 'numeric', onChange: event => setPrice(numberInput(event.target.value, price)), className: styles.input, disabled: locked }} /></div>
+            <div className={styles.field}><TextField id="product-stock" label="총재고" showStar placeholder="재고를 입력해주세요." inputProps={{ value: usesOptions ? totalStock.toLocaleString('ko-KR') : displayNumber(stock), readOnly: usesOptions, inputMode: 'numeric', onChange: event => setStock(numberInput(event.target.value, stock)), className: styles.input, disabled: locked }} /></div>
           </div>
           <div>
-            <fieldset className={styles.optionChoice}>
-              <legend>옵션</legend>
+            <div className={styles.optionChoice} role="group" aria-labelledby="option-choice-label">
+              <span id="option-choice-label" className={styles.optionLabel}>옵션</span>
               {[true, false].map(enabled => <label key={String(enabled)}>
                 <input className={styles.radio} type="radio" name="options-enabled" checked={usesOptions === enabled} disabled={locked} onChange={() => { setUsesOptions(enabled); if (enabled && !options.length) addOption(); }} />
                 <span className={styles.checkbox}><Image src={`${productAssets}/${usesOptions === enabled ? 'checked.svg' : 'unchecked.png'}`} alt="" width={usesOptions === enabled ? 21.5 : 24} height={usesOptions === enabled ? 21.5 : 24} /></span>
                 {enabled ? '사용함' : '사용안함'}
               </label>)}
-            </fieldset>
+            </div>
             {usesOptions && <div className={styles.optionPanel}>
               <div className={styles.optionHead}><span>옵션명</span><span>추가금</span><span>재고</span><span /></div>
               {options.map((option, index) => <div className={styles.optionRow} key={option.key}>
                 <input aria-label={`옵션명 ${index + 1}`} maxLength={18} placeholder="옵션명 입력 (최대 18자)" value={option.name} disabled={locked} onChange={event => changeOption(option.key, 'name', event.target.value)} />
                 <Image src={`${productAssets}/option-divider.svg`} width={2} height={28} alt="" />
-                <input aria-label={`추가금 ${index + 1}`} inputMode="numeric" value={displayNumber(option.price)} disabled={locked} onChange={event => changeOption(option.key, 'price', numberInput(event.target.value))} />
+                <input aria-label={`추가금 ${index + 1}`} inputMode="numeric" value={displayNumber(option.price)} disabled={locked} onChange={event => changeOption(option.key, 'price', numberInput(event.target.value, option.price))} />
                 <Image src={`${productAssets}/option-divider.svg`} width={2} height={28} alt="" />
-                <input aria-label={`옵션 재고 ${index + 1}`} placeholder="재고 수량 입력" inputMode="numeric" value={displayNumber(option.stock)} disabled={locked} onChange={event => changeOption(option.key, 'stock', numberInput(event.target.value))} />
+                <input aria-label={`옵션 재고 ${index + 1}`} placeholder="재고 수량 입력" inputMode="numeric" value={displayNumber(option.stock)} disabled={locked} onChange={event => changeOption(option.key, 'stock', numberInput(event.target.value, option.stock))} />
                 <button type="button" aria-label={`옵션 ${index + 1} 삭제`} disabled={locked} onClick={() => { setOptions(current => current.filter(item => item.key !== option.key)); if (options.length === 1) setUsesOptions(false); }}><Image src={`${productAssets}/option-close.svg`} width={30} height={30} alt="" /></button>
               </div>)}
               <button type="button" className={styles.addOption} aria-label="옵션 추가" disabled={locked} onClick={addOption}><Image src={`${productAssets}/plus.svg`} width={24} height={24} alt="" /></button>
