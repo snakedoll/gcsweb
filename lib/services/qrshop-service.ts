@@ -6,8 +6,12 @@ import type {
 } from '@/types/qrshop';
 import type { ListResult } from './contracts';
 
+export interface QrshopCatalogResult extends ListResult<QrshopProduct> {
+  storeStatus: 'open' | 'closed';
+}
+
 export interface QrshopService {
-  getCatalog(): Promise<ListResult<QrshopProduct>>;
+  getCatalog(): Promise<QrshopCatalogResult>;
   createOrder(order: QrshopOrderDraft): Promise<QrshopOrderResult>;
   getOrder(orderId: string): Promise<QrshopOrderResult>;
   processPayment(

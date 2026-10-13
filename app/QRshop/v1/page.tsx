@@ -245,9 +245,9 @@ export default function QRshopPage() {
         return;
       }
       if (paymentMethod === 3) {
-        router.push(`/QRshop/result?orderId=${encodeURIComponent(orderId)}&counterPay=1`);
+        router.push(`/QRshop/v1/result?orderId=${encodeURIComponent(orderId)}&counterPay=1`);
       } else {
-        router.push(`/QRshop/pay?orderId=${encodeURIComponent(orderId)}`);
+        router.push(`/QRshop/v1/pay?orderId=${encodeURIComponent(orderId)}`);
       }
     } finally {
       setSubmitting(false);

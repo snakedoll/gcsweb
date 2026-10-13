@@ -23,10 +23,11 @@ export type SalesManagementLandingMockState =
 
 const registeredSellerSummary: SellerSummary = {
   store: {
+    hasSalesHistory: true,
     id: 'store-itjang',
     name: '잇장샵',
     storeIdentifier: 'itjang-shop',
-    visitorOrderUrl: '/QRshop/v2?store=itjang-shop',
+    visitorOrderUrl: '/QRshop?store=itjang-shop',
     description: 'ygygygy23233',
   },
   productCount: 0,
@@ -70,10 +71,11 @@ export function createMockSalesManagementLandingService(
 const unavailableStoreIdentifiers = new Set(['gcs', 'admin', 'taken-shop']);
 
 const defaultStore: SalesStore = {
+  hasSalesHistory: true,
   id: 'store-itjang',
   name: '잇장샵',
   storeIdentifier: 'itjang-shop',
-  visitorOrderUrl: '/QRshop/v2?store=itjang-shop',
+  visitorOrderUrl: '/QRshop?store=itjang-shop',
   description: '일상의 즐거움을 소개하는 상점',
 };
 
@@ -124,10 +126,11 @@ export function createSalesManagementMockService(
       }
 
       registeredStore = {
+        hasSalesHistory: registeredStore?.hasSalesHistory ?? false,
         id: `store-${storeIdentifier}`,
         name: input.name.trim(),
         storeIdentifier,
-        visitorOrderUrl: `/QRshop/v2?store=${encodeURIComponent(storeIdentifier)}`,
+        visitorOrderUrl: `/QRshop?store=${encodeURIComponent(storeIdentifier)}`,
       };
 
       return resolveMockScenario({ kind: 'success', data: registeredStore });
@@ -150,6 +153,7 @@ export function createSalesManagementMockService(
         stock: input.stock,
         imageUrl: input.imageUrl,
         isVisible: true,
+        hasSalesHistory: false,
         options: input.options.map((option, index) => ({
           id: `option-${index + 1}`,
           ...option,

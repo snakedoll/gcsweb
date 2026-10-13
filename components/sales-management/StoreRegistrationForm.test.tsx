@@ -8,15 +8,17 @@ function createService(overrides: Partial<SalesManagementService> = {}): SalesMa
     getStore: async () => null,
     checkStoreIdentifier: async () => true,
     saveStore: async (input) => ({
+      hasSalesHistory: false,
       id: 'store-paper-shop',
       ...input,
-      visitorOrderUrl: '/QRshop/v2?store=paper-shop',
+      visitorOrderUrl: '/QRshop?store=paper-shop',
     }),
     getProducts: async () => ({ items: [], total: 0 }),
     saveProduct: async (product) => ({
       ...product,
       id: 'product-1',
       isVisible: true,
+      hasSalesHistory: false,
       options: product.options.map((option, index) => ({
         ...option,
         id: `option-${index + 1}`,
@@ -85,7 +87,7 @@ describe('StoreRegistrationForm', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'QR샵 URL' })).toBeInTheDocument();
     });
-    expect(screen.getByDisplayValue('/QRshop/v2?store=paper-shop')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('/QRshop?store=paper-shop')).toBeInTheDocument();
     expect(screen.getByLabelText('방문객 주문 QR 코드 미리보기')).toBeInTheDocument();
   });
 });

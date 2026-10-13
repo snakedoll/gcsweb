@@ -88,7 +88,7 @@ function PayContent() {
         <button
           type="button"
           className="rounded-[14px] bg-orange-5 px-5 py-3 text-[15px] font-semibold text-white"
-          onClick={() => router.push('/QRshop')}
+          onClick={() => router.push('/QRshop/v1')}
         >
           돌아가기
         </button>

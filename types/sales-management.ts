@@ -6,6 +6,7 @@ export type SalesManagementSection =
   | 'inventory';
 
 export interface SalesStore {
+  hasSalesHistory: boolean;
   id: string;
   name: string;
   storeIdentifier: string;
@@ -26,7 +27,19 @@ export interface SellerSummary {
   lowStockCount: number;
 }
 
+export interface SellerLandingSummary extends SellerSummary {
+  todayRevenue: number;
+  todaySalesCount: number;
+  recentProducts: SalesProduct[];
+}
+
+export interface VisitorOrderQr {
+  imageUrl: string;
+  visitorOrderUrl: string;
+}
+
 export interface SalesProduct {
+  hasSalesHistory: boolean;
   id: string;
   storeId: SalesStore['id'];
   name: string;
