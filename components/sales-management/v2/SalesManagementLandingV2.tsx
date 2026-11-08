@@ -17,7 +17,7 @@ import { truncate } from './truncate';
 const assetRoot = '/assets/sales-management/v2';
 const format = (value: number) => value.toLocaleString('ko-KR');
 const shortcuts = [
-  ['현장 포스', 'POS/QR샵 관리'],
+  ['현장 운영', 'POS/QR샵 관리'],
   ['데이터 관리', '매출/판매 리포트 보기'],
   ['주문 관리', '전체 주문내역 조회하기'],
 ] as const;
@@ -86,7 +86,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
   function notify(message: string) { setToast({ message }); }
   function comingSoon() { notify('준비 중입니다.'); }
   function openShortcut() {
-    if (service.dataSource === 'api') notify('실제 주문 연동 전에는 현장 포스를 이용할 수 없어요.');
+    if (service.dataSource === 'api') notify('실제 주문 연동 전에는 현장 운영을 이용할 수 없어요.');
     else if (!summary?.store) notify('해당 기능은 상점/상품 등록 후 이용 가능합니다.');
     else if (!summary.productCount) notify('해당 기능은 상품 등록 후 이용 가능합니다.');
     else comingSoon();
@@ -189,7 +189,7 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
     </section>}
 
     <nav className={styles.shortcuts} aria-label="판매 관리 바로가기">
-      {shortcuts.map(([title, description]) => (title === '현장 포스' || title === '주문 관리') && service.dataSource !== 'api' && summary.store && summary.productCount > 0
+      {shortcuts.map(([title, description]) => (title === '현장 운영' || title === '주문 관리') && service.dataSource !== 'api' && summary.store && summary.productCount > 0
         ? <Link key={title} href={title === '주문 관리' ? '/sales-management/v2/orders' : '/sales-management/v2/pos'}>
           <span>{title}<Image src={`${assetRoot}/right.svg`} alt="" width={24} height={24} /></span><p>{description}</p>
         </Link>

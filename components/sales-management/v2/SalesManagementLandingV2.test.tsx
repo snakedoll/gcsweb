@@ -34,7 +34,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(screen.queryByRole('button', { name: 'QR 발급받기' })).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: '상점 기본 프로필' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '상점 이미지 등록' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /현장 포스/ }));
+    fireEvent.click(screen.getByRole('button', { name: /현장 운영/ }));
     expect(screen.getByRole('status')).toHaveTextContent('해당 기능은 상점/상품 등록 후 이용 가능합니다.');
   });
 
@@ -61,7 +61,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(screen.getByText('36개')).toBeInTheDocument();
     expect(screen.getByText('128,000원')).toBeInTheDocument();
     expect(screen.getByText('128건')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /현장 포스/ })).toHaveAttribute('href', '/sales-management/v2/pos');
+    expect(screen.getByRole('link', { name: /현장 운영/ })).toHaveAttribute('href', '/sales-management/v2/pos');
     expect(within(screen.getByRole('list', { name: '최근 등록 상품' })).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.getByRole('link', { name: /주문 관리/ })).toHaveAttribute('href', '/sales-management/v2/orders');
   });
@@ -85,7 +85,7 @@ describe('판매관리 랜딩 v2', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인' }));
     expect(await screen.findByRole('link', { name: '상품 등록 하러가기' })).toBeInTheDocument();
     expect(screen.getByText('0개')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /현장 포스/ }));
+    fireEvent.click(screen.getByRole('button', { name: /현장 운영/ }));
     expect(screen.getByRole('status')).toHaveTextContent('해당 기능은 상품 등록 후 이용 가능합니다.');
   });
 
@@ -226,7 +226,7 @@ it('API 랜딩은 상품 관리를 열고 POS 진입은 제공하지 않는다',
   expect(screen.getByText('36개')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: '상품 관리' })).toHaveAttribute('href', '/sales-management/v2/products');
   expect(screen.getByRole('list', { name: '최근 등록 상품' })).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: /현장 포스/ })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: /현장 포스/ }));
-  expect(screen.getByRole('status')).toHaveTextContent('실제 주문 연동 전에는 현장 포스를 이용할 수 없어요.');
+  expect(screen.queryByRole('link', { name: /현장 운영/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /현장 운영/ }));
+  expect(screen.getByRole('status')).toHaveTextContent('실제 주문 연동 전에는 현장 운영을 이용할 수 없어요.');
 });

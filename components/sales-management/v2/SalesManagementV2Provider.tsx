@@ -19,7 +19,7 @@ export default function SalesManagementV2Provider({ children, service }: { child
   )));
   const ordersRoute = pathname === '/sales-management/v2/orders' || pathname?.startsWith('/sales-management/v2/orders/');
   if (activeService.dataSource === 'api' && (ordersRoute || pathname === '/sales-management/v2/pos' || pathname?.startsWith('/sales-management/v2/pos/'))) {
-    return <main><p role="status">실제 주문 연동 전에는 {ordersRoute ? '전체 주문 조회' : '현장 포스'}를 이용할 수 없어요.</p><Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
+    return <main><p role="status">실제 주문 연동 전에는 {ordersRoute ? '전체 주문 조회를' : '현장 운영을'} 이용할 수 없어요.</p><Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
   }
   return <ServiceContext.Provider value={activeService}>{activeService.dataSource === 'api' ? children : <PosProvider>{children}</PosProvider>}</ServiceContext.Provider>;
 }

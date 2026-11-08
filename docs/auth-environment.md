@@ -61,6 +61,6 @@ API 모드의 `/sales-management/v2`와 `/store`는 본인 상점 조회, 중복
 
 상품 이미지는 `POST /api/v1/images`의 multipart `usage=ONSITE_PRODUCT`, `image=File`로 업로드하고 반환된 `imageUrl`만 상품에 저장한다. **API 모드는 JPEG/PNG/WebP, 10MB 이하, 비어 있지 않은 파일과 .jpg/.jpeg/.png/.webp 확장자**를 검사한다. Figma 및 기존 Mock의 JPEG/PNG 50MB와 다르므로 안내/accept도 모드에 맞춘다. Mock은 FileReader 미리보기만 사용한다. 업로드된 이미지 레코드를 삭제하는 계약은 없어 이미지 선택 취소/상품 이미지 해제 시 이미지 DB 자체를 지우지 않는다. 상점 이미지 업로드는 여전히 미지원이다.
 
-`hasSalesHistory`로 삭제 버튼을 숨기고 이후 판매가 생긴 서버의 409 `PRODUCT_HAS_SALES`도 표시한다. 401/404/검증/업로드/네트워크 실패를 Mock 성공으로 대체하지 않는다. API 랜딩에서 상품 관리/등록/수정을 열지만, 현장 포스는 실제 주문 연동 전까지 링크와 직접 주소 진입 모두 막는다. Mock POS는 기존대로 동작한다.
+`hasSalesHistory`로 삭제 버튼을 숨기고 이후 판매가 생긴 서버의 409 `PRODUCT_HAS_SALES`도 표시한다. 401/404/검증/업로드/네트워크 실패를 Mock 성공으로 대체하지 않는다. API 랜딩에서 상품 관리/등록/수정을 열지만, 현장 운영은 실제 주문 연동 전까지 링크와 직접 주소 진입 모두 막는다. Mock POS는 기존대로 동작한다.
 
 검증은 fetch 계약과 UI 테스트이며 실서버 E2E는 미확인이다. API/DB 이관 후 main은 실제 로그인으로 상점 CRUD 및 식별자 변경 후 새 URL·SVG QR을 확인해야 한다. 운영 DB·migration·배포는 수행하지 않았다.

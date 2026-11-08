@@ -30,7 +30,7 @@ describe('전체 주문조회', () => {
     expect(screen.getByText(/실제 결제 취소·환불 및 상품 재고 변경은 실행되지/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '전체 주문 조회' }));
     expect(screen.getByRole('link', { name: '전체 주문 조회' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: '현장 포스' })).toHaveAttribute('href', '/sales-management/v2/pos');
+    expect(screen.getByRole('link', { name: '현장 운영' })).toHaveAttribute('href', '/sales-management/v2/pos');
     expect(screen.getByRole('button', { name: '직원 관리' })).toBeEnabled();
   });
   it('온라인·현장 필터와 상품/옵션 검색을 결합하며 빈 검색 결과를 표시한다', async () => {

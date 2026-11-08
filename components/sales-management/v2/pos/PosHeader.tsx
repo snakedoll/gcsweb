@@ -17,12 +17,12 @@ export default function PosHeader({ pending = false, initialHelp = true, page = 
     <header className={styles.header}>
       <div className={styles.navigation}>
         <h1><button type="button" className={styles.title} data-page={page} aria-expanded={menuOpen} aria-controls="pos-navigation" onClick={() => setMenuOpen(!menuOpen)}>
-          <span>{page === 'orders' ? '전체 주문 조회' : '현장 포스'}</span><Image src={`${assets}/down.svg`} alt="" width={24} height={24} />
+          <span>{page === 'orders' ? '전체 주문 조회' : '현장 운영'}</span><Image src={`${assets}/down.svg`} alt="" width={24} height={24} />
         </button></h1>
         {menuOpen && <nav id="pos-navigation" aria-label="판매 관리 화면" className={styles.menu}>
           <Link href="/sales-management/v2">판매 관리 홈</Link>
           <Link href="/sales-management/v2/products">상품 관리</Link>
-          <Link href="/sales-management/v2/pos" aria-current={page === 'pos' ? 'page' : undefined}>현장 포스</Link>
+          <Link href="/sales-management/v2/pos" aria-current={page === 'pos' ? 'page' : undefined}>현장 운영</Link>
           <Link href="/sales-management/v2/orders" aria-current={page === 'orders' ? 'page' : undefined}>전체 주문 조회</Link>
         </nav>}
       </div>

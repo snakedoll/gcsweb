@@ -135,7 +135,7 @@ describe('POS 기본 화면', () => {
     expect(screen.getByRole('note')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '직원 관리' })).toBeEnabled();
     expect(screen.getByRole('link', { name: '편집' })).toHaveAttribute('href', '/sales-management/v2/pos/edit');
-    fireEvent.click(screen.getByRole('button', { name: '현장 포스' }));
+    fireEvent.click(screen.getByRole('button', { name: '현장 운영' }));
     expect(screen.getByRole('link', { name: '판매 관리 홈' })).toHaveAttribute('href', '/sales-management/v2');
   });
 
