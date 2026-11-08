@@ -44,4 +44,6 @@ next-env.d.ts
 # mcp config (local server settings)
 .agents/rules/commit-convention.md
 .agents/mcp_config.json
-CLAUDE.md
+
+# 개인 AI 규칙 (팀 공통은 CLAUDE.md로 커밋)
+CLAUDE.local.md
