@@ -172,8 +172,9 @@ export default function ArchivePage() {
 
         <main className="flex-1 pb-[72px]">
           <section className="border-b border-neutral-4 bg-neutral-3">
-            <div className="flex items-center gap-[9px] px-4 py-[10px]">
+            <div className="flex items-start gap-[9px] px-4 py-[10px]">
               <Dropdown
+                overlay
                 className="w-[110px]"
                 label=""
                 placeholder="연도"
@@ -182,6 +183,7 @@ export default function ArchivePage() {
                 onSelect={(value) => setSelectedYearId(value || null)}
               />
               <Dropdown
+                overlay
                 className="w-[110px]"
                 label=""
                 placeholder="카테고리"

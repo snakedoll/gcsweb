@@ -22,6 +22,8 @@ interface DropdownProps {
   onSelect?: (value: string) => void;
   open?: boolean;
   onToggle?: () => void;
+  /** true면 목록을 아래 콘텐츠 위에 겹쳐 띄운다(레이아웃을 밀지 않음) */
+  overlay?: boolean;
 }
 
 function Caret({ open, colorClass }: { open: boolean; colorClass: string }) {
@@ -54,7 +56,7 @@ const fieldSizeClassMap: Record<DropdownSize, string> = {
 };
 
 const listClassMap: Record<DropdownSize, string> = {
-  s: 'h-[108px] rounded-[4px]',
+  s: 'max-h-[108px] overflow-y-auto rounded-[4px]',
   m: 'rounded-[8px]',
   l: 'rounded-[8px]',
 };
@@ -74,6 +76,7 @@ export default function Dropdown({
   onSelect,
   open,
   onToggle,
+  overlay = false,
 }: DropdownProps) {
   const isOpenControlled = typeof open === 'boolean';
   const [internalOpen, setInternalOpen] = useState(state === 'open');
@@ -122,7 +125,13 @@ export default function Dropdown({
       </button>
 
       {resolvedOpen ? (
-        <div className={cn('w-full overflow-hidden bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]', listClassMap[size])}>
+        <div
+          className={cn(
+            'w-full overflow-hidden bg-white shadow-[0px_0px_3px_0px_rgba(0,0,0,0.15)]',
+            overlay && 'absolute left-0 top-full z-30 mt-[5px]',
+            listClassMap[size]
+          )}
+        >
           {items.map((item) => (
             <Item
               key={item.value}
