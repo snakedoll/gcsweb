@@ -1,0 +1,53 @@
+# GitHub Actions CI (lint, typecheck, test, build)
+# main으로 가는 PR을 열거나 갱신할 때, 그리고 main에 머지될 때 실행됩니다. 
+# 개인 브랜치에서 push에서는 실행되지 않습니다.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# 같은 PR에 새 커밋이 오면 이전 실행은 취소
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall에서 prisma generate까지 실행 (DB 연결 불필요)
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck (app/api, prisma 제외)
+        run: npm run typecheck:frontend
+
+      - name: Test
+        run: npm test
+
+      # app/api 타입 오류는 여기서 잡힌다. 값은 빌드 통과용 더미이며 실제 DB에 접속하지 않는다.
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-dummy-secret
