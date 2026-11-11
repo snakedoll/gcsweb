@@ -20,6 +20,7 @@ npm run db:studio
 - `npm start` = `prisma migrate deploy` 후 `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
 - 환경변수 목록은 `.env.example`. `.env`는 git에 없어 새 PC에서 직접 만든다(없으면 Prisma P1012).
 - 경로 별칭 `@/*` = 저장소 루트 (tsconfig, vitest 동일).
+- Node 22 기준. 운영은 Railway 변수 `NIXPACKS_NODE_VERSION=22`, CI는 `.github/workflows/ci.yml`에서 22로 고정.
 
 ## DB 변경 규칙
 
