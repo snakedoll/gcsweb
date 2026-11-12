@@ -64,10 +64,14 @@ describe('parseSalesOrdersQuery', () => {
 });
 
 describe('salesOrdersWhere', () => {
-  it('결제완료와 판매자 환불 주문만, 상점·날짜로 거른다', () => {
+  it('결제완료·판매자 환불·품절 자동 환불 주문을 상점·날짜로 거른다 (#40)', () => {
     expect(salesOrdersWhere('s1', '261018', 'all')).toEqual({
       orderNumber: { storeId: 's1', orderTimeKey: '261018' },
-      OR: [{ paymentStatus: 'PAID' }, { paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND }],
+      OR: [
+        { paymentStatus: 'PAID' },
+        { paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND },
+        { paymentStatus: 'CANCELED', cancelReason: 'STOCK_SHORTAGE' },
+      ],
     });
   });
 
@@ -102,9 +106,10 @@ describe('toSalesOrderView', () => {
     expect(toSalesOrderView(row({ paymentMethod: 'ON_SITE', onsitePaymentType: type })).paymentMethod).toBe(expected);
   });
 
-  it('판매자 환불만 refunded 로 본다', () => {
+  it('판매자 환불은 refunded, 품절 자동 환불은 soldout_refunded 로 구분한다 (#40)', () => {
     expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND })).refundStatus).toBe('refunded');
-    expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: 'STOCK_SHORTAGE' })).refundStatus).toBe('none');
+    expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: 'STOCK_SHORTAGE' })).refundStatus).toBe('soldout_refunded');
+    expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: 'PAYMENT_CANCELED' })).refundStatus).toBe('none');
   });
 
   it('결제완료인데 환불 의도가 남아 있으면 pending(환불 처리 중)', () => {

@@ -1,5 +1,6 @@
 import type { OnsitePaymentType, PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
 import { ORDER_PAYMENT_STATUS } from '@/lib/order-status';
+import { CANCEL_REASON_STOCK_SHORTAGE } from './payment-confirm';
 
 /**
  * 전체 주문 조회(현장 운영) 공통 로직.
@@ -24,8 +25,11 @@ export type SalesOrderView = {
   items: { productName: string; optionName: string | null; quantity: number }[];
   paymentMethod: SalesOrderPaymentMethod;
   paymentAmount: number;
-  /** pending: 환불 요청은 됐지만 마무리 전(PortOne 응답을 못 받았거나 마무리 중 실패). 웹훅·재요청이 마무리한다. */
-  refundStatus: 'none' | 'pending' | 'refunded';
+  /**
+   * pending: 환불 요청은 됐지만 마무리 전(PortOne 응답을 못 받았거나 마무리 중 실패). 웹훅·재요청이 마무리한다.
+   * soldout_refunded: 결제 뒤 재고가 모자라 서버가 자동 환불한 주문. 화면은 '품절 환불', 환불 버튼 비활성(#40).
+   */
+  refundStatus: 'none' | 'pending' | 'refunded' | 'soldout_refunded';
 };
 
 export type SalesOrdersQuery = {
@@ -81,8 +85,9 @@ export function parseSalesOrdersQuery(
 }
 
 /**
- * 목록에 나오는 주문: 결제완료, 그리고 판매자가 환불한 주문. 결제 전·실패·품절 자동 환불 주문은 빠진다(#40 답에 따라 바뀔 수 있음).
+ * 목록에 나오는 주문: 결제완료, 판매자가 환불한 주문, 품절 자동 환불 주문(#40 기획 답). 결제 전·실패 주문은 빠진다.
  * 날짜는 주문번호 일자(OrderNumber.orderTimeKey) 기준이며, QR샵은 결제 확정 때 결제 시각으로 정해진다(#44).
+ * 품절 자동 환불 주문은 주문번호(일자)가 있어야 날짜 목록에 잡힌다.
  */
 export function salesOrdersWhere(storeId: string, timeKey: string, channel: SalesOrderChannel): Prisma.OrderWhereInput {
   return {
@@ -92,6 +97,7 @@ export function salesOrdersWhere(storeId: string, timeKey: string, channel: Sale
     OR: [
       { paymentStatus: ORDER_PAYMENT_STATUS.PAID },
       { paymentStatus: ORDER_PAYMENT_STATUS.CANCELED, cancelReason: CANCEL_REASON_SELLER_REFUND },
+      { paymentStatus: ORDER_PAYMENT_STATUS.CANCELED, cancelReason: CANCEL_REASON_STOCK_SHORTAGE },
     ],
   };
 }
@@ -141,6 +147,8 @@ export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
   const refunded =
     row.paymentStatus === ORDER_PAYMENT_STATUS.CANCELED && row.cancelReason === CANCEL_REASON_SELLER_REFUND;
   const refundPending = row.paymentStatus === ORDER_PAYMENT_STATUS.PAID && row.refundRequestedAt !== null;
+  const soldoutRefunded =
+    row.paymentStatus === ORDER_PAYMENT_STATUS.CANCELED && row.cancelReason === CANCEL_REASON_STOCK_SHORTAGE;
   return {
     id: row.id,
     orderNo: row.orderNumber?.orderNo != null ? formatOrderNo(row.orderNumber.orderNo) : '',
@@ -158,7 +166,7 @@ export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
           ? ONSITE_METHOD[row.onsitePaymentType]
           : 'onsite',
     paymentAmount: row.paymentAmount,
-    refundStatus: refunded ? 'refunded' : refundPending ? 'pending' : 'none',
+    refundStatus: refunded ? 'refunded' : soldoutRefunded ? 'soldout_refunded' : refundPending ? 'pending' : 'none',
   };
 }
 
