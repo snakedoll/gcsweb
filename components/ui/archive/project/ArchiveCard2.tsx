@@ -79,13 +79,18 @@ export default function ArchiveCard2({
             <DashboardHeaderTitle year={year} category={category} className="pt-0" />
             <div className="flex items-center gap-[6px]">
               <IconButton label="공유" onClick={onShareClick}>
-                <Image
-                  src="/assets/icons/light/share.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="h-6 w-6"
+                {/* Figma: Iconex/Light/Logout(위 화살표 박스). 북마크(#999694)와 같은 톤으로 칠한다. */}
+                <span
                   aria-hidden
+                  className="h-6 w-6 bg-[#999694]"
+                  style={{
+                    WebkitMaskImage: 'url("/assets/icons/light/logout-1.svg")',
+                    maskImage: 'url("/assets/icons/light/logout-1.svg")',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                  }}
                 />
               </IconButton>
 
