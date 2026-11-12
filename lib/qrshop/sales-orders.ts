@@ -80,7 +80,10 @@ export function parseSalesOrdersQuery(
   };
 }
 
-/** 목록에 나오는 주문: 결제완료, 그리고 판매자가 환불한 주문. 결제 전·실패·품절 자동 환불 주문은 빠진다. */
+/**
+ * 목록에 나오는 주문: 결제완료, 그리고 판매자가 환불한 주문. 결제 전·실패·품절 자동 환불 주문은 빠진다(#40 답에 따라 바뀔 수 있음).
+ * 날짜는 주문번호 일자(OrderNumber.orderTimeKey) 기준이며, QR샵은 결제 확정 때 결제 시각으로 정해진다(#44).
+ */
 export function salesOrdersWhere(storeId: string, timeKey: string, channel: SalesOrderChannel): Prisma.OrderWhereInput {
   return {
     orderNumber: { storeId, orderTimeKey: timeKey },
@@ -102,6 +105,7 @@ export const SALES_ORDER_SELECT = {
   paymentStatus: true,
   cancelReason: true,
   refundRequestedAt: true,
+  paidAt: true,
   orderNumber: { select: { orderNo: true } },
   items: {
     select: { onsiteProductName: true, onsiteOptionName: true, quantity: true },
@@ -118,7 +122,8 @@ export type SalesOrderRow = {
   paymentStatus: PaymentStatus;
   cancelReason: string | null;
   refundRequestedAt: Date | null;
-  orderNumber: { orderNo: number } | null;
+  paidAt: Date | null;
+  orderNumber: { orderNo: number | null } | null;
   items: { onsiteProductName: string | null; onsiteOptionName: string | null; quantity: number }[];
 };
 
@@ -138,8 +143,9 @@ export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
   const refundPending = row.paymentStatus === ORDER_PAYMENT_STATUS.PAID && row.refundRequestedAt !== null;
   return {
     id: row.id,
-    orderNo: row.orderNumber ? formatOrderNo(row.orderNumber.orderNo) : '',
-    orderedAt: row.orderDate.toISOString(),
+    orderNo: row.orderNumber?.orderNo != null ? formatOrderNo(row.orderNumber.orderNo) : '',
+    // 주문시각 = 결제 시각(주문번호 일자와 같은 기준). 결제 시각 칸이 생기기 전 주문은 주문 생성 시각.
+    orderedAt: (row.paidAt ?? row.orderDate).toISOString(),
     items: row.items.map((item) => ({
       productName: item.onsiteProductName ?? '',
       optionName: item.onsiteOptionName,

@@ -22,6 +22,7 @@ const row = (over: Partial<SalesOrderRow> = {}): SalesOrderRow => ({
   paymentStatus: 'PAID',
   cancelReason: null,
   refundRequestedAt: null,
+  paidAt: null,
   orderNumber: { orderNo: 3 },
   items: [
     { onsiteProductName: '반다나', onsiteOptionName: '홍색', quantity: 1 },
@@ -113,6 +114,15 @@ describe('toSalesOrderView', () => {
         row({ paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND, refundRequestedAt: new Date() }),
       ).refundStatus,
     ).toBe('refunded');
+  });
+
+  it('주문시각은 결제 시각, 결제 시각이 없는 이전 주문은 주문 생성 시각', () => {
+    expect(toSalesOrderView(row({ paidAt: new Date('2026-10-18T11:55:30Z') })).orderedAt).toBe('2026-10-18T11:55:30.000Z');
+    expect(toSalesOrderView(row({ paidAt: null })).orderedAt).toBe('2026-10-18T11:52:00.000Z');
+  });
+
+  it('번호가 아직 없으면(결제 전 행) 빈 문자열', () => {
+    expect(toSalesOrderView(row({ orderNumber: { orderNo: null } })).orderNo).toBe('');
   });
 
   it('주문번호는 3자리, 1000번부터는 그대로', () => {

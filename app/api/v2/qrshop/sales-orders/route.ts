@@ -30,10 +30,11 @@ export async function GET(request: Request) {
     const { timeKey, channel, search, page } = query.value;
 
     // 하루 한 상점의 주문은 많지 않아 한 번에 읽고, 검색(주문번호 3자리 포함 여부)과 페이지는 메모리에서 처리한다.
+    // 최신순 = 주문번호 내림차순. 번호는 결제 확정 순서로 매겨지므로 자정 무렵 주문도 번호 순서와 어긋나지 않는다.
     const rows = await prisma.order.findMany({
       where: salesOrdersWhere(store.storeId, timeKey, channel),
       select: SALES_ORDER_SELECT,
-      orderBy: [{ orderDate: 'desc' }, { id: 'desc' }],
+      orderBy: [{ orderNumber: { orderNo: 'desc' } }, { orderDate: 'desc' }, { id: 'desc' }],
     });
 
     const orders = rows.map(toSalesOrderView).filter((order) => matchesSalesOrderSearch(order, search));

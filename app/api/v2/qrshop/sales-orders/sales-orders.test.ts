@@ -27,6 +27,7 @@ const row = (orderNo: number, over: Record<string, unknown> = {}) => ({
   paymentStatus: 'PAID',
   cancelReason: null,
   refundRequestedAt: null,
+  paidAt: null,
   orderNumber: { orderNo },
   items: [{ onsiteProductName: orderNo % 2 ? '반다나' : '엽서', onsiteOptionName: null, quantity: 1 }],
   _seq: seq++,
@@ -70,7 +71,7 @@ describe('GET /api/v2/qrshop/sales-orders', () => {
           orderNumber: { storeId: 's1', orderTimeKey: '261018' },
           paymentMethod: 'ON_SITE',
         }),
-        orderBy: [{ orderDate: 'desc' }, { id: 'desc' }],
+        orderBy: [{ orderNumber: { orderNo: 'desc' } }, { orderDate: 'desc' }, { id: 'desc' }],
       }),
     );
   });
