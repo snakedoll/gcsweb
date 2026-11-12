@@ -4,7 +4,7 @@ import { apiError, apiErrors, apiSuccess } from '@/lib/api-response';
 import { ORDER_PAYMENT_METHOD } from '@/lib/order-status';
 import { getPortoneCheckoutPaymentConfig, isPortoneCheckoutConfigured } from '@/lib/payment/portone';
 import { generateGuestToken, hashGuestToken } from '@/lib/qrshop/guest-token';
-import { issueOrderNumber, withOrderNumberRetry } from '@/lib/qrshop/order-number';
+import { createUnnumberedOrderNumber } from '@/lib/qrshop/order-number';
 import { validateOrderItems, type ValidateOrderResult } from '@/lib/qrshop/order-validation';
 import { INVALID_STORE_SLUG, storeSlugSchema } from '@/lib/qrshop/store';
 
@@ -72,35 +72,34 @@ export async function POST(request: Request) {
     if (!validated.ok) return toValidationError(validated);
 
     const guestToken = generateGuestToken();
-    const { orderId, orderNo } = await withOrderNumberRetry(() =>
-      prisma.$transaction(async (tx) => {
-        const order = await tx.order.create({
-          data: {
-            paymentAmount: validated.paymentAmount,
-            paymentMethod: ORDER_PAYMENT_METHOD.ONLINE,
-            buyerType: 'GUEST',
-            buyerGuestTokenHash: hashGuestToken(guestToken),
-            items: {
-              create: validated.lines.map((line) => ({
-                onsiteProductId: line.productId,
-                onsiteOptionId: line.optionId,
-                onsiteProductName: line.productName,
-                onsiteOptionName: line.optionName,
-                price: line.unitPrice,
-                quantity: line.quantity,
-              })),
-            },
+    const orderId = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          paymentAmount: validated.paymentAmount,
+          paymentMethod: ORDER_PAYMENT_METHOD.ONLINE,
+          buyerType: 'GUEST',
+          buyerGuestTokenHash: hashGuestToken(guestToken),
+          items: {
+            create: validated.lines.map((line) => ({
+              onsiteProductId: line.productId,
+              onsiteOptionId: line.optionId,
+              onsiteProductName: line.productName,
+              onsiteOptionName: line.optionName,
+              price: line.unitPrice,
+              quantity: line.quantity,
+            })),
           },
-          select: { id: true },
-        });
-        const { orderNo } = await issueOrderNumber(tx, { orderId: order.id, storeId: validated.store.storeId });
-        return { orderId: order.id, orderNo };
-      }),
-    );
+        },
+        select: { id: true },
+      });
+      // 주문번호는 결제 확정 때 발급한다(결제완료 주문만 번호를 받는다). 여기서는 상점과의 연결만 만든다.
+      await createUnnumberedOrderNumber(tx, { orderId: order.id, storeId: validated.store.storeId });
+      return order.id;
+    });
 
     return apiSuccess({
       orderId,
-      orderNo,
+      orderNo: null,
       paymentAmount: validated.paymentAmount,
       guestToken,
       payment: { ...getPortoneCheckoutPaymentConfig(), orderName: validated.orderName },
