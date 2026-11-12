@@ -1,0 +1,24 @@
+name: 개발 작업
+description: 개발자가 맡아서 할 작업을 등록합니다.
+labels: ["작업"]
+body:
+  - type: textarea
+    id: todo
+    attributes:
+      label: 할 일
+      description: 무엇을 왜 하는지 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: refs
+    attributes:
+      label: 참고
+      description: 노션 기능명세서·API 명세서 행, Figma 노드, 회의록 링크를 붙여 주세요.
