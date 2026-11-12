@@ -14,7 +14,7 @@ type CatalogResponse = {
 };
 
 type CreatedOrder = {
-  orderId: string; orderNo: number; paymentAmount: number; guestToken: string;
+  orderId: string; orderNo: null; paymentAmount: number; guestToken: string; // orderNo는 결제 확정 때 발급(#44)
   payment: { storeId: string; channelKey: string; orderName: string };
 };
 type ServerOrder = {
