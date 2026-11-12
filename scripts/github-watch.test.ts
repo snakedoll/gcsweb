@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { ciLine, commitsToReport, isMainMergeCommit } from './github-watch.mjs';
+import { ciLine, commitsToReport, isMainMergeCommit, reviewLine } from './github-watch.mjs';
 
 type Commit = { sha: string };
 const shas = (commits: Commit[]) => commits.map((c) => c.sha);
@@ -69,5 +69,37 @@ describe('ciLine', () => {
     const line = ciLine(run('cancelled'));
     expect(line).not.toContain('★');
     expect(line).toContain('취소됨(새 실행으로 대체)');
+  });
+});
+
+describe('reviewLine', () => {
+  const review = (state: string, login = 'snakedoll', body = '아래만 반영 부탁드려요') => ({
+    id: 1,
+    state,
+    body,
+    user: { login },
+    submitted_at: '2026-11-12T05:01:00Z',
+  });
+  const ctx = (prAuthor: string) => ({ me: 'amophi', prNumber: '35', prAuthor, title: 'feat(qrshop): 직원 관리' });
+
+  it('내 PR 에 온 변경 요청은 ★ 와 함께 알린다', () => {
+    expect(reviewLine(review('CHANGES_REQUESTED'), ctx('amophi'))).toBe(
+      '★ 11-12 14:01 snakedoll PR #35 리뷰 변경 요청: feat(qrshop): 직원 관리 — 아래만 반영 부탁드려요',
+    );
+  });
+
+  it('남의 PR 리뷰는 ★ 없이', () => {
+    expect(reviewLine(review('APPROVED', 'junyoung-code', ''), ctx('snakedoll'))).toBe(
+      '11-12 14:01 junyoung-code PR #35 리뷰 승인: feat(qrshop): 직원 관리',
+    );
+  });
+
+  it.each([
+    ['내가 쓴 리뷰', review('APPROVED', 'amophi')],
+    ['제출 전 리뷰', review('PENDING')],
+    ['철회된 리뷰', review('DISMISSED')],
+    ['본문 없는 단순 의견(코드 댓글만 단 경우)', review('COMMENTED', 'snakedoll', '')],
+  ])('%s 는 알리지 않는다', (_name, rv) => {
+    expect(reviewLine(rv, ctx('amophi'))).toBeNull();
   });
 });

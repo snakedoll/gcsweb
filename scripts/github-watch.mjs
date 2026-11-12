@@ -81,6 +81,22 @@ export function commitsToReport(commits, { me, mainShas, branch }) {
   });
 }
 
+const REVIEW_LABEL = { APPROVED: '승인', CHANGES_REQUESTED: '변경 요청', COMMENTED: '의견' };
+
+/**
+ * 새로 제출된 PR 리뷰 한 줄. 알릴 것이 아니면 null.
+ * 내 리뷰, 아직 제출 전(PENDING)·철회(DISMISSED), 본문 없는 단순 의견은 뺀다. 내 PR 에 온 리뷰는 ★.
+ */
+export function reviewLine(review, { me, prNumber, prAuthor, title }) {
+  const login = review.user?.login;
+  const label = REVIEW_LABEL[review.state];
+  if (!login || login === me || !label) return null;
+  if (review.state === 'COMMENTED' && !(review.body || '').trim()) return null;
+  const mark = prAuthor === me ? '★ ' : '';
+  const body = short(review.body);
+  return `${mark}${kst(review.submitted_at)} ${login} PR #${prNumber} 리뷰 ${label}: ${short(title)}${body ? ` — ${body}` : ''}`;
+}
+
 /** 끝난 CI 한 줄. 실패만 ★. 취소(cancelled)는 같은 브랜치에 새 실행이 들어와 대체된 것이라 실패로 보지 않는다. */
 export function ciLine(run) {
   const title = short(run.displayTitle);
@@ -226,6 +242,17 @@ function collect(state) {
       if (diff(p.assignees, c.assignees).length) ch.push(`담당-${diff(p.assignees, c.assignees).join(',')}`);
       if (c.title !== p.title) ch.push('제목 변경');
       if (ch.length) lines.push(`${kst(it.updated_at)} ${tag} ${ch.join(' / ')}: ${short(c.title)}`);
+    }
+    if (it.pull_request) {
+      // 리뷰 제출은 이슈·댓글 API에 안 나온다. PR 이 갱신됐으면 리뷰 목록을 따로 본다.
+      const seenReviews = new Set(state.seenReviews ?? []);
+      for (const rv of api(`repos/${repo}/pulls/${num}/reviews?per_page=100`) || []) {
+        if (seenReviews.has(rv.id) || !rv.submitted_at || new Date(rv.submitted_at) < new Date(since)) continue;
+        seenReviews.add(rv.id);
+        const line = reviewLine(rv, { me, prNumber: num, prAuthor: it.user.login, title: c.title });
+        if (line) lines.push(line);
+      }
+      state.seenReviews = [...seenReviews].slice(-500);
     }
     if ((it.reviewers || []).includes(me) && !state.askedReview.includes(num)) {
       lines.push(`★ ${tag} 리뷰 요청이 나에게 왔음: ${short(c.title)}`);
