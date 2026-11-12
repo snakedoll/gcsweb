@@ -107,6 +107,8 @@ export async function getPayment(merchantUid: string): Promise<{
   status?: string;
   amount?: { total: number };
   impUid?: string; // 포트원/PG 고유 거래번호
+  /** 결제 완료 시각. 결제 전이면 없음 */
+  paidAt?: Date;
   /** 결제 건이 PortOne에 없음(HTTP 404). 결제창에서 아직 결제하지 않았거나 이탈한 경우 */
   notFound?: boolean;
   code?: string;
@@ -184,11 +186,16 @@ export async function getPayment(merchantUid: string): Promise<{
     payload.id ||
     payload.merchant_uid;
 
+  // 결제 완료 시각(V2 PaidPayment.paidAt, ISO 8601). 결제 전이거나 형식이 다르면 undefined.
+  const paidAtValue = typeof payload.paidAt === 'string' ? new Date(payload.paidAt) : undefined;
+  const paidAt = paidAtValue && !Number.isNaN(paidAtValue.getTime()) ? paidAtValue : undefined;
+
   return {
     success: true,
     status: payload.status,
     amount: hasTotal ? { total } : undefined,
     impUid: typeof impUid === 'string' ? impUid : undefined,
+    paidAt,
   };
 }
 

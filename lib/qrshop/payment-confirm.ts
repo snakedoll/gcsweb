@@ -2,13 +2,15 @@ import type { PaymentStatus, Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { ORDER_PAYMENT_STATUS } from '@/lib/order-status';
 import { cancelPayment, getPayment } from '@/lib/payment/portone';
+import { assignOrderNumber, withOrderNumberRetry } from './order-number';
 import type { SoldOutItem } from './order-validation';
 
 /**
  * QR샵 주문 결제 확정. 결제 검증 API(verify)와 PortOne 웹훅이 같은 함수를 호출한다.
  *
  * 1) PortOne 을 직접 조회해 금액·결제 여부를 확인한다(요청 값은 신뢰하지 않는다).
- * 2) 한 트랜잭션에서 주문 행을 잠근 뒤 재고를 조건부로 차감하고 PAID 로 바꾼다.
+ * 2) 한 트랜잭션에서 주문 행을 잠근 뒤 재고를 조건부로 차감하고, 주문번호를 발급하고, PAID 로 바꾼다.
+ *    주문번호 일자와 Order.paidAt 은 PortOne 결제 시각 기준이다(확정이 늦게 처리돼도 결제한 날 번호).
  *    이미 PAID 면 아무것도 하지 않는다(멱등) — verify 와 웹훅이 동시에 와도 한쪽만 처리된다.
  * 3) 결제는 됐는데 재고가 모자라면 트랜잭션이 롤백되고 전액 환불한 뒤 CANCELED 로 기록한다.
  *    환불 호출이 실패하면 refundFailedAt 을 남겨 수동 처리 대상으로 표시한다.
@@ -183,8 +185,11 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
   }
   if (payment.amount?.total !== order.paymentAmount) return { kind: 'AMOUNT_MISMATCH' };
 
+  // PortOne 이 결제 시각을 주지 않으면 확정 시각으로 대신한다.
+  const paidAt = payment.paidAt ?? deps.now();
+
   try {
-    const result = await db.$transaction(
+    const result = await withOrderNumberRetry(() => db.$transaction(
       async (tx): Promise<ConfirmResult> => {
         // 같은 주문을 verify·웹훅이 동시에 처리하지 않도록 주문 행을 잠그고 상태를 다시 읽는다.
         await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${order.id} FOR UPDATE`;
@@ -201,17 +206,21 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
         const soldOut = await decrementStock(tx, order.items);
         if (soldOut.length > 0) throw new StockShortageError(soldOut);
 
+        // 결제완료 주문만 번호를 받는다. 재고 부족으로 롤백되면 번호도 발급되지 않는다.
+        await assignOrderNumber(tx, { orderId: order.id, paidAt });
+
         await tx.order.update({
           where: { id: order.id },
           data: {
             paymentStatus: ORDER_PAYMENT_STATUS.PAID,
+            paidAt,
             ...(payment.impUid ? { impUid: payment.impUid } : {}),
           },
         });
         return { kind: 'PAID', alreadyPaid: false };
       },
       { timeout: 15000 },
-    );
+    ));
     return result;
   } catch (error) {
     if (!(error instanceof StockShortageError)) throw error;
