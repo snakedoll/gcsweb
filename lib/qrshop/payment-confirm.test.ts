@@ -106,6 +106,15 @@ describe('confirmOrderPayment', () => {
     expect(await confirmOrderPayment('x', setup(baseOrder({ orderNumber: null })).deps)).toEqual({ kind: 'NOT_FOUND' });
   });
 
+  it('/shop 주문(PRE_ORDER)은 PortOne 조회·재고 차감·환불 없이 NOT_FOUND (#45)', async () => {
+    const t = setup(baseOrder({ orderNumber: { type: 'PRE_ORDER' }, items: [{ ...plainItem, onsiteProductId: null }] }));
+    expect(await confirmOrderPayment('ord1', t.deps)).toEqual({ kind: 'NOT_FOUND' });
+    expect(t.getPayment).not.toHaveBeenCalled();
+    expect(t.db.$transaction).not.toHaveBeenCalled();
+    expect(t.cancelPayment).not.toHaveBeenCalled();
+    expect(t.db.order.updateMany).not.toHaveBeenCalled();
+  });
+
   it('이미 PAID 면 PortOne 조회 없이 alreadyPaid', async () => {
     const t = setup(baseOrder({ paymentStatus: 'PAID' }));
     expect(await confirmOrderPayment('ord1', t.deps)).toEqual({ kind: 'PAID', alreadyPaid: true });
