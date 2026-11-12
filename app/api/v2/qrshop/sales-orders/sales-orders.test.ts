@@ -1,18 +1,19 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '@/lib/db';
-import { refundSalesOrder } from '@/lib/qrshop/sales-order-refund';
+import { reconcilePendingRefunds, refundSalesOrder } from '@/lib/qrshop/sales-order-refund';
 import { getStoreAccess } from '@/lib/qrshop/store-access';
 import { GET } from './route';
 import { POST } from './[orderId]/refund/route';
 
 vi.mock('@/lib/qrshop/store-access', () => ({ getStoreAccess: vi.fn() }));
-vi.mock('@/lib/qrshop/sales-order-refund', () => ({ refundSalesOrder: vi.fn() }));
+vi.mock('@/lib/qrshop/sales-order-refund', () => ({ refundSalesOrder: vi.fn(), reconcilePendingRefunds: vi.fn() }));
 vi.mock('@/lib/db', () => ({ prisma: { order: { findMany: vi.fn() } } }));
 
 type Fn = ReturnType<typeof vi.fn>;
 const access = getStoreAccess as unknown as Fn;
 const refund = refundSalesOrder as unknown as Fn;
+const reconcile = reconcilePendingRefunds as unknown as Fn;
 const findMany = prisma.order.findMany as unknown as Fn;
 
 const STORE = { storeId: 's1', name: '잇장샵', storeSlug: 'itjang', createdAt: new Date('2026-09-01T03:00:00Z') };
@@ -44,6 +45,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   access.mockResolvedValue({ ok: true, userId: 'u1', access: { role: 'STAFF', store: STORE } });
   findMany.mockResolvedValue([]);
+  reconcile.mockResolvedValue(0);
 });
 
 describe('GET /api/v2/qrshop/sales-orders', () => {
@@ -74,6 +76,26 @@ describe('GET /api/v2/qrshop/sales-orders', () => {
         orderBy: [{ orderNumber: { orderNo: 'desc' } }, { orderDate: 'desc' }, { id: 'desc' }],
       }),
     );
+  });
+
+  it('목록을 읽기 전에 그 상점·그날의 처리 중 환불을 확인한다', async () => {
+    await list('?date=2026-10-18');
+    expect(reconcile).toHaveBeenCalledWith({ storeId: 's1', timeKey: '261018' });
+    expect(reconcile.mock.invocationCallOrder[0]).toBeLessThan(findMany.mock.invocationCallOrder[0]);
+  });
+
+  it('처리 중 환불 확인이 실패해도 목록은 그대로 보여 준다', async () => {
+    reconcile.mockRejectedValue(new Error('portone down'));
+    findMany.mockResolvedValue([row(1)]);
+    const res = await list('?date=2026-10-18');
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.total).toBe(1);
+  });
+
+  it('권한이 없으면 처리 중 환불 확인도 하지 않는다', async () => {
+    access.mockResolvedValue({ ok: true, userId: 'u1', access: null });
+    await list();
+    expect(reconcile).not.toHaveBeenCalled();
   });
 
   it('응답: 프론트 계약 형식 + 날짜 이동 범위(개설일·오늘)', async () => {
@@ -142,23 +164,20 @@ describe('POST /api/v2/qrshop/sales-orders/{orderId}/refund', () => {
   });
 
   it.each([
-    ['NOT_FOUND', 404, 'NOT_FOUND'],
-    ['ALREADY_REFUNDED', 409, 'ORDER_ALREADY_REFUNDED'],
-    ['NOT_REFUNDABLE', 409, 'ORDER_NOT_REFUNDABLE'],
-    ['CANCEL_FAILED', 500, 'SERVER_ERROR'],
-  ])('%s → %i %s', async (kind, status, code) => {
-    refund.mockResolvedValue({ kind, intentKept: false });
+    ['NOT_FOUND', 404, 'NOT_FOUND', '주문을 찾을 수 없음'],
+    ['ALREADY_REFUNDED', 409, 'ORDER_ALREADY_REFUNDED', '이미 환불된 주문'],
+    ['NOT_REFUNDABLE', 409, 'ORDER_NOT_REFUNDABLE', '환불할 수 없는 주문'],
+    ['REFUND_PENDING', 409, 'REFUND_PENDING', '환불 처리 중'],
+    ['CANCEL_FAILED', 500, 'SERVER_ERROR', '결제 취소 실패'],
+  ])('%s → %i %s', async (kind, status, code, message) => {
+    refund.mockResolvedValue({ kind });
     const res = await post({ restoreStock: false });
     expect(res.status).toBe(status);
-    expect((await res.json()).code).toBe(code);
+    expect(await res.json()).toMatchObject({ code, message });
   });
 
-  it('PortOne 응답을 못 받아 환불 요청이 남은 경우는 메시지로 구분한다', async () => {
-    refund.mockResolvedValue({ kind: 'CANCEL_FAILED', code: 'NETWORK_ERROR', intentKept: true });
-    const res = await post({ restoreStock: true });
-    expect(res.status).toBe(500);
-    expect((await res.json()).message).toBe('결제 취소 결과 확인 중');
-    refund.mockResolvedValue({ kind: 'CANCEL_FAILED', code: 'X', intentKept: false });
-    expect((await (await post({ restoreStock: true })).json()).message).toBe('결제 취소 실패');
+  it('환불 처리 중 오류(예: 현장 결제 마무리 실패)는 500', async () => {
+    refund.mockRejectedValue(new Error('db down'));
+    expect((await post({ restoreStock: true })).status).toBe(500);
   });
 });

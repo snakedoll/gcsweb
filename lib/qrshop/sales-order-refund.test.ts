@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
-import { finalizeRefundFromWebhook, refundSalesOrder } from './sales-order-refund';
+import {
+  PENDING_REFUND_RECHECK_AFTER_MS,
+  finalizeRefundFromWebhook,
+  reconcilePendingRefunds,
+  refundSalesOrder,
+} from './sales-order-refund';
 import { CANCEL_REASON_SELLER_REFUND } from './sales-orders';
 
 vi.mock('@/lib/db', () => ({ prisma: {} }));
@@ -45,7 +50,13 @@ function setup(order: Setup | null) {
   const db = {
     order: {
       findFirst: vi.fn().mockResolvedValue(
-        order && { id: 'o1', paymentStatus: status, paymentMethod: order.paymentMethod ?? 'ONLINE', cancelReason: order.cancelReason ?? null },
+        order && {
+          id: 'o1',
+          paymentStatus: status,
+          paymentMethod: order.paymentMethod ?? 'ONLINE',
+          cancelReason: order.cancelReason ?? null,
+          refundRequestedAt: order.refundRequestedAt ?? null,
+        },
       ),
       findUnique: vi.fn().mockResolvedValue(
         order && {
@@ -56,6 +67,7 @@ function setup(order: Setup | null) {
           refundRestoreStock: order.refundRestoreStock ?? null,
         },
       ),
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: order?.intentCount ?? 1 }),
     },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -96,15 +108,31 @@ describe('refundSalesOrder', () => {
     expect(t.cancelPayment).not.toHaveBeenCalled();
   });
 
-  it('PortOne 취소 전에 환불 의도(요청 시각·재고 복원 선택·요청자)를 먼저 저장한다', async () => {
+  it('PortOne 취소 전에 환불 의도를 저장하되, 아직 요청이 없을 때만 저장한다', async () => {
     const t = setup({ paymentMethod: 'ONLINE' });
     await t.run(true);
-    expect(t.db.order.updateMany).toHaveBeenCalledWith({ where: { id: 'o1', paymentStatus: 'PAID' }, data: INTENT });
+    expect(t.db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'o1', paymentStatus: 'PAID', refundRequestedAt: null },
+      data: INTENT,
+    });
     const intentAt = t.db.order.updateMany.mock.invocationCallOrder[0];
     expect(intentAt).toBeLessThan(t.cancelPayment.mock.invocationCallOrder[0]);
   });
 
-  it('의도를 저장하려는 사이 다른 사람이 환불했으면 PortOne 을 부르지 않는다', async () => {
+  it('이미 환불 처리 중인 주문은 누가 눌러도 REFUND_PENDING 이고 요청자·재고 선택을 덮어쓰지 않는다', async () => {
+    const t = setup({ paymentMethod: 'ONLINE', refundRequestedAt: new Date('2026-11-12T04:59:00Z') });
+    expect(await t.run(true)).toEqual({ kind: 'REFUND_PENDING' });
+    expect(t.db.order.updateMany).not.toHaveBeenCalled();
+    expect(t.cancelPayment).not.toHaveBeenCalled();
+  });
+
+  it('두 사람이 동시에 눌러 의도 저장이 0건이고 주문이 아직 결제완료면 REFUND_PENDING', async () => {
+    const t = setup({ intentCount: 0 });
+    expect(await t.run()).toEqual({ kind: 'REFUND_PENDING' });
+    expect(t.cancelPayment).not.toHaveBeenCalled();
+  });
+
+  it('의도를 저장하려는 사이 다른 사람이 환불을 마쳤으면 ALREADY_REFUNDED, PortOne 을 부르지 않는다', async () => {
     const t = setup({ intentCount: 0, currentStatus: 'CANCELED', currentReason: CANCEL_REASON_SELLER_REFUND });
     expect(await t.run()).toEqual({ kind: 'ALREADY_REFUNDED' });
     expect(t.cancelPayment).not.toHaveBeenCalled();
@@ -114,6 +142,7 @@ describe('refundSalesOrder', () => {
     const t = setup({ paymentMethod: 'ONLINE' });
     const result = await t.run();
     expect(t.cancelPayment).toHaveBeenCalledWith({ paymentId: 'o1', reason: '판매자 환불' });
+    expect(t.getPayment).not.toHaveBeenCalled();
     expect(t.tx.$queryRaw).toHaveBeenCalled();
     expect(t.tx.order.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,26 +153,73 @@ describe('refundSalesOrder', () => {
     expect(result).toEqual({ kind: 'REFUNDED', order: t.updatedRow, stockNotRestored: 0 });
   });
 
-  it('PortOne 이 거절하면 의도를 지우고 주문은 결제완료 그대로', async () => {
-    const t = setup({ paymentMethod: 'ONLINE' });
-    t.cancelPayment.mockResolvedValue({ success: false, code: 'CANCEL_AMOUNT_EXCEEDS_CANCELLABLE_AMOUNT' });
-    expect(await t.run()).toEqual({ kind: 'CANCEL_FAILED', code: 'CANCEL_AMOUNT_EXCEEDS_CANCELLABLE_AMOUNT', intentKept: false });
-    expect(t.db.order.updateMany).toHaveBeenLastCalledWith({ where: { id: 'o1', paymentStatus: 'PAID' }, data: CLEARED });
-    expect(t.db.$transaction).not.toHaveBeenCalled();
+  describe('PortOne 취소가 실패하면 결제 상태를 다시 조회해 판단한다', () => {
+    it.each(['CANCEL_AMOUNT_EXCEEDS_CANCELLABLE_AMOUNT', 'API_ERROR', 'PG_PROVIDER'])(
+      '실패(%s) 뒤 조회가 PAID 면 의도를 지우고 CANCEL_FAILED',
+      async (code) => {
+        const t = setup({ paymentMethod: 'ONLINE' });
+        t.cancelPayment.mockResolvedValue({ success: false, code });
+        t.getPayment.mockResolvedValue({ success: true, status: 'PAID' });
+        expect(await t.run()).toEqual({ kind: 'CANCEL_FAILED', code });
+        expect(t.getPayment).toHaveBeenCalledWith('o1');
+        expect(t.db.order.updateMany).toHaveBeenLastCalledWith({ where: { id: 'o1', paymentStatus: 'PAID' }, data: CLEARED });
+        expect(t.db.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['API_ERROR', 'NETWORK_ERROR'])('실패(%s)했어도 조회가 CANCELLED 면 마무리한다', async (code) => {
+      const t = setup({ paymentMethod: 'ONLINE' });
+      t.cancelPayment.mockResolvedValue({ success: false, code });
+      t.getPayment.mockResolvedValue({ success: true, status: 'CANCELLED' });
+      expect(await t.run()).toMatchObject({ kind: 'REFUNDED' });
+      expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
+      expect(t.tx.order.update).toHaveBeenCalled();
+    });
+
+    it('조회도 실패하면 의도를 남기고 REFUND_PENDING', async () => {
+      const t = setup({ paymentMethod: 'ONLINE' });
+      t.cancelPayment.mockResolvedValue({ success: false, code: 'API_ERROR' });
+      t.getPayment.mockResolvedValue({ success: false, code: 'NETWORK_ERROR' });
+      expect(await t.run()).toEqual({ kind: 'REFUND_PENDING' });
+      expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
+      expect(t.db.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('조회가 예외를 던져도 REFUND_PENDING', async () => {
+      const t = setup({ paymentMethod: 'ONLINE' });
+      t.cancelPayment.mockResolvedValue({ success: false, code: 'API_ERROR' });
+      t.getPayment.mockRejectedValue(new TypeError('fetch failed'));
+      expect(await t.run()).toEqual({ kind: 'REFUND_PENDING' });
+      expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('조회가 응답하지 않으면 기다리지 않고 REFUND_PENDING', async () => {
+      vi.useFakeTimers();
+      try {
+        const t = setup({ paymentMethod: 'ONLINE' });
+        t.cancelPayment.mockResolvedValue({ success: false, code: 'API_ERROR' });
+        t.getPayment.mockReturnValue(new Promise(() => {}));
+        const pending = t.run();
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(await pending).toEqual({ kind: 'REFUND_PENDING' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('응답을 못 받은 실패(NETWORK_ERROR)는 조회가 PAID 여도 취소가 뒤늦게 처리될 수 있어 의도를 남긴다', async () => {
+      const t = setup({ paymentMethod: 'ONLINE' });
+      t.cancelPayment.mockResolvedValue({ success: false, code: 'NETWORK_ERROR' });
+      t.getPayment.mockResolvedValue({ success: true, status: 'PAID' });
+      expect(await t.run()).toEqual({ kind: 'REFUND_PENDING' });
+      expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('PortOne 응답을 못 받으면(네트워크 오류) 의도를 남겨 웹훅·재요청이 마무리하게 한다', async () => {
-    const t = setup({ paymentMethod: 'ONLINE' });
-    t.cancelPayment.mockResolvedValue({ success: false, code: 'NETWORK_ERROR' });
-    expect(await t.run()).toEqual({ kind: 'CANCEL_FAILED', code: 'NETWORK_ERROR', intentKept: true });
-    expect(t.db.order.updateMany).toHaveBeenCalledTimes(1); // 저장만 하고 지우지 않는다
-    expect(t.db.$transaction).not.toHaveBeenCalled();
-  });
-
-  it('마무리 트랜잭션이 실패하면 오류를 그대로 올리고 의도는 지우지 않는다', async () => {
+  it('온라인 결제: 취소 뒤 마무리 트랜잭션이 실패하면 의도를 남기고 REFUND_PENDING (웹훅·목록 확인이 마무리)', async () => {
     const t = setup({ paymentMethod: 'ONLINE' });
     t.db.$transaction.mockRejectedValue(new Error('db down'));
-    await expect(t.run()).rejects.toThrow('db down');
+    expect(await t.run()).toEqual({ kind: 'REFUND_PENDING' });
     expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
   });
 
@@ -151,8 +227,17 @@ describe('refundSalesOrder', () => {
     const t = setup({ paymentMethod: 'ON_SITE' });
     expect((await t.run()).kind).toBe('REFUNDED');
     expect(t.cancelPayment).not.toHaveBeenCalled();
+    expect(t.getPayment).not.toHaveBeenCalled();
     expect(t.db.order.updateMany).toHaveBeenCalledTimes(1);
     expect(t.tx.order.update).toHaveBeenCalled();
+  });
+
+  it('현장 결제: 마무리가 실패하면 의도를 지워 처리 중으로 남지 않게 하고 오류를 올린다', async () => {
+    const t = setup({ paymentMethod: 'ON_SITE' });
+    t.db.$transaction.mockRejectedValue(new Error('db down'));
+    await expect(t.run()).rejects.toThrow('db down');
+    expect(t.db.order.updateMany).toHaveBeenCalledTimes(2);
+    expect(t.db.order.updateMany).toHaveBeenLastCalledWith({ where: { id: 'o1', paymentStatus: 'PAID' }, data: CLEARED });
   });
 
   it('재고 유지면 재고를 건드리지 않는다', async () => {
@@ -204,6 +289,87 @@ describe('refundSalesOrder', () => {
     expect(await t.run(true)).toEqual({ kind: 'ALREADY_REFUNDED' });
     expect(t.tx.order.update).not.toHaveBeenCalled();
     expect(t.tx.onsiteProduct.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('reconcilePendingRefunds (전체 주문 조회를 열 때 처리 중 환불 확인)', () => {
+  const REQUESTED = new Date(NOW.getTime() - PENDING_REFUND_RECHECK_AFTER_MS - 1000);
+  const pendingRow = (over: Record<string, unknown> = {}) => ({
+    id: 'o1',
+    paymentMethod: 'ONLINE',
+    refundRequestedAt: REQUESTED,
+    refundRestoreStock: true,
+    ...over,
+  });
+  const reconcile = (t: ReturnType<typeof setup>) => reconcilePendingRefunds({ storeId: 's1', timeKey: '261112' }, t.deps);
+
+  it('그 상점·그날의 처리 중 주문 중, 요청 뒤 일정 시간이 지난 것만 확인한다', async () => {
+    const t = setup({ items: [] });
+    expect(await reconcile(t)).toBe(0);
+    expect(t.db.order.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          orderNumber: { storeId: 's1', orderTimeKey: '261112' },
+          paymentStatus: 'PAID',
+          refundRequestedAt: { not: null, lte: new Date(NOW.getTime() - PENDING_REFUND_RECHECK_AFTER_MS) },
+        },
+      }),
+    );
+    expect(t.getPayment).not.toHaveBeenCalled();
+  });
+
+  it('PortOne 이 CANCELLED 면 저장된 재고 복원 선택대로 마무리한다', async () => {
+    const t = setup({ items: [{ onsiteProductId: 'p1', onsiteOptionId: null, onsiteOptionName: null, quantity: 3 }] });
+    t.db.order.findMany.mockResolvedValue([pendingRow()]);
+    expect(await reconcile(t)).toBe(1);
+    expect(t.getPayment).toHaveBeenCalledWith('o1');
+    expect(t.tx.onsiteProduct.updateMany).toHaveBeenCalledWith({ where: { productId: 'p1' }, data: { currentStock: { increment: 3 } } });
+    expect(t.tx.order.update).toHaveBeenCalled();
+  });
+
+  it('PortOne 이 PAID 면 그 요청의 의도만 지운다', async () => {
+    const t = setup({});
+    t.db.order.findMany.mockResolvedValue([pendingRow()]);
+    t.getPayment.mockResolvedValue({ success: true, status: 'PAID' });
+    expect(await reconcile(t)).toBe(1);
+    expect(t.db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'o1', paymentStatus: 'PAID', refundRequestedAt: REQUESTED },
+      data: CLEARED,
+    });
+    expect(t.db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('조회가 실패하면 그대로 둔다', async () => {
+    const t = setup({});
+    t.db.order.findMany.mockResolvedValue([pendingRow()]);
+    t.getPayment.mockResolvedValue({ success: false, code: 'NETWORK_ERROR' });
+    expect(await reconcile(t)).toBe(0);
+    expect(t.db.order.updateMany).not.toHaveBeenCalled();
+    expect(t.db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('현장 결제의 처리 중이 남아 있으면(요청이 중간에 끊김) PortOne 없이 의도를 지운다', async () => {
+    const t = setup({});
+    t.db.order.findMany.mockResolvedValue([pendingRow({ paymentMethod: 'ON_SITE' })]);
+    expect(await reconcile(t)).toBe(1);
+    expect(t.getPayment).not.toHaveBeenCalled();
+    expect(t.db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'o1', paymentStatus: 'PAID', refundRequestedAt: REQUESTED },
+      data: CLEARED,
+    });
+  });
+
+  it('한 주문의 확인이 실패해도 나머지는 확인한다', async () => {
+    const t = setup({});
+    t.db.order.findMany.mockResolvedValue([pendingRow({ id: 'o1' }), pendingRow({ id: 'o2' })]);
+    t.getPayment.mockImplementation(async (id: string) => {
+      if (id === 'o1') throw new Error('boom');
+      return { success: true, status: 'PAID' };
+    });
+    expect(await reconcile(t)).toBe(1);
+    expect(t.db.order.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: 'o2' }) }),
+    );
   });
 });
 

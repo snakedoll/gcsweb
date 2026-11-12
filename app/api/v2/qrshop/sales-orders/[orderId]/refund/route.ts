@@ -13,6 +13,8 @@ const refundSchema = z.object({ restoreStock: z.boolean() });
  * POST /api/v2/qrshop/sales-orders/{orderId}/refund  body { restoreStock: boolean }
  * 주문 전체 환불. 온라인 결제는 PortOne 취소, 현장 결제는 기록만 바꾼다. 상점 소유자와 승인된 직원.
  * 응답은 환불된 주문 한 건(목록과 같은 형식) + refundRestoreStock.
+ * 환불이 처리 중이면(이미 다른 요청이 처리 중이거나 PortOne 결과를 아직 확정하지 못함) 409 REFUND_PENDING.
+ * 처리 중 주문은 웹훅이나 전체 주문 조회를 열 때의 확인이 마무리한다.
  */
 export async function POST(request: Request, { params }: Params) {
   try {
@@ -37,9 +39,11 @@ export async function POST(request: Request, { params }: Params) {
         return apiError(409, 'ORDER_ALREADY_REFUNDED', '이미 환불된 주문');
       case 'NOT_REFUNDABLE':
         return apiError(409, 'ORDER_NOT_REFUNDABLE', '환불할 수 없는 주문');
+      case 'REFUND_PENDING':
+        return apiError(409, 'REFUND_PENDING', '환불 처리 중');
       case 'CANCEL_FAILED':
-        // 응답을 못 받은 경우는 환불 요청이 남아 목록에 '환불 처리 중'으로 보이고, 웹훅·재요청이 마무리한다.
-        return apiErrors.serverError(result.intentKept ? '결제 취소 결과 확인 중' : '결제 취소 실패');
+        // PortOne 이 거절했고 결제가 그대로임을 확인했다. 주문은 결제완료 그대로.
+        return apiErrors.serverError('결제 취소 실패');
       case 'REFUNDED':
         if (result.stockNotRestored > 0) {
           console.warn('[qrshop][refund] some items not restocked', {

@@ -26,7 +26,8 @@ export type SalesOrderView = {
   paymentMethod: SalesOrderPaymentMethod;
   paymentAmount: number;
   /**
-   * pending: 환불 요청은 됐지만 마무리 전(PortOne 응답을 못 받았거나 마무리 중 실패). 웹훅·재요청이 마무리한다.
+   * pending: 환불 처리 중(PortOne 결과를 아직 확정하지 못했거나 마무리 중 실패). 이 동안 환불 요청은 409 REFUND_PENDING.
+   *   웹훅이나 전체 주문 조회를 열 때의 확인이 마무리한다.
    * soldout_refunded: 결제 뒤 재고가 모자라 서버가 자동 환불한 주문. 화면은 '품절 환불', 환불 버튼 비활성(#40).
    */
   refundStatus: 'none' | 'pending' | 'refunded' | 'soldout_refunded';
