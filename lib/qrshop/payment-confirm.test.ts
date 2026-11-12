@@ -59,6 +59,8 @@ function setup(
     numberRow?: NumberRow;
     maxOrderNo?: number | null;
     paidAt?: string;
+    /** 품절 환불 때 CANCELED 로 바뀐 주문 수(0 이면 다른 요청이 먼저 처리함) */
+    cancelCount?: number;
   } = {},
 ) {
   const productCounts = [...(opts.productCounts ?? [1, 1])];
@@ -73,6 +75,7 @@ function setup(
     order: {
       findUnique: vi.fn().mockResolvedValue({ paymentStatus: opts.currentStatus ?? 'PENDING', cancelReason: null }),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: opts.cancelCount ?? 1 }),
     },
     onsiteProductOption: {
       updateMany: vi.fn().mockResolvedValue({ count: opts.optionCount ?? 1 }),
@@ -104,6 +107,15 @@ describe('confirmOrderPayment', () => {
   it('주문이 없거나 QR샵 주문(OrderNumber)이 아니면 NOT_FOUND', async () => {
     expect(await confirmOrderPayment('x', setup(null).deps)).toEqual({ kind: 'NOT_FOUND' });
     expect(await confirmOrderPayment('x', setup(baseOrder({ orderNumber: null })).deps)).toEqual({ kind: 'NOT_FOUND' });
+  });
+
+  it('/shop 주문(PRE_ORDER)은 PortOne 조회·재고 차감·환불 없이 NOT_FOUND (#45)', async () => {
+    const t = setup(baseOrder({ orderNumber: { type: 'PRE_ORDER' }, items: [{ ...plainItem, onsiteProductId: null }] }));
+    expect(await confirmOrderPayment('ord1', t.deps)).toEqual({ kind: 'NOT_FOUND' });
+    expect(t.getPayment).not.toHaveBeenCalled();
+    expect(t.db.$transaction).not.toHaveBeenCalled();
+    expect(t.cancelPayment).not.toHaveBeenCalled();
+    expect(t.db.order.updateMany).not.toHaveBeenCalled();
   });
 
   it('이미 PAID 면 PortOne 조회 없이 alreadyPaid', async () => {
@@ -259,18 +271,36 @@ describe('confirmOrderPayment', () => {
       soldOutItems: [{ productId: 'p1', optionId: 'o1', name: '키캡키링 A', optionName: '4일차', availableQuantity: 1 }],
     });
     expect(t.tx.order.update).not.toHaveBeenCalled();
-    // 결제완료가 아니므로 주문번호를 발급하지 않는다.
-    expect(t.tx.orderNumber.update).not.toHaveBeenCalled();
+    // 확정 트랜잭션(롤백됨)에서는 PAID·번호를 남기지 않고, 환불이 끝난 뒤 따로 번호를 발급한다.
     // 품절이었던 항목(옵션 항목)만 표시하고 재고가 충분했던 항목은 건드리지 않는다.
     expect(t.db.orderItem.updateMany).toHaveBeenCalledWith({
       where: { orderId: 'ord1', id: { in: ['oi1'] } },
       data: { stockShortage: true },
     });
     expect(t.cancelPayment).toHaveBeenCalledWith(expect.objectContaining({ paymentId: 'ord1' }));
-    expect(t.db.order.updateMany).toHaveBeenCalledWith({
+    expect(t.tx.order.updateMany).toHaveBeenCalledWith({
       where: { id: 'ord1', paymentStatus: { in: ['PENDING', 'FAILED'] } },
-      data: { paymentStatus: 'CANCELED', canceledAt: NOW, cancelReason: CANCEL_REASON_STOCK_SHORTAGE },
+      data: { paymentStatus: 'CANCELED', canceledAt: NOW, cancelReason: CANCEL_REASON_STOCK_SHORTAGE, paidAt: NOW },
     });
+    // 판매자 전체 주문 조회에 '품절 환불'로 보이도록 결제 시각 일자로 번호를 발급한다(#40).
+    expect(t.tx.orderNumber.update).toHaveBeenCalledWith({
+      where: { orderId: 'ord1' },
+      data: { orderNo: 1, orderTimeKey: '260403' },
+    });
+  });
+
+  it('품절 환불 주문도 결제 시각(KST) 일자로 번호를 받는다', async () => {
+    const t = setup(baseOrder(), { optionCount: 0, maxOrderNo: 3, paidAt: '2026-04-02T14:59:00Z' });
+    await confirmOrderPayment('ord1', t.deps);
+
+    expect(t.tx.order.updateMany.mock.calls[0][0].data.paidAt).toEqual(new Date('2026-04-02T14:59:00Z'));
+    expect(t.tx.orderNumber.update.mock.calls[0][0].data).toEqual({ orderNo: 4, orderTimeKey: '260402' });
+  });
+
+  it('다른 요청이 먼저 품절 환불을 기록했으면 번호를 다시 발급하지 않는다', async () => {
+    const t = setup(baseOrder(), { optionCount: 0, cancelCount: 0 });
+    expect(await confirmOrderPayment('ord1', t.deps)).toMatchObject({ kind: 'STOCK_SHORTAGE', refunded: true });
+    expect(t.tx.orderNumber.update).not.toHaveBeenCalled();
   });
 
   it('상품 재고 차감이 실패해도 품절로 처리한다', async () => {
@@ -308,6 +338,8 @@ describe('confirmOrderPayment', () => {
     spy.mockRestore();
 
     expect(result).toMatchObject({ kind: 'STOCK_SHORTAGE', refunded: false });
+    // 환불이 끝나지 않은 주문은 번호를 받지 않는다(판매 목록에도 나오지 않음).
+    expect(t.tx.orderNumber.update).not.toHaveBeenCalled();
     expect(t.db.orderItem.updateMany).toHaveBeenCalledWith({
       where: { orderId: 'ord1', id: { in: ['oi1'] } },
       data: { stockShortage: true },
