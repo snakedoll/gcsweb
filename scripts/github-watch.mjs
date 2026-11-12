@@ -59,6 +59,38 @@ function short(text, n = 70) {
 
 const isBot = (login) => login.endsWith('[bot]');
 
+const MAIN_BRANCH = 'main';
+const MAIN_SHAS_KEEP = 500;
+const CI_FAILED = new Set(['failure', 'timed_out', 'startup_failure', 'action_required']);
+
+/** 작업 브랜치에 main 을 합친 머지 커밋인지. */
+export function isMainMergeCommit(message) {
+  return /^Merge (remote-tracking )?branch '(origin\/)?main'/.test(message || '');
+}
+
+/**
+ * 브랜치 push 중 알릴 커밋을 고른다.
+ * 내 커밋은 뺀다. 작업 브랜치에서는 이미 main 에 있는 커밋과 main 을 합친 머지 커밋도 뺀다
+ * (main 을 합칠 때마다 남의 커밋이 다시 알림으로 오던 잡음).
+ */
+export function commitsToReport(commits, { me, mainShas, branch }) {
+  return commits.filter((c) => {
+    if (c.author?.login === me) return false;
+    if (branch === MAIN_BRANCH) return true;
+    return !mainShas.has(c.sha) && !isMainMergeCommit(c.commit?.message);
+  });
+}
+
+/** 끝난 CI 한 줄. 실패만 ★. 취소(cancelled)는 같은 브랜치에 새 실행이 들어와 대체된 것이라 실패로 보지 않는다. */
+export function ciLine(run) {
+  const title = short(run.displayTitle);
+  if (run.conclusion === 'cancelled') {
+    return `CI ${run.workflowName} ${run.headBranch} → 취소됨(새 실행으로 대체): ${title}`;
+  }
+  const mark = CI_FAILED.has(run.conclusion) ? ' ★' : '';
+  return `CI${mark} ${run.workflowName} ${run.headBranch} → ${run.conclusion}: ${title}`;
+}
+
 function snapshotItems(items) {
   const snap = {};
   for (const it of items) {
@@ -77,6 +109,18 @@ function snapshotItems(items) {
 
 function listBranches(repo) {
   return Object.fromEntries(api(`repos/${repo}/branches?per_page=100`).map((b) => [b.name, b.commit.sha]));
+}
+
+function recentMainShas(repo) {
+  return (api(`repos/${repo}/commits?sha=${MAIN_BRANCH}&per_page=100`) || []).map((c) => c.sha);
+}
+
+function headAuthor(repo, sha) {
+  try {
+    return api(`repos/${repo}/commits/${sha}`)?.author?.login ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function completedRuns(repo) {
@@ -101,6 +145,7 @@ function baseline() {
     seenComments: [],
     seenRuns: completedRuns(repo).map((r) => r.databaseId),
     askedReview: [],
+    mainShas: recentMainShas(repo),
   };
 }
 
@@ -111,12 +156,15 @@ function collect(state) {
   const started = Date.now();
   const since = state.lastCheck;
 
-  // 1) 브랜치
+  // 1) 브랜치. main 을 먼저 봐야 같은 주기에 main 을 합친 작업 브랜치에서 main 커밋을 걸러낼 수 있다.
+  const mainShas = new Set(state.mainShas ?? recentMainShas(repo));
   const branches = listBranches(repo);
-  for (const [name, sha] of Object.entries(branches)) {
+  const names = Object.keys(branches).sort((a, b) => (a === MAIN_BRANCH ? -1 : b === MAIN_BRANCH ? 1 : 0));
+  for (const name of names) {
+    const sha = branches[name];
     const old = state.branches[name];
     if (!old) {
-      lines.push(`브랜치 생성: ${name}`);
+      if (headAuthor(repo, sha) !== me) lines.push(`브랜치 생성: ${name}`);
       continue;
     }
     if (old === sha) continue;
@@ -130,7 +178,9 @@ function collect(state) {
       lines.push(`브랜치 ${name}: 강제 push(기록이 바뀜)`);
       continue;
     }
-    const commits = (cmp.commits || []).filter((c) => c.author?.login !== me);
+    const all = cmp.commits || [];
+    if (name === MAIN_BRANCH) for (const c of all) mainShas.add(c.sha);
+    const commits = commitsToReport(all, { me, mainShas, branch: name });
     for (const c of commits.slice(-5)) {
       const who = c.author?.login || c.commit.author.name;
       lines.push(`${kst(c.commit.author.date)} ${who} push ${name}: ${short(c.commit.message)}`);
@@ -141,6 +191,7 @@ function collect(state) {
     if (!(name in branches)) lines.push(`브랜치 삭제: ${name}`);
   }
   state.branches = branches;
+  state.mainShas = [...mainShas].slice(-MAIN_SHAS_KEEP);
 
   // 2) 이슈·PR (since 이후 바뀐 것, PR 포함)
   const items = api(`repos/${repo}/issues?state=all&since=${since}&sort=updated&per_page=100`) || [];
@@ -204,8 +255,7 @@ function collect(state) {
   for (const r of completedRuns(repo)) {
     if (seenRuns.has(r.databaseId)) continue;
     seenRuns.add(r.databaseId);
-    const mark = ['success', 'skipped'].includes(r.conclusion) ? '' : ' ★';
-    lines.push(`CI${mark} ${r.workflowName} ${r.headBranch} → ${r.conclusion}: ${short(r.displayTitle)}`);
+    lines.push(ciLine(r));
   }
   state.seenRuns = [...seenRuns].slice(-200);
 
@@ -277,21 +327,28 @@ async function loop(intervalSec) {
   }
 }
 
-const args = process.argv.slice(2);
-if (args.includes('--session-start')) {
-  sessionStart();
-} else if (args.includes('--loop')) {
-  const i = args.indexOf('--interval');
-  await loop(i >= 0 ? Number(args[i + 1]) : 300);
-} else {
-  try {
-    const { first, lines } = checkOnce();
-    if (first) console.log('[GitHub] 기준점을 잡았습니다. 다음 실행부터 바뀐 것을 보여 줍니다.');
-    else if (!lines.length) console.log('[GitHub] 지난 확인 이후 바뀐 것 없음');
-    for (const l of capped(lines)) console.log(`[GitHub] ${l}`);
-  } catch (e) {
-    console.error(`[GitHub] 확인 실패: ${short(String(e.message), 200)}`);
-    console.error('gh CLI 설치와 `gh auth login`이 필요합니다.');
-    process.exitCode = 1;
+// 시험이 이 파일을 import 할 때는 실행하지 않는다(직접 실행할 때만 동작).
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase();
+
+if (isDirectRun) {
+  const args = process.argv.slice(2);
+  if (args.includes('--session-start')) {
+    sessionStart();
+  } else if (args.includes('--loop')) {
+    const i = args.indexOf('--interval');
+    await loop(i >= 0 ? Number(args[i + 1]) : 300);
+  } else {
+    try {
+      const { first, lines } = checkOnce();
+      if (first) console.log('[GitHub] 기준점을 잡았습니다. 다음 실행부터 바뀐 것을 보여 줍니다.');
+      else if (!lines.length) console.log('[GitHub] 지난 확인 이후 바뀐 것 없음');
+      for (const l of capped(lines)) console.log(`[GitHub] ${l}`);
+    } catch (e) {
+      console.error(`[GitHub] 확인 실패: ${short(String(e.message), 200)}`);
+      console.error('gh CLI 설치와 `gh auth login`이 필요합니다.');
+      process.exitCode = 1;
+    }
   }
 }
