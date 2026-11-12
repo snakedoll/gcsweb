@@ -4,7 +4,7 @@
 
 ## 계약과 흐름
 
-- `POST /api/v2/qrshop/orders?storeSlug=...`: `termsAgreed`, `items[{productId, optionId, quantity}]`만 전송한다. 응답의 `orderId`, `paymentAmount`, `payment{storeId,channelKey,orderName}`을 사용한다. 생성 응답의 `orderNo`는 미결제 화면에 표시하지 않는다.
+- `POST /api/v2/qrshop/orders?storeSlug=...`: `termsAgreed`, `items[{productId, optionId, quantity}]`만 전송한다. 응답의 `orderId`, `paymentAmount`, `payment{storeId,channelKey,orderName}`을 사용한다. 생성 응답의 `orderNo`는 결제 전이라 항상 `null`이다. 주문번호는 결제 후 주문 조회의 `orderNo`로 표시한다.
 - 주문별 guestToken과 결제 설정은 `gcs:qrshop:payment:<orderId>` sessionStorage에 저장한다. 토큰은 URL, SDK 인자, 공개 주문 모델, 로그에 넣지 않는다. 다른 주문/상점의 토큰을 재사용하지 않는다.
 - 저장 사전 점검 실패 시 주문을 생성하지 않는다. 생성 후 실제 저장 실패 시 결제를 시작하지 않고 안내한다. 토큰은 서버에서 재발급받는 계약이 없어 저장 실패·삭제·다른 탭 진입 시 해당 주문의 자동 복구는 불가하다.
 - 결제 버튼은 서버 `verify` + `GET`으로 기존 결제를 먼저 확인한 뒤, 미결제/실패 주문만 SDK를 연다. 금액은 GET 응답을 사용하고 paymentId는 서버 orderId를 그대로 사용한다. 카드 결제와 KRW를 사용한다.
