@@ -13,7 +13,8 @@ import type { SoldOutItem } from './order-validation';
  *    주문번호 일자와 Order.paidAt 은 PortOne 결제 시각 기준이다(확정이 늦게 처리돼도 결제한 날 번호).
  *    이미 PAID 면 아무것도 하지 않는다(멱등) — verify 와 웹훅이 동시에 와도 한쪽만 처리된다.
  * 3) 결제는 됐는데 재고가 모자라면 트랜잭션이 롤백되고 전액 환불한 뒤 CANCELED 로 기록한다.
- *    환불 호출이 실패하면 refundFailedAt 을 남겨 수동 처리 대상으로 표시한다.
+ *    이 주문도 판매자 전체 주문 조회에 '품절 환불'로 보이므로(#40) 결제 시각 기준 주문번호와 paidAt 을 남긴다.
+ *    환불 호출이 실패하면 refundFailedAt 을 남겨 수동 처리 대상으로 표시한다(번호는 환불이 끝난 주문만).
  *
  * FAILED 주문도 확정 대상이다. 결제창이 오래 걸려 시간 초과로 FAILED 가 된 뒤에 결제가 완료될 수 있고
  * (앱카드·간편결제 인증 등), 그때 고객은 이미 돈을 냈으므로 정상 주문으로 살린다.
@@ -227,7 +228,7 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
     return result;
   } catch (error) {
     if (!(error instanceof StockShortageError)) throw error;
-    return refundForStockShortage(deps, order.id, error.shortages);
+    return refundForStockShortage(deps, order.id, error.shortages, paidAt);
   }
 }
 
@@ -240,6 +241,7 @@ async function refundForStockShortage(
   deps: ConfirmDeps,
   orderId: string,
   shortages: Shortage[],
+  paidAt: Date,
 ): Promise<ConfirmResult> {
   const soldOutItems = shortages.map((shortage) => shortage.soldOut);
   await deps.db.orderItem.updateMany({
@@ -251,14 +253,21 @@ async function refundForStockShortage(
   const now = deps.now();
 
   if (refund.success) {
-    await deps.db.order.updateMany({
-      where: { id: orderId, paymentStatus: { in: CONFIRMABLE_STATUSES } },
-      data: {
-        paymentStatus: ORDER_PAYMENT_STATUS.CANCELED,
-        canceledAt: now,
-        cancelReason: CANCEL_REASON_STOCK_SHORTAGE,
-      },
-    });
+    // 취소 기록과 주문번호 발급을 한 트랜잭션으로. verify·웹훅이 동시에 와도 상태를 바꾼 한쪽만 번호를 발급한다.
+    await withOrderNumberRetry(() =>
+      deps.db.$transaction(async (tx) => {
+        const { count } = await tx.order.updateMany({
+          where: { id: orderId, paymentStatus: { in: CONFIRMABLE_STATUSES } },
+          data: {
+            paymentStatus: ORDER_PAYMENT_STATUS.CANCELED,
+            canceledAt: now,
+            cancelReason: CANCEL_REASON_STOCK_SHORTAGE,
+            paidAt,
+          },
+        });
+        if (count === 1) await assignOrderNumber(tx, { orderId, paidAt });
+      }),
+    );
     return { kind: 'STOCK_SHORTAGE', soldOutItems, refunded: true };
   }
 
