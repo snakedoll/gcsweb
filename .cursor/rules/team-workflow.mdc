@@ -8,3 +8,5 @@ alwaysApply: true
 이 저장소의 팀 공통 에이전트 규칙은 @CLAUDE.md 에 있고, 요약은 @AGENTS.md 에 있다. 작업 전에 읽고 따른다.
 
 코드를 고치기 전에 이슈를 찾거나 만들어 본인을 담당자로 지정하고 `진행중` 라벨을 붙인다. 그다음 `<영문이름>/<이슈번호>-<설명>` 브랜치를 따고, 첫 push 때 Draft PR을 연다.
+
+작업 시작 전, 커밋 전, push 전에 `node scripts/github-watch.mjs`를 실행한다. 다른 사람의 push·이슈·PR·댓글·CI 변경을 확인해 사용자에게 알린다.

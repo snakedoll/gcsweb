@@ -45,6 +45,23 @@ AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할
 - **제목 형식.** 이슈 제목은 무엇을 하는지 한글 한 줄로 쓴다(예: `현장 포스 상품별 할인 API`). PR 제목은 커밋 형식(`type(scope): 한글 제목`)이다.
 - **Claude Code를 쓰면** `task` 스킬(`.claude/skills/task`)로 위 흐름을 진행한다.
 
+### GitHub 감시 (5분마다)
+
+모든 에이전트는 다른 사람의 push·이슈·PR·댓글·CI를 5분 간격으로 확인한다. 도구는 `scripts/github-watch.mjs`이다. 읽기만 하고, 상태는 `.git/gh-watch-state.json`에 둔다. 필요한 것은 `gh` CLI 로그인뿐이다.
+
+- **Claude Code:** 세션의 첫 응답 전에 두 가지를 한다.
+  1. `node scripts/github-watch.mjs`로 지난 확인 이후 바뀐 것을 본다.
+  2. Monitor 도구로 `node scripts/github-watch.mjs --loop`를 켠다(`timeout_ms` 1800000). 만료 알림이 오면 다시 켜고, 이미 켜져 있으면 새로 켜지 않는다.
+- **Cursor·Codex 등 백그라운드 알림이 없는 에이전트:** 작업 시작 전, 커밋 전, push 전에 `node scripts/github-watch.mjs`를 실행해 새 변경을 확인한다.
+- **사람:** 터미널에서 `npm run github:watch`를 켜 두면 같은 알림이 5분마다 뜬다.
+
+알림을 받으면 아래를 따른다.
+
+- 사용자에게 1~3줄로 알린다. ★(나에게 온 리뷰 요청, 나를 언급한 댓글, CI 실패)를 먼저 쓴다.
+- main에 새 커밋이 들어왔고 지금 브랜치와 같은 파일을 건드렸으면, 그 사실을 알리고 main을 합칠지 묻는다.
+- 다른 사람이 같은 화면·API를 다루는 이슈나 PR을 열었으면 알린다.
+- 알리기만 한다. 다른 사람의 이슈·PR에 자동으로 댓글을 달거나 라벨·상태를 바꾸지 않는다.
+
 ### 현황 보기 (로그인 없이 열림)
 
 - [진행 중인 작업](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen%20label%3A%EC%A7%84%ED%96%89%EC%A4%91)

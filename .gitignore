@@ -47,3 +47,6 @@ next-env.d.ts
 
 # 개인 AI 규칙 (팀 공통은 CLAUDE.md로 커밋)
 CLAUDE.local.md
+
+# Claude Code 개인 설정 (팀 공통은 .claude/settings.json)
+.claude/settings.local.json

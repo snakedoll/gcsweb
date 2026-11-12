@@ -14,6 +14,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "github:watch": "node scripts/github-watch.mjs --loop",
     "postinstall": "prisma generate"
   },
   "prisma": {
