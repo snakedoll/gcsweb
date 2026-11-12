@@ -1,6 +1,6 @@
 # AGENTS.md
 
-이 저장소의 팀 공통 에이전트 규칙은 `CLAUDE.md`에 있다. Claude가 아닌 에이전트(Cursor, Codex 등)도 작업 전에 `CLAUDE.md` 전체를 읽고 그대로 따른다.
+이 저장소의 팀 공통 에이전트 규칙은 `CLAUDE.md`에 있다. Claude가 아닌 에이전트(Cursor, Codex 등)도 작업 전에 `CLAUDE.md` 전체를 읽고 그대로 따른다. 이 PC에서 처음이면 `docs/agent-onboarding.md`의 설정부터 진행한다.
 
 코드를 고치기 전에 꼭 지킬 것(「작업 공유」 절 요약):
 

@@ -2,7 +2,7 @@
 
 AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할 때 따르는 팀 공통 안내. 개인 규칙은 각자 `CLAUDE.local.md`(gitignore)에 둔다.
 
-**코드를 고치는 작업은 시작 전에 아래 「작업 공유」 절부터 따른다.**
+**코드를 고치는 작업은 시작 전에 아래 「작업 공유」 절부터 따른다.** 이 PC에서 처음이면 [docs/agent-onboarding.md](docs/agent-onboarding.md)의 설정부터 진행한다.
 
 ## 작업 공유 (GitHub 이슈·PR)
 
