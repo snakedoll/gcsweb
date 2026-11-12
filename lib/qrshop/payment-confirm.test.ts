@@ -48,10 +48,28 @@ const baseOrder = (overrides: Record<string, unknown> = {}) => ({
 
 const NOW = new Date('2026-04-03T03:00:00Z');
 
-function setup(order: unknown, opts: { currentStatus?: string; optionCount?: number; productCounts?: number[] } = {}) {
+type NumberRow = { storeId: string; orderNo: number | null; orderTimeKey: string | null };
+
+function setup(
+  order: unknown,
+  opts: {
+    currentStatus?: string;
+    optionCount?: number;
+    productCounts?: number[];
+    numberRow?: NumberRow;
+    maxOrderNo?: number | null;
+    paidAt?: string;
+  } = {},
+) {
   const productCounts = [...(opts.productCounts ?? [1, 1])];
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([]),
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    orderNumber: {
+      findUnique: vi.fn().mockResolvedValue(opts.numberRow ?? { storeId: 's1', orderNo: null, orderTimeKey: null }),
+      aggregate: vi.fn().mockResolvedValue({ _max: { orderNo: opts.maxOrderNo ?? null } }),
+      update: vi.fn().mockResolvedValue({}),
+    },
     order: {
       findUnique: vi.fn().mockResolvedValue({ paymentStatus: opts.currentStatus ?? 'PENDING', cancelReason: null }),
       update: vi.fn().mockResolvedValue({}),
@@ -70,7 +88,13 @@ function setup(order: unknown, opts: { currentStatus?: string; optionCount?: num
     orderItem: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
-  const getPayment = vi.fn().mockResolvedValue({ success: true, status: 'PAID', amount: { total: 12000 }, impUid: 'imp_1' });
+  const getPayment = vi.fn().mockResolvedValue({
+    success: true,
+    status: 'PAID',
+    amount: { total: 12000 },
+    impUid: 'imp_1',
+    ...(opts.paidAt ? { paidAt: new Date(opts.paidAt) } : {}),
+  });
   const cancelPayment = vi.fn().mockResolvedValue({ success: true });
   const deps = { db: db as never, getPayment, cancelPayment, now: () => NOW } as never;
   return { tx, db, getPayment, cancelPayment, deps };
@@ -104,7 +128,7 @@ describe('confirmOrderPayment', () => {
     expect(t.tx.onsiteProductOption.updateMany).toHaveBeenCalled();
     expect(t.tx.order.update).toHaveBeenCalledWith({
       where: { id: 'ord1' },
-      data: { paymentStatus: 'PAID', impUid: 'imp_1' },
+      data: { paymentStatus: 'PAID', paidAt: NOW, impUid: 'imp_1' },
     });
   });
 
@@ -181,11 +205,40 @@ describe('confirmOrderPayment', () => {
     });
     // 옵션 상품(p1)과 옵션 없는 상품(p2) 모두 상품 재고를 줄인다.
     expect(t.tx.onsiteProduct.updateMany.mock.calls.map((c) => c[0].where.productId)).toEqual(['p1', 'p2']);
+    // PortOne 이 결제 시각을 주지 않으면 확정 시각(NOW)을 결제 시각으로 쓴다.
     expect(t.tx.order.update).toHaveBeenCalledWith({
       where: { id: 'ord1' },
-      data: { paymentStatus: 'PAID', impUid: 'imp_1' },
+      data: { paymentStatus: 'PAID', paidAt: NOW, impUid: 'imp_1' },
     });
     expect(t.cancelPayment).not.toHaveBeenCalled();
+  });
+
+  it('결제 확정 때 결제 시각(KST) 일자로 주문번호를 발급한다', async () => {
+    const t = setup(baseOrder(), { maxOrderNo: 4, paidAt: '2026-04-03T05:00:00Z' });
+    await confirmOrderPayment('ord1', t.deps);
+
+    expect(t.tx.orderNumber.aggregate.mock.calls[0][0].where).toEqual({ storeId: 's1', orderTimeKey: '260403' });
+    expect(t.tx.orderNumber.update).toHaveBeenCalledWith({
+      where: { orderId: 'ord1' },
+      data: { orderNo: 5, orderTimeKey: '260403' },
+    });
+    expect(t.tx.order.update.mock.calls[0][0].data.paidAt).toEqual(new Date('2026-04-03T05:00:00Z'));
+  });
+
+  it('자정 전에 결제하고 다음 날 확정돼도 결제한 날 번호를 받는다', async () => {
+    // KST 4/2 23:59 결제, 확정은 KST 4/3 12:00(NOW)
+    const t = setup(baseOrder(), { paidAt: '2026-04-02T14:59:00Z' });
+    await confirmOrderPayment('ord1', t.deps);
+
+    expect(t.tx.orderNumber.update.mock.calls[0][0].data).toEqual({ orderNo: 1, orderTimeKey: '260402' });
+    expect(t.tx.order.update.mock.calls[0][0].data.paidAt).toEqual(new Date('2026-04-02T14:59:00Z'));
+  });
+
+  it('생성 때 이미 번호를 받은 이전 방식의 주문은 번호를 바꾸지 않는다', async () => {
+    const t = setup(baseOrder(), { numberRow: { storeId: 's1', orderNo: 7, orderTimeKey: '260401' } });
+    expect(await confirmOrderPayment('ord1', t.deps)).toEqual({ kind: 'PAID', alreadyPaid: false });
+    expect(t.tx.orderNumber.aggregate).not.toHaveBeenCalled();
+    expect(t.tx.orderNumber.update).not.toHaveBeenCalled();
   });
 
   it('잠금 후 다시 읽었을 때 이미 PAID 면 차감하지 않는다 (verify·웹훅 동시 도착)', async () => {
@@ -206,6 +259,8 @@ describe('confirmOrderPayment', () => {
       soldOutItems: [{ productId: 'p1', optionId: 'o1', name: '키캡키링 A', optionName: '4일차', availableQuantity: 1 }],
     });
     expect(t.tx.order.update).not.toHaveBeenCalled();
+    // 결제완료가 아니므로 주문번호를 발급하지 않는다.
+    expect(t.tx.orderNumber.update).not.toHaveBeenCalled();
     // 품절이었던 항목(옵션 항목)만 표시하고 재고가 충분했던 항목은 건드리지 않는다.
     expect(t.db.orderItem.updateMany).toHaveBeenCalledWith({
       where: { orderId: 'ord1', id: { in: ['oi1'] } },
@@ -308,7 +363,7 @@ describe('refreshUnconfirmedOrder (조회 시 미확정 주문 확인)', () => {
     expect(await refreshUnconfirmedOrder(unconfirmed({ paymentStatus }), t.deps)).toBe(true);
     expect(t.tx.order.update).toHaveBeenCalledWith({
       where: { id: 'ord1' },
-      data: { paymentStatus: 'PAID', impUid: 'imp_1' },
+      data: { paymentStatus: 'PAID', paidAt: NOW, impUid: 'imp_1' },
     });
   });
 
