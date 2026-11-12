@@ -1,0 +1,50 @@
+name: 오류 신고
+description: 화면이 깨지거나 기능이 잘못 동작하면 알려 주세요.
+labels: ["오류"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        공개 저장소라 누구나 볼 수 있습니다. 주문자 이름·전화번호 같은 개인정보는 적지 마세요.
+  - type: input
+    id: url
+    attributes:
+      label: 주소
+      description: 오류가 난 페이지 주소를 붙여 주세요.
+      placeholder: https://www.gcsweb.kr/...
+  - type: textarea
+    id: steps
+    attributes:
+      label: 무엇을 했나요?
+      description: 어떤 순서로 눌렀는지 적어 주세요.
+      placeholder: |
+        1. QRshop에서 상품을 담았다
+        2. 결제하기를 눌렀다
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 어떻게 됐나요?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 원래는 어떻게 돼야 하나요?
+  - type: textarea
+    id: images
+    attributes:
+      label: 스크린샷·화면 녹화
+      description: 파일을 이 칸에 끌어다 놓으면 첨부됩니다.
+  - type: dropdown
+    id: device
+    attributes:
+      label: 사용한 기기
+      options:
+        - PC
+        - 아이폰
+        - 안드로이드폰
+        - 태블릿
+    validations:
+      required: true

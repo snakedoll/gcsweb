@@ -1,0 +1,74 @@
+---
+name: task
+description: gcsweb 작업 공유 흐름(CLAUDE.md 「작업 공유」)을 진행한다. 이슈 찾기·만들기와 담당 지정, `<영문이름>/<번호>-<설명>` 브랜치, Draft PR, 이슈 진행 코멘트, 확인필요 표시, 리뷰 요청까지 맡는다. "작업 시작", "이슈 만들어", "진행 상황 남겨", "막혔어", "리뷰 요청", "PR 올려" 같은 요청이 오거나 코드를 고치기 시작할 때 사용.
+argument-hint: "start <이슈번호 | 작업 설명> | note <진행 내용> | ask <질문> | ready"
+---
+
+# 작업 공유
+
+CLAUDE.md 「작업 공유」 절을 실행하는 절차다.
+- **한 줄 알리고 바로 하는 것:** 이슈 생성, 라벨, Draft PR, 코멘트, ready 전환.
+- **하지 않는 것:** 머지, 이슈 닫기, 다른 사람 이슈 변경.
+
+## 0. 준비 (처음 한 번)
+
+- `gh auth status`로 로그인 상태를 확인한다. 안 돼 있으면 사용자에게 `gh auth login`을 안내하고 멈춘다.
+- 브랜치에 쓸 영문이름은 `CLAUDE.local.md`의 `영문이름:` 줄에서 읽는다. 없으면 사용자에게 묻고, 그 줄을 `CLAUDE.local.md`에 추가한다(gitignore라 커밋되지 않는다).
+- 본문 임시 파일은 저장소 밖(시스템 임시 폴더)에 UTF-8로 만든다.
+
+## start — 작업 시작
+
+1. **이슈를 정한다.**
+   - 인자가 번호면 `gh issue view <번호> --json number,title,assignees,labels,state`로 확인한다. 다른 사람이 담당이면 멈추고 알린다.
+   - 인자가 설명이면 `gh issue list --state open --search "<핵심어>"`로 겹치는 이슈를 찾는다.
+     - 비슷한 것이 있으면 번호와 제목을 보여 주고, 그 이슈를 쓸지 묻는다.
+     - 없으면 새로 만든다.
+     ```bash
+     gh issue create --title "<무엇을 하는지 한글 한 줄>" --label 작업 --label <파트> --assignee @me --body-file <임시파일>
+     ```
+     - 본문은 `## 할 일` / `## 완료 조건`(체크리스트) / `## 참고` 순서로 쓴다. 참고에는 노션 기능명세서·API 명세서 행, Figma 노드 링크를 넣는다.
+     - 근거 링크를 모르면 사용자에게 묻는다. 지어내지 않는다.
+   - 담당자와 상태 라벨을 붙인다: `gh issue edit <번호> --add-assignee @me --add-label 진행중`
+   - 파트 라벨: `app/api`·`lib`·`prisma`는 `백엔드`, 페이지·`components`는 `프론트`. 둘 다 고치면 둘 다 붙인다.
+2. **브랜치를 딴다.** 작업 중인 변경이 있으면 브랜치를 바꾸기 전에 사용자에게 묻는다(`git stash`는 쓰지 않는다).
+   ```bash
+   git fetch origin main
+   git switch --no-track -c <영문이름>/<번호>-<영문-짧은-설명> origin/main
+   ```
+3. **Draft PR을 연다.** 첫 커밋(메시지는 `commit-msg` 스킬 규칙)을 만들고 push한 뒤 연다.
+   ```bash
+   git push -u origin HEAD
+   gh pr create --draft --base main --title "<type(scope): 한글 제목>" --body-file <임시파일>
+   ```
+   - 본문은 `.github/pull_request_template.md` 형식을 따른다. `관련 이슈`에 `Closes #<번호>`를 쓰고, 변경 요약은 `작업 중 — #<번호> 참고` 한 줄이면 된다.
+   - 아직 커밋할 것이 없으면 Draft PR은 첫 커밋 때 연다. 이슈에 `진행중`이 붙어 있으면 공유는 이미 된 것이다.
+
+## note — 진행 남기기
+
+- 이슈 번호는 현재 브랜치 이름(`<이름>/<번호>-...`)에서 뽑는다. 없으면 묻는다.
+- 코멘트를 단다: `gh issue comment <번호> --body "완료: … / 다음: … / 막힘: …"`
+  - 해당 없는 칸은 뺀다. 1~3줄로 쓴다.
+- 남길 때: 방향이 정해졌을 때, API나 화면 하나가 동작할 때, 그날 작업을 멈출 때. 사용자가 세션을 끝내려 하면 남길지 한 번 묻는다.
+
+## ask — 막혔을 때
+
+1. 라벨을 붙인다: `gh issue edit <번호> --add-label 확인필요`
+2. 코멘트를 남긴다: `확인 필요(<기획|디자인|백엔드|프론트>): <질문>. 근거: <명세·Figma 링크>. 답이 올 때까지 <무엇>은 보류.`
+3. 그 부분은 추측으로 구현하지 않는다.
+4. 답을 받으면 라벨을 떼고(`--remove-label 확인필요`) 결정 내용을 코멘트로 남긴다.
+
+## ready — 리뷰 요청
+
+1. 아래 시험을 돌린다. 실패하면 멈추고 출력과 함께 알린다.
+   - `npm run lint`
+   - `npm run typecheck:frontend`
+   - `npm test`
+   - API를 고쳤다면 `npx tsc --noEmit`으로 고친 파일에 타입 오류가 없는지도 본다. `next.config.js`가 빌드 타입 오류를 무시해서 CI가 `app/api`의 타입 오류를 잡지 못한다.
+2. `pr-desc` 스킬로 본문을 만들어 `gh pr edit <PR번호> --body-file <파일>`로 바꾼다.
+3. 리뷰로 넘긴다: `gh pr ready <PR번호>` 그리고 `gh issue edit <번호> --remove-label 진행중`
+4. 이슈에 `리뷰 요청: #<PR번호>` 코멘트를 남긴다. PR에 Railway 미리보기 주소가 달리면 함께 적는다.
+
+## 하지 않는 것
+
+- `gh pr merge`, `gh issue close`, 다른 사람 이슈·PR의 담당·라벨 변경, 다른 사람 브랜치에 push, force push.
+- 이슈·PR·코멘트에 비밀값, 운영 DB 주소, 고객 개인정보를 쓰지 않는다. 노션·Figma 내용은 옮겨 적지 않고 링크만 붙인다.

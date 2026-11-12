@@ -1,0 +1,10 @@
+---
+description: gcsweb 팀 작업 공유 규칙 (GitHub 이슈·Draft PR)
+alwaysApply: true
+---
+
+# 팀 공통 규칙
+
+이 저장소의 팀 공통 에이전트 규칙은 @CLAUDE.md 에 있고, 요약은 @AGENTS.md 에 있다. 작업 전에 읽고 따른다.
+
+코드를 고치기 전에 이슈를 찾거나 만들어 본인을 담당자로 지정하고 `진행중` 라벨을 붙인다. 그다음 `<영문이름>/<이슈번호>-<설명>` 브랜치를 따고, 첫 push 때 Draft PR을 연다.
