@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+  - name: 팀 가이드 (비개발자·AI용)
+    url: https://github.com/snakedoll/gcsweb/blob/main/docs/team-issue-guide.md
+    about: 이슈 쓰는 법, 개발자 질문(확인필요)에 답하는 법, 전달 이슈, AI로 이슈를 다룰 때 지킬 것
