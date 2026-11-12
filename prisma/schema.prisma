@@ -36,6 +36,7 @@ model User {
   orders              Order[]
   scraps              Scrap[]
   store               Store?
+  storeStaff          StoreStaff[]
   teams               Team[]
 
   @@index([email])
@@ -185,6 +186,7 @@ model Order {
   paymentStatus         PaymentStatus @default(PENDING) /// 결제상태 (수령상태와 별개 축)
   receiptStatus         ReceiptStatus @default(NOT_RECEIVED) /// 수령상태 (결제상태와 연동하지 않음)
   paymentMethod         PaymentMethod /// 결제방법 (세부 PG 수단은 사이트가 나누지 않음)
+  onsitePaymentType     OnsitePaymentType? /// 현장결제 수단(카드/현금/계좌이체). 온라인 결제는 null (DB CHECK로 강제), 이 칸이 생기기 전 현장결제 주문도 null
   cardCompany           Int?
   bankCode              Int?
   easyPayProvider       Int?
@@ -258,12 +260,31 @@ model Store {
   name      String  @db.VarChar(16)
   storeSlug String  @unique         // 상점URL 식별자
   imageUrl  String? /// 상점 프로필 이미지
+  staffInviteCode String @unique @default(cuid()) /// 직원 초대 링크 코드. 공개된 storeSlug 대신 써서 링크를 받은 사람만 권한을 요청하게 한다
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
   user       User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
   categories OnsiteProductCategory[]
   products   OnsiteProduct[]
   orderNumbers OrderNumber[]
+  staff      StoreStaff[]
+}
+
+/// QRshop 상점 직원. 초대 링크로 권한을 요청하고, 소유자가 승인하면 현장 포스·전체 주문 조회를 쓸 수 있다
+model StoreStaff {
+  id          String           @id @default(cuid())
+  storeId     String
+  userId      String
+  status      StoreStaffStatus @default(PENDING)
+  requestedAt DateTime         @default(now()) /// 마지막 권한 요청 시각 (거절된 뒤 다시 요청하면 갱신)
+  approvedAt  DateTime? /// 승인 시각 (직원 관리 패널의 등록일)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  store       Store            @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, userId])
+  @@index([userId, status])
 }
 
 /// QRshop 상점별 상품 카테고리. 상품은 카테고리를 갖지 않을 수 있음
@@ -530,4 +551,16 @@ enum ReceiptStatus {
 enum OrderType {
   PRE_ORDER /// /shop 주문(플레이스홀더 상점). 사전주문도 이 값을 쓸 예정
   ONSITE /// 현장판매 (QR샵 주문)
+}
+
+enum OnsitePaymentType {
+  CARD /// 카드
+  CASH /// 현금
+  TRANSFER /// 계좌이체
+}
+
+enum StoreStaffStatus {
+  PENDING /// 승인 대기
+  APPROVED /// 승인됨 (등록된 직원)
+  REJECTED /// 거절됨 (다시 요청 가능)
 }
