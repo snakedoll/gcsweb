@@ -2,12 +2,15 @@
 import crypto from 'crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { confirmOrderPayment } from '@/lib/qrshop/payment-confirm';
+import { finalizeRefundFromWebhook } from '@/lib/qrshop/sales-order-refund';
 import { POST } from './route';
 
 vi.mock('@/lib/qrshop/payment-confirm', () => ({ confirmOrderPayment: vi.fn() }));
+vi.mock('@/lib/qrshop/sales-order-refund', () => ({ finalizeRefundFromWebhook: vi.fn() }));
 
 type Fn = ReturnType<typeof vi.fn>;
 const confirm = confirmOrderPayment as unknown as Fn;
+const finalizeRefund = finalizeRefundFromWebhook as unknown as Fn;
 
 const RAW_SECRET = crypto.randomBytes(32);
 const SECRET = `whsec_${RAW_SECRET.toString('base64')}`;
@@ -34,6 +37,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv('PORTONE_WEBHOOK_SECRET', SECRET);
   confirm.mockResolvedValue({ kind: 'PAID', alreadyPaid: false });
+  finalizeRefund.mockResolvedValue({ kind: 'NOT_TARGET' });
   infoLog = vi.spyOn(console, 'info').mockImplementation(() => {}) as unknown as Fn;
   warnLog = vi.spyOn(console, 'warn').mockImplementation(() => {}) as unknown as Fn;
 });
@@ -120,5 +124,23 @@ describe('POST /api/v2/qrshop/payment/webhook', () => {
     vi.stubEnv('PORTONE_WEBHOOK_SECRET', '');
     expect((await POST(signed(event('Transaction.Paid')))).status).toBe(500);
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('Transaction.Cancelled 이면 판매자 환불 마무리를 호출하고 결제 확정은 부르지 않는다', async () => {
+    finalizeRefund.mockResolvedValue({ kind: 'REFUNDED', stockNotRestored: 0 });
+    const res = await POST(signed(event('Transaction.Cancelled')));
+    expect(res.status).toBe(200);
+    expect(finalizeRefund).toHaveBeenCalledWith('ord1');
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('Transaction.Cancelled 처리 중 PortOne 조회가 실패하면 500 (PortOne 이 재전송한다)', async () => {
+    finalizeRefund.mockResolvedValue({ kind: 'LOOKUP_FAILED', code: 'NETWORK_ERROR' });
+    expect((await POST(signed(event('Transaction.Cancelled')))).status).toBe(500);
+  });
+
+  it('Transaction.Paid 는 환불 마무리를 부르지 않는다', async () => {
+    await POST(signed(event('Transaction.Paid')));
+    expect(finalizeRefund).not.toHaveBeenCalled();
   });
 });

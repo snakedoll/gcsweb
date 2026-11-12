@@ -27,6 +27,7 @@ export async function POST(request: Request, { params }: Params) {
       orderId: params.orderId,
       storeId: ctx.access.store.storeId,
       restoreStock: parsed.data.restoreStock,
+      userId: ctx.userId,
     });
 
     switch (result.kind) {
@@ -37,7 +38,8 @@ export async function POST(request: Request, { params }: Params) {
       case 'NOT_REFUNDABLE':
         return apiError(409, 'ORDER_NOT_REFUNDABLE', '환불할 수 없는 주문');
       case 'CANCEL_FAILED':
-        return apiErrors.serverError('결제 취소 실패');
+        // 응답을 못 받은 경우는 환불 요청이 남아 목록에 '환불 처리 중'으로 보이고, 웹훅·재요청이 마무리한다.
+        return apiErrors.serverError(result.intentKept ? '결제 취소 결과 확인 중' : '결제 취소 실패');
       case 'REFUNDED':
         if (result.stockNotRestored > 0) {
           console.warn('[qrshop][refund] some items not restocked', {

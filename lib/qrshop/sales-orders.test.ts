@@ -21,6 +21,7 @@ const row = (over: Partial<SalesOrderRow> = {}): SalesOrderRow => ({
   onsitePaymentType: null,
   paymentStatus: 'PAID',
   cancelReason: null,
+  refundRequestedAt: null,
   orderNumber: { orderNo: 3 },
   items: [
     { onsiteProductName: '반다나', onsiteOptionName: '홍색', quantity: 1 },
@@ -103,6 +104,15 @@ describe('toSalesOrderView', () => {
   it('판매자 환불만 refunded 로 본다', () => {
     expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND })).refundStatus).toBe('refunded');
     expect(toSalesOrderView(row({ paymentStatus: 'CANCELED', cancelReason: 'STOCK_SHORTAGE' })).refundStatus).toBe('none');
+  });
+
+  it('결제완료인데 환불 의도가 남아 있으면 pending(환불 처리 중)', () => {
+    expect(toSalesOrderView(row({ refundRequestedAt: new Date('2026-11-12T05:00:00Z') })).refundStatus).toBe('pending');
+    expect(
+      toSalesOrderView(
+        row({ paymentStatus: 'CANCELED', cancelReason: CANCEL_REASON_SELLER_REFUND, refundRequestedAt: new Date() }),
+      ).refundStatus,
+    ).toBe('refunded');
   });
 
   it('주문번호는 3자리, 1000번부터는 그대로', () => {

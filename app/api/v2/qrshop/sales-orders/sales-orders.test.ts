@@ -26,6 +26,7 @@ const row = (orderNo: number, over: Record<string, unknown> = {}) => ({
   onsitePaymentType: null,
   paymentStatus: 'PAID',
   cancelReason: null,
+  refundRequestedAt: null,
   orderNumber: { orderNo },
   items: [{ onsiteProductName: orderNo % 2 ? '반다나' : '엽서', onsiteOptionName: null, quantity: 1 }],
   _seq: seq++,
@@ -135,7 +136,7 @@ describe('POST /api/v2/qrshop/sales-orders/{orderId}/refund', () => {
     });
     const res = await post({ restoreStock: true });
     expect(res.status).toBe(200);
-    expect(refund).toHaveBeenCalledWith({ orderId: 'o1', storeId: 's1', restoreStock: true });
+    expect(refund).toHaveBeenCalledWith({ orderId: 'o1', storeId: 's1', restoreStock: true, userId: 'u1' });
     expect((await res.json()).data).toMatchObject({ id: 'o1', orderNo: '001', refundStatus: 'refunded', refundRestoreStock: true });
   });
 
@@ -145,9 +146,18 @@ describe('POST /api/v2/qrshop/sales-orders/{orderId}/refund', () => {
     ['NOT_REFUNDABLE', 409, 'ORDER_NOT_REFUNDABLE'],
     ['CANCEL_FAILED', 500, 'SERVER_ERROR'],
   ])('%s → %i %s', async (kind, status, code) => {
-    refund.mockResolvedValue({ kind });
+    refund.mockResolvedValue({ kind, intentKept: false });
     const res = await post({ restoreStock: false });
     expect(res.status).toBe(status);
     expect((await res.json()).code).toBe(code);
+  });
+
+  it('PortOne 응답을 못 받아 환불 요청이 남은 경우는 메시지로 구분한다', async () => {
+    refund.mockResolvedValue({ kind: 'CANCEL_FAILED', code: 'NETWORK_ERROR', intentKept: true });
+    const res = await post({ restoreStock: true });
+    expect(res.status).toBe(500);
+    expect((await res.json()).message).toBe('결제 취소 결과 확인 중');
+    refund.mockResolvedValue({ kind: 'CANCEL_FAILED', code: 'X', intentKept: false });
+    expect((await (await post({ restoreStock: true })).json()).message).toBe('결제 취소 실패');
   });
 });

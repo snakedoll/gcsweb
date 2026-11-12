@@ -24,7 +24,8 @@ export type SalesOrderView = {
   items: { productName: string; optionName: string | null; quantity: number }[];
   paymentMethod: SalesOrderPaymentMethod;
   paymentAmount: number;
-  refundStatus: 'none' | 'refunded';
+  /** pending: 환불 요청은 됐지만 마무리 전(PortOne 응답을 못 받았거나 마무리 중 실패). 웹훅·재요청이 마무리한다. */
+  refundStatus: 'none' | 'pending' | 'refunded';
 };
 
 export type SalesOrdersQuery = {
@@ -100,6 +101,7 @@ export const SALES_ORDER_SELECT = {
   onsitePaymentType: true,
   paymentStatus: true,
   cancelReason: true,
+  refundRequestedAt: true,
   orderNumber: { select: { orderNo: true } },
   items: {
     select: { onsiteProductName: true, onsiteOptionName: true, quantity: true },
@@ -115,6 +117,7 @@ export type SalesOrderRow = {
   onsitePaymentType: OnsitePaymentType | null;
   paymentStatus: PaymentStatus;
   cancelReason: string | null;
+  refundRequestedAt: Date | null;
   orderNumber: { orderNo: number } | null;
   items: { onsiteProductName: string | null; onsiteOptionName: string | null; quantity: number }[];
 };
@@ -132,6 +135,7 @@ export function formatOrderNo(orderNo: number): string {
 export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
   const refunded =
     row.paymentStatus === ORDER_PAYMENT_STATUS.CANCELED && row.cancelReason === CANCEL_REASON_SELLER_REFUND;
+  const refundPending = row.paymentStatus === ORDER_PAYMENT_STATUS.PAID && row.refundRequestedAt !== null;
   return {
     id: row.id,
     orderNo: row.orderNumber ? formatOrderNo(row.orderNumber.orderNo) : '',
@@ -148,7 +152,7 @@ export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
           ? ONSITE_METHOD[row.onsitePaymentType]
           : 'onsite',
     paymentAmount: row.paymentAmount,
-    refundStatus: refunded ? 'refunded' : 'none',
+    refundStatus: refunded ? 'refunded' : refundPending ? 'pending' : 'none',
   };
 }
 
