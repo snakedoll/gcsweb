@@ -21,6 +21,8 @@ import type { SoldOutItem } from './order-validation';
  * PortOne 결제 ID 는 주문 ID(Order.id)와 같다.
  */
 export const CANCEL_REASON_STOCK_SHORTAGE = 'STOCK_SHORTAGE';
+/** 이 모듈이 확정하는 주문 유형. /shop 주문(PRE_ORDER)은 제외한다. */
+const QRSHOP_ORDER_TYPE = 'ONSITE';
 const REFUND_REASON_STOCK_SHORTAGE = '재고 부족으로 인한 자동 환불';
 
 /** 결제 확정으로 PAID 가 될 수 있는 상태. CANCELED 는 환불까지 끝난 주문이라 제외한다. */
@@ -160,8 +162,9 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
       },
     },
   });
-  // OrderNumber 가 없으면 QR샵 주문이 아니다.
-  if (!order || !order.orderNumber) return { kind: 'NOT_FOUND' };
+  // QR샵 주문(OrderNumber.type=ONSITE)만 확정한다. /shop 주문(PRE_ORDER)도 OrderNumber 를 갖지만
+  // 결제 확정은 v1 결제 검증이 맡는다 — 같은 PortOne 웹훅이 여기로 와도 건드리지 않는다(#45).
+  if (!order || order.orderNumber?.type !== QRSHOP_ORDER_TYPE) return { kind: 'NOT_FOUND' };
 
   if (order.paymentStatus === ORDER_PAYMENT_STATUS.PAID) return { kind: 'PAID', alreadyPaid: true };
   // 재고 부족 환불이 실패해 수동 환불을 기다리는 주문은 다시 확정하지 않는다(고객에게 환불 예정으로 안내됨).
