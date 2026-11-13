@@ -13,7 +13,7 @@ const access = getStoreAccess as unknown as Fn;
 const sale = completePosSale as unknown as Fn;
 
 const STORE = { storeId: 's1', name: '잇장샵', storeSlug: 'itjang', createdAt: new Date('2026-09-01T00:00:00Z') };
-const BODY = { items: [{ productId: 'p1', quantity: 2 }], paymentMethod: 'cash' };
+const BODY = { clientRequestId: '0b7f6c1e-9a4d-4c55-8f0e-1a2b3c4d5e6f', items: [{ productId: 'p1', quantity: 2 }], paymentMethod: 'cash' };
 const post = (body: unknown) =>
   POST(new Request('http://localhost/api/v2/qrshop/pos/orders', { method: 'POST', body: JSON.stringify(body) }));
 
@@ -32,25 +32,50 @@ describe('POST /api/v2/qrshop/pos/orders', () => {
   });
 
   it.each([
-    [{ items: [], paymentMethod: 'cash' }],
-    [{ items: [{ productId: 'p1', quantity: 0 }], paymentMethod: 'cash' }],
-    [{ items: [{ productId: 'p1', quantity: 1.5 }], paymentMethod: 'cash' }],
-    [{ items: [{ productId: 'p1', quantity: 1 }], paymentMethod: 'online' }],
-    [{ items: [{ productId: 'p1', quantity: 1 }] }],
+    [{ ...BODY, items: [] }],
+    [{ ...BODY, items: [{ productId: 'p1', quantity: 0 }] }],
+    [{ ...BODY, items: [{ productId: 'p1', quantity: 1.5 }] }],
+    [{ ...BODY, paymentMethod: 'online' }],
+    [{ items: BODY.items, paymentMethod: 'cash' }],
+    [{ ...BODY, clientRequestId: 'short' }],
+    [{ ...BODY, clientRequestId: 'x'.repeat(65) }],
     [null],
-  ])('요청 형식이 틀리면 400: %j', async (body) => {
+  ])('요청 형식이 틀리면 400 (요청 키 없음·길이 포함): %j', async (body) => {
     const res = await post(body);
     expect(res.status).toBe(400);
     expect((await res.json()).message).toBe('유효하지 않은 요청');
+    expect(sale).not.toHaveBeenCalled();
   });
 
-  it('승인된 직원도 결제할 수 있고, 내 상점으로 한정해 호출한다', async () => {
+  it('승인된 직원도 결제할 수 있고, 내 상점·요청 키·등록자(로그인 사용자)로 호출한다', async () => {
     const receipt = { orderId: 'ord1', orderCode: '006', lines: [], totalAmount: 2000, paymentMethod: 'cash' };
-    sale.mockResolvedValue({ kind: 'COMPLETED', receipt });
+    sale.mockResolvedValue({ kind: 'COMPLETED', replayed: false, receipt });
     const res = await post(BODY);
     expect(res.status).toBe(200);
-    expect(sale).toHaveBeenCalledWith({ storeSlug: 'itjang', items: BODY.items, paymentMethod: 'cash' });
+    expect(sale).toHaveBeenCalledWith({
+      storeId: 's1',
+      storeSlug: 'itjang',
+      items: BODY.items,
+      paymentMethod: 'cash',
+      clientRequestId: BODY.clientRequestId,
+      soldByUserId: 'u1',
+    });
     expect((await res.json()).data).toEqual(receipt);
+  });
+
+  it('같은 요청 키로 다시 오면 처음 영수증을 200으로 돌려준다', async () => {
+    const receipt = { orderId: 'ord0', orderCode: '005', lines: [], totalAmount: 2000, paymentMethod: 'cash' };
+    sale.mockResolvedValue({ kind: 'COMPLETED', replayed: true, receipt });
+    const res = await post(BODY);
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toEqual(receipt);
+  });
+
+  it('요청 키가 다른 상점 결제에 쓰였으면 409 REQUEST_ID_CONFLICT', async () => {
+    sale.mockResolvedValue({ kind: 'REQUEST_ID_CONFLICT' });
+    const res = await post(BODY);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: 'REQUEST_ID_CONFLICT', message: '이미 사용된 요청 키' });
   });
 
   it('재고가 모자라면 409 SOLD_OUT 과 품절 항목 목록', async () => {
@@ -72,6 +97,11 @@ describe('POST /api/v2/qrshop/pos/orders', () => {
     const res = await post(BODY);
     expect(res.status).toBe(status);
     expect((await res.json()).message).toBe(message);
+  });
+
+  it('처리하지 않는 검증 사유가 오면 응답 없이 끝나지 않고 500', async () => {
+    sale.mockResolvedValue({ kind: 'INVALID', failure: { ok: false, reason: 'STORE_CLOSED' } });
+    expect((await post(BODY)).status).toBe(500);
   });
 
   it('처리 중 오류는 500', async () => {
