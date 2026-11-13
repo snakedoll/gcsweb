@@ -5,6 +5,7 @@ import { isPortoneCheckoutConfigured } from '@/lib/payment/portone';
 import { hashGuestToken } from '@/lib/qrshop/guest-token';
 import { createUnnumberedOrderNumber } from '@/lib/qrshop/order-number';
 import { validateOrderItems } from '@/lib/qrshop/order-validation';
+import { findVisitorOrderBlock } from '@/lib/qrshop/pos-exposure';
 import { POST } from './route';
 
 vi.mock('@/lib/db', () => ({
@@ -15,6 +16,7 @@ vi.mock('@/lib/payment/portone', () => ({
   getPortoneCheckoutPaymentConfig: () => ({ storeId: 'store-xxxx', channelKey: 'channel-xxxx' }),
 }));
 vi.mock('@/lib/qrshop/order-validation', () => ({ validateOrderItems: vi.fn() }));
+vi.mock('@/lib/qrshop/pos-exposure', () => ({ findVisitorOrderBlock: vi.fn() }));
 vi.mock('@/lib/qrshop/order-number', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/qrshop/order-number')>()),
   createUnnumberedOrderNumber: vi.fn(),
@@ -26,6 +28,7 @@ const transaction = prisma.$transaction as unknown as Fn;
 const configured = isPortoneCheckoutConfigured as unknown as Fn;
 const validate = validateOrderItems as unknown as Fn;
 const createNumberRow = createUnnumberedOrderNumber as unknown as Fn;
+const orderBlock = findVisitorOrderBlock as unknown as Fn;
 
 const VALIDATED = {
   ok: true,
@@ -61,6 +64,7 @@ beforeEach(() => {
   transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
   createOrder.mockResolvedValue({ id: 'ord1' });
   createNumberRow.mockResolvedValue(undefined);
+  orderBlock.mockResolvedValue(null);
 });
 
 describe('POST /api/v2/qrshop/orders', () => {
@@ -158,6 +162,24 @@ describe('POST /api/v2/qrshop/orders', () => {
       message: '품절된 상품',
       data: { soldOutItems },
     });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('닫힌 상점이면 409 STORE_CLOSED, 주문은 만들지 않는다', async () => {
+    orderBlock.mockResolvedValue('STORE_CLOSED');
+    const res = await post(BODY);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ status: 'error', code: 'STORE_CLOSED', message: '상점 준비중' });
+    expect(orderBlock).toHaveBeenCalledWith(prisma, 'nirvanaexpress', ['p1', 'p2']);
+    expect(validate).not.toHaveBeenCalled();
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it('미노출 상품이 있으면 삭제된 상품처럼 404, 주문은 만들지 않는다', async () => {
+    orderBlock.mockResolvedValue('PRODUCT_NOT_FOUND');
+    const res = await post(BODY);
+    expect(res.status).toBe(404);
+    expect((await res.json()).message).toBe('존재하지 않는 상품');
     expect(createOrder).not.toHaveBeenCalled();
   });
 

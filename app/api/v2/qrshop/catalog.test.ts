@@ -33,6 +33,7 @@ const storeRow = (products: unknown[] = [], categories: unknown[] = []) => ({
   storeId: 's1',
   name: '열반급행',
   storeSlug: 'nirvanaexpress',
+  isOpen: true,
   categories,
   products,
 });
@@ -84,7 +85,7 @@ describe('GET /api/v2/qrshop', () => {
     const body = await (await get('?storeSlug=nirvanaexpress')).json();
 
     expect(body.status).toBe('success');
-    expect(body.data.store).toEqual({ storeId: 's1', name: '열반급행', storeSlug: 'nirvanaexpress' });
+    expect(body.data.store).toEqual({ storeId: 's1', name: '열반급행', storeSlug: 'nirvanaexpress', isOpen: true });
     expect(body.data.categories).toEqual([{ categoryId: 'c1', name: '키링' }]);
     expect(body.data.products).toEqual([
       {
@@ -139,15 +140,35 @@ describe('GET /api/v2/qrshop', () => {
     expect((await res.json()).data).toMatchObject({ categories: [], products: [] });
   });
 
-  it('DB 쿼리: 상품 있는 카테고리만, 카테고리 등록순, 상품 최신순, 옵션 등록순(오래된 것이 위)', async () => {
+  it('닫힌 상점도 상품은 내려주고 isOpen=false로 알린다', async () => {
+    findStore.mockResolvedValue({ ...storeRow([product('p1')]), isOpen: false });
+    const body = await (await get('?storeSlug=nirvanaexpress')).json();
+    expect(body.data.store.isOpen).toBe(false);
+    expect(body.data.products).toHaveLength(1);
+  });
+
+  it('상품은 카테고리 노출 순서 → 카테고리 안 순서, 미분류는 맨 뒤', async () => {
+    findStore.mockResolvedValue(
+      storeRow(
+        [product('u1'), product('a1', { categoryId: 'cA' }), product('b1', { categoryId: 'cB' }), product('a2', { categoryId: 'cA' })],
+        [{ categoryId: 'cB', name: '엽서' }, { categoryId: 'cA', name: '키링' }],
+      ),
+    );
+    const body = await (await get('?storeSlug=nirvanaexpress')).json();
+    expect(body.data.products.map((p: { productId: string }) => p.productId)).toEqual(['b1', 'a1', 'a2', 'u1']);
+  });
+
+  it('DB 쿼리: 노출 상품만, 노출 상품 있는 카테고리만, 노출 순서(같으면 등록순), 옵션 등록순', async () => {
     findStore.mockResolvedValue(storeRow());
     await get('?storeSlug=nirvanaexpress');
 
     const { where, select } = findStore.mock.calls[0][0];
     expect(where).toEqual({ storeSlug: 'nirvanaexpress' });
-    expect(select.categories.where).toEqual({ products: { some: {} } });
-    expect(select.categories.orderBy).toEqual({ createdAt: 'asc' });
-    expect(select.products.orderBy).toEqual([{ createdAt: 'desc' }, { productId: 'desc' }]);
+    expect(select.isOpen).toBe(true);
+    expect(select.categories.where).toEqual({ products: { some: { isExposed: true } } });
+    expect(select.categories.orderBy).toEqual([{ exposureOrder: 'asc' }, { createdAt: 'asc' }, { categoryId: 'asc' }]);
+    expect(select.products.where).toEqual({ isExposed: true });
+    expect(select.products.orderBy).toEqual([{ exposureOrder: 'asc' }, { createdAt: 'asc' }, { productId: 'asc' }]);
     expect(select.products.select.options.orderBy).toEqual([{ createdAt: 'asc' }, { optionId: 'asc' }]);
     expect(select.imageUrl).toBeUndefined();
   });
