@@ -4,6 +4,7 @@ import { ORDER_PAYMENT_STATUS } from '@/lib/order-status';
 import { cancelPayment, getPayment } from '@/lib/payment/portone';
 import { assignOrderNumber, withOrderNumberRetry } from './order-number';
 import type { SoldOutItem } from './order-validation';
+import { decrementOnsiteStock } from './stock';
 
 /**
  * QR샵 주문 결제 확정. 결제 검증 API(verify)와 PortOne 웹훅이 같은 함수를 호출한다.
@@ -77,59 +78,22 @@ class StockShortageError extends Error {
 }
 
 /**
- * 항목별로 재고를 조건부 차감한다(`현재 재고 >= 수량`). 옵션 상품은 옵션과 상품 재고(= 옵션 합계)를 함께 줄인다.
- * 상품·옵션이 삭제돼 FK 가 비어 있는 항목은 품절로 본다. 모자란 항목을 모아서 돌려준다(호출 쪽이 롤백한다).
+ * 주문 항목 재고를 조건부 차감한다. 규칙은 현장 포스 결제와 같이 쓰는 `decrementOnsiteStock`(stock.ts)에 있다.
+ * 모자란 항목을 모아서 돌려준다(호출 쪽이 롤백한다).
  */
 async function decrementStock(tx: Prisma.TransactionClient, items: StockItem[]): Promise<Shortage[]> {
-  const soldOut: Shortage[] = [];
-
-  for (const item of items) {
-    const shortage = (availableQuantity: number): Shortage => ({
-      orderItemId: item.id,
-      soldOut: {
-        productId: item.onsiteProductId,
-        optionId: item.onsiteOptionId,
-        name: item.onsiteProductName ?? '',
-        optionName: item.onsiteOptionName,
-        availableQuantity: Math.max(availableQuantity, 0),
-      },
-    });
-
-    const deletedOption = item.onsiteOptionName !== null && item.onsiteOptionId === null;
-    if (item.onsiteProductId === null || deletedOption) {
-      soldOut.push(shortage(0));
-      continue;
-    }
-
-    if (item.onsiteOptionId !== null) {
-      const option = await tx.onsiteProductOption.updateMany({
-        where: { optionId: item.onsiteOptionId, currentStock: { gte: item.quantity } },
-        data: { currentStock: { decrement: item.quantity } },
-      });
-      if (option.count !== 1) {
-        const current = await tx.onsiteProductOption.findUnique({
-          where: { optionId: item.onsiteOptionId },
-          select: { currentStock: true },
-        });
-        soldOut.push(shortage(current?.currentStock ?? 0));
-        continue;
-      }
-    }
-
-    const product = await tx.onsiteProduct.updateMany({
-      where: { productId: item.onsiteProductId, currentStock: { gte: item.quantity } },
-      data: { currentStock: { decrement: item.quantity } },
-    });
-    if (product.count !== 1) {
-      const current = await tx.onsiteProduct.findUnique({
-        where: { productId: item.onsiteProductId },
-        select: { currentStock: true },
-      });
-      soldOut.push(shortage(current?.currentStock ?? 0));
-    }
-  }
-
-  return soldOut;
+  const shortages = await decrementOnsiteStock(
+    tx,
+    items.map((item) => ({
+      key: item.id,
+      productId: item.onsiteProductId,
+      optionId: item.onsiteOptionId,
+      productName: item.onsiteProductName ?? '',
+      optionName: item.onsiteOptionName,
+      quantity: item.quantity,
+    })),
+  );
+  return shortages.map(({ key, soldOut }) => ({ orderItemId: key, soldOut }));
 }
 
 export async function confirmOrderPayment(orderId: string, overrides: Partial<ConfirmDeps> = {}): Promise<ConfirmResult> {
