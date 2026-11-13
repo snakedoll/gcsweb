@@ -1,11 +1,16 @@
 import { apiErrors, apiSuccess } from '@/lib/api-response';
 import { verifyPortoneWebhook } from '@/lib/payment/portone-webhook';
 import { confirmOrderPayment } from '@/lib/qrshop/payment-confirm';
+import { finalizeRefundFromWebhook } from '@/lib/qrshop/sales-order-refund';
 
 export const dynamic = 'force-dynamic';
 
-/** 결제 확정 로직을 돌릴 이벤트. 그 외 type 은 문서 안내대로 처리 없이 200 으로 무시한다. */
-const HANDLED_EVENTS = new Set(['Transaction.Paid', 'Transaction.Failed']);
+/**
+ * 처리하는 이벤트. 그 외 type 은 문서 안내대로 처리 없이 200 으로 무시한다.
+ * - Paid·Failed: 결제 확정
+ * - Cancelled: 판매자 환불(전체 주문 조회)의 마무리. 환불 의도가 남은 결제완료 주문만 처리한다.
+ */
+const HANDLED_EVENTS = new Set(['Transaction.Paid', 'Transaction.Failed', 'Transaction.Cancelled']);
 
 type WebhookPayload = { type?: unknown; data?: { paymentId?: unknown } };
 
@@ -52,6 +57,16 @@ export async function POST(request: Request) {
     const paymentId = payload.data?.paymentId;
     if (!type || !HANDLED_EVENTS.has(type) || typeof paymentId !== 'string') {
       logWebhook('info', { outcome: 'ignored', webhookId, type });
+      return apiSuccess(null);
+    }
+
+    if (type === 'Transaction.Cancelled') {
+      const refund = await finalizeRefundFromWebhook(paymentId);
+      if (refund.kind === 'LOOKUP_FAILED') {
+        console.error('[qrshop/webhook] PortOne lookup failed', { webhookId, paymentId, code: refund.code ?? null });
+        return apiErrors.serverError();
+      }
+      logWebhook('info', { outcome: 'processed', webhookId, type, paymentId, result: refund.kind });
       return apiSuccess(null);
     }
 
