@@ -9,8 +9,6 @@ import EmptyviewText from '@/components/ui/common/EmptyviewText';
 const aboutTabItems = [
   { key: 'site', title: '사이트 소개' },
   { key: 'major', title: '전공 소개' },
-  { key: 'curriculum', title: '커리큘럼' },
-  { key: 'professor', title: '교수진' },
 ];
 
 export default function AboutPage() {
