@@ -111,7 +111,10 @@ npm run db:studio
 - `db:push`는 마이그레이션 기록이 안 남으므로 쓰지 않는다.
 - 데이터가 사라지는 마이그레이션(DROP, NOT NULL 전환 등)은 머지 전에 리뷰받는다. 시험 실행 스크립트 예시는 `scripts/*-dry-run.js`.
 - `schema.prisma` 필드 주석은 필드 위가 아니라 **줄 끝 `///`** 로 쓴다. 모델 설명만 `model X {` 바로 위 한 줄 `///` 허용(줄 끝에 붙이면 `prisma format`이 지운다). `prisma format`은 무관한 줄 공백도 바꾸므로 실행 후 diff를 확인하고 내 변경이 아닌 줄은 되돌린다.
-- ERD(ERDCloud)는 `schema.prisma`를 기준으로 맞춘다.
+- **ERD(ERDCloud)는 DB 변경과 같은 작업에서 반영한다.** `schema.prisma`가 기준이다(스키마 → ERD 순서). 에이전트는 ERDCloud MCP(`.mcp.json`의 erdcloud, 토큰은 `ERDCLOUD_TOKEN`, 설정은 `docs/agent-onboarding.md`)로 반영할 수 있다.
+  - **시점:** ERD는 브랜치가 없는 공용 문서 하나라서, 스키마를 바꾼 PR이 **승인된 뒤(머지 직전)** 반영한다. 그 뒤 스키마가 바뀌면 다시 맞추고, PR을 머지하지 않고 닫으면 되돌린다.
+  - **순서:** 사용자가 ERDCloud 화면에서 스냅샷을 만든다(MCP로는 만들 수 없다) → 바꿀 테이블·컬럼 목록을 사용자에게 보여 준다 → ok 후 반영한다. ERD 수정은 보고 있는 모든 사람에게 바로 보인다.
+  - 다른 사람이 만든 테이블을 함께 고치면 PR이나 이슈에서 알린다.
 
 ## 아키텍처
 
