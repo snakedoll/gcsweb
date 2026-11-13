@@ -9,26 +9,27 @@ import { useEffect, useState } from 'react';
 
 type ScrapTab = 'Project';
 
+/** GET /api/v2/mypage/scraps/project 의 projects[] (공개·미삭제 프로젝트만) */
 interface ScrapProject {
-  id: string;
-  teamName: string | null;
+  projectId: string;
   title: string;
+  teamName: string;
+  year: number;
+  category: string;
   thumbnailUrl: string | null;
-  keywords: string[];
-  url?: string;
 }
 
 const TAB_ITEMS: Array<{ key: ScrapTab; title: string }> = [{ key: 'Project', title: 'PROJECT' }];
 
-const SCRAP_ENDPOINT = '/api/v1/mypage/scraps/project?page=1&size=50';
+const SCRAP_ENDPOINT = '/api/v2/mypage/scraps/project?page=1&size=50';
 
 const EMPTY_CTA = { label: 'PROJECT 보러가기', href: '/archive' };
 
 function ProjectCard({ item }: { item: ScrapProject }) {
-  const linkUrl = item.url ?? `/projects/${item.id}`;
+  const tags = [String(item.year), item.category];
 
   return (
-    <Link href={linkUrl} className="flex w-[343px] self-center gap-[15px] px-0 py-0">
+    <Link href={`/archive/projects/${item.projectId}`} className="flex w-[343px] self-center gap-[15px] px-0 py-0">
       <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-[5.333px] bg-[#dddcdb]">
         {item.thumbnailUrl ? (
           <Image src={item.thumbnailUrl} alt={item.title} fill className="object-cover" sizes="64px" />
@@ -46,26 +47,19 @@ function ProjectCard({ item }: { item: ScrapProject }) {
       <div className="flex min-h-[80px] min-w-0 flex-1 items-center py-2">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <p className="truncate text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#1a1918]">{item.teamName ?? 'GCS'}</p>
+            <p className="truncate text-[13px] font-semibold leading-[1.5] tracking-[-0.26px] text-[#1a1918]">{item.teamName}</p>
             <p className="line-clamp-2 whitespace-normal break-words text-[15px] leading-[1.5] text-[#1a1918]">{item.title}</p>
           </div>
 
           <div className="flex flex-wrap items-start gap-2">
-            {item.keywords?.length ? (
-              item.keywords.map((kw) => (
-                <span
-                  key={kw}
-                  className="inline-flex items-center justify-center rounded-[8px] bg-[#fac0a1] px-[8px] py-[2px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#cf5d1f]"
-                >
-                  {kw}
-                </span>
-              ))
-            ) : (
-              <>
-                <span className="inline-flex items-center justify-center rounded-[8px] bg-[#fac0a1] px-[8px] py-[2px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#cf5d1f]">2025</span>
-                <span className="inline-flex items-center justify-center rounded-[8px] bg-[#fac0a1] px-[8px] py-[2px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#cf5d1f]">공모전</span>
-              </>
-            )}
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center justify-center rounded-[8px] bg-[#fac0a1] px-[8px] py-[2px] text-[13px] leading-[1.5] tracking-[-0.26px] text-[#cf5d1f]"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -136,7 +130,7 @@ export default function MypageScrapsPage() {
         ) : (
           <div className="flex flex-col gap-8">
             {projects.map((item) => (
-              <ProjectCard key={item.id} item={item} />
+              <ProjectCard key={item.projectId} item={item} />
             ))}
           </div>
         )}
