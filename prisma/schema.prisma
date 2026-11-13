@@ -265,6 +265,7 @@ model Store {
   storeSlug String  @unique         // 상점URL 식별자
   imageUrl  String? /// 상점 프로필 이미지
   staffInviteCode String @unique @default(cuid()) /// 직원 초대 링크 코드. 공개된 storeSlug 대신 써서 링크를 받은 사람만 권한을 요청하게 한다
+  isOpen     Boolean                 @default(false) /// QR샵 열림. 닫히면 방문객 주문을 막는다(현장 포스 토글)
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
   user       User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -296,6 +297,7 @@ model OnsiteProductCategory {
   categoryId String          @id @default(cuid())
   storeId    String
   name       String
+  exposureOrder Int          @default(0) /// 포스·QR샵 카테고리 순서(작을수록 앞). 생성 때 맨 뒤 번호, 같으면 등록순
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
   store      Store           @relation(fields: [storeId], references: [storeId], onDelete: Cascade)
@@ -316,6 +318,8 @@ model OnsiteProduct {
   initStock      Int /// 최초 재고(0 이상, DB CHECK로 강제). 옵션 사용 시 옵션 initStock 합계
   currentStock   Int /// 판매 가능 재고(0 이상, DB CHECK로 강제, 결제 확정 시 차감). 옵션 사용 시 옵션 currentStock 합계
   imageUrl       String? /// 상품 대표 이미지
+  isExposed      Boolean                @default(true) /// 포스·QR샵 노출. 미노출이면 포스와 QR샵 모두에서 숨긴다
+  exposureOrder  Int                    @default(0) /// 카테고리 안 노출 순서(작을수록 앞). 등록·카테고리 변경 때 맨 뒤 번호, 같으면 등록순
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   store          Store                  @relation(fields: [storeId], references: [storeId], onDelete: Cascade)

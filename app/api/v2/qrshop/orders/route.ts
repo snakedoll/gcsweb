@@ -6,6 +6,7 @@ import { getPortoneCheckoutPaymentConfig, isPortoneCheckoutConfigured } from '@/
 import { generateGuestToken, hashGuestToken } from '@/lib/qrshop/guest-token';
 import { createUnnumberedOrderNumber } from '@/lib/qrshop/order-number';
 import { validateOrderItems, type ValidateOrderResult } from '@/lib/qrshop/order-validation';
+import { findVisitorOrderBlock } from '@/lib/qrshop/pos-exposure';
 import { INVALID_STORE_SLUG, storeSlugSchema } from '@/lib/qrshop/store';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,14 @@ export async function POST(request: Request) {
       console.error('[qrshop/orders] PortOne checkout env not set');
       return apiErrors.serverError();
     }
+
+    const block = await findVisitorOrderBlock(
+      prisma,
+      slug.data,
+      parsed.data.items.map((item) => item.productId),
+    );
+    if (block === 'STORE_CLOSED') return apiError(409, 'STORE_CLOSED', '상점 준비중');
+    if (block === 'PRODUCT_NOT_FOUND') return apiErrors.notFound('존재하지 않는 상품');
 
     const validated = await validateOrderItems(prisma, { storeSlug: slug.data, items: parsed.data.items });
     if (!validated.ok) return toValidationError(validated);

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { apiErrors, apiSuccess } from '@/lib/api-response';
+import { CATEGORY_EXPOSURE_ORDER, PRODUCT_EXPOSURE_ORDER, sortByCategoryOrder } from '@/lib/qrshop/pos-exposure';
 import { INVALID_STORE_SLUG, storeSlugSchema } from '@/lib/qrshop/store';
 
 export const dynamic = 'force-dynamic';
@@ -49,8 +50,8 @@ function toProductResponse(product: ProductRow) {
 /**
  * 방문객용 상점 상품 조회. 로그인 없이 `storeSlug`(@ 제외)로 상점을 찾는다.
  *
- * 카테고리는 상품이 1개 이상인 것만 내려준다.
- * 정렬: 카테고리 등록순, 상품 최신 등록순(productId 보조 정렬), 옵션 등록순(오래된 것이 위, optionId 보조 정렬) — 판매자 상품 API와 같다.
+ * 현장 포스에서 노출한 상품만, 노출 상품이 1개 이상인 카테고리만 내려준다. 닫힌 상점도 상품은 내려주고 store.isOpen으로 알린다.
+ * 정렬: 현장 포스와 같다(카테고리 노출 순서 → 카테고리 안 노출 순서, 미분류 맨 뒤). 옵션은 등록순(optionId 보조 정렬).
  * 재고 수량(`stock`)은 방문객이 담는 수량을 재고까지만 올리도록(+ 버튼 상한) 내려준다. 조회 시점 값이라 주문 생성 때 서버가 다시 검증한다.
  */
 export async function GET(request: Request) {
@@ -64,13 +65,15 @@ export async function GET(request: Request) {
         storeId: true,
         name: true,
         storeSlug: true,
+        isOpen: true,
         categories: {
-          // 상품이 없는 카테고리는 탭을 만들지 않는다.
-          where: { products: { some: {} } },
+          // 노출 상품이 없는 카테고리는 탭을 만들지 않는다.
+          where: { products: { some: { isExposed: true } } },
           select: { categoryId: true, name: true },
-          orderBy: { createdAt: 'asc' },
+          orderBy: CATEGORY_EXPOSURE_ORDER,
         },
         products: {
+          where: { isExposed: true },
           select: {
             productId: true,
             name: true,
@@ -84,16 +87,17 @@ export async function GET(request: Request) {
               orderBy: [{ createdAt: 'asc' }, { optionId: 'asc' }],
             },
           },
-          orderBy: [{ createdAt: 'desc' }, { productId: 'desc' }],
+          orderBy: PRODUCT_EXPOSURE_ORDER,
         },
       },
     });
     if (!store) return apiErrors.notFound('존재하지 않는 상점');
 
+    const products = sortByCategoryOrder(store.products, store.categories.map((category) => category.categoryId));
     return apiSuccess({
-      store: { storeId: store.storeId, name: store.name, storeSlug: store.storeSlug },
+      store: { storeId: store.storeId, name: store.name, storeSlug: store.storeSlug, isOpen: store.isOpen },
       categories: store.categories,
-      products: store.products.map(toProductResponse),
+      products: products.map(toProductResponse),
     });
   } catch (error) {
     console.error('[qrshop/catalog] GET error:', error);
