@@ -69,5 +69,5 @@ SQL에 아래가 있으면 ⚠️로 표시하고, 영향받는 행 수를 읽�
 
 - 사용자가 결과를 보고 승인한 경우에만 `npx prisma migrate deploy`.
 - 적용 후 `npx prisma migrate status`로 확인하고, `npx prisma generate`가 필요한지 알린다.
-- ERDCloud ERD도 맞춰야 한다고 상기시킨다(`schema.prisma`가 기준).
+- ERDCloud ERD도 같은 작업에서 맞춘다(`schema.prisma`가 기준). ERDCloud MCP로 바꿀 테이블·컬럼 목록을 보여 주고, 사용자가 스냅샷을 만든 뒤 ok하면 반영한다.
 - 커밋은 `schema.prisma` + 마이그레이션 폴더를 함께, 기본 `chore(db): ...`.
