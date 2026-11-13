@@ -26,7 +26,7 @@ Closes #
 - [ ] `prisma/schema.prisma`와 `prisma/migrations/<타임스탬프>/`를 같이 커밋했다
 - [ ] `db:push`를 쓰지 않았다
 - [ ] 데이터 손실 위험(DROP, NOT NULL 전환, 타입 변경)이 없다. 있으면 아래에 적고 리뷰를 요청했다
-- [ ] ERD(ERDCloud)를 이 PR의 `schema.prisma` 기준으로 반영했다 (스키마 → ERD 순서, ERDCloud MCP 사용 가능)
+- [ ] ERD(ERDCloud)를 이 PR의 `schema.prisma` 기준으로 반영했다 (승인 뒤·머지 직전에, 스냅샷 먼저, ERDCloud MCP 사용 가능)
 
 <!-- 위험 SQL·시험 실행 결과(scripts/*-dry-run.js 등) -->
 
