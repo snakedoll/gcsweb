@@ -103,10 +103,17 @@ type RouteContext = { params: { onsiteProductId: string } };
 async function findOwnedProduct(storeId: string, productId: string) {
   return prisma.onsiteProduct.findFirst({
     where: { productId, storeId },
-    select: { productId: true, hasOption: true },
+    select: { productId: true, hasOption: true, price: true },
   });
 }
 
+/**
+ * 상품 수정.
+ *
+ * 판매 이력이 있는 상품(결제완료 주문에 팔린 상품, 목록의 hasSalesHistory=true)은 가격(price)을 바꿀 수 없다.
+ * 마감 직전 할인은 상품 가격 수정이 아니라 현장 포스 할인으로 한다(1106 기획회의 결정).
+ * 같은 가격을 다시 보내는 것은 변경이 아니라 통과시킨다.
+ */
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const context = await getSellerContext();
@@ -137,7 +144,12 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       ? input.options?.reduce((sum, option) => sum + option.stock, 0)
       : input.totalStock;
 
+    const priceChanged = input.price !== undefined && input.price !== existing.price;
+
     const updated = await prisma.$transaction(async (tx) => {
+      // 판매이력 확인과 수정을 한 트랜잭션에 둬서 그 사이에 결제가 끼어드는 틈을 줄인다(삭제와 같은 방식).
+      if (priceChanged && (await hasProductPaidSale(params.onsiteProductId, tx))) return null;
+
       // 옵션 목록이 오면 통째로 갈아끼운다. 부분 수정은 지원하지 않는다.
       if (input.options) {
         await tx.onsiteProductOption.deleteMany({ where: { productId: params.onsiteProductId } });
@@ -168,6 +180,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         select: PRODUCT_SELECT,
       });
     });
+    if (!updated) return apiError(409, 'PRODUCT_PRICE_LOCKED', '판매 이력이 있는 상품의 가격 변경 불가');
 
     return apiSuccess({
       product: toResponse(updated, await hasProductPaidSale(params.onsiteProductId)),
