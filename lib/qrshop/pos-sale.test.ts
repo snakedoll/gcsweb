@@ -75,7 +75,7 @@ function setup(opts: { products?: unknown[]; maxOrderNo?: number | null; decreme
 }
 
 describe('completePosSale', () => {
-  it('결제완료 현장결제 주문을 만들고 주문 시점의 상품명·옵션명·단가, 요청 키, 등록자를 남긴다', async () => {
+  it('결제완료·수령완료 현장결제 주문을 만들고 주문 시점의 상품명·옵션명·단가, 요청 키, 등록자를 남긴다', async () => {
     const t = setup();
     const result = await t.run([
       { productId: 'p1', quantity: 2 },
@@ -87,6 +87,7 @@ describe('completePosSale', () => {
         paymentMethod: 'ON_SITE',
         onsitePaymentType: 'CARD',
         paymentStatus: 'PAID',
+        receiptStatus: 'RECEIVED',
         paidAt: NOW,
         buyerType: 'GUEST',
         clientRequestId: 'req-0001',

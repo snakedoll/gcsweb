@@ -131,6 +131,8 @@ export async function completePosSale(params: PosSaleParams, overrides: Partial<
               paymentMethod: 'ON_SITE',
               onsitePaymentType: ONSITE_PAYMENT_TYPE[params.paymentMethod],
               paymentStatus: ORDER_PAYMENT_STATUS.PAID,
+              // 매장에서 결제하면서 바로 건네주므로 수령완료로 남긴다(주문서 보드에서 미수령으로 보이지 않게).
+              receiptStatus: 'RECEIVED',
               paidAt,
               buyerType: 'GUEST',
               clientRequestId: params.clientRequestId,
