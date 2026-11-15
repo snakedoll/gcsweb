@@ -16,9 +16,18 @@
 5. node scripts/github-watch.mjs 를 한 번 실행해 기준점을 잡고 결과를 보여 줘.
 6. Claude Code라면 Monitor 도구로 node scripts/github-watch.mjs --loop 를 켜 줘(timeout_ms 1800000, 만료되면 다시 켠다). Claude Code가 아니면 이 단계는 건너뛰어.
 7. 나에게 배정된 열린 이슈, '확인필요' 라벨이 붙은 이슈, 열린 PR 목록을 보여 줘.
+8. erdcloud MCP가 연결되는지 확인해 줘(ERD 테이블 목록 조회). 안 되면 docs/agent-onboarding.md 「MCP 토큰」대로 ERDCLOUD_TOKEN 설정 방법을 알려 줘. 토큰 값은 묻지도 출력하지도 마.
 
 앞으로 코드를 고칠 때는 CLAUDE.md 「작업 공유」대로 이슈 → 작업별 브랜치 → Draft PR 순서로 진행해. 머지, 이슈 닫기, 다른 사람 이슈·PR 수정은 하지 마.
 ```
+
+## MCP 토큰 (ERDCloud)
+
+ERD를 에이전트로 고치려면 환경변수 `ERDCLOUD_TOKEN`이 필요하다. 없거나 틀리면 erdcloud MCP가 401로 연결되지 않는다.
+
+- **팀 공용 토큰**이다. 민영에게 직접 받는다. 공개 저장소이므로 이슈·PR·코드·채팅 기록에 값을 적지 않는다.
+- 사용자 환경변수로 설정한다(PowerShell: `[Environment]::SetEnvironmentVariable('ERDCLOUD_TOKEN', '<받은 토큰>', 'User')`). 설정한 뒤 에디터(Claude 앱·Cursor 등)를 완전히 껐다 켜야 적용된다.
+- 토큰을 새로 발급하거나 바꾼 사람은 팀원에게 바로 알린다. 예전 토큰은 401이 된다.
 
 ## 평소에 쓰는 말
 

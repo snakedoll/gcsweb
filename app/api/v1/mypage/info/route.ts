@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { apiError, apiErrors } from '@/lib/api-response';
+import { VISIBLE_PROJECT_WHERE } from '@/lib/archive/visible-project';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,8 @@ export async function GET(request: Request) {
         _count: {
           select: {
             likes: true,
-            scraps: true,
+            // 스크랩 목록(v2)과 같은 기준: 볼 수 있는(공개·미삭제) 프로젝트 스크랩만
+            scraps: { where: { project: VISIBLE_PROJECT_WHERE } },
           },
         },
       },

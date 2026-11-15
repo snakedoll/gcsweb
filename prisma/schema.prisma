@@ -201,6 +201,8 @@ model Order {
   refundRequestedAt     DateTime? /// 판매자 환불 요청 시각(전체 주문 조회). 결제완료인데 값이 있으면 환불 처리 중이며 웹훅이나 전체 주문 조회 확인이 마무리한다
   refundRestoreStock    Boolean? /// 판매자 환불 요청 때 고른 재고 복원 여부(웹훅이 마무리할 때 사용)
   refundedByUserId      String? /// 판매자 환불을 요청한 사용자 id(소유자 또는 승인된 직원). 화면에 쓰지 않는 기록용, FK 없음
+  soldByUserId          String? /// 현장 포스 결제를 등록한 사용자 id(소유자 또는 승인된 직원). 화면에 쓰지 않는 기록용, FK 없음
+  clientRequestId       String?     @unique /// 현장 포스 결제 요청 키(프론트가 결제마다 만듦). 같은 키가 다시 오면 처음 영수증을 돌려줘 두 번 처리되지 않게 한다
   inquiries             Inquiry[]
   user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
