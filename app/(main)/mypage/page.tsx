@@ -74,9 +74,6 @@ export default function MypagePage() {
   const queryClient = useQueryClient();
   const { session, profile, isLoading, isAuthenticated, update } = useUser();
   const profileImageInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [scrapsCount, setScrapsCount] = useState(0);
