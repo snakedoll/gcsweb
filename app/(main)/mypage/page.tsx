@@ -70,7 +70,7 @@ export default function MypagePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session, profile, isLoading, isAuthenticated, update } = useUser();
-  const [showImagePicker, setShowImagePicker] = useState(false);
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -111,70 +111,57 @@ export default function MypagePage() {
     fetchMypageInfo();
   }, [isAuthenticated, isLoading]);
 
-  // Handle file selection directly (no preview modal)
-  useEffect(() => {
-    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.profile-image-input'));
-    if (inputs.length === 0) return;
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ''; // 같은 사진을 다시 골라도 change가 나도록
+    if (!file) return;
 
-    const handler = async (e: Event) => {
-      const target = e.target as HTMLInputElement;
-      const file = target.files?.[0] ?? null;
-      if (!file) return;
+    try {
+      const resizedBlob = await resizeImageFile(file, 1024);
+      const formData = new FormData();
+      formData.append('image', new File([resizedBlob], file.name, { type: file.type }));
 
-      // Start upload immediately
-      try {
-        const resizedBlob = await resizeImageFile(file, 1024);
-        const formData = new FormData();
-        formData.append('image', new File([resizedBlob], file.name, { type: file.type }));
+      const uploadRes = await fetch('/api/v1/images?usage=PROFILE', {
+        method: 'POST',
+        body: formData,
+      });
 
-        const uploadRes = await fetch('/api/v1/images?usage=PROFILE', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          const json = await uploadRes.json().catch(() => ({}));
-          alert(json?.message || '이미지 업로드에 실패했습니다.');
-          return;
-        }
-
-        const uploadJson = await uploadRes.json();
-        const imageUrl = uploadJson?.data?.imageUrl;
-        if (!imageUrl) {
-          alert('업로드한 이미지 URL을 받아오지 못했습니다.');
-          return;
-        }
-
-        const res = await fetch('/api/v1/mypage/profile', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileImageUrl: imageUrl }),
-        });
-
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}));
-          alert(json?.message || '프로필 이미지 업데이트에 실패했습니다.');
-          return;
-        }
-
-        // React Query 캐시 초기화 및 UI 즉시 업데이트 
-        await queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
-        if (update) {
-          await update();
-        }
-        router.refresh();
-      } catch (err) {
-        console.error(err);
-        alert('업로드 중 오류가 발생했습니다.');
+      if (!uploadRes.ok) {
+        const json = await uploadRes.json().catch(() => ({}));
+        alert(json?.message || '이미지 업로드에 실패했습니다.');
+        return;
       }
-      target.value = '';
-    };
 
-    for (const input of inputs) input.addEventListener('change', handler);
-    return () => {
-      for (const input of inputs) input.removeEventListener('change', handler);
-    };
-  }, [router, queryClient, update]);
+      const uploadJson = await uploadRes.json();
+      const imageUrl = uploadJson?.data?.imageUrl;
+      if (!imageUrl) {
+        alert('업로드한 이미지 URL을 받아오지 못했습니다.');
+        return;
+      }
+
+      const res = await fetch('/api/v1/mypage/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileImageUrl: imageUrl }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        alert(json?.message || '프로필 이미지 업데이트에 실패했습니다.');
+        return;
+      }
+
+      // React Query 캐시 초기화 및 UI 즉시 업데이트
+      await queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      if (update) {
+        await update();
+      }
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert('업로드 중 오류가 발생했습니다.');
+    }
+  };
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -207,30 +194,19 @@ export default function MypagePage() {
                   </div>
                 )}
               </div>
+              {/* capture를 두지 않아야 iOS·안드로이드 기본 메뉴(보관함·촬영·파일)가 한 번만 뜬다 */}
               <input
+                ref={profileImageInputRef}
                 type="file"
                 accept="image/*"
-                className="hidden profile-image-input"
-                id="profile-image-input-library"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden profile-image-input"
-                id="profile-image-input-camera"
-              />
-              <input
-                type="file"
-                accept="*/*"
-                className="hidden profile-image-input"
-                id="profile-image-input-file"
+                className="hidden"
+                onChange={handleProfileImageChange}
               />
 
               <button
                 type="button"
                 aria-label="프로필 이미지 변경"
-                onClick={() => setShowImagePicker(true)}
+                onClick={() => profileImageInputRef.current?.click()}
                 className="absolute inset-0 w-full h-full rounded-full border-none"
               >
                 <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-4 border-neutral-3 bg-neutral-12">
@@ -239,50 +215,6 @@ export default function MypagePage() {
                   </svg>
                 </span>
               </button>
-
-              {/* Action sheet for choosing source (Figma-style) */}
-              {showImagePicker && (
-                <div className="fixed inset-0 flex items-end justify-center">
-                  <div className="absolute inset-0 bg-black/40 z-40" onClick={() => setShowImagePicker(false)} />
-
-                  <div className="w-full max-w-md px-4 pb-6 relative z-50">
-                    <div className="bg-white rounded-2xl overflow-hidden shadow-lg relative z-50">
-                      <button
-                        className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                        onClick={() => {
-                          setShowImagePicker(false);
-                          document.getElementById('profile-image-input-library')?.click();
-                        }}
-                      >사진 보관함</button>
-                      <div className="h-px bg-neutral-4" />
-
-                      <button
-                        className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                        onClick={() => {
-                          setShowImagePicker(false);
-                          document.getElementById('profile-image-input-camera')?.click();
-                        }}
-                      >사진 찍기</button>
-                      <div className="h-px bg-neutral-4" />
-
-                      <button
-                        className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                        onClick={() => {
-                          setShowImagePicker(false);
-                          document.getElementById('profile-image-input-file')?.click();
-                        }}
-                      >파일 선택</button>
-                    </div>
-
-                    <div className="mt-3 bg-white rounded-xl overflow-hidden shadow-lg relative z-50">
-                      <button
-                        className="w-full py-4 text-center text-neutral-7 bg-white"
-                        onClick={() => setShowImagePicker(false)}
-                      >취소하기</button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             <div>
               <p className="typo-heading-medium text-neutral-12">{displayName}</p>
