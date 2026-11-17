@@ -94,12 +94,20 @@ npm run typecheck:frontend  # tsc -p tsconfig.frontend.json --noEmit
 npm test                    # vitest run (전체)
 npx vitest run lib/qrshop/order-validation.test.ts   # 단일 테스트 파일
 npx vitest run -t "테스트 이름"                        # 이름으로 필터
-npx prisma db seed          # 로컬 테스트 계정 시드 (prisma/seed.mjs, localhost DB에서만 동작)
+npx prisma db seed          # 테스트 계정·QR샵 테스트 데이터 시드 (prisma/seed.mjs)
 npm run db:studio
 ```
 
 - `typecheck:frontend`는 `app/api/**`와 `prisma/**`를 **제외**한다. API 라우트의 타입 오류는 `next build`에서만 잡힌다.
-- `npm start` = `prisma migrate deploy` 후 `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- `npm start` = `prisma migrate deploy` → 시드(`--if-enabled`) → `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- **테스트 계정** (로컬·PR 미리보기 공통, 비밀번호 `test1234`). 시드는 localhost DB이거나 `SEED_TEST_ACCOUNTS=true`일 때만 돌고, Railway production에서는 돌지 않는다.
+
+  | 계정 | 권한 |
+  | --- | --- |
+  | `admin@test.com` | 관리자 |
+  | `user@test.com` | 일반회원 |
+  | `seller@test.com` | 판매자 (상점 `@teststore`, 시험 상품 포함) |
+
 - 환경변수 목록은 `.env.example`. `.env`는 git에 없어 새 PC에서 직접 만든다(없으면 Prisma P1012).
 - 경로 별칭 `@/*` = 저장소 루트 (tsconfig, vitest 동일).
 - Node 22 기준. 운영은 Railway 변수 `NIXPACKS_NODE_VERSION=22`, CI는 `.github/workflows/ci.yml`에서 22로 고정.
