@@ -23,12 +23,15 @@ async function resizeImageFile(file: File, maxWidth = 1024): Promise<Blob> {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) return reject(new Error('Canvas not supported'));
+      ctx.fillStyle = '#fff'; // JPEG는 투명을 검게 칠하므로 흰 바탕
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
+      // iOS HEIC 등 서버가 받지 않는 형식이 와도 항상 JPEG로 보낸다
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error('Blob conversion failed'));
         URL.revokeObjectURL(url);
-      }, file.type || 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.9);
     };
     img.onerror = (e) => {
       URL.revokeObjectURL(url);
@@ -71,9 +74,6 @@ export default function MypagePage() {
   const queryClient = useQueryClient();
   const { session, profile, isLoading, isAuthenticated, update } = useUser();
   const profileImageInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [scrapsCount, setScrapsCount] = useState(0);
@@ -112,14 +112,14 @@ export default function MypagePage() {
   }, [isAuthenticated, isLoading]);
 
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    e.target.value = ''; // 같은 사진을 다시 골라도 change가 나도록
+    const input = e.target;
+    const file = input.files?.[0] ?? null;
     if (!file) return;
 
     try {
       const resizedBlob = await resizeImageFile(file, 1024);
       const formData = new FormData();
-      formData.append('image', new File([resizedBlob], file.name, { type: file.type }));
+      formData.append('image', new File([resizedBlob], 'profile.jpg', { type: 'image/jpeg' }));
 
       const uploadRes = await fetch('/api/v1/images?usage=PROFILE', {
         method: 'POST',
@@ -160,6 +160,9 @@ export default function MypagePage() {
     } catch (err) {
       console.error(err);
       alert('업로드 중 오류가 발생했습니다.');
+    } finally {
+      // iOS는 값을 비우면 고른 사진 파일을 지우므로 다 읽은 뒤에 비운다
+      input.value = '';
     }
   };
 
