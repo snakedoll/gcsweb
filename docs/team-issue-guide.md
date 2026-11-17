@@ -13,6 +13,7 @@
 | 개발자 질문에 답하기 | `확인필요` 이슈에 댓글로 답하기 (아래) |
 | 나에게 넘어온 일 보기 | [나를 부른 열린 이슈](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen+mentions%3A%40me), [전달 이슈](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen+label%3A%EC%A0%84%EB%8B%AC) |
 | 진행 상황 보기 | [진행 중인 작업](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen%20label%3A%EC%A7%84%ED%96%89%EC%A4%91), [답이 필요한 것](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen%20label%3A%ED%99%95%EC%9D%B8%ED%95%84%EC%9A%94) |
+| 개발 중인 화면 직접 써 보기 | [PR 미리보기 사이트에 테스트 계정으로 로그인](#pr-미리보기에서-확인하기) |
 
 ## 개발자 질문(`확인필요`)에 답하기
 
@@ -59,3 +60,22 @@ GitHub 저장소 snakedoll/gcsweb 의 docs/team-issue-guide.md 를 읽고, 이 �
 | `프론트` `백엔드` `디자인` `기획` | 관련 파트 |
 | `진행중` | 담당자가 작업 중 |
 | `확인필요` | 기획·디자인 등의 답을 기다림 |
+
+## PR 미리보기에서 확인하기
+
+개발자가 [PR](https://github.com/snakedoll/gcsweb/pulls)을 열면 그 PR 코드에 해당하는 미리보기 사이트가 생깁니다. PR 사이트는 운영 사이트와 별개고, 운영DB를 사용하지 않으므로 마음껏 눌러 봐도 됩니다.
+
+1. PR 화면 아래 체크 목록에서 `lively-hope - gcsweb` 줄의 `…up.railway.app` 주소로 들어갑니다.
+2. 아래 테스트 계정으로 로그인합니다. (카카오 로그인 불가)
+
+| 계정 | 비밀번호 | 권한 |
+| --- | --- | --- |
+| `admin@test.com` | `test1234` | 관리자 (어드민 화면) |
+| `user@test.com` | `test1234` | 일반회원 |
+| `seller@test.com` | `test1234` | QR샵 상점 주인 (상점명: `teststore`) |
+
+- 테스트 계정으로 운영 사이트 진입은 불가하며, 비밀번호가 공개돼도 되는 시험용 계정입니다.
+- QR샵 방문객 화면 라우트: `<미리보기 주소>/QRshop/teststore`
+- 결제는 테스트 결제라 실제로 청구되지 않습니다.
+- 미리보기 데이터는 PR마다 새로 시작하고, PR이 닫히면 사라집니다.
+- 2026-11-17 이후에 열린 PR부터 테스트 계정이 들어 있습니다.
