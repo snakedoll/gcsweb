@@ -22,10 +22,7 @@ export default function AdminTeamCreatePage() {
   const { data: session } = useSession();
   const meId = session?.user?.id as string | undefined;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const filePickerRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const memberInputRef = useRef<HTMLInputElement>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [showLeaderModal, setShowLeaderModal] = useState(false);
   const [memberInputValue, setMemberInputValue] = useState("");
@@ -386,7 +383,7 @@ export default function AdminTeamCreatePage() {
               </h2>
               <div className="rounded-lg bg-neutral-2 p-4 border border-neutral-4">
                 {accountImageUrl ? (
-                  <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full cursor-pointer" onClick={() => setShowImageModal(true)}>
+                  <div className="relative rounded-lg overflow-hidden bg-neutral-3 h-48 w-full cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <Image
                       src={accountImageUrl}
                       alt="통장 사본"
@@ -418,18 +415,11 @@ export default function AdminTeamCreatePage() {
 
                     <button
                       type="button"
-                      onClick={() => setShowImageModal(true)}
+                      onClick={() => fileInputRef.current?.click()}
                       className="bg-orange-5 hover:bg-orange-6 typo-body-small-bold text-neutral-2 px-4 py-2 rounded-lg transition-colors"
                     >
                       사진 업로드
                     </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png"
-                      onChange={handleAccountImageChange}
-                      className="hidden"
-                    />
                   </div>
                 )}
               </div>
@@ -450,74 +440,11 @@ export default function AdminTeamCreatePage() {
           </div>
         </form>
 
-        {showImageModal && (
-          <div className="fixed inset-0 flex items-end justify-center z-50">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowImageModal(false)} />
-
-            <div className="w-full max-w-md px-4 pb-6 relative">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                    setShowImageModal(false);
-                  }}
-                  className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                >
-                  사진 보관함
-                </button>
-                <div className="h-px bg-neutral-4" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    cameraInputRef.current?.click();
-                    setShowImageModal(false);
-                  }}
-                  className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                >
-                  사진 찍기
-                </button>
-                <div className="h-px bg-neutral-4" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    filePickerRef.current?.click();
-                    setShowImageModal(false);
-                  }}
-                  className="w-full py-4 text-center text-orange-5 font-medium bg-white"
-                >
-                  파일 선택
-                </button>
-              </div>
-
-              <div className="mt-3 bg-white rounded-2xl overflow-hidden shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setShowImageModal(false)}
-                  className="w-full py-4 text-center text-neutral-7 bg-white"
-                >
-                  취소하기
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* capture를 두지 않아야 iOS 기본 메뉴(보관함·촬영·파일)가 한 번만 뜬다 */}
         <input
-          ref={filePickerRef}
+          ref={fileInputRef}
           type="file"
-          accept="*/*"
-          onChange={handleAccountImageChange}
-          className="hidden"
-        />
-
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
+          accept="image/jpeg,image/png"
           onChange={handleAccountImageChange}
           className="hidden"
         />

@@ -19,6 +19,7 @@ AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할
 5. **막히면 `확인필요`.** 명세·디자인에 없어서 기획·디자인의 답이 필요하면 `확인필요` 라벨을 붙인다. 무엇을 누구에게 묻는지 코멘트로 적는다. 답을 받기 전에는 그 부분을 추측으로 구현하지 않는다.
    - 답을 받으면 `확인필요`를 떼고 결정을 코멘트로 남긴다.
 6. **리뷰 요청.** 끝나면 `gh pr ready`로 전환하고 `진행중` 라벨을 뗀다. main에 머지되면 `Closes`로 이슈가 자동으로 닫힌다. 늦어도 이슈를 끝내기 전에 담당자는 이 이슈에서 나온 결정 중 다른 역할에 알릴 것이 있는지 판단해 아래 「전달 이슈」로 넘긴다.
+7. **머지 뒤 정리.** 원격 브랜치는 GitHub이 머지 때 자동으로 지운다(저장소 설정, 필요하면 PR 화면의 Restore branch). 내 PC의 작업 브랜치는 `git branch -d <브랜치>`로 지운다. 개인 브랜치(`mybae` 등)는 대상이 아니다.
 
 **회의가 끝나면** 회의록에서 담당자가 정해진 할 일을 담당자가 이슈로 옮기고, 회의록 링크를 붙인다. 비개발 팀원이 카톡·노션으로 보낸 요청은 받은 개발자가 `요청` 이슈로 옮긴다.
 
@@ -93,12 +94,20 @@ npm run typecheck:frontend  # tsc -p tsconfig.frontend.json --noEmit
 npm test                    # vitest run (전체)
 npx vitest run lib/qrshop/order-validation.test.ts   # 단일 테스트 파일
 npx vitest run -t "테스트 이름"                        # 이름으로 필터
-npx prisma db seed          # 로컬 테스트 계정 시드 (prisma/seed.mjs, localhost DB에서만 동작)
+npx prisma db seed          # 테스트 계정·QR샵 테스트 데이터 시드 (prisma/seed.mjs)
 npm run db:studio
 ```
 
 - `typecheck:frontend`는 `app/api/**`와 `prisma/**`를 **제외**한다. API 라우트의 타입 오류는 `next build`에서만 잡힌다.
-- `npm start` = `prisma migrate deploy` 후 `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- `npm start` = `prisma migrate deploy` → 시드(`--if-enabled`) → `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- **테스트 계정** (로컬·PR 미리보기 공통, 비밀번호 `test1234`). 시드는 localhost DB이거나 `SEED_TEST_ACCOUNTS=true`일 때만 돌고, Railway production에서는 돌지 않는다.
+
+  | 계정 | 권한 |
+  | --- | --- |
+  | `admin@test.com` | 관리자 |
+  | `user@test.com` | 일반회원 |
+  | `seller@test.com` | 판매자 (상점 `@teststore`, 시험 상품 포함) |
+
 - 환경변수 목록은 `.env.example`. `.env`는 git에 없어 새 PC에서 직접 만든다(없으면 Prisma P1012).
 - 경로 별칭 `@/*` = 저장소 루트 (tsconfig, vitest 동일).
 - Node 22 기준. 운영은 Railway 변수 `NIXPACKS_NODE_VERSION=22`, CI는 `.github/workflows/ci.yml`에서 22로 고정.
