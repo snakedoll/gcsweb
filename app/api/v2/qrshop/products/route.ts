@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { apiError, apiErrors, apiSuccess } from '@/lib/api-response';
+import { nextProductOrder, upsertCategoryAtEnd } from '@/lib/qrshop/pos-exposure';
 import { findPaidSoldProductIds } from '@/lib/qrshop/sales-history';
 import { getSellerContext } from '@/lib/seller/store';
 import {
@@ -216,14 +217,9 @@ export async function POST(request: Request) {
     const created = await prisma.$transaction(async (tx) => {
       let categoryId = input.categoryId ?? null;
 
-      // 새 이름이면 만들되, 같은 이름이 이미 있으면 그걸 쓴다(상점 내 이름은 unique).
+      // 새 이름이면 카테고리 순서 맨 뒤로 만들되, 같은 이름이 이미 있으면 그걸 쓴다(상점 내 이름은 unique).
       if (input.categoryName) {
-        const category = await tx.onsiteProductCategory.upsert({
-          where: { storeId_name: { storeId, name: input.categoryName } },
-          create: { storeId, name: input.categoryName },
-          update: {},
-          select: { categoryId: true },
-        });
+        const category = await upsertCategoryAtEnd(tx, storeId, input.categoryName);
         categoryId = category.categoryId;
       }
 
@@ -231,6 +227,7 @@ export async function POST(request: Request) {
         data: {
           storeId,
           categoryId,
+          exposureOrder: await nextProductOrder(tx, storeId, categoryId),
           name: input.name,
           imageUrl: input.imageUrl || null,
           price: input.price,

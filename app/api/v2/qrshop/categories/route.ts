@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { apiError, apiErrors, apiSuccess } from '@/lib/api-response';
+import { upsertCategoryAtEnd } from '@/lib/qrshop/pos-exposure';
 import { getSellerContext } from '@/lib/seller/store';
 
 export const dynamic = 'force-dynamic';
@@ -50,14 +51,9 @@ export async function POST(request: Request) {
       return apiErrors.invalidInput(parsed.error.issues[0]?.message);
     }
 
-    const category = await prisma.onsiteProductCategory.upsert({
-      where: {
-        storeId_name: { storeId: context.store.storeId, name: parsed.data.name },
-      },
-      create: { storeId: context.store.storeId, name: parsed.data.name },
-      update: {},
-      select: { categoryId: true, name: true },
-    });
+    const storeId = context.store.storeId;
+    // 새 카테고리는 포스·QR샵 카테고리 순서의 맨 뒤로 만든다.
+    const category = await prisma.$transaction((tx) => upsertCategoryAtEnd(tx, storeId, parsed.data.name));
 
     return apiSuccess({ category: { id: category.categoryId, name: category.name } });
   } catch (error) {
