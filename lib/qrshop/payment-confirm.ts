@@ -2,16 +2,20 @@ import type { PaymentStatus, Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { ORDER_PAYMENT_STATUS } from '@/lib/order-status';
 import { cancelPayment, getPayment } from '@/lib/payment/portone';
+import { assignOrderNumber, withOrderNumberRetry } from './order-number';
 import type { SoldOutItem } from './order-validation';
+import { decrementOnsiteStock } from './stock';
 
 /**
  * QR샵 주문 결제 확정. 결제 검증 API(verify)와 PortOne 웹훅이 같은 함수를 호출한다.
  *
  * 1) PortOne 을 직접 조회해 금액·결제 여부를 확인한다(요청 값은 신뢰하지 않는다).
- * 2) 한 트랜잭션에서 주문 행을 잠근 뒤 재고를 조건부로 차감하고 PAID 로 바꾼다.
+ * 2) 한 트랜잭션에서 주문 행을 잠근 뒤 재고를 조건부로 차감하고, 주문번호를 발급하고, PAID 로 바꾼다.
+ *    주문번호 일자와 Order.paidAt 은 PortOne 결제 시각 기준이다(확정이 늦게 처리돼도 결제한 날 번호).
  *    이미 PAID 면 아무것도 하지 않는다(멱등) — verify 와 웹훅이 동시에 와도 한쪽만 처리된다.
  * 3) 결제는 됐는데 재고가 모자라면 트랜잭션이 롤백되고 전액 환불한 뒤 CANCELED 로 기록한다.
- *    환불 호출이 실패하면 refundFailedAt 을 남겨 수동 처리 대상으로 표시한다.
+ *    이 주문도 판매자 전체 주문 조회에 '품절 환불'로 보이므로(#40) 결제 시각 기준 주문번호와 paidAt 을 남긴다.
+ *    환불 호출이 실패하면 refundFailedAt 을 남겨 수동 처리 대상으로 표시한다(번호는 환불이 끝난 주문만).
  *
  * FAILED 주문도 확정 대상이다. 결제창이 오래 걸려 시간 초과로 FAILED 가 된 뒤에 결제가 완료될 수 있고
  * (앱카드·간편결제 인증 등), 그때 고객은 이미 돈을 냈으므로 정상 주문으로 살린다.
@@ -19,6 +23,8 @@ import type { SoldOutItem } from './order-validation';
  * PortOne 결제 ID 는 주문 ID(Order.id)와 같다.
  */
 export const CANCEL_REASON_STOCK_SHORTAGE = 'STOCK_SHORTAGE';
+/** 이 모듈이 확정하는 주문 유형. /shop 주문(PRE_ORDER)은 제외한다. */
+const QRSHOP_ORDER_TYPE = 'ONSITE';
 const REFUND_REASON_STOCK_SHORTAGE = '재고 부족으로 인한 자동 환불';
 
 /** 결제 확정으로 PAID 가 될 수 있는 상태. CANCELED 는 환불까지 끝난 주문이라 제외한다. */
@@ -72,59 +78,22 @@ class StockShortageError extends Error {
 }
 
 /**
- * 항목별로 재고를 조건부 차감한다(`현재 재고 >= 수량`). 옵션 상품은 옵션과 상품 재고(= 옵션 합계)를 함께 줄인다.
- * 상품·옵션이 삭제돼 FK 가 비어 있는 항목은 품절로 본다. 모자란 항목을 모아서 돌려준다(호출 쪽이 롤백한다).
+ * 주문 항목 재고를 조건부 차감한다. 규칙은 현장 포스 결제와 같이 쓰는 `decrementOnsiteStock`(stock.ts)에 있다.
+ * 모자란 항목을 모아서 돌려준다(호출 쪽이 롤백한다).
  */
 async function decrementStock(tx: Prisma.TransactionClient, items: StockItem[]): Promise<Shortage[]> {
-  const soldOut: Shortage[] = [];
-
-  for (const item of items) {
-    const shortage = (availableQuantity: number): Shortage => ({
-      orderItemId: item.id,
-      soldOut: {
-        productId: item.onsiteProductId,
-        optionId: item.onsiteOptionId,
-        name: item.onsiteProductName ?? '',
-        optionName: item.onsiteOptionName,
-        availableQuantity: Math.max(availableQuantity, 0),
-      },
-    });
-
-    const deletedOption = item.onsiteOptionName !== null && item.onsiteOptionId === null;
-    if (item.onsiteProductId === null || deletedOption) {
-      soldOut.push(shortage(0));
-      continue;
-    }
-
-    if (item.onsiteOptionId !== null) {
-      const option = await tx.onsiteProductOption.updateMany({
-        where: { optionId: item.onsiteOptionId, currentStock: { gte: item.quantity } },
-        data: { currentStock: { decrement: item.quantity } },
-      });
-      if (option.count !== 1) {
-        const current = await tx.onsiteProductOption.findUnique({
-          where: { optionId: item.onsiteOptionId },
-          select: { currentStock: true },
-        });
-        soldOut.push(shortage(current?.currentStock ?? 0));
-        continue;
-      }
-    }
-
-    const product = await tx.onsiteProduct.updateMany({
-      where: { productId: item.onsiteProductId, currentStock: { gte: item.quantity } },
-      data: { currentStock: { decrement: item.quantity } },
-    });
-    if (product.count !== 1) {
-      const current = await tx.onsiteProduct.findUnique({
-        where: { productId: item.onsiteProductId },
-        select: { currentStock: true },
-      });
-      soldOut.push(shortage(current?.currentStock ?? 0));
-    }
-  }
-
-  return soldOut;
+  const shortages = await decrementOnsiteStock(
+    tx,
+    items.map((item) => ({
+      key: item.id,
+      productId: item.onsiteProductId,
+      optionId: item.onsiteOptionId,
+      productName: item.onsiteProductName ?? '',
+      optionName: item.onsiteOptionName,
+      quantity: item.quantity,
+    })),
+  );
+  return shortages.map(({ key, soldOut }) => ({ orderItemId: key, soldOut }));
 }
 
 export async function confirmOrderPayment(orderId: string, overrides: Partial<ConfirmDeps> = {}): Promise<ConfirmResult> {
@@ -158,8 +127,9 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
       },
     },
   });
-  // OrderNumber 가 없으면 QR샵 주문이 아니다.
-  if (!order || !order.orderNumber) return { kind: 'NOT_FOUND' };
+  // QR샵 주문(OrderNumber.type=ONSITE)만 확정한다. /shop 주문(PRE_ORDER)도 OrderNumber 를 갖지만
+  // 결제 확정은 v1 결제 검증이 맡는다 — 같은 PortOne 웹훅이 여기로 와도 건드리지 않는다(#45).
+  if (!order || order.orderNumber?.type !== QRSHOP_ORDER_TYPE) return { kind: 'NOT_FOUND' };
 
   if (order.paymentStatus === ORDER_PAYMENT_STATUS.PAID) return { kind: 'PAID', alreadyPaid: true };
   // 재고 부족 환불이 실패해 수동 환불을 기다리는 주문은 다시 확정하지 않는다(고객에게 환불 예정으로 안내됨).
@@ -183,8 +153,11 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
   }
   if (payment.amount?.total !== order.paymentAmount) return { kind: 'AMOUNT_MISMATCH' };
 
+  // PortOne 이 결제 시각을 주지 않으면 확정 시각으로 대신한다.
+  const paidAt = payment.paidAt ?? deps.now();
+
   try {
-    const result = await db.$transaction(
+    const result = await withOrderNumberRetry(() => db.$transaction(
       async (tx): Promise<ConfirmResult> => {
         // 같은 주문을 verify·웹훅이 동시에 처리하지 않도록 주문 행을 잠그고 상태를 다시 읽는다.
         await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${order.id} FOR UPDATE`;
@@ -201,21 +174,25 @@ export async function confirmOrderPayment(orderId: string, overrides: Partial<Co
         const soldOut = await decrementStock(tx, order.items);
         if (soldOut.length > 0) throw new StockShortageError(soldOut);
 
+        // 결제완료 주문만 번호를 받는다. 재고 부족으로 롤백되면 번호도 발급되지 않는다.
+        await assignOrderNumber(tx, { orderId: order.id, paidAt });
+
         await tx.order.update({
           where: { id: order.id },
           data: {
             paymentStatus: ORDER_PAYMENT_STATUS.PAID,
+            paidAt,
             ...(payment.impUid ? { impUid: payment.impUid } : {}),
           },
         });
         return { kind: 'PAID', alreadyPaid: false };
       },
       { timeout: 15000 },
-    );
+    ));
     return result;
   } catch (error) {
     if (!(error instanceof StockShortageError)) throw error;
-    return refundForStockShortage(deps, order.id, error.shortages);
+    return refundForStockShortage(deps, order.id, error.shortages, paidAt);
   }
 }
 
@@ -228,6 +205,7 @@ async function refundForStockShortage(
   deps: ConfirmDeps,
   orderId: string,
   shortages: Shortage[],
+  paidAt: Date,
 ): Promise<ConfirmResult> {
   const soldOutItems = shortages.map((shortage) => shortage.soldOut);
   await deps.db.orderItem.updateMany({
@@ -239,14 +217,21 @@ async function refundForStockShortage(
   const now = deps.now();
 
   if (refund.success) {
-    await deps.db.order.updateMany({
-      where: { id: orderId, paymentStatus: { in: CONFIRMABLE_STATUSES } },
-      data: {
-        paymentStatus: ORDER_PAYMENT_STATUS.CANCELED,
-        canceledAt: now,
-        cancelReason: CANCEL_REASON_STOCK_SHORTAGE,
-      },
-    });
+    // 취소 기록과 주문번호 발급을 한 트랜잭션으로. verify·웹훅이 동시에 와도 상태를 바꾼 한쪽만 번호를 발급한다.
+    await withOrderNumberRetry(() =>
+      deps.db.$transaction(async (tx) => {
+        const { count } = await tx.order.updateMany({
+          where: { id: orderId, paymentStatus: { in: CONFIRMABLE_STATUSES } },
+          data: {
+            paymentStatus: ORDER_PAYMENT_STATUS.CANCELED,
+            canceledAt: now,
+            cancelReason: CANCEL_REASON_STOCK_SHORTAGE,
+            paidAt,
+          },
+        });
+        if (count === 1) await assignOrderNumber(tx, { orderId, paidAt });
+      }),
+    );
     return { kind: 'STOCK_SHORTAGE', soldOutItems, refunded: true };
   }
 

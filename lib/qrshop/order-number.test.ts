@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assignOrderNumber,
+  createUnnumberedOrderNumber,
   getOrderTimeKey,
   isOrderNumberConflict,
   issueOrderNumber,
@@ -67,6 +69,50 @@ describe('issueOrderNumber', () => {
     const tx = makeTx(null);
     await issueOrderNumber(tx as never, { orderId: 'o3', storeId: 's1', type: 'PRE_ORDER' });
     expect(tx.orderNumber.create.mock.calls[0][0].data.type).toBe('PRE_ORDER');
+  });
+});
+
+describe('createUnnumberedOrderNumber', () => {
+  it('번호·일자 없이 상점과 잇는 행만 만든다', async () => {
+    const tx = { orderNumber: { create: vi.fn().mockResolvedValue({}) } };
+    await createUnnumberedOrderNumber(tx as never, { orderId: 'o1', storeId: 's1' });
+    expect(tx.orderNumber.create).toHaveBeenCalledWith({
+      data: { orderId: 'o1', storeId: 's1', type: 'ONSITE', orderNo: null, orderTimeKey: null },
+    });
+  });
+});
+
+describe('assignOrderNumber', () => {
+  const makeTx = (row: unknown, max: number | null = null) => ({
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    orderNumber: {
+      findUnique: vi.fn().mockResolvedValue(row),
+      aggregate: vi.fn().mockResolvedValue({ _max: { orderNo: max } }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+  });
+
+  it('결제 시각의 KST 일자로 다음 번호를 채운다', async () => {
+    const tx = makeTx({ storeId: 's1', orderNo: null, orderTimeKey: null }, 2);
+    const result = await assignOrderNumber(tx as never, { orderId: 'o1', paidAt: new Date('2026-04-02T15:00:00Z') });
+
+    expect(result).toEqual({ orderNo: 3, orderTimeKey: '260403' });
+    expect(tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(tx.orderNumber.aggregate.mock.invocationCallOrder[0]);
+    expect(tx.orderNumber.update).toHaveBeenCalledWith({ where: { orderId: 'o1' }, data: { orderNo: 3, orderTimeKey: '260403' } });
+  });
+
+  it('이미 번호가 있으면 그대로 둔다', async () => {
+    const tx = makeTx({ storeId: 's1', orderNo: 9, orderTimeKey: '260401' });
+    const result = await assignOrderNumber(tx as never, { orderId: 'o1', paidAt: new Date('2026-04-03T03:00:00Z') });
+
+    expect(result).toEqual({ orderNo: 9, orderTimeKey: '260401' });
+    expect(tx.$executeRaw).not.toHaveBeenCalled();
+    expect(tx.orderNumber.update).not.toHaveBeenCalled();
+  });
+
+  it('OrderNumber 행이 없으면 null', async () => {
+    const tx = makeTx(null);
+    expect(await assignOrderNumber(tx as never, { orderId: 'x', paidAt: new Date() })).toBeNull();
   });
 });
 

@@ -2,7 +2,7 @@
 
 AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할 때 따르는 팀 공통 안내. 개인 규칙은 각자 `CLAUDE.local.md`(gitignore)에 둔다.
 
-**코드를 고치는 작업은 시작 전에 아래 「작업 공유」 절부터 따른다.**
+**코드를 고치는 작업은 시작 전에 아래 「작업 공유」 절부터 따른다.** 이 PC에서 처음이면 [docs/agent-onboarding.md](docs/agent-onboarding.md)의 설정부터 진행한다.
 
 ## 작업 공유 (GitHub 이슈·PR)
 
@@ -17,15 +17,27 @@ AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할
 3. **Draft PR을 바로 연다.** 첫 커밋을 push하면 `gh pr create --draft --base main`으로 연다. 본문은 PR 템플릿을 쓰고 `관련 이슈`에 `Closes #번호`를 적는다.
 4. **진행을 이슈에 남긴다.** 다음 시점에 이슈에 1~3줄 코멘트를 단다: 방향이 정해졌을 때, API나 화면 하나가 동작할 때, 그날 작업을 멈출 때. 형식은 `완료: … / 다음: … / 막힘: …`.
 5. **막히면 `확인필요`.** 명세·디자인에 없어서 기획·디자인의 답이 필요하면 `확인필요` 라벨을 붙인다. 무엇을 누구에게 묻는지 코멘트로 적는다. 답을 받기 전에는 그 부분을 추측으로 구현하지 않는다.
-6. **리뷰 요청.** 끝나면 `gh pr ready`로 전환하고 `진행중` 라벨을 뗀다. main에 머지되면 `Closes`로 이슈가 자동으로 닫힌다.
+   - 답을 받으면 `확인필요`를 떼고 결정을 코멘트로 남긴다.
+6. **리뷰 요청.** 끝나면 `gh pr ready`로 전환하고 `진행중` 라벨을 뗀다. main에 머지되면 `Closes`로 이슈가 자동으로 닫힌다. 늦어도 이슈를 끝내기 전에 담당자는 이 이슈에서 나온 결정 중 다른 역할에 알릴 것이 있는지 판단해 아래 「전달 이슈」로 넘긴다.
+7. **머지 뒤 정리.** 원격 브랜치는 GitHub이 머지 때 자동으로 지운다(저장소 설정, 필요하면 PR 화면의 Restore branch). 내 PC의 작업 브랜치는 `git branch -d <브랜치>`로 지운다. 개인 브랜치(`mybae` 등)는 대상이 아니다.
 
 **회의가 끝나면** 회의록에서 담당자가 정해진 할 일을 담당자가 이슈로 옮기고, 회의록 링크를 붙인다. 비개발 팀원이 카톡·노션으로 보낸 요청은 받은 개발자가 `요청` 이슈로 옮긴다.
+
+**전달 이슈.** 이슈에서 내린 결정 때문에 다른 역할에 할 일이 생기면, 받을 사람에게 이슈를 새로 만들어 넘긴다. 결정 이슈는 그 역할 사람에게 알림이 가지 않고 곧 닫혀서 놓치기 쉽다.
+
+- **누가·언제:** 그 이슈의 담당자가 누구에게 알릴지 판단해 만든다. 결정이 끝나면 바로 넘겨도 되고, 늦어도 이슈를 끝낼 때(PR로 닫히는 이슈는 리뷰 요청 때, 직접 닫는 이슈는 닫기 전)까지는 넘긴다. 답한 사람(기획·디자인 등)은 댓글로 답만 하면 된다.
+- 아직 논의 중이면 전달 이슈를 만들지 않고 결정 이슈에서 `@이름`으로 부른다.
+- **라벨:** `전달` + 받는 쪽 파트(`프론트` `백엔드` `디자인` `기획`). 받는 사람은 역할에 따라 다르다.
+- **담당자는 비운다.** 본문에 `@받는사람`을 써서 알림이 가게 한다. 받은 사람이 가져가면 본인을 담당자로 지정하고 `진행중`을 붙인다. 이후는 일반 작업과 같다(`Closes #번호`로 닫힘).
+- **본문:** `## 결정`(원 이슈 링크, 결정 한두 줄) / `## 할 일`(체크리스트) / `## 참고`(명세·Figma·API 링크).
+- **기능 동작이 바뀌면** 기획에게 기능명세서 반영도 할 일로 넘긴다(같은 이슈에 함께 넣거나 기획 파트 전달 이슈를 따로 만든다).
+- 결정 이슈에 `전달: #번호` 코멘트를 남겨 서로 잇는다.
 
 ### 라벨
 
 | 묶음 | 라벨 |
 | --- | --- |
-| 종류 (1개) | `작업` `오류` `요청` |
+| 종류 (1개) | `작업` `오류` `요청` `전달` |
 | 파트 | `백엔드` `프론트` `디자인` `기획` |
 | 상태 | `진행중` `확인필요` |
 
@@ -34,6 +46,7 @@ AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할
 ### 에이전트 규칙
 
 - **알리고 바로 진행하는 것:** 1·3·4·6단계(이슈 생성, 본인 담당 지정, 라벨, Draft PR, 진행 코멘트, ready 전환)는 팀이 합의한 공유다. 사용자에게 한 줄 알리고 진행한다.
+- **전달 이슈는 먼저 보여 준다.** 다른 사람에게 알림이 가므로, 받을 사람과 할 일을 사용자에게 보여 주고 ok를 받은 뒤 만든다.
 - **하지 않는 것**
   - PR 머지, 이슈 닫기
   - 다른 사람이 담당인 이슈·PR의 담당자·라벨·상태 변경
@@ -68,6 +81,8 @@ AI 에이전트(Claude Code, Cursor, Codex 등)가 이 저장소에서 작업할
 - [답이 필요한 것](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen%20label%3A%ED%99%95%EC%9D%B8%ED%95%84%EC%9A%94)
 - [열린 PR (작업 중인 코드와 미리보기)](https://github.com/snakedoll/gcsweb/pulls)
 - [요청·오류 올리기](https://github.com/snakedoll/gcsweb/issues/new/choose)
+- [전달 이슈](https://github.com/snakedoll/gcsweb/issues?q=is%3Aopen%20label%3A%EC%A0%84%EB%8B%AC)
+- 비개발자·그들의 AI용 안내: `docs/team-issue-guide.md` (이슈 작성 화면에도 링크)
 
 ## 명령어
 
@@ -79,12 +94,20 @@ npm run typecheck:frontend  # tsc -p tsconfig.frontend.json --noEmit
 npm test                    # vitest run (전체)
 npx vitest run lib/qrshop/order-validation.test.ts   # 단일 테스트 파일
 npx vitest run -t "테스트 이름"                        # 이름으로 필터
-npx prisma db seed          # 로컬 테스트 계정 시드 (prisma/seed.mjs, localhost DB에서만 동작)
+npx prisma db seed          # 테스트 계정·QR샵 테스트 데이터 시드 (prisma/seed.mjs)
 npm run db:studio
 ```
 
 - `typecheck:frontend`는 `app/api/**`와 `prisma/**`를 **제외**한다. API 라우트의 타입 오류는 `next build`에서만 잡힌다.
-- `npm start` = `prisma migrate deploy` 후 `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- `npm start` = `prisma migrate deploy` → 시드(`--if-enabled`) → `next start`. 배포는 Railway(`railway.json`), 배포 시 미적용 마이그레이션이 운영 DB에 자동 적용된다.
+- **테스트 계정** (로컬·PR 미리보기 공통, 비밀번호 `test1234`). 시드는 localhost DB이거나 `SEED_TEST_ACCOUNTS=true`일 때만 돌고, Railway production에서는 돌지 않는다.
+
+  | 계정 | 권한 |
+  | --- | --- |
+  | `admin@test.com` | 관리자 |
+  | `user@test.com` | 일반회원 |
+  | `seller@test.com` | 판매자 (상점 `@teststore`, 시험 상품 포함) |
+
 - 환경변수 목록은 `.env.example`. `.env`는 git에 없어 새 PC에서 직접 만든다(없으면 Prisma P1012).
 - 경로 별칭 `@/*` = 저장소 루트 (tsconfig, vitest 동일).
 - Node 22 기준. 운영은 Railway 변수 `NIXPACKS_NODE_VERSION=22`, CI는 `.github/workflows/ci.yml`에서 22로 고정.
@@ -97,7 +120,10 @@ npm run db:studio
 - `db:push`는 마이그레이션 기록이 안 남으므로 쓰지 않는다.
 - 데이터가 사라지는 마이그레이션(DROP, NOT NULL 전환 등)은 머지 전에 리뷰받는다. 시험 실행 스크립트 예시는 `scripts/*-dry-run.js`.
 - `schema.prisma` 필드 주석은 필드 위가 아니라 **줄 끝 `///`** 로 쓴다. 모델 설명만 `model X {` 바로 위 한 줄 `///` 허용(줄 끝에 붙이면 `prisma format`이 지운다). `prisma format`은 무관한 줄 공백도 바꾸므로 실행 후 diff를 확인하고 내 변경이 아닌 줄은 되돌린다.
-- ERD(ERDCloud)는 `schema.prisma`를 기준으로 맞춘다.
+- **ERD(ERDCloud)는 DB 변경과 같은 작업에서 반영한다.** `schema.prisma`가 기준이다(스키마 → ERD 순서). 에이전트는 ERDCloud MCP(`.mcp.json`의 erdcloud, 토큰은 `ERDCLOUD_TOKEN`, 설정은 `docs/agent-onboarding.md`)로 반영할 수 있다.
+  - **시점:** ERD는 브랜치가 없는 공용 문서 하나라서, 스키마를 바꾼 PR이 **승인된 뒤(머지 직전)** 반영한다. 그 뒤 스키마가 바뀌면 다시 맞추고, PR을 머지하지 않고 닫으면 되돌린다.
+  - **순서:** 사용자가 ERDCloud 화면에서 스냅샷을 만든다(MCP로는 만들 수 없다) → 바꿀 테이블·컬럼 목록을 사용자에게 보여 준다 → ok 후 반영한다. ERD 수정은 보고 있는 모든 사람에게 바로 보인다.
+  - 다른 사람이 만든 테이블을 함께 고치면 PR이나 이슈에서 알린다.
 
 ## 아키텍처
 

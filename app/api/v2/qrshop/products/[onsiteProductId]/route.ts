@@ -2,12 +2,15 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { apiError, apiErrors, apiSuccess } from '@/lib/api-response';
+import { planOptionChanges, type ExistingOption, type OptionPlan } from '@/lib/qrshop/product-options';
 import { hasProductPaidSale } from '@/lib/qrshop/sales-history';
 import { getSellerContext } from '@/lib/seller/store';
 
 export const dynamic = 'force-dynamic';
 
 const OptionInputSchema = z.object({
+  /** 기존 옵션 id(상품 응답의 options[].id). 새 옵션은 비운다. 비우면 같은 이름의 기존 옵션으로 본다. */
+  id: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1).max(18),
   surcharge: z.number().int().min(0),
   stock: z.number().int().min(0),
@@ -22,7 +25,10 @@ const UpdateProductSchema = z
     categoryId: z.string().trim().min(1).nullable().optional(),
     hasOption: z.boolean().optional(),
     totalStock: z.number().int().min(0).optional(),
-    /** 보내면 기존 옵션을 전부 대체한다(부분 수정이 아니다). */
+    /**
+     * 보내면 이 목록이 옵션 전체가 된다(빠진 기존 옵션은 지운다).
+     * 기존 옵션은 id(없으면 같은 이름)로 짝지어 고쳐서 옵션 id를 유지한다.
+     */
     options: z.array(OptionInputSchema).optional(),
   })
   .superRefine((value, ctx) => {
@@ -36,6 +42,10 @@ const UpdateProductSchema = z
       const names = value.options.map((option) => option.name);
       if (new Set(names).size !== names.length) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: '옵션명이 중복됩니다.' });
+      }
+      const ids = value.options.flatMap((option) => (option.id ? [option.id] : []));
+      if (new Set(ids).size !== ids.length) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: '옵션 아이디가 중복됩니다.' });
       }
     }
   });
@@ -103,10 +113,70 @@ type RouteContext = { params: { onsiteProductId: string } };
 async function findOwnedProduct(storeId: string, productId: string) {
   return prisma.onsiteProduct.findFirst({
     where: { productId, storeId },
-    select: { productId: true, hasOption: true },
+    select: { productId: true, hasOption: true, price: true },
   });
 }
 
+/** 이름 맞바꾸기 중에 잠깐 쓰는 옵션명. 이 상품의 기존·새 옵션명과 겹치지 않는다. */
+function temporaryOptionName(index: number, taken: Set<string>) {
+  let name = `~${index}`;
+  while (taken.has(name)) name = `~${name}`;
+  taken.add(name);
+  return name;
+}
+
+/** 옵션 계획의 삭제·수정을 반영한다. 새 옵션은 상품 수정에서 함께 만든다. */
+async function applyOptionPlan(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  existing: ExistingOption[],
+  plan: OptionPlan,
+) {
+  if (plan.deletes.length > 0) {
+    await tx.onsiteProductOption.deleteMany({ where: { productId, optionId: { in: plan.deletes } } });
+  }
+  // 같은 상품 안 옵션명은 unique 라, 이름을 맞바꾸거나 이어서 바꿀 때 부딪히지 않게 먼저 임시 이름으로 옮긴다.
+  const taken = new Set([
+    ...existing.map((option) => option.name),
+    ...plan.updates.map((update) => update.name),
+    ...plan.creates.map((create) => create.name),
+  ]);
+  const renamed = plan.updates.filter((update) => update.renamed);
+  for (const [index, update] of renamed.entries()) {
+    await tx.onsiteProductOption.update({
+      where: { optionId: update.optionId },
+      data: { name: temporaryOptionName(index, taken) },
+    });
+  }
+  for (const update of plan.updates) {
+    await tx.onsiteProductOption.update({
+      where: { optionId: update.optionId },
+      data: {
+        name: update.name,
+        surcharge: update.surcharge,
+        initStock: update.stock,
+        currentStock: update.stock,
+      },
+    });
+  }
+}
+
+type PatchOutcome =
+  | { kind: 'updated'; product: ProductRow }
+  | { kind: 'optionNotFound' }
+  | { kind: 'priceLocked' }
+  | { kind: 'optionDeleteLocked' };
+
+/**
+ * 상품 수정.
+ *
+ * 판매 이력이 있는 상품(결제완료 주문에 팔린 상품, 목록의 hasSalesHistory=true)은
+ * - 가격(price)과 옵션 추가금을 바꿀 수 없다(409 PRODUCT_PRICE_LOCKED).
+ *   마감 직전 할인은 상품 가격 수정이 아니라 현장 포스 할인으로 한다(1106 기획회의 결정).
+ * - 옵션을 지울 수 없다(409 PRODUCT_OPTION_DELETE_LOCKED). 옵션 사용 해제도 옵션 삭제다.
+ * - 옵션 추가, 옵션 이름 변경(id를 보내야 한다), 재고 수정은 된다(#57 기획 답).
+ * 같은 가격·추가금을 다시 보내는 것은 변경이 아니라 통과시킨다.
+ */
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const context = await getSellerContext();
@@ -137,13 +207,32 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       ? input.options?.reduce((sum, option) => sum + option.stock, 0)
       : input.totalStock;
 
-    const updated = await prisma.$transaction(async (tx) => {
-      // 옵션 목록이 오면 통째로 갈아끼운다. 부분 수정은 지원하지 않는다.
-      if (input.options) {
-        await tx.onsiteProductOption.deleteMany({ where: { productId: params.onsiteProductId } });
+    const priceChanged = input.price !== undefined && input.price !== existing.price;
+    // 옵션 목록이 오면 그것이 옵션 전체다. 옵션을 쓰지 않으면 옵션은 없어야 한다.
+    const desiredOptions = input.options !== undefined ? (hasOption ? input.options : []) : undefined;
+
+    const outcome = await prisma.$transaction(async (tx): Promise<PatchOutcome> => {
+      const currentOptions =
+        desiredOptions === undefined
+          ? []
+          : await tx.onsiteProductOption.findMany({
+              where: { productId: params.onsiteProductId },
+              select: { optionId: true, name: true, surcharge: true },
+              orderBy: [{ createdAt: 'asc' }, { optionId: 'asc' }],
+            });
+      const plan = desiredOptions === undefined ? null : planOptionChanges(currentOptions, desiredOptions);
+      if (plan && plan.unknownIds.length > 0) return { kind: 'optionNotFound' };
+
+      // 판매이력 확인과 수정을 한 트랜잭션에 둬서 그 사이에 결제가 끼어드는 틈을 줄인다(삭제와 같은 방식).
+      const touchesPrice = priceChanged || (plan?.updates.some((update) => update.surchargeChanged) ?? false);
+      const deletesOptions = (plan?.deletes.length ?? 0) > 0;
+      if ((touchesPrice || deletesOptions) && (await hasProductPaidSale(params.onsiteProductId, tx))) {
+        return { kind: touchesPrice ? 'priceLocked' : 'optionDeleteLocked' };
       }
 
-      return tx.onsiteProduct.update({
+      if (plan) await applyOptionPlan(tx, params.onsiteProductId, currentOptions, plan);
+
+      const product = await tx.onsiteProduct.update({
         where: { productId: params.onsiteProductId },
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
@@ -152,10 +241,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
           ...(input.hasOption !== undefined ? { hasOption: input.hasOption } : {}),
           ...(stock !== undefined ? { initStock: stock, currentStock: stock } : {}),
-          ...(input.options && hasOption
+          ...(plan && plan.creates.length > 0
             ? {
                 options: {
-                  create: input.options.map((option) => ({
+                  create: plan.creates.map((option) => ({
                     name: option.name,
                     surcharge: option.surcharge,
                     initStock: option.stock,
@@ -167,11 +256,21 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         },
         select: PRODUCT_SELECT,
       });
+      return { kind: 'updated', product };
     });
 
-    return apiSuccess({
-      product: toResponse(updated, await hasProductPaidSale(params.onsiteProductId)),
-    });
+    switch (outcome.kind) {
+      case 'optionNotFound':
+        return apiErrors.notFound('옵션을 찾을 수 없습니다.');
+      case 'priceLocked':
+        return apiError(409, 'PRODUCT_PRICE_LOCKED', '판매 이력이 있는 상품의 가격 변경 불가');
+      case 'optionDeleteLocked':
+        return apiError(409, 'PRODUCT_OPTION_DELETE_LOCKED', '판매 이력이 있는 상품의 옵션 삭제 불가');
+      case 'updated':
+        return apiSuccess({
+          product: toResponse(outcome.product, await hasProductPaidSale(params.onsiteProductId)),
+        });
+    }
   } catch (error) {
     console.error('[qrshop/products/:id] PATCH error:', error);
     return apiErrors.serverError();
