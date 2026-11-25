@@ -1,8 +1,11 @@
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import PosProvider from './pos/PosProvider';
+import { createPosApiService } from '@/lib/services/pos-api-service';
+import { createOrdersApiService } from '@/lib/services/orders-api-service';
+import { createPosStaffApiService, getOperationalStoreRole } from '@/lib/services/pos-staff-api-service';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { createStoreApiService } from '@/lib/services/sales-management-store-api-service';
 import { createMockProductAnalyticsService } from '@/lib/mocks/product-analytics-service';
@@ -21,22 +24,64 @@ export default function SalesManagementV2Provider({ children, service }: { child
     parseLandingV2MockState(searchParams.get('state') ?? undefined), { catalog: true },
   )));
   const [productAnalyticsService] = useState(() => createMockProductAnalyticsService());
-  const mockRoutes = [
-    ['/sales-management/v2/orders', '전체 주문 조회를'],
-    ['/sales-management/v2/pos', '현장 운영을'],
-    ['/sales-management/v2/analytics', '상품 분석을'],
-  ] as const;
-  const mockRoute = mockRoutes.find(([path]) => pathname === path || pathname?.startsWith(`${path}/`));
-  if (activeService.dataSource === 'api' && mockRoute) {
-    return <main><p role="status">실제 주문 연동 전에는 {mockRoute[1]} 이용할 수 없어요.</p><Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
+  const apiMode = activeService.dataSource === 'api';
+  const analytics = pathname?.startsWith('/sales-management/v2/analytics');
+  const orderBoard = pathname?.startsWith('/sales-management/v2/pos/order-board');
+  const operational = pathname === '/sales-management/v2/orders' || pathname === '/sales-management/v2/pos' ||
+    pathname?.startsWith('/sales-management/v2/pos/');
+  const storeSlug = searchParams.get('storeSlug') ?? undefined;
+  if (apiMode && (analytics || orderBoard)) {
+    return <main><p role="status">{analytics ? '상품 분석' : '주문서 보드'} 연동은 준비 중이에요.</p><Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
   }
+
   return <ServiceContext.Provider value={activeService}>
-    {activeService.dataSource === 'api' ? children : <PosProvider>
+    {apiMode ? operational ? <OperationalApiProvider key={storeSlug === undefined ? 'owner' : `store:${storeSlug}`} storeSlug={storeSlug}>
+      {children}
+    </OperationalApiProvider> : children : <PosProvider>
       <ProductAnalyticsContext.Provider value={productAnalyticsService}>
         {children}
       </ProductAnalyticsContext.Provider>
     </PosProvider>}
   </ServiceContext.Provider>;
+}
+
+type OperationalAccess = Awaited<ReturnType<typeof getOperationalStoreRole>>;
+
+function OperationalApiProvider({ children, storeSlug }: { children: ReactNode; storeSlug?: string }) {
+  const [access, setAccess] = useState<OperationalAccess | undefined>(undefined);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setLoadError(false);
+    getOperationalStoreRole(storeSlug).then(value => { if (active) setAccess(value); })
+      .catch(() => { if (active) setLoadError(true); });
+    return () => { active = false; };
+  }, [storeSlug, retry]);
+
+  if (loadError) return <main><p role="alert">현장 운영 권한을 확인하지 못했어요.</p>
+    <button type="button" onClick={() => setRetry(attempt => attempt + 1)}>다시 확인</button>
+    <Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
+  if (access === undefined) return <p role="status">현장 운영 권한을 확인하는 중입니다.</p>;
+  if (!access) return <main><p role="status">현장 운영 권한이 있는 상점을 찾을 수 없어요.</p>
+    <Link href="/sales-management/v2">판매 관리 홈으로</Link></main>;
+
+  return <AuthorizedOperationalProvider role={access.role} storeId={access.store.storeId} storeSlug={storeSlug}>
+    {children}
+  </AuthorizedOperationalProvider>;
+}
+
+function AuthorizedOperationalProvider({ children, role, storeId, storeSlug }: {
+  children: ReactNode; role: 'OWNER' | 'STAFF'; storeId: string; storeSlug?: string;
+}) {
+  const [services] = useState(() => ({
+    pos: createPosApiService(storeSlug, storeId),
+    orders: createOrdersApiService(storeSlug),
+    staff: createPosStaffApiService(),
+  }));
+  return <PosProvider service={services.pos} ordersService={services.orders} staffService={services.staff}
+    role={role} storeSlug={storeSlug}>{children}</PosProvider>;
 }
 
 export function useSalesManagementV2Service() { return useContext(ServiceContext); }

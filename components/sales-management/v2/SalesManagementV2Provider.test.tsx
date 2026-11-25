@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { createStoreApiService } from '@/lib/services/sales-management-store-api-service';
 import { createMockLandingV2Service } from '@/lib/mocks/sales-management-landing-v2-service';
@@ -6,16 +6,34 @@ import SalesManagementV2Provider from './SalesManagementV2Provider';
 import { usePosSession } from './pos/PosProvider';
 import type { PosStaffService } from '@/lib/services/pos-staff-service';
 
-const route = vi.hoisted(() => ({ pathname: '/sales-management/v2/pos' }));
-vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useSearchParams: () => new URLSearchParams() }));
-afterEach(cleanup);
-it.each(['/sales-management/v2/pos', '/sales-management/v2/pos/edit', '/sales-management/v2/pos/add', '/sales-management/v2/pos/order-board', '/sales-management/v2/orders', '/sales-management/v2/orders/detail', '/sales-management/v2/analytics'])('API 모드의 %s 직접 진입은 Mock 운영 화면을 마운트하지 않는다', pathname => {
+const route = vi.hoisted(() => ({ pathname: '/sales-management/v2/pos', search: '' }));
+vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useSearchParams: () => new URLSearchParams(route.search) }));
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); route.search = ''; });
+it.each(['/sales-management/v2/pos/order-board', '/sales-management/v2/analytics'])('API의 %s에서는 준비 상태를 표시한다', pathname => {
   route.pathname = pathname;
-  render(<SalesManagementV2Provider service={createStoreApiService()}><p>POS 판매 화면</p></SalesManagementV2Provider>);
-  expect(screen.queryByText('POS 판매 화면')).not.toBeInTheDocument();
-  expect(screen.getByRole('status')).toHaveTextContent('실제 주문 연동 전에는');
-  expect(screen.getByRole('link')).toHaveAttribute('href', '/sales-management/v2');
+  render(<SalesManagementV2Provider service={createStoreApiService()}><p>판매 화면</p></SalesManagementV2Provider>);
+  expect(screen.queryByText('판매 화면')).not.toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('연동은 준비 중이에요.');
 });
+
+it.each(['/sales-management/v2/pos', '/sales-management/v2/pos/edit', '/sales-management/v2/pos/add', '/sales-management/v2/orders'])(
+  'API의 %s에서 지정한 상점까지 권한과 서비스가 연결된다', async pathname => {
+    route.pathname = pathname;
+    route.search = 'storeSlug=staffshop';
+    const fetcher = vi.fn().mockImplementation(() => Response.json({ status: 'success', data: {
+      role: 'STAFF', store: { storeId: 'store1', name: '직원 상점', storeSlug: 'staffshop' },
+    } }));
+    vi.stubGlobal('fetch', fetcher);
+    function Probe() {
+      const session = usePosSession();
+      return <p>{session?.role}/{session?.storeSlug}/{session?.service.dataSource}/{session?.ordersService?.dataSource}</p>;
+    }
+    render(<SalesManagementV2Provider service={createStoreApiService()}><Probe /></SalesManagementV2Provider>);
+    await waitFor(() => expect(screen.getByText('STAFF/staffshop/api/api')).toBeInTheDocument());
+    expect(fetcher).toHaveBeenCalledWith('/api/v2/qrshop/staff/me?storeSlug=staffshop', expect.anything());
+  }
+);
+
 it('Mock 모드 POS는 기존대로 열린다', () => {
   route.pathname = '/sales-management/v2/pos';
   render(<SalesManagementV2Provider service={createMockLandingV2Service()}><p>POS 판매 화면</p></SalesManagementV2Provider>);

@@ -41,7 +41,7 @@ const staff = prisma.storeStaff as unknown as Record<'findUnique' | 'findFirst' 
 
 const OWNED = { storeId: 's1', staffInviteCode: 'code' };
 const SNAPSHOT = { inviteUrl: 'https://x/join/code', pending: [], registered: [] };
-const INVITE_STORE = { storeId: 's1', name: '잇장샵', imageUrl: null, userId: 'owner' };
+const INVITE_STORE = { storeId: 's1', name: '잇장샵', imageUrl: null, storeSlug: 'itjang', userId: 'owner' };
 
 const json = (body: unknown) => new Request('http://localhost/api', { method: 'PATCH', body: JSON.stringify(body) });
 const decide = (body: unknown) => decideStaff(json(body), { params: { staffId: 'm1' } });
@@ -137,26 +137,38 @@ describe('DELETE /api/v2/qrshop/staff/{staffId}', () => {
 });
 
 describe('GET /api/v2/qrshop/staff/me', () => {
+  const me = (search = '') => getMe(new Request(`http://localhost/api/v2/qrshop/staff/me${search}`));
+
   it('로그인하지 않았으면 401', async () => {
     access.mockResolvedValue({ ok: false, reason: 'UNAUTHORIZED' });
-    expect((await getMe()).status).toBe(401);
+    expect((await me()).status).toBe(401);
   });
 
   it('접근할 상점이 없으면 data=null', async () => {
     access.mockResolvedValue({ ok: true, userId: 'u1', access: null });
-    expect((await (await getMe()).json()).data).toBeNull();
+    expect((await (await me()).json()).data).toBeNull();
+    expect(access).toHaveBeenCalledExactlyOnceWith(null);
   });
 
-  it('역할과 상점을 돌려준다', async () => {
+  it.each(['other-shop', ''])('지정한 상점 %j에 접근할 수 없으면 404', async (storeSlug) => {
+    access.mockResolvedValue({ ok: true, userId: 'u1', access: null });
+    const response = await me(`?storeSlug=${storeSlug}`);
+    expect(response.status).toBe(404);
+    expect((await response.json()).code).toBe('NOT_FOUND');
+    expect(access).toHaveBeenCalledExactlyOnceWith(storeSlug);
+  });
+
+  it('지정한 상점에서의 역할과 상점 정보를 돌려준다', async () => {
     access.mockResolvedValue({
       ok: true,
       userId: 'u1',
       access: { role: 'STAFF', store: { storeId: 's1', name: '잇장샵', storeSlug: 'itjang', createdAt: new Date() } },
     });
-    expect((await (await getMe()).json()).data).toEqual({
+    expect((await (await me('?storeSlug=itjang')).json()).data).toEqual({
       role: 'STAFF',
       store: { storeId: 's1', name: '잇장샵', storeSlug: 'itjang' },
     });
+    expect(access).toHaveBeenCalledExactlyOnceWith('itjang');
   });
 });
 
@@ -169,7 +181,7 @@ describe('GET /api/v2/qrshop/staff/invite/{inviteCode}', () => {
   it('본인 상점이면 owner', async () => {
     store.findUnique.mockResolvedValue({ ...INVITE_STORE, userId: 'u1' });
     const body = await (await getInvite(new Request('http://localhost'), invite)).json();
-    expect(body.data).toEqual({ store: { name: '잇장샵', imageUrl: null }, status: 'owner' });
+    expect(body.data).toEqual({ store: { name: '잇장샵', imageUrl: null, storeSlug: 'itjang' }, status: 'owner' });
     expect(staff.findUnique).not.toHaveBeenCalled();
   });
 
@@ -183,6 +195,7 @@ describe('GET /api/v2/qrshop/staff/invite/{inviteCode}', () => {
     staff.findUnique.mockResolvedValue(membership);
     const body = await (await getInvite(new Request('http://localhost'), invite)).json();
     expect(body.data.status).toBe(expected);
+    expect(body.data.store.storeSlug).toBe('itjang');
   });
 });
 
@@ -207,7 +220,7 @@ describe('POST /api/v2/qrshop/staff/invite/{inviteCode}', () => {
     staff.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ status: 'PENDING' });
     const body = await (await post()).json();
     expect(staff.create).toHaveBeenCalledWith({ data: { storeId: 's1', userId: 'u1' } });
-    expect(body.data).toEqual({ status: 'pending' });
+    expect(body.data).toEqual({ status: 'pending', storeSlug: 'itjang' });
   });
 
   it.each([
@@ -218,7 +231,7 @@ describe('POST /api/v2/qrshop/staff/invite/{inviteCode}', () => {
     const body = await (await post()).json();
     expect(staff.create).not.toHaveBeenCalled();
     expect(staff.updateMany).not.toHaveBeenCalled();
-    expect(body.data).toEqual({ status: expected });
+    expect(body.data).toEqual({ status: expected, storeSlug: 'itjang' });
   });
 
   it('거절된 직원은 다시 대기 상태가 된다', async () => {
@@ -228,7 +241,7 @@ describe('POST /api/v2/qrshop/staff/invite/{inviteCode}', () => {
       where: { storeId: 's1', userId: 'u1', status: 'REJECTED' },
       data: { status: 'PENDING', requestedAt: expect.any(Date), approvedAt: null },
     });
-    expect(body.data).toEqual({ status: 'pending' });
+    expect(body.data).toEqual({ status: 'pending', storeSlug: 'itjang' });
   });
 
   it('동시에 두 번 요청해 unique 충돌이 나도 대기 상태로 응답한다', async () => {
@@ -238,6 +251,6 @@ describe('POST /api/v2/qrshop/staff/invite/{inviteCode}', () => {
     );
     const res = await post();
     expect(res.status).toBe(200);
-    expect((await res.json()).data).toEqual({ status: 'pending' });
+    expect((await res.json()).data).toEqual({ status: 'pending', storeSlug: 'itjang' });
   });
 });

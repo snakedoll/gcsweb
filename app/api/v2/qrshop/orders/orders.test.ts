@@ -29,6 +29,7 @@ const configured = isPortoneCheckoutConfigured as unknown as Fn;
 const validate = validateOrderItems as unknown as Fn;
 const createNumberRow = createUnnumberedOrderNumber as unknown as Fn;
 const orderBlock = findVisitorOrderBlock as unknown as Fn;
+const tx = { order: prisma.order, $queryRaw: vi.fn() };
 
 const VALIDATED = {
   ok: true,
@@ -61,7 +62,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   configured.mockReturnValue(true);
   validate.mockResolvedValue(VALIDATED);
-  transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+  transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(tx));
+  tx.$queryRaw.mockResolvedValue([{ storeId: 's1' }]);
   createOrder.mockResolvedValue({ id: 'ord1' });
   createNumberRow.mockResolvedValue(undefined);
   orderBlock.mockResolvedValue(null);
@@ -108,8 +110,8 @@ describe('POST /api/v2/qrshop/orders', () => {
         quantity: 1,
       },
     ]);
-    expect(createNumberRow).toHaveBeenCalledWith(prisma, { orderId: 'ord1', storeId: 's1' });
-    expect(validate).toHaveBeenCalledWith(prisma, { storeSlug: 'nirvanaexpress', items: BODY.items });
+    expect(createNumberRow).toHaveBeenCalledWith(tx, { orderId: 'ord1', storeId: 's1' });
+    expect(validate).toHaveBeenCalledWith(tx, { storeSlug: 'nirvanaexpress', items: BODY.items });
   });
 
   it('storeSlug가 없거나 형식이 틀리면 400', async () => {
@@ -165,17 +167,19 @@ describe('POST /api/v2/qrshop/orders', () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
-  it('닫힌 상점이면 409 STORE_CLOSED, 주문은 만들지 않는다', async () => {
+  it('닫힌 상점이면 결제 설정과 무관하게 409 STORE_CLOSED, 주문은 만들지 않는다', async () => {
+    configured.mockReturnValue(false);
     orderBlock.mockResolvedValue('STORE_CLOSED');
     const res = await post(BODY);
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ status: 'error', code: 'STORE_CLOSED', message: '상점 준비중' });
-    expect(orderBlock).toHaveBeenCalledWith(prisma, 'nirvanaexpress', ['p1', 'p2']);
+    expect(orderBlock).toHaveBeenCalledWith(tx, 'nirvanaexpress', ['p1', 'p2']);
     expect(validate).not.toHaveBeenCalled();
     expect(createOrder).not.toHaveBeenCalled();
   });
 
-  it('미노출 상품이 있으면 삭제된 상품처럼 404, 주문은 만들지 않는다', async () => {
+  it('미노출 상품이 있으면 결제 설정과 무관하게 404, 주문은 만들지 않는다', async () => {
+    configured.mockReturnValue(false);
     orderBlock.mockResolvedValue('PRODUCT_NOT_FOUND');
     const res = await post(BODY);
     expect(res.status).toBe(404);
@@ -193,8 +197,21 @@ describe('POST /api/v2/qrshop/orders', () => {
 
   it('주문 생성 트랜잭션에서 번호 없는 OrderNumber 행으로 상점과 잇는다', async () => {
     expect((await post(BODY)).status).toBe(200);
-    expect(createNumberRow).toHaveBeenCalledWith(prisma, { orderId: 'ord1', storeId: 's1' });
+    expect(createNumberRow).toHaveBeenCalledWith(tx, { orderId: 'ord1', storeId: 's1' });
     expect(transaction).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledWith(expect.arrayContaining([expect.stringContaining('FOR SHARE')]), 'nirvanaexpress');
+    expect(tx.$queryRaw).toHaveBeenCalledBefore(orderBlock);
+    expect(orderBlock).toHaveBeenCalledBefore(createOrder);
+  });
+
+  it('상점 행이 없으면 영업·결제 설정과 무관하게 404', async () => {
+    tx.$queryRaw.mockResolvedValue([]);
+    configured.mockReturnValue(false);
+    const res = await post(BODY);
+    expect(res.status).toBe(404);
+    expect((await res.json()).message).toBe('존재하지 않는 상점');
+    expect(orderBlock).not.toHaveBeenCalled();
+    expect(createOrder).not.toHaveBeenCalled();
   });
 
   it('DB 오류면 500', async () => {

@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from '@/app/staff-invite/[token]/page';
 import JoinPage from '@/app/sales-management/v2/staff/join/[inviteCode]/page';
 import { MOCK_STAFF_REQUEST_ID, readMockStaffInviteRequest, requestMockStaffInvite } from '@/lib/mocks/pos-staff-invite-service';
@@ -8,11 +8,15 @@ import { createMockPosStaffService } from '@/lib/mocks/pos-staff-service';
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }));
 
+beforeEach(() => vi.stubEnv('NEXT_PUBLIC_SALES_MANAGEMENT_DATA_SOURCE', 'mock'));
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
   replace.mockClear();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
 
 describe('직원 등록 요청', () => {
@@ -46,6 +50,15 @@ describe('직원 등록 요청', () => {
     expect(screen.queryByRole('button', { name: /권한 요청/ })).not.toBeInTheDocument();
     await act(async () => { await owner.approve(MOCK_STAFF_REQUEST_ID); });
     await waitFor(() => expect(replace).toHaveBeenCalledExactlyOnceWith('/sales-management/v2/pos'));
+  });
+
+  it('모바일 Mock 화면의 승인 후 주문서 보드로 이동한다', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })));
+    await requestMockStaffInvite();
+    const owner = createMockPosStaffService();
+    render(<JoinPage params={{ inviteCode: 'demo' }} searchParams={{}} />);
+    await act(async () => { await owner.approve(MOCK_STAFF_REQUEST_ID); });
+    await waitFor(() => expect(replace).toHaveBeenCalledExactlyOnceWith('/sales-management/v2/pos/order-board'));
   });
 
   it('거절된 요청의 상태를 알리고 새 요청을 보낼 수 있다', async () => {

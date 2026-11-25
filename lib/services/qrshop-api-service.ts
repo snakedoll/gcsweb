@@ -2,9 +2,8 @@ import { QrshopStoreNotFoundError, type QrshopCatalogResult, type QrshopService 
 import type { QrshopOrderResult, QrshopProduct } from '@/types/qrshop';
 import { checkPaymentStorage, readPaymentSession, savePaymentSession } from '@/lib/qrshop/payment-session';
 
-// Contract: upstream/main, app/api/v2/qrshop/route.ts. No opening-status field exists.
 type CatalogResponse = {
-  store: { storeId: string; name: string; storeSlug: string };
+  store: NonNullable<QrshopCatalogResult['store']> & { isOpen?: boolean };
   categories: { categoryId: string; name: string }[];
   products: {
     productId: string; name: string; price: number; imageUrl: string | null;
@@ -29,10 +28,13 @@ export class QrshopApiError extends Error {
   constructor(message: string, public code?: string, public status?: number) { super(message); }
 }
 
-async function readResponse<T>(response: Response): Promise<T> {
+async function readResponse<T>(
+  response: Response,
+  fallback = '주문·결제 정보를 확인하지 못했습니다. 다시 확인해주세요.',
+): Promise<T> {
   const body = await response.json().catch(() => null);
   if (!response.ok || body?.status !== 'success' || !body.data) {
-    throw new QrshopApiError(body?.message ?? '주문·결제 정보를 확인하지 못했습니다. 다시 확인해주세요.', body?.code, response.status);
+    throw new QrshopApiError(body?.message ?? fallback, body?.code, response.status);
   }
   return body.data as T;
 }
@@ -79,12 +81,11 @@ export function createQrshopApiService(storeSlug: string): QrshopService {
     async getCatalog(): Promise<QrshopCatalogResult> {
       validateStore();
       const response = await fetch(`/api/v2/qrshop?storeSlug=${encodeURIComponent(storeSlug)}`, { cache: 'no-store' });
-      const body = await response.json().catch(() => null);
-      if (response.status === 404 && body?.code === 'NOT_FOUND') throw new QrshopStoreNotFoundError();
-      if (!response.ok || body?.status !== 'success' || !body.data) {
-        throw new Error(body?.message ?? '상품을 불러오지 못했습니다. 다시 시도해주세요.');
-      }
-      const data = body.data as CatalogResponse;
+      const data = await readResponse<CatalogResponse>(response, '상품을 불러오지 못했습니다. 다시 시도해주세요.').catch((error: unknown) => {
+        if (error instanceof QrshopApiError && error.status === 404 && error.code === 'NOT_FOUND') throw new QrshopStoreNotFoundError();
+        throw error;
+      });
+      const { isOpen, ...store } = data.store;
       const items = data.products.flatMap<QrshopProduct>((product) => {
         const common = {
           sourceProductId: product.productId,
@@ -106,7 +107,7 @@ export function createQrshopApiService(storeSlug: string): QrshopService {
         }));
       });
       return {
-        items, total: items.length, store: data.store, storeStatus: 'unknown',
+        items, total: items.length, store, storeStatus: isOpen === true ? 'open' : isOpen === false ? 'closed' : 'unknown',
         categories: data.categories.map(category => ({ id: category.categoryId, name: category.name })),
       };
     },

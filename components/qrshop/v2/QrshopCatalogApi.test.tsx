@@ -133,6 +133,30 @@ describe('QRshop 실제 카탈로그 경계', () => {
     expect(navigation.push.mock.calls.flat().join('')).not.toContain('private-token');
   });
 
+  it('노출 상품이 없는 닫힌 상점도 영업 상태를 표시한다', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response({
+      store: { ...catalog.store, isOpen: false }, categories: [], products: [],
+    })));
+    render(<QrshopOrderClient />);
+
+    expect(await screen.findByText('상점이 아직 오픈되지 않았어요!')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '결제하기' })).not.toBeInTheDocument();
+  });
+
+  it('주문을 보내기 직전에 닫힌 상점을 읽기 화면으로 전환한다', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(response()).mockResolvedValueOnce(response()).mockResolvedValueOnce(Response.json(
+      { status: 'error', code: 'STORE_CLOSED', message: '상점 준비중' }, { status: 409 },
+    ));
+    vi.stubGlobal('fetch', fetcher);
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: '티셔츠 담기' }));
+    submit();
+
+    expect(await screen.findByText('상점이 아직 오픈되지 않았어요!')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '결제하기' })).not.toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
   it('재조회 실패 시 선택을 유지하고 Mock 주문을 만들지 않는다', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(response()).mockRejectedValueOnce(new Error('네트워크 오류')));
     const createOrder = vi.spyOn(qrshopMockService, 'createOrder');

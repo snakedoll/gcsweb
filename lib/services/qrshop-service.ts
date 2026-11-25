@@ -13,6 +13,9 @@ export interface QrshopCatalogResult extends ListResult<QrshopProduct> {
 }
 
 export class QrshopStoreNotFoundError extends Error {
+  readonly status = 404;
+  readonly code = 'NOT_FOUND';
+
   constructor() {
     super('존재하지 않는 상점입니다.');
     this.name = 'QrshopStoreNotFoundError';

@@ -82,7 +82,7 @@ dialog.refundDialog::backdrop { background: rgb(0 0 0 / .3); }
 .refundToast { position: fixed; z-index: 30; top: 88px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 10px; width: max-content; max-width: calc(100% - 32px); padding: 9px 16px; border-radius: 8px; background: var(--color-neutral-10); color: #f2f4f6; font-size: 17px; font-weight: 700; line-height: 1.5; text-align: center; pointer-events: none; }
 .refundInfo { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
 @media (max-width: 760px) {
-  .body { display: none; }
+  .page:not([data-api="true"]) .body { display: none; }
   .mobileBoard { display: block; padding: 16px; }
   .mobileBoard a { color: var(--color-orange-10); text-decoration: underline; }
   .filters { flex-wrap: wrap; gap: 12px; }

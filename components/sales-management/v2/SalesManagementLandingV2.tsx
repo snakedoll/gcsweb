@@ -17,9 +17,9 @@ import { truncate } from './truncate';
 const assetRoot = '/assets/sales-management/v2';
 const format = (value: number) => value.toLocaleString('ko-KR');
 const shortcuts = [
-  ['현장 운영', 'POS/QR샵 관리', '/sales-management/v2/pos', '현장 운영을'],
-  ['데이터 관리', '매출/판매 리포트 보기', '/sales-management/v2/analytics', '상품 분석을'],
-  ['주문 관리', '전체 주문내역 조회하기', '/sales-management/v2/orders', '전체 주문 조회를'],
+  ['현장 운영', 'POS/QR샵 관리', '/sales-management/v2/pos', false],
+  ['데이터 관리', '매출/판매 리포트 보기', '/sales-management/v2/analytics', true],
+  ['주문 관리', '전체 주문내역 조회하기', '/sales-management/v2/orders', false],
 ] as const;
 
 function LandingFrame({ children }: { children: ReactNode }) {
@@ -84,8 +84,8 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
   }, [summary?.recentProducts]);
 
   function notify(message: string) { setToast({ message }); }
-  function showShortcutRequirement(feature: string) {
-    if (service.dataSource === 'api') notify(`실제 주문 연동 전에는 ${feature} 이용할 수 없어요.`);
+  function showShortcutRequirement(mockOnly: boolean) {
+    if (mockOnly && service.dataSource === 'api') notify('상품 분석 연동은 준비 중이에요.');
     else if (!summary?.store) notify('해당 기능은 상점/상품 등록 후 이용 가능합니다.');
     else if (!summary.productCount) notify('해당 기능은 상품 등록 후 이용 가능합니다.');
   }
@@ -187,11 +187,11 @@ export default function SalesManagementLandingV2({ mockState = 'success', servic
     </section>}
 
     <nav className={styles.shortcuts} aria-label="판매 관리 바로가기">
-      {shortcuts.map(([title, description, href, feature]) => service.dataSource !== 'api' && summary.store && summary.productCount > 0
+      {shortcuts.map(([title, description, href, mockOnly]) => (!mockOnly || service.dataSource !== 'api') && summary.store && summary.productCount > 0
         ? <Link key={title} href={href}>
           <span>{title}<Image src={`${assetRoot}/right.svg`} alt="" width={24} height={24} /></span><p>{description}</p>
         </Link>
-        : <button key={title} type="button" onClick={() => showShortcutRequirement(feature)}>
+        : <button key={title} type="button" onClick={() => showShortcutRequirement(mockOnly)}>
           <span>{title}<Image src={`${assetRoot}/right.svg`} alt="" width={24} height={24} /></span><p>{description}</p>
         </button>)}
     </nav>

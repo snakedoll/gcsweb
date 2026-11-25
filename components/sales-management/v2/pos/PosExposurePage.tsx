@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/button/Button';
 import { copyPosExposure, reconcilePosExposure, type PosExposure, type PosProduct } from '@/lib/services/pos-service';
+import { withOperationalStore } from '@/lib/services/sales-management-api-client';
 import { formatWon } from '@/lib/utils';
 import PosHeader from './PosHeader';
 import { usePosSession } from './PosProvider';
@@ -27,7 +28,7 @@ function moved<T,>(items: T[], index: number, delta: number): T[] {
 export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
   const session = usePosSession();
   if (!session) throw new Error('POS Provider가 필요합니다.');
-  const { service, draft, setDraft } = session;
+  const { service, draft, setDraft, storeSlug } = session;
   const router = useRouter();
   const [products, setProducts] = useState<PosProduct[] | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -142,7 +143,7 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
     try {
       await service.saveExposure(draft);
       setDraft(null);
-      router.push(root);
+      router.push(withOperationalStore(root, storeSlug));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '저장하지 못했어요. 다시 시도해주세요.');
     } finally { saving.current = false; setPending(false); }
@@ -161,7 +162,7 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
       <div className={styles.heading}>
         <div><h1>{mode === 'edit' ? '포스 노출 상품' : '노출 상품 선택'}</h1>
           <span>{mode === 'edit' ? `노출 상품 ${visibleCount}개` : `미노출 상품 ${available.length}개`}</span></div>
-        <Link className={styles.actionLink} href={`${root}/${mode === 'edit' ? 'add' : 'edit'}`}>
+        <Link className={styles.actionLink} href={withOperationalStore(`${root}/${mode === 'edit' ? 'add' : 'edit'}`, storeSlug)}>
           {mode === 'edit' ? '노출 상품 추가하기' : '포스 노출 상품 목록 보기'}
         </Link>
       </div>
@@ -208,7 +209,7 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
             </div>
             <footer className={styles.footer}>
               <p><span className={styles.infoIcon}><Image src={`${assets}/info-mark.svg`} alt="" width={3.5} height={11.5} /></span>카테고리 순서와 상품 순서가 POS에 반영됩니다.</p>
-              <div><Button type="button" size="m" color="white" disabled={pending} onClick={() => { setDraft(null); router.push(root); }}>취소</Button>
+              <div><Button type="button" size="m" color="white" disabled={pending} onClick={() => { setDraft(null); router.push(withOperationalStore(root, storeSlug)); }}>취소</Button>
                 <Button type="button" size="m" color="orange" disabled={pending} onClick={save}>{pending ? '저장 중' : '저장'}</Button></div>
             </footer>
           </> : <>

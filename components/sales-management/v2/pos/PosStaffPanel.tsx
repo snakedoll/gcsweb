@@ -27,6 +27,7 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
   const session = usePosSession();
   const [fallback] = useState(() => createMockPosStaffService());
   const service = providedService ?? session?.staffService ?? fallback;
+  const apiMode = session?.service.dataSource === 'api';
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<PosStaffSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,13 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
     };
   }, [load, service]);
 
+  useEffect(() => {
+    if (!apiMode || !open) return;
+    void load();
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [apiMode, load, open]);
+
   async function act(action: Action, id: string) {
     if (locked.current) return;
     locked.current = true; setWorking(true); setFailure(null);
@@ -71,7 +79,7 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
     copyLocked.current = true; setCopying(true); setCopyMessage('');
     try {
       await navigator.clipboard.writeText(data.inviteUrl);
-      if (mounted.current) setCopyMessage('Mock 초대 링크를 복사했어요. 실제 직원 초대에는 사용할 수 없습니다.');
+      if (mounted.current) setCopyMessage(apiMode ? '직원 초대 링크를 복사했어요.' : 'Mock 초대 링크를 복사했어요. 실제 직원 초대에는 사용할 수 없습니다.');
     } catch {
       if (mounted.current) setCopyMessage('복사하지 못했어요. 링크를 직접 선택해 복사해주세요.');
     } finally { copyLocked.current = false; if (mounted.current) setCopying(false); }
@@ -102,11 +110,11 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
       <div className={styles.content} aria-busy={busy}>
         <section className={styles.invite}>
           <label htmlFor="staff-invite">직원 초대 링크</label>
-          <div className={styles.link}><input id="staff-invite" aria-describedby="staff-mock-note" readOnly value={data?.inviteUrl ?? ''} placeholder="링크를 불러오는 중입니다." onFocus={event => event.currentTarget.select()} />
-            <button type="button" aria-label="Mock 직원 초대 링크 복사" disabled={!data || copying} onClick={() => void copyInvite()}><span className={styles.copyIcon} aria-hidden="true"><Image src={`${assets}/copy-back.svg`} alt="" width={11.0988} height={15.0988} /></span></button>
+          <div className={styles.link}><input id="staff-invite" aria-describedby={apiMode ? undefined : 'staff-mock-note'} readOnly value={data?.inviteUrl ?? ''} placeholder="링크를 불러오는 중입니다." onFocus={event => event.currentTarget.select()} />
+            <button type="button" aria-label={apiMode ? '직원 초대 링크 복사' : 'Mock 직원 초대 링크 복사'} disabled={!data || copying} onClick={() => void copyInvite()}><span className={styles.copyIcon} aria-hidden="true"><Image src={`${assets}/copy-back.svg`} alt="" width={11.0988} height={15.0988} /></span></button>
           </div>
-          <p id="staff-mock-note" className={styles.note}>Mock 신청과 승인은 같은 브라우저의 탭에서 확인할 수 있습니다. 실제 직원 권한에는 반영되지 않습니다.</p>
-          {data && <a className={styles.invitePreview} href={data.inviteUrl} target="_blank" rel="noopener noreferrer">Mock 초대 링크 열기<span className="sr-only"> (새 탭)</span></a>}
+          {!apiMode && <p id="staff-mock-note" className={styles.note}>Mock 신청과 승인은 같은 브라우저의 탭에서 확인할 수 있습니다. 실제 직원 권한에는 반영되지 않습니다.</p>}
+          {data && <a className={styles.invitePreview} href={data.inviteUrl} target="_blank" rel="noopener noreferrer">{apiMode ? '초대 링크 열기' : 'Mock 초대 링크 열기'}<span className="sr-only"> (새 탭)</span></a>}
           {copyMessage && <p role="status" className={styles.note}>{copyMessage}</p>}
         </section>
         {loading && <p role="status">직원 정보를 불러오는 중입니다.</p>}

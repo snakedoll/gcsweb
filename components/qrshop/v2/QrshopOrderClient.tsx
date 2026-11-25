@@ -174,7 +174,9 @@ export default function QrshopOrderClient({ storeSlug: routeStoreSlug }: { store
     } catch (error) {
       if (requestVersion === catalogRequest.current) {
         if (error instanceof QrshopStoreNotFoundError) setCatalog({ status: 'not-found', products: [] });
-        else setSubmitError(error instanceof Error ? error.message : '주문을 저장하지 못했습니다.');
+        else if (error instanceof QrshopApiError && error.code === 'STORE_CLOSED') {
+          setCatalog(current => current.status === 'ready' ? { ...current, storeStatus: 'closed' } : current);
+        } else setSubmitError(error instanceof Error ? error.message : '주문을 저장하지 못했습니다.');
         if (error instanceof QrshopApiError && error.status === 409) setAgreed(false);
       }
     } finally { submitInFlight.current = false; if (requestVersion === catalogRequest.current) setSubmitting(false); }
@@ -183,7 +185,7 @@ export default function QrshopOrderClient({ storeSlug: routeStoreSlug }: { store
   if (catalog.status === 'loading') return <div role="status" className="mx-auto min-h-dvh w-full max-w-[430px] px-4 pt-[34px]"><div className="h-9 w-28 animate-pulse rounded bg-neutral-5" /><div className="mt-5 h-7 w-full animate-pulse rounded bg-neutral-5" /><div className="mt-4 grid grid-cols-2 gap-x-[5px] gap-y-3">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-[244px] animate-pulse rounded bg-neutral-5" />)}</div><span className="sr-only">상품을 불러오는 중입니다.</span></div>;
   if (catalog.status === 'not-found') return <QrshopStateView icon="warning" title="존재하지 않는 상점입니다." description="링크를 다시 확인해주시기 바랍니다." />;
   if (catalog.status === 'error') return <QrshopStateView icon="warning" title="상품을 불러올 수 없습니다" description={catalog.message} actionLabel="다시 시도" onAction={() => setRetry(current => current + 1)} />;
-  if (catalog.products.length === 0) return (
+  if (catalog.products.length === 0 && !closed) return (
     <>
       <div className="absolute inset-x-0 top-0 mx-auto max-w-[430px]">
         <QrshopOrderNumberBanner service={service} storeSlug={storeSlug ?? null} />

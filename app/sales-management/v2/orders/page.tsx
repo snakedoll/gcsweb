@@ -12,6 +12,7 @@ export default function Page() {
   const showBoard = useCallback(() => router.replace('/sales-management/v2/pos/order-board'), [router]);
 
   useEffect(() => {
+    if (service.dataSource === 'api') return;
     let active = true;
     service.getStore().then(store => { if (active) setStoreOpenedAt(store?.createdAt); }).catch(() => {});
     return () => { active = false; };

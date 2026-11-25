@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createQrshopApiService } from './qrshop-api-service';
+import { QrshopStoreNotFoundError } from './qrshop-service';
 
 const catalog = {
   store: { storeId: 's1', name: '실제 상점', storeSlug: 'shop1234' },
@@ -40,6 +41,31 @@ describe('QRshop 카탈로그 API 어댑터', () => {
     expect((await service.getCatalog({ refresh: true })).items[0]).toMatchObject({ stock: 0, soldOut: true });
     await expect(service.getCatalog()).rejects.toThrow('존재하지 않는 상점');
     await expect(service.getCatalog()).rejects.toThrow('네트워크 오류');
+  });
+
+  it('서버의 노출 순서와 열림 상태를 보존하고 새 조회에서 닫힘으로 갱신한다', async () => {
+    const products = [...catalog.products].reverse();
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ status: 'success', data: { ...catalog, products, store: { ...catalog.store, isOpen: true } } }))
+      .mockResolvedValueOnce(Response.json({ status: 'success', data: { ...catalog, products, store: { ...catalog.store, isOpen: false } } })));
+    const service = createQrshopApiService('shop1234');
+
+    const result = await service.getCatalog();
+    expect(result.storeStatus).toBe('open');
+    expect(result.items.map(item => item.id)).toEqual(['p2', 'p1:o1', 'p1:o2']);
+    await expect(service.getCatalog({ refresh: true })).resolves.toMatchObject({ storeStatus: 'closed' });
+  });
+
+  it('상점 없음과 일반 카탈로그 오류의 HTTP 상태와 코드를 전달한다', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ status: 'error', code: 'NOT_FOUND', message: '존재하지 않는 상점' }, { status: 404 }))
+      .mockResolvedValueOnce(Response.json({ status: 'error', code: 'SERVER_ERROR' }, { status: 500 })));
+    const service = createQrshopApiService('shop1234');
+
+    const missing = await service.getCatalog().catch(error => error);
+    expect(missing).toBeInstanceOf(QrshopStoreNotFoundError);
+    expect(missing).toMatchObject({ status: 404, code: 'NOT_FOUND', message: '존재하지 않는 상점입니다.' });
+    await expect(service.getCatalog()).rejects.toMatchObject({ status: 500, code: 'SERVER_ERROR', message: '상품을 불러오지 못했습니다. 다시 시도해주세요.' });
   });
 
   it('잘못된 상점은 요청하지 않고 주문·조회·결제는 Mock으로 대체하지 않는다', async () => {

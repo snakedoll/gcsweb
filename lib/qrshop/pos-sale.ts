@@ -115,7 +115,7 @@ export async function completePosSale(params: PosSaleParams, overrides: Partial<
 
   const paidAt = now();
   try {
-    return await withOrderNumberRetry(() =>
+    const result = await withOrderNumberRetry(() =>
       db.$transaction(
         async (tx): Promise<PosSaleResult> => {
           const validated = await validateOrderItems(tx, { storeSlug: params.storeSlug, items: params.items });
@@ -180,6 +180,9 @@ export async function completePosSale(params: PosSaleParams, overrides: Partial<
         { timeout: 15000 },
       ),
     );
+    // A concurrent retry may have finished after the first lookup and used the last unit.
+    if (result.kind === 'COMPLETED') return result;
+    return (await findByRequestId(db, params)) ?? result;
   } catch (error) {
     if (error instanceof PosStockShortage) return { kind: 'SOLD_OUT', soldOutItems: error.soldOutItems };
     // 같은 요청 키가 동시에 두 번 오면 나중 것은 unique 충돌로 끝난다. 먼저 끝난 결제의 영수증을 돌려준다.

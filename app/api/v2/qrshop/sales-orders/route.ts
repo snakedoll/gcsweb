@@ -14,22 +14,23 @@ import {
 } from '@/lib/qrshop/sales-orders';
 
 /**
- * GET /api/v2/qrshop/sales-orders?date=YYYY-MM-DD&channel=all|online|onsite&q=&page=
+ * GET /api/v2/qrshop/sales-orders?date=YYYY-MM-DD&channel=all|online|onsite&q=&page=&refundedOnly=true&storeSlug=
  * 전체 주문 조회. 선택한 날짜(KST)의 결제완료·환불 주문을 최신순으로 30건씩.
  * 상점 소유자와 승인된 직원.
  * 읽기 전에 그날의 처리 중 환불(웹훅이 오지 않은 것)을 PortOne 에 확인해 마무리한다(`reconcilePendingRefunds`).
  */
 export async function GET(request: Request) {
   try {
-    const ctx = await getStoreAccess();
+    const searchParams = new URL(request.url).searchParams;
+    const ctx = await getStoreAccess(searchParams.get('storeSlug'));
     if (!ctx.ok) return apiErrors.unauthorized();
     if (!ctx.access) return storeErrors.notFound();
 
-    const query = parseSalesOrdersQuery(new URL(request.url).searchParams);
+    const query = parseSalesOrdersQuery(searchParams);
     if (!query.ok) return apiErrors.invalidInput('유효하지 않은 조회 조건');
 
     const { store } = ctx.access;
-    const { timeKey, channel, search, page } = query.value;
+    const { timeKey, channel, search, page, refundedOnly } = query.value;
 
     // 확인이 실패해도 목록은 그대로 보여 준다(처리 중 주문은 다음 조회나 웹훅이 마무리).
     try {
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     // 하루 한 상점의 주문은 많지 않아 한 번에 읽고, 검색(주문번호 3자리 포함 여부)과 페이지는 메모리에서 처리한다.
     // 최신순 = 주문번호 내림차순. 번호는 결제 확정 순서로 매겨지므로 자정 무렵 주문도 번호 순서와 어긋나지 않는다.
     const rows = await prisma.order.findMany({
-      where: salesOrdersWhere(store.storeId, timeKey, channel),
+      where: salesOrdersWhere(store.storeId, timeKey, channel, refundedOnly),
       select: SALES_ORDER_SELECT,
       orderBy: [{ orderNumber: { orderNo: 'desc' } }, { orderDate: 'desc' }, { id: 'desc' }],
     });

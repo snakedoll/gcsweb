@@ -9,6 +9,7 @@ export interface PosCartLine extends QrshopCartLine {
 }
 
 export interface PosReceipt {
+  orderId?: string;
   orderCode: string;
   lines: PosCartLine[];
   totalAmount: number;
@@ -26,6 +27,9 @@ export interface PosExposureGroup {
 export type PosExposure = PosExposureGroup[];
 
 export interface PosService {
+  readonly dataSource?: 'api';
+  getStoreOpen?(): Promise<boolean>;
+  setStoreOpen?(isOpen: boolean): Promise<boolean>;
   getCatalog(): Promise<SalesProduct[]>;
   getReceipts(): Promise<PosReceipt[]>;
   getExposureProducts(): Promise<PosProduct[]>;
@@ -57,8 +61,16 @@ export const posLineKey = (line: { productId: string; optionId?: string }) => JS
 export const posLineSubtotal = (line: PosCartLine) => line.unitPrice * line.quantity;
 export const posLineDiscount = (line: PosCartLine) => Math.min(line.discountAmount ?? 0, posLineSubtotal(line));
 
+export interface PosUnavailableItem {
+  productId: string | null;
+  optionId: string | null;
+  name: string;
+  optionName: string | null;
+  availableQuantity: number;
+}
+
 export class PosStockChangedError extends Error {
-  constructor(readonly unavailableLineKeys: string[]) {
+  constructor(readonly unavailableLineKeys: string[], readonly items: PosUnavailableItem[] = []) {
     super('판매할 수 없는 상품이 포함되어 있어요.');
     this.name = 'PosStockChangedError';
   }

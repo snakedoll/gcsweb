@@ -239,6 +239,15 @@ describe('completePosSale', () => {
       });
     });
 
+    it('처음 키 조회와 재고 검증 사이에 같은 결제가 마지막 수량을 샀으면 그 영수증을 돌려준다', async () => {
+      const t = setup({ products: [{ ...PLAIN, currentStock: 0 }] });
+      t.db.order.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(earlierRow());
+      expect(await t.run([{ productId: 'p1', quantity: 2 }])).toMatchObject({
+        kind: 'COMPLETED', replayed: true, receipt: { orderId: 'ord0' },
+      });
+      expect(t.tx.order.create).not.toHaveBeenCalled();
+    });
+
     it('같은 키가 동시에 와서 나중 요청이 unique 충돌로 끝나면, 먼저 끝난 결제의 영수증을 돌려준다', async () => {
       const t = setup();
       t.db.order.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(earlierRow());

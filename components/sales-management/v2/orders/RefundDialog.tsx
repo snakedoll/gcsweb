@@ -5,7 +5,8 @@ import Button from '@/components/ui/button/Button';
 import { LandingDialog } from '../VisitorQrDialog';
 import styles from './orders.module.css';
 
-export default function RefundDialog({ orderNo, onRefund, onDismiss }: {
+export default function RefundDialog({ orderNo, onRefund, onDismiss, apiMode = false }: {
+  apiMode?: boolean;
   orderNo: string; onRefund: (restoreStock: boolean) => Promise<void>; onDismiss: () => void;
 }) {
   const busy = useRef(false);
@@ -34,7 +35,7 @@ export default function RefundDialog({ orderNo, onRefund, onDismiss }: {
         <Button type="button" color="white" size="s" disabled={pending} onClick={onDismiss}>취소</Button>
         <Button type="button" color="orange" size="s" disabled={pending} onClick={confirm}>확인</Button>
       </div>
-      {pending && <p role="status" className={styles.refundFeedback}>Mock 환불 처리 중입니다.</p>}
+      {pending && <p role="status" className={styles.refundFeedback}>{apiMode ? '환불 처리 중입니다.' : 'Mock 환불 처리 중입니다.'}</p>}
       {error && <p role="alert" className={styles.refundFeedback}>환불 처리하지 못했어요. 확인을 눌러 다시 시도해주세요.</p>}
     </div>
   </LandingDialog>;

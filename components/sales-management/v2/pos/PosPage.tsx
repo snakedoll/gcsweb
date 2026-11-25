@@ -8,7 +8,8 @@ import Tag from '@/components/ui/common/Tag';
 import { applyPosDiscount, createPosLine, getPosStock, posLineDiscount, posLineKey, posLineSubtotal, PosStockChangedError, type PosCartLine, type PosPaymentMethod, type PosReceipt, type PosService } from '@/lib/services/pos-service';
 import { formatWon } from '@/lib/utils';
 import type { SalesProduct } from '@/types/sales-management';
-import { usePosService } from './PosProvider';
+import { withOperationalStore } from '@/lib/services/sales-management-api-client';
+import { usePosSession, usePosService } from './PosProvider';
 import PosDiscountForm from './PosDiscountForm';
 import PosHeader from './PosHeader';
 import { LandingDialog } from '../VisitorQrDialog';
@@ -28,6 +29,8 @@ function StepIcon({ plus = false }: { plus?: boolean }) {
 
 export default function PosPage({ service: providedService, accountId }: { service?: PosService; accountId?: string }) {
   const service = usePosService(providedService);
+  const storeSlug = usePosSession()?.storeSlug;
+  const apiMode = service.dataSource === 'api';
   const [products, setProducts] = useState<SalesProduct[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
@@ -159,8 +162,9 @@ export default function PosPage({ service: providedService, accountId }: { servi
     } catch (error) {
       if (error instanceof PosStockChangedError) {
         const unavailable = new Set(error.unavailableLineKeys);
-        const names = cart.filter(line => unavailable.has(posLineKey(line)))
-          .map(line => `${line.productName}${line.option ? `(${line.option})` : ''}`);
+        const names = error.items.length ? error.items.map(item => `${item.name}${item.optionName ? `(${item.optionName})` : ''}`)
+          : cart.filter(line => unavailable.has(posLineKey(line)))
+            .map(line => `${line.productName}${line.option ? `(${line.option})` : ''}`);
         setCart(current => current.filter(line => !unavailable.has(posLineKey(line))));
         const summary = names.length === 1 ? `[${names[0]}]` : names.join(' / ');
         setNotice({ text: `${summary}가 품절되었습니다. 해당 상품은 자동으로 제외됩니다.`, soldOut: true });
@@ -186,7 +190,7 @@ export default function PosPage({ service: providedService, accountId }: { servi
             <button type="button" aria-pressed={category === null} onClick={() => setCategory(null)}>전체</button>
             {categories.map(name => <button key={name} type="button" aria-pressed={category === name} onClick={() => setCategory(name)}>{name}</button>)}
           </div>
-          <Link href="/sales-management/v2/pos/edit" className={styles.edit}>편집</Link>
+          <Link href={withOperationalStore("/sales-management/v2/pos/edit", storeSlug)} className={styles.edit}>편집</Link>
         </div>
 
         {loadError ? <div role="alert" className={styles.empty}>
@@ -225,7 +229,7 @@ export default function PosPage({ service: providedService, accountId }: { servi
                 </li>;
               })}
             </ul>}
-        <p className={styles.mockNote}>Mock 모드 · 실제 결제 및 QR샵에는 반영되지 않습니다.</p>
+        {!apiMode && <p className={styles.mockNote}>Mock 모드 · 실제 결제 및 QR샵에는 반영되지 않습니다.</p>}
         {optionProduct && <>
           <div className={styles.optionBackdrop} role="presentation" onClick={closeOptions} />
           <section className={styles.optionPanel} role="dialog" aria-labelledby="pos-option-title">
@@ -300,10 +304,10 @@ export default function PosPage({ service: providedService, accountId }: { servi
                 aria-pressed={method === item.id} onClick={() => setMethod(item.id)}>{item.label}</Button>)}
             </div>
             <div className={styles.paymentActions}>
-              <Button ref={discountTrigger} type="button" color="beige" disabled={!discountable.length || pending} onClick={() => {
+              {!apiMode && <Button ref={discountTrigger} type="button" color="beige" disabled={!discountable.length || pending} onClick={() => {
                 setOptionProduct(null);
                 setDiscountSelection(new Set());
-              }}>할인</Button>
+              }}>할인</Button>}
               <Button type="button" color="orange" status={!cart.length || !method || pending || loadError ? 'disabled' : 'default'}
                 onClick={completeSale}>{pending ? '처리 중' : '결제완료'}</Button>
             </div>
@@ -315,11 +319,11 @@ export default function PosPage({ service: providedService, accountId }: { servi
       {notice.soldOut && <span className={styles.toastIcon}><Image src="/assets/sales-management/v2/orders/refund-info.svg" alt="" width={21.5} height={21.5} /></span>}
       {notice.text}
     </div>}
-    {receipt && <LandingDialog label="Mock 결제완료" onDismiss={() => { if (!pending) setReceipt(null); }} className={styles.receipt}>
+    {receipt && <LandingDialog label={apiMode ? "결제완료" : "Mock 결제완료"} onDismiss={() => { if (!pending) setReceipt(null); }} className={styles.receipt}>
       <h2>결제가 완료되었습니다</h2><p>주문번호 {receipt.orderCode}</p>
       <p>{methods.find(item => item.id === receipt.paymentMethod)?.label} · {formatWon(receipt.totalAmount)}</p>
       <ul>{receipt.lines.map(line => <li key={posLineKey(line)}>{line.productName}{line.option ? ` (${line.option})` : ''} / {line.quantity}개</li>)}</ul>
-      <p className={styles.receiptNote}>Mock 처리이며 실제 결제·주문 및 재고에는 반영되지 않습니다.</p>
+      {!apiMode && <p className={styles.receiptNote}>Mock 처리이며 실제 결제·주문 및 재고에는 반영되지 않습니다.</p>}
       <Button type="button" color="orange" disabled={pending} onClick={() => setReceipt(null)}>확인</Button>
     </LandingDialog>}
   </div>;
