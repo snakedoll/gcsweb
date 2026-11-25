@@ -920,9 +920,7 @@ export default function CartPage() {
                 </button>
               </div>
             </div>
-            <div className="h-[34px] flex items-end justify-center pb-2">
-              <div className="w-[134px] h-[5px] bg-black rounded-[100px]" />
-            </div>
+            <div className="h-[34px]" />
           </div>
         </div>
       </div>
