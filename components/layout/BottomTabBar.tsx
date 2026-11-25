@@ -114,8 +114,8 @@ export default function BottomTabBar({
     <div className="w-full border-t border-neutral-4 bg-neutral-3 px-4 py-[13px]">
       <div className="mx-auto flex w-full max-w-[375px] items-center justify-between">
         <TabItem href={aboutHref} label="About" active={variant === 'about'} icon={<InfoSquareIcon active={variant === 'about'} />} widthClassName="w-[30px]" />
-        <TabItem href={archiveHref} label="Archive" active={variant === 'archive'} icon={<LayersIcon active={variant === 'archive'} />} widthClassName="w-[39px]" />
         <TabItem href={homeHref} label="Home" active={variant === 'home'} icon={<HomeIcon active={variant === 'home'} />} widthClassName="w-[30px]" />
+        <TabItem href={archiveHref} label="Archive" active={variant === 'archive'} icon={<LayersIcon active={variant === 'archive'} />} widthClassName="w-[39px]" />
         <TabItem href={shopHref} label="Shop" active={variant === 'shop'} icon={<BagIcon active={variant === 'shop'} />} widthClassName="w-[26px]" />
       </div>
     </div>
