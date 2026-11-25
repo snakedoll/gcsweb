@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/hooks/useUser';
 import Modal from '@/components/ui/common/Modal';
+import NavBar from '@/components/layout/NavBar';
 import { formatPrice } from '@/lib/utils';
 
 const GUEST_CART_STORAGE_KEY = 'shop:guest-cart-items';
@@ -34,10 +35,6 @@ function PlusIcon({ disabled = false }: { disabled?: boolean }) {
 }
 
 // (좋아요 UI 제거) HeartIcon removed from this file
-
-function BackIcon() {
-  return <Image src="/assets/icons/icon-back.svg" alt="" width={12} height={24} />;
-}
 
 function CheckIcon({ checked, disabled }: { checked: boolean; disabled?: boolean }) {
   const rectStroke = disabled ? '#DDDCDB' : '#C7C5C4';
@@ -734,14 +731,7 @@ export default function CartPage() {
       <div className="w-full max-w-[375px] flex flex-col">
         {/* ── 네비게이션 바 ─────────────── */}
         <div className="bg-[#f6f6f5] flex flex-col sticky top-0 z-30">
-          <div className="h-[34px]" />
-          <div className="flex h-11 items-center justify-between px-4 py-[10px]">
-            <button onClick={() => router.back()} className="w-3 h-6 flex items-center cursor-pointer" aria-label="뒤로가기">
-              <BackIcon />
-            </button>
-            <span className="text-[15px] font-bold leading-[1.5] text-black">장바구니</span>
-            <div className="w-3 h-6 opacity-0" />
-          </div>
+          <NavBar variant="title-back" title="장바구니" />
 
           {/* ── 전체선택 + 선택삭제 탭 ────────────────── */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#e6e6e6]">
@@ -921,9 +911,7 @@ export default function CartPage() {
                 </button>
               </div>
             </div>
-            <div className="h-[34px] flex items-end justify-center pb-2">
-              <div className="w-[134px] h-[5px] bg-black rounded-[100px]" />
-            </div>
+            <div className="h-[34px]" />
           </div>
         </div>
       </div>

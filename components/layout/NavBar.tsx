@@ -67,7 +67,6 @@ export default function NavBar({
   if (variantProp === 'home') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <Link href={homeHref} aria-label="홈" className="inline-flex h-6 w-6 items-center justify-center">
             <Image src="/assets/icons/icon-home.svg" alt="" width={24} height={24} />
@@ -80,7 +79,6 @@ export default function NavBar({
   if (variantProp === 'back') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button
             type="button"
@@ -98,7 +96,6 @@ export default function NavBar({
   if (variantProp === 'title-back') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <div className="flex w-6 items-center justify-start">
             <button
@@ -122,7 +119,6 @@ export default function NavBar({
   if (variantProp === 'title') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className="mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-center px-4 py-[10px]">
           <p className="typo-heading-xxsmall text-neutral-12">{title}</p>
         </div>
@@ -133,7 +129,6 @@ export default function NavBar({
   if (variantProp === 'logo-back') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button
             type="button"
@@ -160,7 +155,6 @@ export default function NavBar({
   if (variantProp === 'title-back-trash') {
     return (
       <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-        <div className="h-[34px] w-full bg-neutral-3" />
         <div className={barClass}>
           <button
             type="button"
@@ -200,7 +194,6 @@ export default function NavBar({
 
   return (
     <div className="w-full border-b border-neutral-4 bg-neutral-3 shadow-[0px_1px_2px_0px_rgba(99,81,73,0.1)]">
-      <div className="h-[34px] w-full bg-neutral-3" />
       <div className="mx-auto flex h-[44px] w-full max-w-[375px] items-center justify-between px-4 py-[10px]">
         {isMypageRoot ? (
           <>
