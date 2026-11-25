@@ -35,6 +35,7 @@ describe('POS Mock 서비스', () => {
     const results = await Promise.allSettled([service.completeSale([line], 'cash'), service.completeSale([line], 'cash')]);
     expect(results.map(result => result.status)).toEqual(['fulfilled', 'rejected']);
     expect((await service.getCatalog())[0].stock).toBe(0);
+    expect(await service.getReceipts()).toMatchObject([{ orderCode: '001', lines: [{ quantity: 2 }] }]);
   });
 
   it('옵션별 재고뿐 아니라 상품 총재고도 초과하지 않는다', async () => {

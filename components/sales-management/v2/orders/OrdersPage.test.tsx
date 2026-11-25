@@ -13,6 +13,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const today = seoulOrderDate();
 const rows = () => within(screen.getByRole('table')).getAllByRole('row').slice(1);
+const restoreStockLabel = '판매 수량만큼 재고에 다시 추가';
 function order(index: number): SalesOrder {
   return { id: `order-${index}`, orderNo: String(index).padStart(3, '0'), orderedAt: `${today}T10:00:00+09:00`, items: [{ productName: '키링', optionName: 'BLACK', quantity: 1 }], paymentMethod: index % 2 ? 'card' : 'online', paymentAmount: 3000, refundStatus: 'none' };
 }
@@ -30,52 +31,74 @@ describe('전체 주문조회', () => {
     expect(screen.getByText(/실제 결제 취소·환불 및 상품 재고 변경은 실행되지/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '전체 주문 조회' }));
     expect(screen.getByRole('link', { name: '전체 주문 조회' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: '현장 운영' })).toHaveAttribute('href', '/sales-management/v2/pos');
+    expect(screen.getByRole('link', { name: '현장 포스' })).toHaveAttribute('href', '/sales-management/v2/pos');
     expect(screen.getByRole('button', { name: '직원 관리' })).toBeEnabled();
   });
-  it('온라인·현장 필터와 상품/옵션 검색을 결합하며 빈 검색 결과를 표시한다', async () => {
+  it('환불완료만 조회하고 상품/옵션 검색을 필터와 결합한다', async () => {
     render(<OrdersPage />);
     await screen.findByText('총 3건');
-    fireEvent.click(screen.getByRole('button', { name: '온라인결제' }));
+    fireEvent.click(screen.getByRole('button', { name: '환불완료' }));
     await screen.findByText('총 1건');
     expect(rows()).toHaveLength(1);
-    fireEvent.click(screen.getByRole('button', { name: '현장결제' }));
-    await screen.findByText('총 2건');
-    fireEvent.change(screen.getByRole('searchbox', { name: '상품 검색' }), { target: { value: 'BLACK' } });
+    expect(rows()[0]).toHaveTextContent('전주 엽서');
+    fireEvent.change(screen.getByRole('searchbox', { name: '상품·주문번호 검색' }), { target: { value: 'BLACK' } });
+    await screen.findByText('검색 결과가 없습니다.');
+    fireEvent.click(screen.getByRole('button', { name: '전체' }));
     await screen.findByText('총 1건');
     expect(rows()[0]).toHaveTextContent('고양이 키링(BLACK)×2');
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: '없는상품' } });
     await screen.findByText('검색 결과가 없습니다.');
     expect(screen.getByText('총 0건')).toBeInTheDocument();
   });
-  it('이전/다음 날짜·달력 선택을 지원하고 오늘 이후 이동을 제한한다', async () => {
+  it('이전/다음 날짜·달력 선택을 지원하고 개설일부터 오늘까지만 이동한다', async () => {
     const service = createMockOrdersService();
     const list = vi.spyOn(service, 'listOrders');
-    render(<OrdersPage service={service} />);
+    render(<OrdersPage service={service} storeOpenedAt="2020-01-01T00:00:00+09:00" />);
     await screen.findByText('총 3건');
     expect(screen.getByRole('button', { name: '다음 날짜' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: '이전 날짜' }));
-    await screen.findByText('주문 목록이 없습니다');
+    await screen.findByText('총 95건');
     expect(screen.getByRole('button', { name: '다음 날짜' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: '다음 날짜' }));
     await screen.findByText('총 3건');
     fireEvent.change(screen.getByLabelText('조회 날짜'), { target: { value: '2020-01-01' } });
     await screen.findByText('주문 목록이 없습니다');
     expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ date: '2020-01-01', page: 1 }));
+    expect(screen.getByRole('button', { name: '이전 날짜' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('조회 날짜'), { target: { value: '2019-12-31' } });
     fireEvent.change(screen.getByLabelText('조회 날짜'), { target: { value: '2099-01-01' } });
     expect(screen.getByLabelText('조회 날짜')).toHaveValue('2020-01-01');
   });
+  it('주문번호로 검색하고 긴 상품 셀을 펼치며 품절 환불을 표시한다', async () => {
+    const item = { ...order(123), refundStatus: 'refunded', refundReason: 'sold-out' } as const;
+    Object.defineProperty(HTMLParagraphElement.prototype, 'scrollWidth', { configurable: true, get: () => 600 });
+    try {
+      render(<OrdersPage service={createMockOrdersService([item, order(456)])} />);
+      await screen.findByText('총 2건');
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: '123' } });
+      await screen.findByText('총 1건');
+      expect(rows()[0]).toHaveTextContent('품절 환불');
+      const expand = screen.getByRole('button', { name: '주문 123 상품 펼치기' });
+      fireEvent.click(expand);
+      expect(screen.getByRole('button', { name: '주문 123 상품 접기' })).toHaveAttribute('aria-expanded', 'true');
+    } finally {
+      Reflect.deleteProperty(HTMLParagraphElement.prototype, 'scrollWidth');
+    }
+  });
   it('30건 페이지 이동 후 필터·검색·날짜 변경 시 첫 페이지로 돌아간다', async () => {
-    const service = createMockOrdersService(Array.from({ length: 31 }, (_, i) => order(i + 1)));
+    const service = createMockOrdersService(Array.from({ length: 31 }, (_, i): SalesOrder => ({
+      ...order(i + 1), refundStatus: i % 2 === 0 ? 'refunded' : 'none',
+    })));
     const list = vi.spyOn(service, 'listOrders');
     render(<OrdersPage service={service} />);
     await screen.findByText('총 31건');
     expect(rows()).toHaveLength(30);
-    fireEvent.click(screen.getByRole('button', { name: '다음 페이지' }));
-    await screen.findByText('2 / 2');
+    expect(screen.getByRole('button', { name: '1페이지', current: 'page' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '2페이지' }));
+    await screen.findByRole('button', { name: '2페이지', current: 'page' });
     expect(rows()).toHaveLength(1);
     expect(screen.getByRole('button', { name: '다음 페이지' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: '현장결제' }));
+    fireEvent.click(screen.getByRole('button', { name: '환불완료' }));
     await screen.findByText('총 16건');
     expect(rows()).toHaveLength(16);
     expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }));
@@ -96,7 +119,7 @@ describe('전체 주문조회', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '다시 불러오기' }));
     expect(screen.getByText('주문을 불러오는 중입니다.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '온라인결제' }));
+    fireEvent.click(screen.getByRole('button', { name: '환불완료' }));
     await screen.findByText('총 0건');
     await act(async () => resolveOld({ orders: [order(1)], total: 1, page: 1 }));
     expect(screen.getByText('총 0건')).toBeInTheDocument();
@@ -113,9 +136,9 @@ describe('Mock 환불', () => {
     trigger.focus(); fireEvent.click(trigger);
     const dialog = screen.getByRole('dialog', { name: '환불 신청 확인' });
     expect(dialog).toHaveFocus();
-    expect(dialog).toHaveTextContent('주문번호 [001] 환불 처리합니다.재고를 복원하시겠습니까?');
-    expect(dialog).toHaveTextContent('환불 완료 후 취소는 불가능합니다.');
-    expect(within(dialog).getAllByRole('button').map(button => button.textContent)).toEqual(['취소', '재고 유지', '재고 복원']);
+    expect(dialog).toHaveTextContent('주문번호 [001] 환불 처리하시겠습니까?');
+    expect(within(dialog).getByRole('checkbox', { name: restoreStockLabel })).not.toBeChecked();
+    expect(within(dialog).getAllByRole('button').map(button => button.textContent)).toEqual(['취소', '확인']);
     if (action === 'Escape') fireEvent(dialog, new Event('cancel', { cancelable: true }));
     else fireEvent.click(within(dialog).getByRole('button', { name: '취소' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -138,7 +161,8 @@ describe('Mock 환불', () => {
     const fetch = vi.spyOn(globalThis, 'fetch');
     render(<OrdersPage service={service} />);
     fireEvent.click(await screen.findByRole('button', { name: '환불신청' }));
-    fireEvent.click(screen.getByRole('button', { name: restore ? '재고 복원' : '재고 유지' }));
+    if (restore) fireEvent.click(screen.getByRole('checkbox', { name: restoreStockLabel }));
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByRole('status')).toHaveTextContent(`Mock 예시 · ${message}`);
     expect(screen.queryByRole('button', { name: '환불신청' })).not.toBeInTheDocument();
@@ -149,8 +173,9 @@ describe('Mock 환불', () => {
     expect(refund).toHaveBeenCalledExactlyOnceWith(target.id, restore);
     expect(fetch).not.toHaveBeenCalled();
     // Re-querying the same Mock store keeps the refunded row blocked.
-    fireEvent.click(screen.getByRole('button', { name: method === 'online' ? '온라인결제' : '현장결제' }));
-    await waitFor(() => expect(screen.queryByText('주문을 불러오는 중입니다.')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '환불완료' }));
+    await screen.findByText('총 2건');
+    expect(rows().find(row => row.id === 'order-order-1')).toHaveTextContent('환불 완료');
     expect(screen.queryByRole('button', { name: '환불신청' })).not.toBeInTheDocument();
   });
 
@@ -161,9 +186,9 @@ describe('Mock 환불', () => {
     render(<OrdersPage service={service} />);
     fireEvent.click((await screen.findAllByRole('button', { name: '환불신청' }))[1]);
     const dialog = screen.getByRole('dialog');
-    const keep = within(dialog).getByRole('button', { name: '재고 유지' });
-    fireEvent.click(keep); fireEvent.click(keep);
-    fireEvent.click(within(dialog).getByRole('button', { name: '재고 복원' }));
+    const confirm = within(dialog).getByRole('button', { name: '확인' });
+    fireEvent.click(confirm); fireEvent.click(confirm);
+    expect(within(dialog).getByRole('checkbox', { name: restoreStockLabel })).toBeDisabled();
     fireEvent.click(within(dialog).getByRole('button', { name: '취소' }));
     fireEvent(dialog, new Event('cancel', { cancelable: true }));
     fireEvent.click(dialog);
@@ -187,13 +212,15 @@ describe('Mock 환불', () => {
     render(<OrdersPage service={service} />);
     fireEvent.click((await screen.findAllByRole('button', { name: '환불신청' }))[1]);
     const originalRows = rows().map(row => row.textContent);
-    fireEvent.click(screen.getByRole('button', { name: '재고 복원' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: restoreStockLabel }));
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
     await screen.findByRole('alert');
     expect(rows().map(row => row.textContent)).toEqual(originalRows);
     expect(screen.queryByText(/Mock 예시 · 환불 처리되었습니다/)).not.toBeInTheDocument();
     expect(screen.getByRole('dialog')).toHaveTextContent('주문번호 [001]');
     expect(screen.getByRole('button', { name: '취소' })).toBeEnabled();
-    fireEvent.click(screen.getByRole('button', { name: '재고 복원' }));
+    expect(screen.getByRole('checkbox', { name: restoreStockLabel })).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByRole('status')).toHaveTextContent('(재고 복원 완료)');
     expect(rows()[1]).toHaveTextContent('환불 완료');

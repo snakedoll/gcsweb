@@ -1,5 +1,5 @@
 import type { ListResult } from '@/lib/services/contracts';
-import type { QrshopCatalogResult, QrshopService } from '@/lib/services/qrshop-service';
+import { QrshopStoreNotFoundError, type QrshopCatalogResult, type QrshopService } from '@/lib/services/qrshop-service';
 import type {
   QrshopOrderDraft,
   QrshopOrderResult,
@@ -7,7 +7,7 @@ import type {
   QrshopProduct,
 } from '@/types/qrshop';
 import { resolveMockScenario, type MockScenario } from './mock-service';
-import { qrshopQaProducts } from './qrshop-data';
+import { qrshopQaProducts, qrshopStockNoticeProducts } from './qrshop-data';
 
 const STORAGE_KEY = 'gcs:qrshop:mock-orders';
 
@@ -17,6 +17,8 @@ type QrshopMockServiceOptions = {
   storeStatus?: QrshopCatalogResult['storeStatus'];
   storeStatusOnRefresh?: QrshopCatalogResult['storeStatus'];
   soldOutOnRefreshIds?: string[];
+  stockOnRefresh?: number;
+  storeNotFound?: boolean;
 };
 
 const memoryOrders = new Map<string, QrshopOrderResult>();
@@ -75,7 +77,9 @@ export function createQrshopMockService(
     total: qrshopQaProducts.length,
   };
   return {
+    dataSource: 'mock',
     async getCatalog(request) {
+      if (options.storeNotFound) throw new QrshopStoreNotFoundError();
       const catalog = await resolveMockScenario(
         options.catalogScenario ?? {
           kind: 'success',
@@ -87,7 +91,11 @@ export function createQrshopMockService(
       const newlySoldOut = refresh ? new Set(options.soldOutOnRefreshIds) : new Set<string>();
       return {
         ...catalog,
-        items: catalog.items.map((item) => newlySoldOut.has(item.id) ? { ...item, soldOut: true } : { ...item }),
+        items: catalog.items.map((item) => ({
+          ...item,
+          ...(newlySoldOut.has(item.id) && { soldOut: true }),
+          ...(refresh && options.stockOnRefresh !== undefined && { stock: options.stockOnRefresh }),
+        })),
         storeStatus: refresh ? options.storeStatusOnRefresh ?? storeStatus : storeStatus,
       };
     },
@@ -141,6 +149,15 @@ export function createQrshopMockService(
 }
 
 export const qrshopMockService = createQrshopMockService();
+
+export const qrshopStockNoticeMockService = createQrshopMockService({
+  catalogScenario: {
+    kind: 'success',
+    data: { items: qrshopStockNoticeProducts, total: qrshopStockNoticeProducts.length },
+    delayMs: 100,
+  },
+  stockOnRefresh: 1,
+});
 
 export function clearQrshopMockOrders(): void {
   memoryOrders.clear();

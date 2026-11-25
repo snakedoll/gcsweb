@@ -16,6 +16,7 @@
 .copyIcon::before { content: ''; position: absolute; left: 4.17px; top: 2.5px; width: 8.333px; height: 11.667px; border: 1.25px solid var(--color-neutral-12); border-radius: 2.5px; }
 .copyIcon img { position: absolute; left: 7.205px; top: 5.545px; }
 .note { color: var(--color-neutral-8); font-size: 13px; letter-spacing: -.26px; }
+.invitePreview { align-self: flex-start; color: var(--color-neutral-10); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .section { display: flex; flex-direction: column; gap: 8px; }
 .section h3 { min-height: 24px; }
 .pending { background: var(--color-neutral-3); border-radius: 12px; overflow: hidden; }

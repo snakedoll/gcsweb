@@ -50,9 +50,13 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
 
   useEffect(() => {
     mounted.current = true;
+    const unsubscribe = service.subscribeToInviteChanges?.(() => void load());
     void load();
-    return () => { mounted.current = false; };
-  }, [load]);
+    return () => {
+      mounted.current = false;
+      unsubscribe?.();
+    };
+  }, [load, service]);
 
   async function act(action: Action, id: string) {
     if (locked.current) return;
@@ -101,7 +105,8 @@ export default function PosStaffPanel({ disabled = false, onOpen, service: provi
           <div className={styles.link}><input id="staff-invite" aria-describedby="staff-mock-note" readOnly value={data?.inviteUrl ?? ''} placeholder="링크를 불러오는 중입니다." onFocus={event => event.currentTarget.select()} />
             <button type="button" aria-label="Mock 직원 초대 링크 복사" disabled={!data || copying} onClick={() => void copyInvite()}><span className={styles.copyIcon} aria-hidden="true"><Image src={`${assets}/copy-back.svg`} alt="" width={11.0988} height={15.0988} /></span></button>
           </div>
-          <p id="staff-mock-note" className={styles.note}>Mock 예시 · 실제 초대와 직원 권한에는 반영되지 않으며, 새로고침 시 초기화됩니다.</p>
+          <p id="staff-mock-note" className={styles.note}>Mock 신청과 승인은 같은 브라우저의 탭에서 확인할 수 있습니다. 실제 직원 권한에는 반영되지 않습니다.</p>
+          {data && <a className={styles.invitePreview} href={data.inviteUrl} target="_blank" rel="noopener noreferrer">Mock 초대 링크 열기<span className="sr-only"> (새 탭)</span></a>}
           {copyMessage && <p role="status" className={styles.note}>{copyMessage}</p>}
         </section>
         {loading && <p role="status">직원 정보를 불러오는 중입니다.</p>}

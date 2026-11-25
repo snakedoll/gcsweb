@@ -4,9 +4,9 @@
 .heading h1 { font-size: 24px; font-weight: 700; }
 .heading span { color: var(--color-neutral-7); font-size: 13px; }
 .actionLink { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 20px; border: 1px solid var(--color-neutral-5); background: var(--color-neutral-2); border-radius: 8px; font-weight: 700; }
-.categoryTable { overflow: hidden; border: 1px solid var(--color-neutral-5); border-radius: 12px; background: white; }
+.categoryTable { max-height: max(240px, calc(100dvh - 284px)); overflow: auto; border: 1px solid var(--color-neutral-5); border-radius: 12px; background: white; }
 .tableHeading, .categoryRow { display: grid; grid-template-columns: 200px 1fr; }
-.tableHeading { min-height: 44px; background: var(--color-neutral-5); color: var(--color-neutral-8); font-size: 13px; font-weight: 700; }
+.tableHeading { position: sticky; top: 0; z-index: 2; min-height: 44px; background: var(--color-neutral-5); color: var(--color-neutral-8); font-size: 13px; font-weight: 700; }
 .tableHeading > div { padding: 12px 20px; }
 .tableHeading > div:first-child { border-right: 1px solid var(--color-neutral-6); }
 .tableHeading span { margin-left: 8px; font-weight: 400; letter-spacing: -.26px; }
@@ -54,12 +54,37 @@
 .productTable th:nth-child(6) { width: 14%; }
 .productTable th button { display: flex; gap: 4px; align-items: center; }
 .productTable td { height: 56px; border-top: 1px solid var(--color-neutral-4); color: var(--color-neutral-10); padding-right: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.productTable tbody tr:has(input:checked) { background-color: var(--color-orange-1); }
 .productTable .checkboxCell { width: 64px; padding: 0 24px; }
-.checkboxCell input { width: 18px; height: 18px; accent-color: var(--color-orange-5); vertical-align: middle; cursor: pointer; }
+.checkboxCell input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: url('/assets/sales-management/v2/pos/exposure/checkbox-unchecked.svg') center no-repeat;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.checkboxCell input:checked {
+  background-image: url('/assets/sales-management/v2/pos/exposure/checkbox-checked.svg');
+}
+.checkboxCell input:indeterminate {
+  background:
+    linear-gradient(var(--color-neutral-8), var(--color-neutral-8)) center / 8px 2px no-repeat,
+    url('/assets/sales-management/v2/pos/exposure/checkbox-unchecked.svg') center no-repeat;
+}
+.checkboxCell input:focus-visible { outline: 2px solid var(--color-neutral-10); outline-offset: 2px; border-radius: 5px; }
+.checkboxCell input:disabled { cursor: default; }
+@media (forced-colors: active) {
+  .checkboxCell input, .checkboxCell input:checked, .checkboxCell input:indeterminate {
+    appearance: auto;
+    background: none;
+  }
+}
 .productTable .name { font-weight: 700; color: var(--color-neutral-12); }
 .productTable .soldOut { font-weight: 700; color: var(--color-danger-normal, #ce1e1b); }
 .sortAsc { transform: rotate(180deg); }
 .selectionBar { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 72px; padding: 12px 16px 12px 24px; border: 1px solid var(--color-neutral-5); border-radius: 12px; background: white; font-weight: 700; }
+.selectedCount { color: var(--color-orange-6); }
 .selectionBar > div { display: flex; align-items: center; gap: 12px; }
 .selectionBar button { width: auto; min-height: 44px; white-space: nowrap; }
 .selectionBar button:disabled { color: var(--color-neutral-6); }
@@ -67,8 +92,11 @@
 .empty { padding: 64px 24px; text-align: center; color: var(--color-neutral-7); }
 .empty button { width: auto; margin-top: 16px; }
 .error { color: var(--color-danger-normal, #ce1e1b); }
+.notice { position: fixed; z-index: 30; top: 88px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 10px; width: max-content; max-width: calc(100% - 32px); min-height: 50px; padding: 9px 16px; border-radius: 8px; background: var(--color-neutral-10); color: #f2f4f6; font-size: 17px; font-weight: 700; text-align: center; pointer-events: none; }
+.noticeIcon { display: grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; }
 @media (max-width: 760px) {
   .body { padding: 16px; }
+  .categoryTable { max-height: none; }
   .heading, .filters, .footer { flex-wrap: wrap; }
   .heading > div { flex-wrap: wrap; }
   .heading h1 { font-size: 21px; }

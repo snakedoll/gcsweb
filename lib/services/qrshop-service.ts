@@ -12,6 +12,13 @@ export interface QrshopCatalogResult extends ListResult<QrshopProduct> {
   categories?: { id: string; name: string }[];
 }
 
+export class QrshopStoreNotFoundError extends Error {
+  constructor() {
+    super('존재하지 않는 상점입니다.');
+    this.name = 'QrshopStoreNotFoundError';
+  }
+}
+
 export interface QrshopService {
   dataSource?: 'mock' | 'api';
   getCatalog(options?: { refresh?: boolean }): Promise<QrshopCatalogResult>;

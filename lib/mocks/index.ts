@@ -7,6 +7,7 @@ export {
   clearQrshopMockOrders,
   createQrshopMockService,
   qrshopMockService,
+  qrshopStockNoticeMockService,
 } from './qrshop-service';
 export {
   QRSHOP_EDGE_LONG_OPTION_NAME,

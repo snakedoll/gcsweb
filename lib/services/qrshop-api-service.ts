@@ -1,4 +1,4 @@
-import type { QrshopCatalogResult, QrshopService } from './qrshop-service';
+import { QrshopStoreNotFoundError, type QrshopCatalogResult, type QrshopService } from './qrshop-service';
 import type { QrshopOrderResult, QrshopProduct } from '@/types/qrshop';
 import { checkPaymentStorage, readPaymentSession, savePaymentSession } from '@/lib/qrshop/payment-session';
 
@@ -80,6 +80,7 @@ export function createQrshopApiService(storeSlug: string): QrshopService {
       validateStore();
       const response = await fetch(`/api/v2/qrshop?storeSlug=${encodeURIComponent(storeSlug)}`, { cache: 'no-store' });
       const body = await response.json().catch(() => null);
+      if (response.status === 404 && body?.code === 'NOT_FOUND') throw new QrshopStoreNotFoundError();
       if (!response.ok || body?.status !== 'success' || !body.data) {
         throw new Error(body?.message ?? '상품을 불러오지 못했습니다. 다시 시도해주세요.');
       }

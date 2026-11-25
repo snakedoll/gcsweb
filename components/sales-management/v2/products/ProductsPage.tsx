@@ -14,7 +14,8 @@ import styles from './products.module.css';
 
 export default function ProductsPage({ form = false, productId }: { form?: boolean; productId?: string }) {
   const service = useRequiredSalesManagementV2Service();
-  const [data, setData] = useState<{ products: SalesProduct[]; categories: string[]; store: SalesStore | null; newestProductId: string | null } | null>(null);
+  const [data, setData] = useState<{ products: SalesProduct[]; categories: string[]; store: SalesStore | null } | null>(null);
+  const [newestProductId, setNewestProductId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
@@ -27,7 +28,7 @@ export default function ProductsPage({ form = false, productId }: { form?: boole
     const current = ++request.current;
     const [result, categories, store] = await Promise.all([service.getProducts(), service.getCategories(), service.getStore()]);
     if (current === request.current) {
-      setData({ products: result.items, categories, store, newestProductId: result.newestProductId });
+      setData({ products: result.items, categories, store });
       setError('');
     }
   }, [service]);
@@ -51,10 +52,13 @@ export default function ProductsPage({ form = false, productId }: { form?: boole
       : form ? <>
         {productId && !editing ? <p className={styles.empty}>상품을 찾을 수 없어요. <Link href={productsPath}>전체 상품으로</Link></p>
           : <ProductForm key={productId ?? 'new'} product={editing} storeId={data.store.id} categories={data.categories}
-            service={service} onSaved={refresh} onCategoryCreated={name => setData(current => current ? { ...current, categories: [...new Set([...current.categories, name])] } : current)} />}
+            service={service} onSaved={saved => {
+              if (!editing) setNewestProductId(saved.id);
+              return refresh();
+            }} onCategoryCreated={name => setData(current => current ? { ...current, categories: [...new Set([...current.categories, name])] } : current)} />}
         {(!productId || editing) && <section className={styles.registered} aria-label="최근 등록된 상품">
           <h2>최근 등록된 상품</h2>
-          {data.products.length ? <ProductGrid products={data.products.slice(0, 6)} newestProductId={data.newestProductId} onDelete={setDeleting} />
+          {data.products.length ? <ProductGrid products={data.products.slice(0, 6)} newestProductId={productId ? null : newestProductId} onDelete={setDeleting} />
             : <p className={styles.recentEmpty}>아직 등록된 상품이 없습니다.</p>}
         </section>}
       </> : <>

@@ -9,10 +9,17 @@ export interface SalesOrder {
   paymentMethod: OrderPaymentMethod;
   paymentAmount: number;
   refundStatus: 'none' | 'pending' | 'refunded';
+  refundReason?: 'sold-out';
   refundRestoreStock?: boolean;
 }
 
-export interface OrdersQuery { date: string; channel: OrderChannel; search: string; page: number }
+export interface OrdersQuery {
+  date: string;
+  channel: OrderChannel;
+  search: string;
+  page: number;
+  refundedOnly?: boolean;
+}
 export interface OrdersResult { orders: SalesOrder[]; total: number; page: number }
 export interface OrdersService {
   listOrders(query: OrdersQuery): Promise<OrdersResult>;

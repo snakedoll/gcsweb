@@ -18,9 +18,9 @@
 .calendarDots1 { left: 3.81px; top: 7.81px; }
 .calendarDots2 { left: 3.81px; top: 10.47px; }
 .filters { display: flex; align-items: center; gap: 16px; }
-.channels { display: flex; flex-shrink: 0; gap: 8px; }
-.channels button { height: 40px; padding: 0 16px; border: 1px solid var(--color-neutral-5); border-radius: 20px; background: white; color: var(--color-neutral-8); white-space: nowrap; }
-.channels button[aria-pressed="true"] { border-color: transparent; background: var(--color-orange-4); color: white; font-weight: 700; }
+.filtersGroup { display: flex; flex-shrink: 0; gap: 8px; }
+.filtersGroup button { height: 40px; padding: 0 16px; border: 1px solid var(--color-neutral-5); border-radius: 20px; background: white; color: var(--color-neutral-8); white-space: nowrap; }
+.filtersGroup button[aria-pressed="true"] { border-color: transparent; background: var(--color-orange-4); color: white; font-weight: 700; }
 .search { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 40px; flex: 1; min-width: 0; padding: 0 12px 0 16px; border: 1px solid var(--color-neutral-5); border-radius: 12px; background: var(--color-neutral-2); }
 .search input { min-width: 0; flex: 1; width: 100%; background: transparent; font-size: 18px; letter-spacing: -.36px; }
 .search input::placeholder { color: var(--color-neutral-7); }
@@ -38,22 +38,42 @@
 .methodColumn, .amountColumn { width: 126px; }
 .refundColumn { width: 112px; }
 .orderNo { color: var(--color-orange-5); font-weight: 700; }
+.itemsCell { position: relative; }
 .items { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.items[data-expanded="true"] { padding: 8px 0 0; overflow-wrap: anywhere; white-space: normal; }
+.itemsToggle { color: var(--color-neutral-8); font-size: 13px; text-decoration: underline; }
+.itemsToggle[aria-expanded="true"] { margin-bottom: 8px; }
+.mobileBoard { display: none; }
 .bold { font-weight: 700; color: var(--color-neutral-12); }
 .refund { width: 80px; height: 36px; border: 1px solid var(--color-neutral-5); border-radius: 8px; color: var(--color-neutral-10); background: var(--color-neutral-2); font-weight: 700; cursor: pointer; }
-.refundState { font-size: 13px; color: var(--color-neutral-8); }
+.refundState { display: inline-grid; place-items: center; width: 80px; min-height: 36px; border: 1px solid var(--color-neutral-5); border-radius: 8px; color: var(--color-neutral-8); background: var(--color-neutral-3); font-size: 13px; }
 .empty { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 80px 16px; text-align: center; color: var(--color-neutral-8); }
-.empty button, .pagination button { padding: 8px 16px; border: 1px solid var(--color-neutral-5); border-radius: 8px; background: white; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; }
-.pagination button:disabled { color: var(--color-neutral-7); cursor: default; }
+.empty button { padding: 8px 16px; border: 1px solid var(--color-neutral-5); border-radius: 8px; background: white; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 17px; padding: 40px 0; }
+.pagination button { display: grid; place-items: center; min-width: 24px; height: 36px; border-radius: 4px; color: var(--color-neutral-8); font-size: 24px; }
+.pagination button[aria-current="page"] { color: var(--color-orange-5); }
+.pagination button:disabled { opacity: .5; cursor: default; }
 .notes { font-size: 13px; color: var(--color-neutral-8); }
 .refundDialog { width: 560px; border-radius: 12px; }
 dialog.refundDialog::backdrop { background: rgb(0 0 0 / .3); }
-.refundModal { padding: 40px 40px 32px; }
-.refundText { display: flex; flex-direction: column; gap: 8px; text-align: center; line-height: 1.5; }
-.refundText h2 { font-size: 22px; font-weight: 700; }
-.refundText p { font-size: 17px; }
-.refundActions { display: flex; gap: 12px; margin-top: 32px; }
+.refundModal { padding: 40px 40px 32px; text-align: center; }
+.refundModal h2 { font-size: 22px; font-weight: 700; color: var(--color-neutral-12); }
+.restoreChoice { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 12px; min-height: 30px; font-size: 20px; cursor: pointer; }
+.restoreChoice input {
+  appearance: none;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: url('/assets/sales-management/v2/pos/exposure/checkbox-unchecked.svg') center no-repeat;
+  cursor: inherit;
+}
+.restoreChoice input:checked { background-image: url('/assets/sales-management/v2/pos/exposure/checkbox-checked.svg'); }
+.restoreChoice input:disabled { cursor: default; }
+.restoreChoice input:focus-visible { outline: 2px solid var(--color-neutral-10); outline-offset: 2px; border-radius: 5px; }
+@media (forced-colors: active) {
+  .restoreChoice input, .restoreChoice input:checked { appearance: auto; background: none; }
+}
+.refundActions { display: flex; gap: 12px; margin-top: 36px; }
 .refundActions button { height: 44px; padding: 0 16px; flex: 1; min-width: 0; }
 .refundActions button:first-child { border-color: var(--color-neutral-5); }
 .refundActions button:disabled { opacity: .7; }
@@ -62,11 +82,14 @@ dialog.refundDialog::backdrop { background: rgb(0 0 0 / .3); }
 .refundToast { position: fixed; z-index: 30; top: 88px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 10px; width: max-content; max-width: calc(100% - 32px); padding: 9px 16px; border-radius: 8px; background: var(--color-neutral-10); color: #f2f4f6; font-size: 17px; font-weight: 700; line-height: 1.5; text-align: center; pointer-events: none; }
 .refundInfo { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
 @media (max-width: 760px) {
-  .body { padding: 16px; }
+  .body { display: none; }
+  .mobileBoard { display: block; padding: 16px; }
+  .mobileBoard a { color: var(--color-orange-10); text-decoration: underline; }
   .filters { flex-wrap: wrap; gap: 12px; }
   .search { flex-basis: 100%; }
   .dateRow h2 { font-size: 19px; }
   .refundModal { padding: 32px 20px 24px; }
-  .refundText h2 { font-size: 20px; }
+  .refundModal h2 { font-size: 20px; }
+  .restoreChoice { font-size: 16px; }
   .refundActions button { padding: 0 8px; }
 }

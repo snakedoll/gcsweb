@@ -51,7 +51,7 @@ describe('v2 상점 수정·삭제', () => {
     const { service, view } = await ready('success');
     expect(screen.getByRole('textbox', { name: '상점명' })).toHaveValue('잇장샵');
     expect(screen.queryByRole('button', { name: '상점 삭제하기' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '방문객 주문 QR 열기' })).toHaveTextContent('QR 보기');
+    expect(screen.getByRole('button', { name: '방문객 주문 QR 열기' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '상점 정보 수정하기' })).toBeEnabled();
     change('상점 아이디', 'newshop123');
     expect(screen.getByRole('button', { name: '상점 정보 수정하기' })).toBeDisabled();
@@ -142,9 +142,9 @@ describe('v2 상점 수정·삭제', () => {
     expect(screen.getByText('사용 가능한 아이디입니다.')).toBeInTheDocument();
   });
   it('QA: 상점 QR에서 저장과 인쇄를 열고 실패 후 재시도한다', async () => {
-    const { service } = await ready();
+    const service = createMockLandingV2Service('no-sales');
     vi.spyOn(service, 'getVisitorOrderQr').mockRejectedValueOnce(new Error('QR을 불러오지 못했어요.')).mockResolvedValue({ imageUrl: 'data:image/svg+xml,%3Csvg%2F%3E', visitorOrderUrl: 'https://example.com/QRshop/@abcd' });
-    fireEvent.click(screen.getByRole('button', { name: '방문객 주문 QR 열기' }));
+    render(<SalesManagementV2Provider service={service}><StorePage /></SalesManagementV2Provider>);
     expect(await screen.findByRole('alert')).toHaveTextContent('QR을 불러오지 못했어요.');
     fireEvent.click(screen.getByRole('button', { name: '방문객 주문 QR 열기' }));
     await screen.findByRole('dialog', { name: '방문객 주문 QR' });
@@ -177,13 +177,15 @@ describe('상점 API 오류와 Mock QR 경계', () => {
     expect(push).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox', { name: '상점명' })).toHaveValue('잇장샵');
   });
-  it('고정 Mock QR을 예시로 표시하고 저장과 인쇄를 막는다', async () => {
+  it('상점 미리보기 URL의 Mock QR을 생성하여 저장과 인쇄를 제공한다', async () => {
     await ready();
-    fireEvent.click(screen.getByRole('button', { name: '방문객 주문 QR 열기' }));
+    const preview = screen.getByRole('button', { name: '방문객 주문 QR 열기' });
+    await waitFor(() => expect(preview.querySelector('img')).toHaveAttribute('src', expect.stringMatching(/^data:image\/png;base64,/)));
+    fireEvent.click(preview);
     fireEvent.load(await screen.findByAltText('방문객 주문 QR 코드'));
-    expect(screen.getByText(/Mock 예시 QR입니다/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '이미지 저장' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '인쇄' })).toBeDisabled();
+    expect(screen.getByText(/상점 미리보기가 열립니다/)).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '이미지 저장' })).toHaveAttribute('href', expect.stringMatching(/^data:image\/png;base64,/));
+    expect(screen.getByRole('button', { name: '인쇄' })).toBeEnabled();
   });
 });
 

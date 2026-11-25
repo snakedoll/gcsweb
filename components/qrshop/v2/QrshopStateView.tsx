@@ -6,12 +6,15 @@ type QrshopStateViewProps = {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  paymentResult?: boolean;
 };
 
-export default function QrshopStateView({ icon, title, description, actionLabel, onAction }: QrshopStateViewProps) {
+export default function QrshopStateView({ icon, title, description, actionLabel, onAction, paymentResult = false }: QrshopStateViewProps) {
+  const action = actionLabel && onAction && <Button className={paymentResult ? 'h-[45px] rounded-[4px]' : 'mt-6'} color="orange" onClick={onAction}>{actionLabel}</Button>;
+
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <div className={`flex w-full max-w-[343px] flex-col items-center text-center ${icon ? '-translate-y-7' : ''}`}>
+    <main className={`relative mx-auto flex min-h-dvh items-center justify-center px-4 ${paymentResult ? 'max-w-[430px] py-28' : ''}`}>
+      <div className={`flex w-full max-w-[343px] flex-col items-center text-center ${icon && !paymentResult ? '-translate-y-7' : ''}`}>
         {icon ? (
           <span
             aria-hidden
@@ -24,8 +27,9 @@ export default function QrshopStateView({ icon, title, description, actionLabel,
         ) : <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-orange-1 text-2xl text-orange-6">!</div>}
         <h1 className="typo-heading-small text-neutral-12">{title}</h1>
         {description ? <p className="typo-body-small mt-[3px] whitespace-pre-line text-neutral-9">{description}</p> : null}
-        {actionLabel && onAction ? <Button className="mt-6" color="orange" onClick={onAction}>{actionLabel}</Button> : null}
+        {!paymentResult && action}
       </div>
-    </div>
+      {paymentResult && action && <div className="absolute inset-x-4 bottom-[max(51px,env(safe-area-inset-bottom))]">{action}</div>}
+    </main>
   );
 }

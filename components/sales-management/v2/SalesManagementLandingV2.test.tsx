@@ -56,7 +56,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(await screen.findByRole('dialog', { name: '방문객 주문 QR' })).toBeInTheDocument();
   });
 
-  it('등록 상태의 통계와 최근 상품을 표시하고 POS·주문조회 진입을 연결한다', async () => {
+  it('등록 상태의 통계와 최근 상품을 표시하고 POS·상품 분석·주문조회 진입을 연결한다', async () => {
     await ready();
     expect(screen.getByText('36개')).toBeInTheDocument();
     expect(screen.getByText('128,000원')).toBeInTheDocument();
@@ -64,6 +64,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(screen.getByRole('link', { name: /현장 운영/ })).toHaveAttribute('href', '/sales-management/v2/pos');
     expect(within(screen.getByRole('list', { name: '최근 등록 상품' })).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.getByRole('link', { name: /주문 관리/ })).toHaveAttribute('href', '/sales-management/v2/orders');
+    expect(screen.getByRole('link', { name: /데이터 관리/ })).toHaveAttribute('href', '/sales-management/v2/analytics');
   });
 
   it('삭제 취소는 데이터를 유지하고 확인하면 목록·상품 수를 갱신한다', async () => {

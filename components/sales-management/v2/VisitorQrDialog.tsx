@@ -69,11 +69,11 @@ export default function VisitorQrDialog({ qr, onDismiss }: { qr: VisitorOrderQr;
             <span className={styles.copyIcon} aria-hidden="true" />
           </button>
         </div>
-        <p className={styles.qrHelp}>{qr.isMock ? 'Mock 예시 QR입니다. 표시된 상점 URL의 실제 QR이 아니며 운영에 사용할 수 없습니다.' : '해당 QR코드와 URL을 사용해 방문객들이 상점 사이트로 바로 진입할 수 있습니다.'}</p>
+        <p className={styles.qrHelp}>{qr.isMock ? 'QR코드를 스캔하면 이 환경의 상점 미리보기가 열립니다.' : '해당 QR코드와 URL을 사용해 방문객들이 상점 사이트로 바로 진입할 수 있습니다.'}</p>
         <div className={styles.qrActions}>
-          {imageReady && !qr.isMock ? <a href={qr.imageUrl} download={qr.imageUrl.startsWith('data:image/svg+xml') ? '방문객-주문-QR.svg' : '방문객-주문-QR.png'}>이미지 저장</a>
+          {imageReady ? <a href={qr.imageUrl} download={qr.imageUrl.startsWith('data:image/svg+xml') ? '방문객-주문-QR.svg' : '방문객-주문-QR.png'}>이미지 저장</a>
             : <Button color="white" disabled>이미지 저장</Button>}
-          <Button color="beige" disabled={!imageReady || qr.isMock} onClick={() => window.print()}>인쇄</Button>
+          <Button color="beige" disabled={!imageReady} onClick={() => window.print()}>인쇄</Button>
         </div>
         {message && <p role="status" className={styles.qrMessage}>{message}</p>}
       </div>

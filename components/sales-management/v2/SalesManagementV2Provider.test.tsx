@@ -9,7 +9,7 @@ import type { PosStaffService } from '@/lib/services/pos-staff-service';
 const route = vi.hoisted(() => ({ pathname: '/sales-management/v2/pos' }));
 vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useSearchParams: () => new URLSearchParams() }));
 afterEach(cleanup);
-it.each(['/sales-management/v2/pos', '/sales-management/v2/pos/edit', '/sales-management/v2/pos/add', '/sales-management/v2/orders', '/sales-management/v2/orders/detail'])('API 모드의 %s 직접 진입은 Mock 운영 화면을 마운트하지 않는다', pathname => {
+it.each(['/sales-management/v2/pos', '/sales-management/v2/pos/edit', '/sales-management/v2/pos/add', '/sales-management/v2/pos/order-board', '/sales-management/v2/orders', '/sales-management/v2/orders/detail', '/sales-management/v2/analytics'])('API 모드의 %s 직접 진입은 Mock 운영 화면을 마운트하지 않는다', pathname => {
   route.pathname = pathname;
   render(<SalesManagementV2Provider service={createStoreApiService()}><p>POS 판매 화면</p></SalesManagementV2Provider>);
   expect(screen.queryByText('POS 판매 화면')).not.toBeInTheDocument();

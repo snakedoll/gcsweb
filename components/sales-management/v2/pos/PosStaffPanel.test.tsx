@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockPosStaffService } from '@/lib/mocks/pos-staff-service';
+import { MOCK_STAFF_INVITE_PATH, readMockStaffInviteRequest, requestMockStaffInvite } from '@/lib/mocks/pos-staff-invite-service';
 import { createMockPosService } from '@/lib/mocks/pos-service';
 import type { PosStaffSnapshot } from '@/lib/services/pos-staff-service';
 import PosProvider from './PosProvider';
@@ -14,7 +15,7 @@ beforeEach(() => {
     close: { configurable: true, value: function (this: HTMLDialogElement) { this.removeAttribute('open'); } },
   });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); window.localStorage.clear(); vi.restoreAllMocks(); });
 
 const initial: PosStaffSnapshot = {
   inviteUrl: 'https://example.invalid/mock/staff',
@@ -129,6 +130,22 @@ describe('POS 직원 관리 패널', () => {
     await screen.findByLabelText('승인 대기 1명');
     fireEvent.click(trigger());
     expect(within(panel()).getByRole('heading', { name: '등록된 직원 (2)' })).toBeInTheDocument();
+  });
+
+  it('같은 브라우저의 Mock 요청을 목록에 반영하고 승인한다', async () => {
+    render(<PosStaffPanel />);
+    await screen.findByLabelText('승인 대기 2명');
+    fireEvent.click(trigger());
+    const url = new URL(MOCK_STAFF_INVITE_PATH, window.location.origin).href;
+    expect(screen.getByLabelText('직원 초대 링크')).toHaveValue(url);
+    expect(screen.getByRole('link', { name: /Mock 초대 링크 열기/ })).toHaveAttribute('href', url);
+
+    await act(async () => { await requestMockStaffInvite(); });
+    await screen.findByLabelText('승인 대기 3명');
+    click('Mock 신청자 승인');
+    await screen.findByLabelText('승인 대기 2명');
+    expect(within(screen.getByRole('list', { name: '등록된 직원 목록' })).getByText('Mock 신청자')).toBeInTheDocument();
+    expect(readMockStaffInviteRequest()).toMatchObject({ status: 'approved' });
   });
 
   it('한국 시간 기준 당일 요청은 시간, 이전 요청과 등록일은 데이터 날짜로 표시한다', () => {

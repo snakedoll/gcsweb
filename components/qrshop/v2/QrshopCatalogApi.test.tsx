@@ -60,7 +60,8 @@ describe('QRshop 실제 카탈로그 경계', () => {
     let rows = within(screen.getByRole('list', { name: '선택 상품 목록' })).getAllByRole('listitem');
     expect(rows).toHaveLength(1);
     expect(within(rows[0]).getByText('2')).toBeInTheDocument();
-    expect(within(rows[0]).getByRole('button', { name: '티셔츠 수량 증가' })).toBeDisabled();
+    fireEvent.click(within(rows[0]).getByRole('button', { name: '티셔츠 수량 증가' }));
+    expect(within(rows[0]).getByText('2')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '티셔츠 S L 담기' }));
     expect(screen.getByRole('button', { name: /^S/ })).toHaveTextContent('+ 1,000원');
     expect(screen.getByRole('button', { name: /^L/ })).toHaveTextContent('+ 2,000원');
@@ -72,9 +73,11 @@ describe('QRshop 실제 카탈로그 경계', () => {
     const large = rows.find(row => row.textContent?.includes('L · 재고'))!;
     fireEvent.click(within(small).getByRole('button', { name: '티셔츠 수량 증가' }));
     expect(within(small).getByText('2')).toBeInTheDocument();
-    expect(within(small).getByRole('button', { name: '티셔츠 수량 증가' })).toBeDisabled();
+    fireEvent.click(within(small).getByRole('button', { name: '티셔츠 수량 증가' }));
+    expect(within(small).getByText('2')).toBeInTheDocument();
     expect(within(large).getByText('1')).toBeInTheDocument();
-    expect(within(large).getByRole('button', { name: '티셔츠 수량 증가' })).toBeDisabled();
+    fireEvent.click(within(large).getByRole('button', { name: '티셔츠 수량 증가' }));
+    expect(within(large).getByText('1')).toBeInTheDocument();
   });
 
   it('재조회 후 품절 옵션을 제거하면서 다른 옵션의 재고 감소·새 가격도 반영한다', async () => {
@@ -89,15 +92,26 @@ describe('QRshop 실제 카탈로그 경계', () => {
     const rows = within(screen.getByRole('list', { name: '선택 상품 목록' })).getAllByRole('listitem');
     fireEvent.click(within(rows[0]).getByRole('button', { name: '티셔츠 수량 증가' }));
     submit();
-    expect(await screen.findByRole('alertdialog')).toHaveTextContent('티셔츠가 품절되었습니다.');
+    const soldOutDialog = await screen.findByRole('alertdialog');
+    expect(soldOutDialog).toHaveTextContent('티셔츠(L)이 품절되었습니다.');
     const cart = within(screen.getByRole('list', { name: '선택 상품 목록' }));
     expect(cart.getAllByRole('listitem')).toHaveLength(1);
     expect(cart.getByText('1')).toBeInTheDocument();
     expect(cart.getByText('7,000원')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('재고가 변경되어');
+    fireEvent.click(within(soldOutDialog).getByRole('button', { name: '확인' }));
+    expect(within(screen.getByRole('alertdialog')).getByRole('heading')).toHaveTextContent(/^티셔츠\(S\)이\s*남은 재고수 보다 많이 담겼습니다\.$/);
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(createOrder).not.toHaveBeenCalled();
     expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it('없는 상점은 일시 조회 오류 화면과 다른 안내를 표시한다', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      status: 'error', code: 'NOT_FOUND', message: '존재하지 않는 상점',
+    }), { status: 404 })));
+    render(<QrshopOrderClient />);
+    expect(await screen.findByRole('heading', { name: '존재하지 않는 상점입니다.' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument();
   });
 
   it('API 실패 후 재시도하고 실제 주문을 만들어 상점 식별을 유지한다', async () => {

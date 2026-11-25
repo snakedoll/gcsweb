@@ -1,11 +1,11 @@
 import type { SalesManagementV2Service } from '@/lib/services/sales-management-service';
-import { copyPosExposure, createPosLine, getPosStock, posLineKey, reconcilePosExposure, type PosCartLine, type PosExposure, type PosProduct, type PosService } from '@/lib/services/pos-service';
+import { copyPosExposure, createPosLine, getPosStock, posLineDiscount, posLineKey, posLineSubtotal, PosStockChangedError, reconcilePosExposure, type PosCartLine, type PosExposure, type PosProduct, type PosReceipt, type PosService } from '@/lib/services/pos-service';
 import type { SalesProduct } from '@/types/sales-management';
 
 // Reuse the v2 catalog. Sales and stock deductions belong to this POS session only.
 export function createMockPosService(source: Pick<SalesManagementV2Service, 'getProducts'> & Partial<Pick<SalesManagementV2Service, 'getCategories'>>): PosService {
   const sold = new Map<string, number>();
-  let sequence = 0;
+  const receipts: PosReceipt[] = [];
   let exposure: PosExposure | null = null;
 
   async function loadExposure() {
@@ -41,6 +41,7 @@ export function createMockPosService(source: Pick<SalesManagementV2Service, 'get
       const state = await loadExposure();
       return remaining(exposed(state.products, state.exposure));
     },
+    async getReceipts() { return structuredClone(receipts.slice().reverse()); },
     async getExposureProducts() { return remaining((await source.getProducts()).items); },
     async getExposure() { return copyPosExposure((await loadExposure()).exposure); },
     async saveExposure(next) {
@@ -57,15 +58,28 @@ export function createMockPosService(source: Pick<SalesManagementV2Service, 'get
       if (!lines.length) throw new Error('상품을 선택해주세요.');
       const state = await loadExposure();
       const products = remaining(exposed(state.products, state.exposure));
+      const catalog = new Map(products.map(product => [product.id, product]));
+      const unavailable = lines.filter(line => {
+        const product = catalog.get(line.productId);
+        return !product || getPosStock(product, line.optionId) <= 0;
+      });
+      if (unavailable.length) throw new PosStockChangedError(unavailable.map(posLineKey));
+
       const merged = new Map<string, PosCartLine>();
       for (const line of lines) {
         if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) throw new Error('상품 수량을 확인해주세요.');
-        const product = products.find(item => item.id === line.productId);
-        if (!product || getPosStock(product, line.optionId) === 0) throw new Error('판매할 수 없는 상품이 포함되어 있어요.');
+        const product = catalog.get(line.productId)!;
+        const pricedLine = createPosLine(product, line.optionId);
+        const discount = line.discountAmount ?? 0;
+        if (!Number.isSafeInteger(discount) || discount < 0 || discount > pricedLine.unitPrice * line.quantity) {
+          throw new Error('할인 금액을 확인해주세요.');
+        }
         const key = posLineKey(line);
-        const quantity = (merged.get(key)?.quantity ?? 0) + line.quantity;
+        const previous = merged.get(key);
+        const quantity = (previous?.quantity ?? 0) + line.quantity;
         if (quantity > getPosStock(product, line.optionId)) throw new Error('남은 재고수 이상으로 상품을 담을 수 없습니다.');
-        merged.set(key, { ...createPosLine(product, line.optionId), quantity });
+        const discountAmount = (previous?.discountAmount ?? 0) + discount;
+        merged.set(key, { ...pricedLine, quantity, ...(discountAmount > 0 ? { discountAmount } : {}) });
       }
       const resolved = [...merged.values()];
       for (const product of products) {
@@ -78,10 +92,12 @@ export function createMockPosService(source: Pick<SalesManagementV2Service, 'get
         const key = posLineKey(line);
         sold.set(key, (sold.get(key) ?? 0) + line.quantity);
       }
-      return {
-        orderCode: String(++sequence).padStart(3, '0'), lines: resolved, paymentMethod,
-        totalAmount: resolved.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
+      const receipt = {
+        orderCode: String(receipts.length + 1).padStart(3, '0'), lines: resolved, paymentMethod,
+        totalAmount: resolved.reduce((sum, line) => sum + posLineSubtotal(line) - posLineDiscount(line), 0),
       };
+      receipts.push(receipt);
+      return structuredClone(receipt);
     },
   };
 }

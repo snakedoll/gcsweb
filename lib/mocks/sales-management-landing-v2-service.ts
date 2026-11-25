@@ -12,8 +12,10 @@ export function parseLandingV2MockState(value?: string): LandingV2MockState {
 }
 
 const assetRoot = '/assets/sales-management/v2';
-// The fixed QR image is an example, not a QR for this store URL.
-const visitorOrderUrl = 'https://www.gcsweb.kr/QRshop?store=ybbybby0308';
+const mockVisitorOrderUrl = (identifier: string) => new URL(
+  `/QRshop?store=${encodeURIComponent(identifier)}`,
+  typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin,
+).href;
 
 export function createMockLandingV2Service(
   state: LandingV2MockState = 'success',
@@ -28,25 +30,32 @@ export function createMockLandingV2Service(
     imageUrl: `${assetRoot}/watch.png`,
     category: '태그',
     stock: 30,
+    createdAt: `${2026 - Math.floor(index / 12)}-03-12T00:00:00+09:00`,
     isVisible: true,
     hasSalesHistory: state !== 'no-sales' && index === 2,
     options: Array.from({ length: 8 }, (_, option) => ({ id: `option-${option}`, name: `옵션 ${option + 1}`, price: 0, stock: 0 })),
   }));
   let store: SellerLandingSummary['store'] = state === 'empty' ? null : {
     hasSalesHistory: products.some(product => product.hasSalesHistory),
-    id: 'landing-store', name: '잇장샵', storeIdentifier: 'ybbybby0308', visitorOrderUrl,
+    id: 'landing-store', name: '잇장샵', storeIdentifier: 'ybbybby0308',
+    visitorOrderUrl: mockVisitorOrderUrl('ybbybby0308'), createdAt: '2025-03-12T00:00:00+09:00',
     imageUrl: state === 'no-image' ? undefined : `${assetRoot}/store.png`,
   };
 
-  if (options.catalog) products = products.map((product, index) => ({
-    ...product, name: index < 30 ? '무슨무슨가방' : index < 33 ? '데일리 신발' : '코튼 상의',
-    category: index < 30 ? '숄더백' : index < 33 ? '신발' : '상의',
-    price: 126000, stock: 58, imageUrl: `${assetRoot}/products/bag.png`,
-    options: [5, 20, 12, 21].map((stock, i) => ({ id: `${product.id}-option-${i}`, name: '옵션', price: 0, stock })),
-  }));
+  if (options.catalog) products = products.map((product, index) => {
+    const lowStockSample = index === 5;
+    const optionStocks = lowStockSample ? [2, 0, 0, 0, 1, 1, 0, 1] : index === 8 ? [0, 0, 0, 0] : [5, 20, 12, 21];
+    return {
+      ...product, name: index < 30 ? '무슨무슨가방' : index < 33 ? '데일리 신발' : '코튼 상의',
+      category: index < 30 ? '숄더백' : index < 33 ? '신발' : '상의',
+      price: 126000, stock: optionStocks.reduce((sum, count) => sum + count, 0), imageUrl: `${assetRoot}/products/bag.png`,
+      options: optionStocks.map((stock, i) => ({ id: `${product.id}-option-${i}`, name: lowStockSample ? `옵션 ${i + 1}` : '옵션', price: 0, stock })),
+    };
+  });
   let categories = ['숄더백', '신발', '상의'];
   let newestProductId: string | null = null;
   let sequence = products.length;
+  let optionSequence = 0;
   const copy = (product: SalesProduct): SalesProduct => ({ ...product, options: product.options.map(option => ({ ...option })) });
 
   const snapshot = (): SellerLandingSummary => ({
@@ -80,7 +89,8 @@ export function createMockLandingV2Service(
       store = {
         ...store, id: store?.id ?? 'landing-store', hasSalesHistory: store?.hasSalesHistory ?? false,
         name: input.name.trim(), storeIdentifier: identifier,
-        visitorOrderUrl: `https://www.gcsweb.kr/QRshop?store=${encodeURIComponent(identifier)}`,
+        visitorOrderUrl: mockVisitorOrderUrl(identifier),
+        createdAt: store?.createdAt ?? new Date().toISOString(),
       };
       return { ...store };
     },
@@ -120,12 +130,25 @@ export function createMockLandingV2Service(
       }
       const stock = input.usesOptions ? input.options.reduce((sum, option) => sum + option.stock, 0) : input.stock;
       if (!validNumber(stock)) throw new MockServiceError('총재고를 확인해주세요.');
+      const optionIds = input.usesOptions ? input.options.flatMap(option => option.id ? [option.id] : []) : [];
+      if (new Set(optionIds).size !== optionIds.length || optionIds.some(optionId => !previous?.options.some(option => option.id === optionId))) {
+        throw new MockServiceError('기존 상품 옵션을 확인해주세요.');
+      }
+      if (previous?.hasSalesHistory) {
+        const sameOptions = input.usesOptions === Boolean(previous.options.length)
+          && (!input.usesOptions || (input.options.length === previous.options.length
+            && previous.options.every(option => input.options.some(item => item.id === option.id && item.name.trim() === option.name))));
+        if (!sameOptions) throw new MockServiceError('판매 이력이 있는 상품은 옵션 구성과 옵션명을 변경할 수 없어요.');
+      }
       const productId = id ?? `landing-product-${++sequence}`;
       const product: SalesProduct = {
         hasSalesHistory: previous?.hasSalesHistory ?? false,
         id: productId, storeId: store.id, name: input.name.trim(), category: input.category.trim(),
         price: input.price, stock, imageUrl: input.imageUrl, isVisible: previous?.isVisible ?? true,
-        options: input.usesOptions ? input.options.map((option, i) => ({ ...option, name: option.name.trim(), id: `${productId}-option-${i}` })) : [],
+        createdAt: previous ? previous.createdAt : new Date().toISOString(),
+        options: input.usesOptions ? input.options.map(option => ({
+          ...option, name: option.name.trim(), id: option.id ?? `${productId}-new-option-${++optionSequence}`,
+        })) : [],
       };
       if (product.category && !categories.includes(product.category)) categories.push(product.category);
       if (id) products = products.map(item => item.id === id ? product : item);
@@ -159,7 +182,10 @@ export function createMockLandingV2Service(
     },
     async getVisitorOrderQr() {
       if (!store) throw new MockServiceError('상점 등록 후 QR을 발급받을 수 있어요.');
-      return { isMock: true, imageUrl: `${assetRoot}/visitor-order-qr.png`, visitorOrderUrl: store.visitorOrderUrl };
+      const { visitorOrderUrl } = store;
+      const { default: QRCode } = await import('qrcode');
+      const imageUrl = await QRCode.toDataURL(visitorOrderUrl, { width: 307, margin: 4 });
+      return { isMock: true, imageUrl, visitorOrderUrl };
     },
   };
 }

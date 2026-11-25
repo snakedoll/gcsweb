@@ -14,6 +14,7 @@ import styles from './exposure.module.css';
 
 const root = '/sales-management/v2/pos';
 const assets = '/assets/sales-management/v2/pos/exposure';
+const removalHintKey = 'gcsweb:pos:exposure-removal-hint';
 const categoryName = (name: string) => name || '미분류';
 const registeredDate = (product: PosProduct) => product.createdAt && /^\d{4}-\d{2}-\d{2}/.test(product.createdAt) ? product.createdAt.slice(0, 10) : null;
 
@@ -33,7 +34,9 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
   const [attempt, setAttempt] = useState(0);
   const [pending, setPending] = useState(false);
   const saving = useRef(false);
+  const explainedRemoval = useRef(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState<{ text: string; duration: number } | null>(null);
   const [year, setYear] = useState('all');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
@@ -70,7 +73,40 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
     if (selectAll.current) selectAll.current.indeterminate = !allSelected && filtered.some(product => selected.includes(product.id));
   }, [allSelected, filtered, selected]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), notice.duration);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   function update(next: PosExposure) { if (!saving.current) setDraft(next); }
+  function announceRemoval(count: number) {
+    if (!count) return;
+    let showHint = !explainedRemoval.current;
+    explainedRemoval.current = true;
+    if (showHint) {
+      try {
+        showHint = window.sessionStorage.getItem(removalHintKey) === null;
+        if (showHint) window.sessionStorage.setItem(removalHintKey, 'seen');
+      } catch {
+        // The hint still works while this page is open if storage is unavailable.
+      }
+    }
+    const message = `${count}개 상품을 노출 해제했습니다`;
+    setNotice({
+      text: showHint ? `${message}. 노출 상품 추가하기를 통해 다시 추가할 수 있습니다.` : message,
+      duration: showHint ? 6000 : 4000,
+    });
+  }
+  function toggleCategory(groupIndex: number) {
+    const group = groups[groupIndex];
+    update(groups.map((item, index) => index === groupIndex ? { ...item, hidden: !item.hidden } : item));
+    if (!group.hidden) announceRemoval(group.productIds.length);
+  }
+  function removeProduct(id: string) {
+    update(groups.map(group => ({ ...group, productIds: group.productIds.filter(productId => productId !== id) })));
+    announceRemoval(1);
+  }
   function moveCategory(index: number, delta: number) {
     update(moved(groups, index, delta));
   }
@@ -115,7 +151,8 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
     if (!draft || !selectedCount) return;
     update(groups.map(group => ({ ...group, productIds: [...group.productIds,
       ...available.filter(product => product.category === group.category && selected.includes(product.id)).map(product => product.id)] })));
-    router.push(`${root}/edit`);
+    setSelected([]);
+    setNotice({ text: `${selectedCount}개 상품을 노출 상품에 추가했습니다`, duration: 4000 });
   }
 
   return <div className={pageStyles.page}>
@@ -141,7 +178,7 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
                       <Image src={`${assets}/burger.svg`} alt="" width={17.5} height={13.5} /></span>}
                     <h2>{categoryName(group.category)}</h2>
                     {group.category && <button type="button" className={styles.visibility} aria-label={`${group.category} ${group.hidden ? '보이기' : '숨기기'}`} aria-pressed={!group.hidden}
-                      onClick={() => update(groups.map((item, i) => i === groupIndex ? { ...item, hidden: !item.hidden } : item))}>
+                      disabled={pending} onClick={() => toggleCategory(groupIndex)}>
                       <Image src={`${assets}/eye.svg`} alt="" width={19.5} height={13.5} />{group.hidden && <span className={styles.hiddenSlash} />}
                     </button>}
                   </div>
@@ -159,7 +196,7 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
                       onDragOver={event => event.preventDefault()} onDrop={event => { event.stopPropagation(); dropProduct(group.category, id); }}>
                       <span title={product.name}>{product.name}</span>
                       <button type="button" className={styles.remove} aria-label={`${product.name} 노출 제거`} disabled={pending}
-                        onClick={() => update(groups.map(item => ({ ...item, productIds: item.productIds.filter(productId => productId !== id) })))}>−</button>
+                        onClick={() => removeProduct(id)}>−</button>
                       <div className={styles.productMove}>
                         <button type="button" aria-label={`${product.name} 앞으로`} disabled={index === 0 || pending} onClick={() => moveProduct(groupIndex, index, -1)}>←</button>
                         <button type="button" aria-label={`${product.name} 뒤로`} disabled={index === group.productIds.length - 1 || pending} onClick={() => moveProduct(groupIndex, index, 1)}>→</button>
@@ -205,12 +242,22 @@ export default function PosExposurePage({ mode }: { mode: 'edit' | 'add' }) {
               </table>
               {!filtered.length && <p className={styles.empty}>{available.length ? '검색 결과가 없습니다.' : '추가할 미노출 상품이 없습니다.'}</p>}
             </div>
-            <div className={styles.selectionBar}><p aria-live="polite">{selectedCount ? `${selectedCount}개 선택` : '노출할 상품을 선택하세요'}</p>
+            <div className={styles.selectionBar}><p role="status">
+              {selectedCount ? <><span className={styles.selectedCount}>{selectedCount}개</span> 선택</> : '노출할 상품을 선택하세요'}
+            </p>
               <div><button type="button" disabled={!selectedCount} onClick={() => setSelected([])}>선택 해제</button>
                 <Button type="button" size="m" color="orange" status={selectedCount ? 'default' : 'disabled'} onClick={addSelected}>노출 상품으로 이동</Button></div>
             </div>
           </>}
       {error && <p role="alert" className={styles.error}>{error}</p>}
     </main>
+    <div aria-live="polite" aria-atomic="true" className={notice ? styles.notice : undefined}>
+      {notice && <>
+        <span className={styles.noticeIcon}>
+          <Image src="/assets/sales-management/v2/orders/refund-info.svg" alt="" width={21.5} height={21.5} />
+        </span>
+        <p>{notice.text}</p>
+      </>}
+    </div>
   </div>;
 }

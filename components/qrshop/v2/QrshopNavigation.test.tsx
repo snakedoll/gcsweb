@@ -19,6 +19,7 @@ vi.mock('next/navigation', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   navigation.query = '';
+  sessionStorage.clear();
   clearQrshopMockOrders();
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -38,6 +39,34 @@ async function createOrderThroughScreen() {
 }
 
 describe('QRshop v2 화면 연결', () => {
+  it.each([
+    { name: '키링', option: undefined },
+    { name: '스무 글자 상품명을 확인하는 한정 상품', option: undefined },
+    { name: '무슨무슨 키링', option: 'BLACK' },
+  ])('Mock에서 $name 재고 한도를 알리고 결제 직전 줄어든 재고를 반영한다', async ({ name, option }) => {
+    navigation.query = '?scenario=stock-notices';
+    render(<QrshopOrderClient />);
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${name} .*담기$`) }));
+    if (option) {
+      fireEvent.click(screen.getByRole('button', { name: option }));
+      fireEvent.click(screen.getByRole('button', { name: '완료' }));
+    }
+    const increase = screen.getByRole('button', { name: `${name} 수량 증가` });
+    fireEvent.click(increase);
+    fireEvent.click(increase);
+    expect(screen.getByRole('alert')).toHaveTextContent('남은 재고수 이상으로 상품을 담을 수 없습니다.');
+    const cart = within(screen.getByRole('list', { name: '선택 상품 목록' }));
+    expect(cart.getByText('2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByRole('heading')).toHaveTextContent(option ? `${name}(${option})` : name);
+    expect(cart.getByText('1')).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: '확인' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
   it('닫힌 상점에서는 목록과 카테고리만 보여주고 상품 선택과 결제를 막는다', async () => {
     navigation.query = '?scenario=closed';
     render(<QrshopOrderClient />);
@@ -56,7 +85,11 @@ describe('QRshop v2 화면 연결', () => {
     expect(navigation.push).not.toHaveBeenCalled();
   });
 
-  it.each([['empty', '해당 샵에 아직 등록된 상품이 없습니다!'], ['error', '존재하지 않는 상점입니다']])('%s 상태를 유지한다', async (scenario, title) => {
+  it.each([
+    ['empty', '해당 샵에 아직 등록된 상품이 없습니다!'],
+    ['error', '상품을 불러올 수 없습니다'],
+    ['not-found', '존재하지 않는 상점입니다.'],
+  ])('%s 상태를 유지한다', async (scenario, title) => {
     navigation.query = `?scenario=${scenario}`;
     render(<QrshopOrderClient />);
     expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument();
@@ -144,8 +177,8 @@ describe('QRshop v2 화면 연결', () => {
   });
 
   it.each([
-    { ids: ['tshirt-small', 'tshirt-large'], withKeyring: false, message: '피그먼트 티셔츠가 품절되었습니다.' },
-    { ids: ['keyring-black', 'tshirt-small', 'tshirt-large'], withKeyring: true, message: '무슨무슨 키링 외 1건이 품절되었습니다.' },
+    { ids: ['tshirt-small', 'tshirt-large'], withKeyring: false, message: '피그먼트 티셔츠(S) 외 1건이 품절되었습니다.' },
+    { ids: ['keyring-black', 'tshirt-small', 'tshirt-large'], withKeyring: true, message: '무슨무슨 키링(BLACK) 외 2건이 품절되었습니다.' },
   ])('결제 직전 $message 안내하고 판매 가능한 상품의 수량을 보존한다', async ({ ids, withKeyring, message }) => {
     const service = createQrshopMockService({ soldOutOnRefreshIds: ids, delayMs: 0 });
     vi.spyOn(qrshopMockService, 'getCatalog').mockImplementation(service.getCatalog);
@@ -190,7 +223,7 @@ describe('QRshop v2 화면 연결', () => {
     fireEvent.click(screen.getByRole('button', { name: '완료' }));
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
-    expect(await screen.findByRole('alertdialog')).toHaveTextContent('동일 상품명 외 1건이 품절되었습니다.');
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('동일 상품명(옵션 1) 외 1건이 품절되었습니다.');
     expect(screen.queryByRole('list', { name: '선택 상품 목록' })).not.toBeInTheDocument();
     expect(navigation.push).not.toHaveBeenCalled();
   });
@@ -206,7 +239,7 @@ describe('QRshop v2 화면 연결', () => {
     fireEvent.click(screen.getByRole('button', { name: '완료' }));
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
-    expect(await screen.findByRole('alertdialog')).toHaveTextContent('무슨무슨 키링이 품절되었습니다.');
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('무슨무슨 키링(BLACK)이 품절되었습니다.');
     expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).queryByText('BLACK')).not.toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: '선택 상품 목록' })).getByText('S')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '무슨무슨 키링 BLACK ORANGE 품절' })).toBeInTheDocument();
@@ -241,7 +274,7 @@ describe('QRshop v2 화면 연결', () => {
     const payUrl = await createOrderThroughScreen();
     const pay = render(<QrshopPayClient />);
     fireEvent.click(await screen.findByRole('button', { name: '결제 완료하기' }));
-    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
+    await waitFor(() => expect(navigation.replace).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
     pay.unmount();
 
     render(<QrshopResultClient />);
@@ -250,16 +283,34 @@ describe('QRshop v2 화면 연결', () => {
     expect(navigation.push).toHaveBeenLastCalledWith('/QRshop');
   });
 
-  it('실패한 결제에서는 처음으로 상품 선택 화면에 돌아간다', async () => {
+  it('실패 결제 결과는 결제 페이지를 교체하고 뒤로가기로 돌아갈 수 있다', async () => {
     const payUrl = await createOrderThroughScreen();
     const pay = render(<QrshopPayClient />);
     fireEvent.click(await screen.findByRole('button', { name: '결제 실패 상태 확인' }));
-    await waitFor(() => expect(navigation.push).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
+    await waitFor(() => expect(navigation.replace).toHaveBeenLastCalledWith(`/QRshop/result${payUrl.search}`));
     pay.unmount();
 
     render(<QrshopResultClient />);
-    fireEvent.click(await screen.findByRole('button', { name: '처음으로' }));
-    expect(navigation.push).toHaveBeenLastCalledWith('/QRshop');
+    expect(await screen.findByRole('heading', { name: '결제가 실패되었습니다.' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '처음으로' })).not.toBeInTheDocument();
+  });
+
+  it('품절 환불에서 상품 목록으로 돌아올 때 직전 주문 옵션과 수량을 복원한다', async () => {
+    const payUrl = await createOrderThroughScreen();
+    const order = await qrshopMockService.getOrder(payUrl.searchParams.get('orderId')!);
+    vi.spyOn(qrshopMockService, 'getOrder').mockResolvedValueOnce({
+      ...order, status: 'canceled', failureCode: 'STOCK_SHORTAGE',
+      lines: order.lines.map(line => ({ ...line, soldOut: true })),
+    });
+    const result = render(<QrshopResultClient />);
+    await screen.findByRole('heading', { name: '해당 상품 품절로 전체 결제가 취소되었습니다.' });
+    result.unmount();
+    navigation.query = '';
+    render(<QrshopOrderClient />);
+    const cart = await screen.findByRole('list', { name: '선택 상품 목록' });
+    expect(within(cart).getByText('BLACK')).toBeInTheDocument();
+    expect(within(cart).getByText('1')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
   it('완료 주문이 4개 이상이면 상품 목록만 스크롤하고 결제 요약은 고정한다', async () => {
@@ -287,6 +338,6 @@ describe('QRshop v2 화면 연결', () => {
       expect(item.firstElementChild).toHaveClass('grid-cols-[64px_minmax(0,1fr)]', 'break-words');
     }
     expect(screen.getByRole('group', { name: '결제 결과 요약' })).toHaveClass('shrink-0');
-    expect(screen.getByRole('main')).toHaveClass('h-dvh', 'overflow-hidden');
+    expect(screen.getByRole('main')).toHaveClass('h-dvh', 'min-h-[480px]');
   });
 });
