@@ -734,7 +734,6 @@ export default function CartPage() {
       <div className="w-full max-w-[375px] flex flex-col">
         {/* ── 네비게이션 바 ─────────────── */}
         <div className="bg-[#f6f6f5] flex flex-col sticky top-0 z-30">
-          <div className="h-[34px]" />
           <div className="flex h-11 items-center justify-between px-4 py-[10px]">
             <button onClick={() => router.back()} className="w-3 h-6 flex items-center cursor-pointer" aria-label="뒤로가기">
               <BackIcon />
