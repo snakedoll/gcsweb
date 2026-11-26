@@ -18,12 +18,12 @@ const SaveExposureSchema = z.object({
 class ExposureChanged extends Error {}
 
 /**
- * GET /api/v2/qrshop/pos/exposure
+ * GET /api/v2/qrshop/pos/exposure?storeSlug={storeSlug}
  * 노출 편집 화면: 카테고리별 노출 상품 묶음과 전체 상품(미노출 포함). 소유자와 승인된 직원.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const auth = await requirePosAccess();
+    const auth = await requirePosAccess(request);
     if (!auth.ok) return auth.response;
 
     return apiSuccess(toExposureView(await loadStoreExposure(prisma, auth.access.store.storeId)));
@@ -34,13 +34,13 @@ export async function GET() {
 }
 
 /**
- * PUT /api/v2/qrshop/pos/exposure
- * body { groups: [{ categoryId | null, productIds }] } 노출 구성을 통째로 저장한다. 소유자만.
+ * PUT /api/v2/qrshop/pos/exposure?storeSlug={storeSlug}
+ * body { groups: [{ categoryId | null, productIds }] } 노출 구성을 통째로 저장한다. 소유자와 승인된 직원.
  * 목록에 없는 상품은 미노출. 편집 중에 상품·카테고리가 바뀌었으면 409 EXPOSURE_CHANGED.
  */
 export async function PUT(request: Request) {
   try {
-    const auth = await requirePosAccess({ ownerOnly: true });
+    const auth = await requirePosAccess(request);
     if (!auth.ok) return auth.response;
 
     const parsed = SaveExposureSchema.safeParse(await request.json().catch(() => null));
@@ -48,6 +48,8 @@ export async function PUT(request: Request) {
 
     const storeId = auth.access.store.storeId;
     const view = await prisma.$transaction(async (tx) => {
+      // 방문객 주문이 노출 상태를 확인하고 생성하는 동안 저장을 기다린다.
+      await tx.$queryRaw`SELECT "storeId" FROM "Store" WHERE "storeId" = ${storeId} FOR NO KEY UPDATE`;
       const [categories, products] = await Promise.all([
         tx.onsiteProductCategory.findMany({ where: { storeId }, select: { categoryId: true } }),
         tx.onsiteProduct.findMany({ where: { storeId }, select: { productId: true, categoryId: true } }),

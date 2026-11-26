@@ -2,13 +2,14 @@ import { apiErrors, apiSuccess } from '@/lib/api-response';
 import { prisma } from '@/lib/db';
 import { isUniqueViolation, requireStoreUser } from '@/lib/qrshop/store-api';
 import { staffErrors, toInviteStatus } from '@/lib/qrshop/staff';
+import type { PosStaffInvite, PosStaffInviteRequestResult } from '@/lib/services/pos-staff-service';
 
 type Params = { params: { inviteCode: string } };
 
 function findInviteStore(inviteCode: string) {
   return prisma.store.findUnique({
     where: { staffInviteCode: inviteCode },
-    select: { storeId: true, name: true, imageUrl: true, userId: true },
+    select: { storeId: true, name: true, imageUrl: true, storeSlug: true, userId: true },
   });
 }
 
@@ -36,8 +37,8 @@ export async function GET(_request: Request, { params }: Params) {
     const isOwner = store.userId === auth.userId;
     const membership = isOwner ? null : await findMembership(store.storeId, auth.userId);
 
-    return apiSuccess({
-      store: { name: store.name, imageUrl: store.imageUrl },
+    return apiSuccess<PosStaffInvite>({
+      store: { name: store.name, imageUrl: store.imageUrl, storeSlug: store.storeSlug },
       status: toInviteStatus({ isOwner, status: membership?.status ?? null }),
     });
   } catch (error) {
@@ -62,7 +63,7 @@ export async function POST(_request: Request, { params }: Params) {
 
     const membership = await findMembership(store.storeId, auth.userId);
     if (membership?.status === 'PENDING' || membership?.status === 'APPROVED') {
-      return apiSuccess({ status: toInviteStatus({ isOwner: false, status: membership.status }) });
+      return apiSuccess<PosStaffInviteRequestResult>({ storeSlug: store.storeSlug, status: toInviteStatus({ isOwner: false, status: membership.status }) });
     }
 
     if (membership?.status === 'REJECTED') {
@@ -80,7 +81,7 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     const current = await findMembership(store.storeId, auth.userId);
-    return apiSuccess({ status: toInviteStatus({ isOwner: false, status: current?.status ?? null }) });
+    return apiSuccess<PosStaffInviteRequestResult>({ storeSlug: store.storeSlug, status: toInviteStatus({ isOwner: false, status: current?.status ?? null }) });
   } catch (error) {
     console.error('[POST /api/v2/qrshop/staff/invite/[inviteCode]]', error);
     return apiErrors.serverError();

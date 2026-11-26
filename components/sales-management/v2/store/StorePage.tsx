@@ -43,18 +43,7 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [qr, setQr] = useState<VisitorOrderQr | null>(null);
-  const [qrPending, setQrPending] = useState(false);
-  const [qrError, setQrError] = useState('');
   const identifierError = form.identifierStatus === 'unavailable' ? '중복된 아이디입니다.' : form.errors.storeIdentifier;
-  async function openQr() {
-    if (qrPending) return;
-    setQrPending(true); setQrError('');
-    try { setQr(await service.getVisitorOrderQr()); }
-    catch (cause) { setQrError(cause instanceof Error ? cause.message : 'QR을 불러오지 못했어요. 다시 시도해주세요.'); }
-    finally { setQrPending(false); }
-  }
-
 
   async function copyUrl() {
     if (!store) return;
@@ -104,7 +93,7 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
       {store ? <>
         <h2>QR샵 URL</h2>
         <div className={styles.qrRow}>
-          <button type="button" className={styles.qrPreview} aria-label="방문객 주문 QR 열기" disabled={qrPending} onClick={openQr}><span>QR 보기</span></button>
+          <StoreQrPreview key={store.visitorOrderUrl} service={service} />
           <div className={styles.qrInfo}>
             <label htmlFor="visitor-url">방문객 주문 URL</label>
             <div className={styles.urlRow}>
@@ -117,13 +106,41 @@ function StoreForm({ initialStore, service }: { initialStore: SalesStore | null;
         </div>
       </> : <p className={styles.emptyQr}>상점 등록 시 방문객들이 사용할 상점 바로가기 URL과 QR코드가 발급됩니다</p>}
     </section>
-    {qrError && <p role="alert" className={styles.error}>{qrError}</p>}
-    {qr && <VisitorQrDialog qr={qr} onDismiss={() => setQr(null)} />}
     {deleting && <StoreDeleteDialog onDismiss={() => setDeleting(false)} onConfirm={async () => {
       await service.deleteStore();
       router.push('/sales-management/v2');
     }} />}
   </>;
+}
+
+function StoreQrPreview({ service }: { service: SalesManagementV2Service }) {
+  const [qr, setQr] = useState<VisitorOrderQr | null>(null);
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    service.getVisitorOrderQr().then(value => { if (active) setQr(value); })
+      .catch(cause => {
+        if (!active) return;
+        setError(cause instanceof Error ? cause.message : 'QR을 불러오지 못했어요. 다시 시도해주세요.');
+        setOpen(false);
+      });
+    return () => { active = false; };
+  }, [service, retry]);
+
+  return <div className={styles.qrTile}>
+    <button type="button" className={styles.qrPreview} aria-label="방문객 주문 QR 열기" aria-busy={!qr && !error}
+      onClick={() => {
+        if (error) { setError(''); setRetry(value => value + 1); }
+        setOpen(true);
+      }}>
+      {qr && <Image src={qr.imageUrl} alt="" width={170} height={170} unoptimized />}
+    </button>
+    {error && <p role="alert" className={styles.error}>{error}</p>}
+    {open && qr && <VisitorQrDialog qr={qr} onDismiss={() => setOpen(false)} />}
+  </div>;
 }
 
 function StoreDeleteDialog({ onConfirm, onDismiss }: { onConfirm: () => Promise<void>; onDismiss: () => void }) {

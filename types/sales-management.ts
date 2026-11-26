@@ -11,6 +11,7 @@ export interface SalesStore {
   name: string;
   storeIdentifier: string;
   visitorOrderUrl: string;
+  createdAt?: string;
   description?: string;
   imageUrl?: string;
 }
@@ -49,6 +50,7 @@ export interface SalesProduct {
   isVisible: boolean;
   category: string;
   stock: number;
+  createdAt?: string;
   options: ProductOption[];
 }
 
@@ -60,6 +62,7 @@ export interface ProductOption {
 }
 
 export interface ProductFormOptionInput {
+  id?: ProductOption['id'];
   name: string;
   price: number;
   stock: number;

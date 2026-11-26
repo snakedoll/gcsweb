@@ -1,0 +1,540 @@
+.page {
+  min-height: 100dvh;
+  background: var(--color-neutral-4);
+  color: var(--color-neutral-10);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+  min-height: 58px;
+  padding: 7px 24px;
+  box-shadow: 0 1px 2px rgb(99 81 73 / 10%);
+}
+
+.header a {
+  display: grid;
+  width: 28px;
+  height: 42px;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.header h1 {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.year,
+.eventSelect {
+  min-height: 43px;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 12px;
+  background: var(--color-neutral-2) url('/assets/sales-management/v2/analytics/select.svg') right 10px center no-repeat;
+  padding: 0 33px 0 12px;
+  appearance: none;
+  cursor: pointer;
+  color: var(--color-neutral-10);
+}
+
+.year {
+  width: 117px;
+  border-color: var(--color-orange-5);
+  font-size: 17px;
+}
+
+.main {
+  width: min(1264px, calc(100% - 64px));
+  margin-inline: auto;
+  padding: 19px 8px 80px;
+}
+
+.sections {
+  display: flex;
+  align-items: stretch;
+  height: 39px;
+  font-size: 20px;
+  line-height: 30px;
+}
+
+.sections > * {
+  padding: 4px 20px;
+}
+
+.sections button {
+  color: var(--color-neutral-7);
+  cursor: default;
+}
+
+.sections h2 {
+  border-bottom: 1px solid var(--color-orange-5);
+  color: var(--color-orange-7);
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.days {
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-block: 2px;
+  margin-block: -2px;
+}
+
+.days button {
+  flex: 0 0 120px;
+  height: 42px;
+  padding-block: 0;
+  border: 1px solid var(--color-neutral-5);
+  font-size: 17px;
+  color: var(--color-neutral-8);
+}
+
+.days button[aria-pressed='true'] {
+  background: var(--color-orange-6);
+  color: var(--color-neutral-1);
+}
+
+.dayInput {
+  width: min(146px, 100%);
+  padding-inline: 8px;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+}
+
+.eventSelect {
+  min-width: 0;
+  max-width: 220px;
+  text-overflow: ellipsis;
+}
+
+.addEvent {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  height: 42px;
+  margin-left: auto;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+  color: var(--color-neutral-8);
+}
+
+.reports {
+  display: grid;
+  width: min(100%, 1120px);
+  gap: 54px;
+  margin: 55px auto 0;
+}
+
+.report {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 6px;
+  background: var(--color-neutral-2);
+  color: var(--color-neutral-12);
+}
+
+.reportHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.reportHeading h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.groups {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.groups button {
+  min-height: 29px;
+  padding: 4px 10px;
+  color: var(--color-neutral-8);
+}
+
+.groups button + button {
+  border-left: 1px solid var(--color-neutral-5);
+}
+
+.groups button[aria-pressed='true'] {
+  color: var(--color-neutral-1);
+  background: #202020;
+}
+
+.page :is(button, a, select, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-orange-8);
+  outline-offset: -2px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.productTable {
+  min-width: 560px;
+}
+
+.report :is(th, td) {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e8e7e6;
+  text-align: right;
+}
+
+.report :is(th, td):first-child {
+  width: 44px;
+  text-align: center;
+}
+
+.report :is(th, td):nth-child(2) {
+  text-align: left;
+}
+
+.report thead th {
+  height: 34px;
+  background: #efefed;
+  color: var(--color-neutral-8);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.report tbody tr {
+  height: 41px;
+}
+
+.report tbody th {
+  font-weight: 400;
+}
+
+.productTable td:nth-child(n + 3) {
+  width: 110px;
+  white-space: nowrap;
+}
+
+.productTable td:nth-child(3) {
+  width: 144px;
+}
+
+.rank {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #efefed;
+  color: #202020;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rank[data-best='true'] {
+  background: #202020;
+  color: var(--color-neutral-1);
+}
+
+.best {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding-inline: 5px;
+  border: 1px solid var(--color-neutral-7);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+.quantity {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.barTrack {
+  position: relative;
+  flex: 0 1 80px;
+  height: 6px;
+}
+
+.barTrack span {
+  position: absolute;
+  inset: 0 0 0 auto;
+  border-radius: 4px;
+  background: #c7c7c4;
+}
+
+.note {
+  color: var(--color-neutral-8);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+table + .note,
+.tableScroll + .note {
+  margin-top: 8px;
+}
+
+.more {
+  display: flex;
+  width: fit-content;
+  min-width: 86px;
+  min-height: 29px;
+  margin: 10px auto 0;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.bundles td:last-child {
+  white-space: nowrap;
+}
+
+.bundleNames {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bundleNames span {
+  padding: 2px 8px;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 4px;
+  background: #efefed;
+  font-size: 13px;
+}
+
+.noData {
+  padding: 40px 16px;
+  color: var(--color-neutral-8);
+  text-align: center;
+}
+
+.empty {
+  display: flex;
+  min-height: 405px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 192px -8px 0;
+  padding: 36px 16px;
+  border: 2px dashed var(--color-orange-4);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.calendarBox {
+  display: grid;
+  width: 90px;
+  height: 90px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-orange-2);
+}
+
+.calendar {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.calendar > span {
+  position: absolute;
+  top: 8.75px;
+  left: 7.5px;
+  width: 45px;
+  height: 45px;
+  border: 3.75px solid var(--color-orange-5);
+  border-radius: 12.5px;
+  background:
+    url('/assets/sales-management/v2/analytics/calendar-dots.svg') center 16.875px no-repeat,
+    url('/assets/sales-management/v2/analytics/calendar-dots.svg') center 26.875px no-repeat;
+}
+
+.calendar > span::before {
+  position: absolute;
+  top: 6.875px;
+  left: -3.75px;
+  width: 45px;
+  height: 3.75px;
+  background: url('/assets/sales-management/v2/analytics/calendar-line.svg') no-repeat;
+  content: '';
+}
+
+.calendar::before,
+.calendar::after {
+  position: absolute;
+  z-index: 1;
+  top: 6.875px;
+  left: 13.125px;
+  width: 11.25px;
+  height: 3.75px;
+  transform: rotate(-90deg);
+  background: url('/assets/sales-management/v2/analytics/calendar-pin.svg') no-repeat;
+  content: '';
+}
+
+.calendar::after {
+  left: 35.625px;
+}
+
+.empty h3 {
+  margin-top: 24px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.empty p {
+  margin-top: 8px;
+  color: var(--color-neutral-8);
+  font-size: 20px;
+}
+
+.empty button {
+  width: 224px;
+  min-height: 48px;
+  margin-top: 42px;
+  padding-block: 4px;
+  background: var(--color-orange-5);
+  font-size: 19px;
+}
+
+.eventDialog {
+  width: 498px;
+  padding: 34px;
+  border-radius: 18px;
+}
+
+.eventDialog h2 {
+  margin-bottom: 36px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.eventDialog label {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.eventDialog input {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-neutral-5);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.eventDates,
+.dialogActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.dialogActions {
+  margin-top: 48px;
+}
+
+.dialogActions button {
+  height: 52px;
+  font-size: 19px;
+}
+
+.dialogActions button[type='submit']:enabled {
+  background: var(--color-orange-7);
+}
+
+.eventDialog p[role='alert'] {
+  margin-top: 8px;
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  .main {
+    width: calc(100% - 32px);
+    padding: 16px 0 48px;
+  }
+
+  .header {
+    gap: 12px;
+    padding-inline: 12px;
+  }
+
+  .filters,
+  .days {
+    gap: 8px;
+  }
+
+  .days button {
+    flex-basis: 92px;
+    font-size: 14px;
+  }
+
+  .eventSelect {
+    max-width: 115px;
+  }
+
+  .reports {
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  .report {
+    padding: 12px;
+  }
+
+  .empty {
+    min-height: 340px;
+    margin: 72px 0 0;
+  }
+
+  .empty h3 {
+    font-size: 21px;
+  }
+
+  .empty p {
+    font-size: 15px;
+  }
+
+  .eventDialog {
+    padding: 24px;
+  }
+}

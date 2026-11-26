@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/button/Button';
 import { formatWon } from '@/lib/utils';
 import type { QrshopCartLine } from '@/types/qrshop';
+import { QrshopTermsDialog } from './terms/QrshopTerms';
 
 const HANDLE_HEIGHT = 26;
 const COLLAPSE_THRESHOLD = 80;
@@ -25,6 +26,7 @@ export default function QrshopCartPanel(props: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const [showTerms, setShowTerms] = useState(false);
   const total = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const checkMask = `url('/assets/icons/${agreed ? 'filled/Filled/Check.svg' : 'light/check.svg'}') center / contain no-repeat`;
   const canSubmit = Boolean(lines.length && agreed && !submitting);
@@ -105,7 +107,7 @@ export default function QrshopCartPanel(props: Props) {
                     <div className="flex items-center gap-[13px]">
                       <button type="button" className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-neutral-6 typo-body-small text-neutral-12 disabled:text-neutral-6" aria-label={`${line.productName} 수량 감소`} disabled={line.quantity <= 1} onClick={() => props.onQuantityChange(line.productId, line.quantity - 1)}>−</button>
                       <span className="w-3 text-center typo-body-xsmall-bold text-neutral-12">{line.quantity}</span>
-                      <button type="button" className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-neutral-6 typo-body-small text-neutral-12 disabled:text-neutral-6" aria-label={`${line.productName} 수량 증가`} disabled={submitting || line.quantity >= Math.min(99, line.stock ?? 99)} onClick={() => props.onQuantityChange(line.productId, line.quantity + 1)}>+</button>
+                      <button type="button" className={`flex h-6 w-6 items-center justify-center rounded-[5px] border border-neutral-6 typo-body-small disabled:text-neutral-6 ${line.quantity >= (line.stock ?? 99) ? 'text-neutral-6' : 'text-neutral-12'}`} aria-label={`${line.productName} 수량 증가`} disabled={submitting || line.quantity >= 99} onClick={() => props.onQuantityChange(line.productId, line.quantity + 1)}>+</button>
                     </div>
                   </div>
                 </li>
@@ -122,13 +124,20 @@ export default function QrshopCartPanel(props: Props) {
           <span aria-hidden className={`h-full w-full ${agreed && lines.length > 0 ? 'bg-orange-5' : 'bg-neutral-6'}`} style={{ mask: checkMask, WebkitMask: checkMask }} />
         </span>
         <label htmlFor="qrshop-v2-agreement" className="cursor-pointer">결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.</label>
-        <Link href="/terms/terms-of-service" aria-label="쇼핑몰 이용약관 보기" className="-ml-1 flex h-[13px] w-[13px] shrink-0 items-center justify-center">
+        <Link href="/QRshop/terms" aria-label="쇼핑몰 이용약관 보기" aria-haspopup="dialog"
+          className="-ml-1 flex h-[13px] w-[13px] shrink-0 items-center justify-center"
+          onClick={event => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            setShowTerms(true);
+          }}>
           <Image src="/assets/icons/additional/Additional/Right-filled.svg" alt="" width={13} height={13} className="opacity-50" />
         </Link>
       </div>
       {error ? <p role="alert" className="mt-2 typo-body-xxsmall text-danger">{error}</p> : null}
       <Button color="orange" size="s" status={canSubmit ? 'default' : 'disabled'} disabled={!canSubmit} className="mt-[14px] h-[35px] rounded-[4px] typo-body-xsmall-bold" onClick={props.onSubmit}>{submitting ? '주문 정보를 저장하는 중…' : '결제하기'}</Button>
       </div>
+      {showTerms && <QrshopTermsDialog onClose={() => setShowTerms(false)} />}
     </section>
   );
 }

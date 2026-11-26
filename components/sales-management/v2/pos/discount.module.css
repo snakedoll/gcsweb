@@ -1,0 +1,25 @@
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, 64px);
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 50px;
+  padding: 0 12px;
+  border: 1px solid var(--color-neutral-6);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+}
+
+.field:focus-within { outline: 2px solid var(--color-neutral-10); outline-offset: 2px; }
+.field[data-error='true'] { border-color: var(--color-danger); }
+.field input { width: 100%; min-width: 0; height: 100%; outline: none; background: transparent; font-size: 13px; }
+.field input::placeholder { color: var(--color-neutral-7); }
+.field img { flex-shrink: 0; }
+.form button { height: 50px; padding-inline: 4px; }
+.form button:first-of-type { border-color: var(--color-neutral-5); }
+.error { grid-column: 1 / -1; color: var(--color-danger); font-size: 13px; }

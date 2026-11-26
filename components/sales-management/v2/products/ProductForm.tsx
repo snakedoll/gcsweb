@@ -13,7 +13,7 @@ import { productAssets, productsPath } from './ProductsShell';
 import styles from './products.module.css';
 import landingStyles from '../landing.module.css';
 
-type OptionRow = { key: number; name: string; price: string; stock: string };
+type OptionRow = { key: number; id?: string; name: string; price: string; stock: string };
 const validNumber = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
 const displayNumber = (value: string) => validNumber(value) ? Number(value).toLocaleString('ko-KR') : value;
 // Reject invalid edits instead of turning a negative/decimal into a different number.
@@ -21,7 +21,7 @@ const numberInput = (value: string, previous: string) => /^[\d,]*$/.test(value) 
 
 export default function ProductForm({ product, storeId, categories, service, onSaved, onCategoryCreated }: {
   product?: SalesProduct; storeId: string; categories: string[]; service: SalesManagementV2Service;
-  onSaved: () => Promise<void>; onCategoryCreated: (name: string) => void;
+  onSaved: (product: SalesProduct) => Promise<void>; onCategoryCreated: (name: string) => void;
 }) {
   const router = useRouter();
   const apiMode = service.dataSource === 'api';
@@ -34,7 +34,9 @@ export default function ProductForm({ product, storeId, categories, service, onS
   const [imageUrl, setImageUrl] = useState(product?.imageUrl);
   const [imagePending, setImagePending] = useState(false);
   const [usesOptions, setUsesOptions] = useState(Boolean(product?.options.length));
-  const [options, setOptions] = useState<OptionRow[]>(product?.options.map((option, key) => ({ key, name: option.name, price: String(option.price), stock: String(option.stock) })) ?? []);
+  const [options, setOptions] = useState<OptionRow[]>(product?.options.map((option, key) => ({
+    key, id: option.id, name: option.name, price: String(option.price), stock: String(option.stock),
+  })) ?? []);
   const sequence = useRef(options.length);
   const busy = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -44,6 +46,9 @@ export default function ProductForm({ product, storeId, categories, service, onS
   const [completed, setCompleted] = useState(false);
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const locked = pending || completed;
+  const optionStructureLocked = Boolean(product?.hasSalesHistory);
+  const categorySearch = categoryQuery.trim().toLocaleLowerCase();
+  const matchingCategories = categories.filter(item => item.toLocaleLowerCase().includes(categorySearch));
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 4000);
@@ -94,15 +99,17 @@ export default function ProductForm({ product, storeId, categories, service, onS
     if (busy.current || completed || !valid || imagePending) return;
     busy.current = true; setPending(true); setError('');
     const input: ProductFormInput = { storeId, name, category, imageUrl, price: Number(price), stock: usesOptions ? totalStock : Number(stock), usesOptions,
-      options: options.map(option => ({ name: option.name, price: Number(option.price), stock: Number(option.stock) })) };
+      options: usesOptions ? options.map(option => ({
+        ...(option.id && { id: option.id }), name: option.name, price: Number(option.price), stock: Number(option.stock),
+      })) : [] };
     try {
-      await service.saveProduct(input, product?.id);
+      const saved = await service.saveProduct(input, product?.id);
       if (product) setCompleted(true);
       else {
         setName(''); setCategory(''); setCategoryQuery(''); setPrice(''); setStock(''); setImageUrl(undefined); setUsesOptions(false); setOptions([]);
         if (fileRef.current) fileRef.current.value = '';
       }
-      try { await onSaved(); }
+      try { await onSaved(saved); }
       catch { setError('상품은 저장되었지만 목록을 불러오지 못했어요. 전체 상품에서 다시 확인해주세요.'); }
     } finally { busy.current = false; setPending(false); }
   }
@@ -144,7 +151,8 @@ export default function ProductForm({ product, storeId, categories, service, onS
                   if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); if (categoryQuery.trim()) void selectCategory(categoryQuery); }
                 }} />
               <div className={styles.categoryResults}>
-                {categories.filter(item => item.toLocaleLowerCase().includes(categoryQuery.trim().toLocaleLowerCase())).map(item => <button type="button" disabled={locked} key={item} onClick={() => { void selectCategory(item); }}>{item}</button>)}
+                {matchingCategories.map(item => <button type="button" disabled={locked} key={item} onClick={() => { void selectCategory(item); }}>{item}</button>)}
+                {categorySearch && matchingCategories.length === 0 && <p role="status" className={styles.categoryEmpty}>일치하는 항목이 없습니다.</p>}
               </div>
             </div>}
           </div>
@@ -153,25 +161,26 @@ export default function ProductForm({ product, storeId, categories, service, onS
             <div className={styles.field}><TextField id="product-stock" label="총재고" showStar placeholder="총재고를 입력해주세요." inputProps={{ value: usesOptions ? totalStock.toLocaleString('ko-KR') : displayNumber(stock), readOnly: usesOptions, inputMode: 'numeric', onChange: event => setStock(numberInput(event.target.value, stock)), className: styles.input, disabled: locked }} /></div>
           </div>
           <div>
-            <div className={styles.optionChoice} role="group" aria-labelledby="option-choice-label">
+            <div className={styles.optionChoice} role="group" aria-labelledby="option-choice-label" aria-describedby={optionStructureLocked ? 'product-option-restriction' : undefined}>
               <span id="option-choice-label" className={styles.optionLabel}>옵션</span>
               {[true, false].map(enabled => <label key={String(enabled)}>
-                <input className={styles.radio} type="radio" name="options-enabled" checked={usesOptions === enabled} disabled={locked} onChange={() => { setUsesOptions(enabled); if (enabled && !options.length) addOption(); }} />
+                <input className={styles.radio} type="radio" name="options-enabled" checked={usesOptions === enabled} disabled={locked || optionStructureLocked} onChange={() => { setUsesOptions(enabled); if (enabled && !options.length) addOption(); }} />
                 <span className={styles.checkbox}><Image src={`${productAssets}/${usesOptions === enabled ? 'checked.svg' : 'unchecked.png'}`} alt="" width={usesOptions === enabled ? 21.5 : 24} height={usesOptions === enabled ? 21.5 : 24} /></span>
                 {enabled ? '사용함' : '사용안함'}
               </label>)}
             </div>
+            {optionStructureLocked && <p id="product-option-restriction" className={styles.optionRestriction}>판매 이력이 있어 옵션 구성과 옵션명을 변경할 수 없어요.</p>}
             {usesOptions && <div className={styles.optionPanel}>
               <div className={styles.optionHead}><span>옵션명</span><span>추가금</span><span>재고</span><span /></div>
               {options.map((option, index) => <div className={styles.optionRow} key={option.key}>
-                <input aria-label={`옵션명 ${index + 1}`} maxLength={18} placeholder="옵션명을 입력해주세요." value={option.name} disabled={locked} onChange={event => changeOption(option.key, 'name', event.target.value)} />
+                <input aria-label={`옵션명 ${index + 1}`} maxLength={18} placeholder="옵션명을 입력해주세요." value={option.name} readOnly={optionStructureLocked} disabled={locked} onChange={event => changeOption(option.key, 'name', event.target.value)} />
                 <Image src={`${productAssets}/option-divider.svg`} width={2} height={28} alt="" />
                 <input aria-label={`추가금 ${index + 1}`} inputMode="numeric" value={displayNumber(option.price)} disabled={locked} onChange={event => changeOption(option.key, 'price', numberInput(event.target.value, option.price))} />
                 <Image src={`${productAssets}/option-divider.svg`} width={2} height={28} alt="" />
                 <input aria-label={`옵션 재고 ${index + 1}`} placeholder="재고를 입력해주세요." inputMode="numeric" value={displayNumber(option.stock)} disabled={locked} onChange={event => changeOption(option.key, 'stock', numberInput(event.target.value, option.stock))} />
-                <button type="button" aria-label={`옵션 ${index + 1} 삭제`} disabled={locked} onClick={() => { setOptions(current => current.filter(item => item.key !== option.key)); if (options.length === 1) setUsesOptions(false); }}><Image src={`${productAssets}/option-close.svg`} width={30} height={30} alt="" /></button>
+                {!optionStructureLocked && <button type="button" aria-label={`옵션 ${index + 1} 삭제`} disabled={locked} onClick={() => { setOptions(current => current.filter(item => item.key !== option.key)); if (options.length === 1) setUsesOptions(false); }}><Image src={`${productAssets}/option-close.svg`} width={30} height={30} alt="" /></button>}
               </div>)}
-              <button type="button" className={styles.addOption} aria-label="옵션 추가" disabled={locked} onClick={addOption}><Image src={`${productAssets}/plus.svg`} width={24} height={24} alt="" /></button>
+              {!optionStructureLocked && <button type="button" className={styles.addOption} aria-label="옵션 추가" disabled={locked} onClick={addOption}><Image src={`${productAssets}/plus.svg`} width={24} height={24} alt="" /></button>}
             </div>}
           </div>
           <Button type="submit" color="orange" className={styles.submit} disabled={!valid || locked || imagePending}>{product ? '상품 수정하기' : '상품 등록하기'}</Button>

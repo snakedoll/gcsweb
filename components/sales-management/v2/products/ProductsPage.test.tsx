@@ -73,7 +73,10 @@ describe('상품 관리 v2 화면', () => {
   });
   it('Enter 카테고리 생성, 옵션 합산·추가금·마지막 옵션 삭제를 처리한다', async () => {
     const { service } = await ready({ form: true, count: 0 });
-    fireEvent.focus(screen.getByLabelText('카테고리')); change('카테고리 검색 및 생성', '새 분류'); fireEvent.keyDown(screen.getByLabelText('카테고리 검색 및 생성'), { key: 'Enter' });
+    fireEvent.focus(screen.getByLabelText('카테고리'));
+    change('카테고리 검색 및 생성', '새 분류');
+    expect(screen.getByText('일치하는 항목이 없습니다.')).toBeVisible();
+    fireEvent.keyDown(screen.getByLabelText('카테고리 검색 및 생성'), { key: 'Enter' });
     await screen.findByRole('button', { name: '카테고리 해제' });
     expect(await service.getCategories()).toContain('새 분류');
     change('상품명', '옵션 상품'); change('가격', '1000');
@@ -93,6 +96,8 @@ describe('상품 관리 v2 화면', () => {
     const { service } = await ready({ form: true, id: 'landing-product-2', count: 3 });
     expect(screen.getByLabelText('상품명')).toHaveValue('무슨무슨가방');
     expect(screen.getByLabelText('가격')).toHaveValue('126,000');
+    const previousOptions = (await service.getProducts()).items[1].options;
+    fireEvent.click(screen.getByRole('button', { name: '옵션 1 삭제' }));
     change('상품명', '이름 수정'); fireEvent.click(screen.getByRole('button', { name: '상품 수정하기' }));
     const dialog = await screen.findByRole('dialog', { name: '상품 수정 완료' });
     expect(dialog).toHaveTextContent('상품 수정이 완료되었습니다.');
@@ -100,6 +105,30 @@ describe('상품 관리 v2 화면', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '확인' }));
     expect(push).toHaveBeenCalledWith('/sales-management/v2/products');
     expect((await service.getProducts()).items[1].name).toBe('이름 수정'); expect((await service.getProducts()).total).toBe(3);
+    expect((await service.getProducts()).items[1].options).toEqual(previousOptions.slice(1));
+    expect(screen.queryByText('NEW')).not.toBeInTheDocument();
+  });
+  it('판매 이력이 있으면 옵션 구조를 유지하면서 재고를 변경한다', async () => {
+    const { service } = await ready({ form: true, id: 'landing-product-3', count: 3 });
+    expect(screen.getByText(/판매 이력이 있어 옵션 구성/)).toBeVisible();
+    expect(screen.getByRole('radio', { name: '사용안함' })).toBeDisabled();
+    expect(screen.getByLabelText('옵션명 1')).toHaveAttribute('readonly');
+    expect(screen.queryByRole('button', { name: '옵션 추가' })).not.toBeInTheDocument();
+    const previous = (await service.getProducts()).items[2];
+    change('옵션 재고 1', '4');
+    fireEvent.click(screen.getByRole('button', { name: '상품 수정하기' }));
+    await screen.findByRole('dialog', { name: '상품 수정 완료' });
+    expect((await service.getProducts()).items[2].options[0]).toEqual({ ...previous.options[0], stock: 4 });
+  });
+  it('같은 등록 화면에 머무는 동안만 NEW를 표시한다', async () => {
+    const { service, view } = await ready({ form: true, count: 0 });
+    change('상품명', '새 상품'); change('가격', '100'); change('총재고', '2');
+    fireEvent.click(screen.getByRole('button', { name: '상품 등록하기' }));
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
+    expect(await screen.findByText('NEW')).toBeVisible();
+    view.unmount();
+    render(<SalesManagementV2Provider service={service}><ProductsPage form /></SalesManagementV2Provider>);
+    expect(await screen.findByRole('link', { name: '새 상품 수정' })).toBeVisible();
     expect(screen.queryByText('NEW')).not.toBeInTheDocument();
   });
   it('이미지 파일을 미리보고 저장하며 등록 하단 목록은 페이지로 나누지 않는다', async () => {

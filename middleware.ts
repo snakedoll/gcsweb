@@ -8,6 +8,10 @@ export async function middleware(request: NextRequest) {
   if (!isSalesManagement && !pathname.startsWith('/admin')) {
     return NextResponse.next();
   }
+  if (process.env.NEXT_PUBLIC_SALES_MANAGEMENT_DATA_SOURCE !== 'api'
+    && /^\/sales-management\/v2\/staff\/join\/[^/]+\/?$/.test(pathname)) {
+    return NextResponse.next();
+  }
 
   const token = await getToken({
     req: request,

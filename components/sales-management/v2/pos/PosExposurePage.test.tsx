@@ -12,7 +12,10 @@ const navigation = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => navigation }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) =>
   <a {...props} href={href} onClick={(event: MouseEvent) => { event.preventDefault(); navigation.push(href); }}>{children}</a> }));
-afterEach(() => { cleanup(); vi.restoreAllMocks(); navigation.push.mockReset(); });
+afterEach(() => {
+  cleanup(); vi.restoreAllMocks(); navigation.push.mockReset();
+  window.sessionStorage.removeItem('gcsweb:pos:exposure-removal-hint');
+});
 
 function setup() {
   const products: PosProduct[] = [
@@ -46,7 +49,9 @@ describe('POS 노출 편집/추가', () => {
     fireEvent.click(screen.getByRole('button', { name: '키링 위로' }));
     fireEvent.click(screen.getByRole('button', { name: '부산 엽서 뒤로' }));
     fireEvent.click(screen.getByRole('button', { name: '키링 숨기기' }));
+    expect(screen.getByText(/1개 상품을 노출 해제했습니다.*다시 추가할 수 있습니다/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '서울 엽서 노출 제거' }));
+    expect(screen.getByText('1개 상품을 노출 해제했습니다')).toBeInTheDocument();
     expect(screen.getByText('노출 상품 2개')).toBeInTheDocument();
     expect((await service.getCatalog()).map(product => product.id)).toEqual(['a', 'b', 'c', 'd']);
     fireEvent.click(screen.getByRole('button', { name: '취소' }));
@@ -67,6 +72,7 @@ describe('POS 노출 편집/추가', () => {
     expect(rows[1]).toHaveTextContent('키링');
     expect(rows.at(-1)).toHaveTextContent('미분류');
     fireEvent.click(screen.getByRole('button', { name: '키링 숨기기' }));
+    expect(screen.getByText('1개 상품을 노출 해제했습니다')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '부산 엽서 노출 제거' }));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await screen.findByRole('list', { name: 'POS 상품 목록' });
@@ -89,7 +95,7 @@ describe('POS 노출 편집/추가', () => {
     fireEvent.click(screen.getByRole('button', { name: '전체 4' }));
     fireEvent.change(screen.getByRole('combobox', { name: '상품 카테고리' }), { target: { value: '키링' } });
     fireEvent.click(screen.getByRole('checkbox', { name: '새 키링 선택' }));
-    expect(screen.getByText('2개 선택')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('2개 선택');
     fireEvent.click(screen.getByRole('button', { name: '선택 해제' }));
     expect(screen.getByRole('button', { name: '노출 상품으로 이동' })).toBeDisabled();
     fireEvent.change(screen.getByRole('combobox', { name: '상품 카테고리' }), { target: { value: 'all' } });
@@ -98,6 +104,11 @@ describe('POS 노출 편집/추가', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: '상품 검색' }), { target: { value: '가죽' } });
     fireEvent.click(screen.getByRole('checkbox', { name: '가죽 노트 선택' }));
     fireEvent.click(screen.getByRole('button', { name: '노출 상품으로 이동' }));
+    expect(screen.getByRole('heading', { name: '노출 상품 선택' })).toBeInTheDocument();
+    expect(screen.getByText('1개 상품을 노출 상품에 추가했습니다')).toBeInTheDocument();
+    expect(screen.getByText('미노출 상품 3개')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '노출 상품으로 이동' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('link', { name: '포스 노출 상품 목록 보기' }));
     await editReady();
     expect(screen.queryByRole('button', { name: '부산 엽서 노출 제거' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '가죽 노트 노출 제거' })).toBeInTheDocument();

@@ -76,32 +76,35 @@ describe('loadStaffSnapshot', () => {
 describe('findStoreAccess', () => {
   const store = { storeId: 's1', name: '상점', storeSlug: 'shop', createdAt: at('2026-09-01T00:00:00Z') };
 
-  it('소유한 상점이 있으면 OWNER (직원 등록보다 우선)', async () => {
-    const db = {
-      store: { findUnique: vi.fn().mockResolvedValue(store) },
-      storeStaff: { findFirst: vi.fn() },
-    } as unknown as PrismaClient;
-    expect(await findStoreAccess('u1', db)).toEqual({ role: 'OWNER', store });
-    expect(db.storeStaff.findFirst).not.toHaveBeenCalled();
+  function storeDb(result: (typeof store & { userId?: string | null }) | null) {
+    const findUnique = vi.fn().mockResolvedValue(result);
+    return { db: { store: { findUnique } } as unknown as PrismaClient, findUnique };
+  }
+
+  it('상점 식별자가 없는 주소는 소유 상점으로 연결한다', async () => {
+    const { db, findUnique } = storeDb(store);
+    expect(await findStoreAccess('u1', undefined, db)).toEqual({ role: 'OWNER', store });
+    expect(findUnique).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ where: { userId: 'u1' } }));
   });
 
-  it('소유 상점이 없으면 승인된 직원 상점(최근 승인순)', async () => {
-    const findFirst = vi.fn().mockResolvedValue({ store });
-    const db = {
-      store: { findUnique: vi.fn().mockResolvedValue(null) },
-      storeStaff: { findFirst },
-    } as unknown as PrismaClient;
-    expect(await findStoreAccess('u1', db)).toEqual({ role: 'STAFF', store });
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: 'u1', status: 'APPROVED' } }),
-    );
+  it('상점 식별자가 없고 소유 상점도 없으면 승인된 직원 상점을 선택하지 않는다', async () => {
+    const { db, findUnique } = storeDb(null);
+    expect(await findStoreAccess('u1', null, db)).toBeNull();
+    expect(findUnique).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ where: { userId: 'u1' } }));
   });
 
-  it('둘 다 아니면 null (대기·거절 직원은 접근할 수 없다)', async () => {
-    const db = {
-      store: { findUnique: vi.fn().mockResolvedValue(null) },
-      storeStaff: { findFirst: vi.fn().mockResolvedValue(null) },
-    } as unknown as PrismaClient;
-    expect(await findStoreAccess('u1', db)).toBeNull();
+  it.each([['u1', 'OWNER'], ['u2', 'STAFF']])('지정한 상점의 소유자 %s를 확인해 %s 역할을 반환한다', async (ownerId, role) => {
+    const { db, findUnique } = storeDb({ ...store, userId: ownerId });
+    expect(await findStoreAccess('u1', 'shop', db)).toEqual({ role, store });
+    expect(findUnique).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      where: { storeSlug: 'shop', OR: [{ userId: 'u1' }, { staff: { some: { userId: 'u1', status: 'APPROVED' } } }] },
+    }));
+  });
+
+  it.each(['other-shop', ''])('지정한 상점 %j에 권한이 없으면 소유 상점으로 변경하지 않는다', async (slug) => {
+    const { db, findUnique } = storeDb(null);
+    expect(await findStoreAccess('u1', slug, db)).toBeNull();
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ storeSlug: slug }) }));
   });
 });

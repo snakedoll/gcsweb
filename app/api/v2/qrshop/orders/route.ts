@@ -63,25 +63,24 @@ export async function POST(request: Request) {
       return apiErrors.invalidInput(termsIssue?.message ?? INVALID_REQUEST);
     }
 
-    // 결제창을 열 수 없는 상태에서 주문만 쌓이지 않도록 먼저 확인한다.
-    if (!isPortoneCheckoutConfigured()) {
-      console.error('[qrshop/orders] PortOne checkout env not set');
-      return apiErrors.serverError();
-    }
+    return await prisma.$transaction(async (tx) => {
+      // 열림 변경과 노출 저장을 주문 생성이 끝날 때까지 기다리게 한다.
+      const stores = await tx.$queryRaw<{ storeId: string }[]>`SELECT "storeId" FROM "Store" WHERE "storeSlug" = ${slug.data} FOR SHARE`;
+      if (!stores.length) return apiErrors.notFound('존재하지 않는 상점');
 
-    const block = await findVisitorOrderBlock(
-      prisma,
-      slug.data,
-      parsed.data.items.map((item) => item.productId),
-    );
-    if (block === 'STORE_CLOSED') return apiError(409, 'STORE_CLOSED', '상점 준비중');
-    if (block === 'PRODUCT_NOT_FOUND') return apiErrors.notFound('존재하지 않는 상품');
+      const block = await findVisitorOrderBlock(tx, slug.data, parsed.data.items.map((item) => item.productId));
+      if (block === 'STORE_CLOSED') return apiError(409, 'STORE_CLOSED', '상점 준비중');
+      if (block === 'PRODUCT_NOT_FOUND') return apiErrors.notFound('존재하지 않는 상품');
 
-    const validated = await validateOrderItems(prisma, { storeSlug: slug.data, items: parsed.data.items });
-    if (!validated.ok) return toValidationError(validated);
+      if (!isPortoneCheckoutConfigured()) {
+        console.error('[qrshop/orders] PortOne checkout env not set');
+        return apiErrors.serverError();
+      }
 
-    const guestToken = generateGuestToken();
-    const orderId = await prisma.$transaction(async (tx) => {
+      const validated = await validateOrderItems(tx, { storeSlug: slug.data, items: parsed.data.items });
+      if (!validated.ok) return toValidationError(validated);
+
+      const guestToken = generateGuestToken();
       const order = await tx.order.create({
         data: {
           paymentAmount: validated.paymentAmount,
@@ -103,15 +102,13 @@ export async function POST(request: Request) {
       });
       // 주문번호는 결제 확정 때 발급한다(결제완료 주문만 번호를 받는다). 여기서는 상점과의 연결만 만든다.
       await createUnnumberedOrderNumber(tx, { orderId: order.id, storeId: validated.store.storeId });
-      return order.id;
-    });
-
-    return apiSuccess({
-      orderId,
-      orderNo: null,
-      paymentAmount: validated.paymentAmount,
-      guestToken,
-      payment: { ...getPortoneCheckoutPaymentConfig(), orderName: validated.orderName },
+      return apiSuccess({
+        orderId: order.id,
+        orderNo: null,
+        paymentAmount: validated.paymentAmount,
+        guestToken,
+        payment: { ...getPortoneCheckoutPaymentConfig(), orderName: validated.orderName },
+      });
     });
   } catch (error) {
     console.error('[qrshop/orders] POST error:', error);

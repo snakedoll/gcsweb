@@ -56,7 +56,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(await screen.findByRole('dialog', { name: '방문객 주문 QR' })).toBeInTheDocument();
   });
 
-  it('등록 상태의 통계와 최근 상품을 표시하고 POS·주문조회 진입을 연결한다', async () => {
+  it('등록 상태의 통계와 최근 상품을 표시하고 POS·상품 분석·주문조회 진입을 연결한다', async () => {
     await ready();
     expect(screen.getByText('36개')).toBeInTheDocument();
     expect(screen.getByText('128,000원')).toBeInTheDocument();
@@ -64,6 +64,7 @@ describe('판매관리 랜딩 v2', () => {
     expect(screen.getByRole('link', { name: /현장 운영/ })).toHaveAttribute('href', '/sales-management/v2/pos');
     expect(within(screen.getByRole('list', { name: '최근 등록 상품' })).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.getByRole('link', { name: /주문 관리/ })).toHaveAttribute('href', '/sales-management/v2/orders');
+    expect(screen.getByRole('link', { name: /데이터 관리/ })).toHaveAttribute('href', '/sales-management/v2/analytics');
   });
 
   it('삭제 취소는 데이터를 유지하고 확인하면 목록·상품 수를 갱신한다', async () => {
@@ -220,13 +221,14 @@ describe('판매관리 랜딩 v2', () => {
 });
 
 
-it('API 랜딩은 상품 관리를 열고 POS 진입은 제공하지 않는다', async () => {
+it('API 랜딩에서 POS와 주문 관리가 열리고 상품 분석은 준비 상태로 표시한다', async () => {
   const service = { ...createMockLandingV2Service(), dataSource: 'api' as const };
   await ready(service);
   expect(screen.getByText('36개')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: '상품 관리' })).toHaveAttribute('href', '/sales-management/v2/products');
   expect(screen.getByRole('list', { name: '최근 등록 상품' })).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: /현장 운영/ })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: /현장 운영/ }));
-  expect(screen.getByRole('status')).toHaveTextContent('실제 주문 연동 전에는 현장 운영을 이용할 수 없어요.');
+  expect(screen.getByRole('link', { name: /현장 운영/ })).toHaveAttribute('href', '/sales-management/v2/pos');
+  expect(screen.getByRole('link', { name: /주문 관리/ })).toHaveAttribute('href', '/sales-management/v2/orders');
+  fireEvent.click(screen.getByRole('button', { name: /데이터 관리/ }));
+  expect(screen.getByRole('status')).toHaveTextContent('상품 분석 연동은 준비 중이에요.');
 });

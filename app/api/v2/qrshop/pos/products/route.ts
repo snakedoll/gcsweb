@@ -6,12 +6,12 @@ import { loadStoreExposure, toPosCatalog } from '@/lib/qrshop/pos-exposure';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/v2/qrshop/pos/products
+ * GET /api/v2/qrshop/pos/products?storeSlug={storeSlug}
  * 현장 포스 상품 그리드. 노출 상품만 카테고리 순서 → 상품 순서로. 소유자와 승인된 직원.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const auth = await requirePosAccess();
+    const auth = await requirePosAccess(request);
     if (!auth.ok) return auth.response;
 
     return apiSuccess(toPosCatalog(await loadStoreExposure(prisma, auth.access.store.storeId)));

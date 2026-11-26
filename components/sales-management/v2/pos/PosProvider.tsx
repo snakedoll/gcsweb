@@ -4,18 +4,27 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 import { createMockPosService } from '@/lib/mocks/pos-service';
 import { createMockPosStaffService } from '@/lib/mocks/pos-staff-service';
 import type { PosExposure, PosService } from '@/lib/services/pos-service';
+import type { OrdersService } from '@/lib/services/orders-service';
 import type { PosStaffService } from '@/lib/services/pos-staff-service';
 import { useSalesManagementV2Service } from '../SalesManagementV2Provider';
 
 interface PosSession {
   service: PosService;
   staffService: PosStaffService;
+  ordersService?: OrdersService;
+  role?: 'OWNER' | 'STAFF';
+  storeSlug?: string;
   draft: PosExposure | null;
   setDraft: (draft: PosExposure | null) => void;
 }
 const Context = createContext<PosSession | null>(null);
 
-export default function PosProvider({ children, service: providedService, staffService: providedStaffService }: { children: ReactNode; service?: PosService; staffService?: PosStaffService }) {
+export default function PosProvider({
+  children, service: providedService, staffService: providedStaffService, ordersService, role, storeSlug,
+}: {
+  children: ReactNode; service?: PosService; staffService?: PosStaffService; ordersService?: OrdersService;
+  role?: PosSession['role']; storeSlug?: string;
+}) {
   const source = useSalesManagementV2Service();
   const [service] = useState(() => {
     if (providedService) return providedService;
@@ -24,7 +33,7 @@ export default function PosProvider({ children, service: providedService, staffS
   });
   const [draft, setDraft] = useState<PosExposure | null>(null);
   const [staffService] = useState(() => providedStaffService ?? createMockPosStaffService());
-  return <Context.Provider value={{ service, staffService, draft, setDraft }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ service, staffService, ordersService, role, storeSlug, draft, setDraft }}>{children}</Context.Provider>;
 }
 
 export const usePosSession = () => useContext(Context);

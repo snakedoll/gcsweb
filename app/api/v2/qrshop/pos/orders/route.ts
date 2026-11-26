@@ -54,7 +54,7 @@ function toInvalidResponse(failure: InvalidFailure) {
  */
 export async function POST(request: Request) {
   try {
-    const ctx = await getStoreAccess();
+    const ctx = await getStoreAccess(new URL(request.url).searchParams.get('storeSlug'));
     if (!ctx.ok) return apiErrors.unauthorized();
     if (!ctx.access) return storeErrors.notFound();
 

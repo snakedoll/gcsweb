@@ -12,6 +12,7 @@ vi.mock('@/lib/db', () => ({
     store: { findUniqueOrThrow: vi.fn(), update: vi.fn() },
     onsiteProductCategory: { findMany: vi.fn(), update: vi.fn() },
     onsiteProduct: { findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   },
 }));
@@ -22,12 +23,14 @@ const db = prisma as unknown as {
   store: Record<'findUniqueOrThrow' | 'update', Fn>;
   onsiteProductCategory: Record<'findMany' | 'update', Fn>;
   onsiteProduct: Record<'findMany' | 'update' | 'updateMany', Fn>;
+  $queryRaw: Fn;
   $transaction: Fn;
 };
 
 const STORE = { storeId: 's1', name: '잇장샵', storeSlug: 'itjang', createdAt: new Date() };
+const STAFF_STORE = { storeId: 's2', name: '그림상점', storeSlug: 'gallery', createdAt: new Date() };
 const asOwner = () => access.mockResolvedValue({ ok: true, userId: 'u1', access: { role: 'OWNER', store: STORE } });
-const asStaff = () => access.mockResolvedValue({ ok: true, userId: 'u2', access: { role: 'STAFF', store: STORE } });
+const asStaff = () => access.mockResolvedValue({ ok: true, userId: 'u2', access: { role: 'STAFF', store: STAFF_STORE } });
 
 const product = (productId: string, categoryId: string | null, isExposed = true) => ({
   productId,
@@ -46,8 +49,10 @@ const product = (productId: string, categoryId: string | null, isExposed = true)
 const CATEGORIES = [{ categoryId: 'c1', name: '키링' }];
 const PRODUCTS = [product('p1', 'c1'), product('p2', 'c1', false), product('p3', null)];
 
-const body = (method: string, payload: unknown) =>
-  new Request('http://localhost/api', { method, body: typeof payload === 'string' ? payload : JSON.stringify(payload) });
+const url = (storeSlug?: string) => `http://localhost/api${storeSlug ? `?storeSlug=${storeSlug}` : ''}`;
+const query = (storeSlug?: string) => new Request(url(storeSlug));
+const body = (method: string, payload: unknown, storeSlug?: string) =>
+  new Request(url(storeSlug), { method, body: typeof payload === 'string' ? payload : JSON.stringify(payload) });
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -63,45 +68,62 @@ beforeEach(() => {
 
 describe('권한', () => {
   it.each([
-    ['상품 목록', () => getProducts()],
-    ['노출 조회', () => getExposure()],
-    ['열림 조회', () => getOpen()],
-  ])('%s: 비로그인 401, 상점 없음 404', async (_name, call) => {
+    ['상품 목록', () => getProducts(query('gallery'))],
+    ['노출 조회', () => getExposure(query('gallery'))],
+    ['열림 조회', () => getOpen(query('gallery'))],
+    ['노출 저장', () => putExposure(body('PUT', { groups: [{ categoryId: 'c1', productIds: [] }] }, 'gallery'))],
+    ['열림 변경', () => patchOpen(body('PATCH', { isOpen: true }, 'gallery'))],
+  ])('%s: 비로그인 401, 지정 상점에 접근할 수 없으면 404', async (_name, call) => {
     access.mockResolvedValue({ ok: false, reason: 'UNAUTHORIZED' });
     expect((await call()).status).toBe(401);
     access.mockResolvedValue({ ok: true, userId: 'u9', access: null });
     expect((await call()).status).toBe(404);
-  });
-
-  it('직원은 조회할 수 있다', async () => {
-    asStaff();
-    expect((await getProducts()).status).toBe(200);
-    expect((await getExposure()).status).toBe(200);
-  });
-
-  it('직원은 노출 저장·열림 변경을 할 수 없다(403)', async () => {
-    asStaff();
-    const saved = await putExposure(body('PUT', { groups: [{ categoryId: 'c1', productIds: [] }] }));
-    expect(saved.status).toBe(403);
-    expect((await saved.json()).message).toBe('소유자만 변경 가능');
-    expect((await patchOpen(body('PATCH', { isOpen: true }))).status).toBe(403);
+    expect(access).toHaveBeenNthCalledWith(1, 'gallery');
+    expect(access).toHaveBeenNthCalledWith(2, 'gallery');
+    expect(db.onsiteProduct.findMany).not.toHaveBeenCalled();
+    expect(db.store.findUniqueOrThrow).not.toHaveBeenCalled();
     expect(db.store.update).not.toHaveBeenCalled();
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('승인 직원은 지정 상점의 상품과 노출 구성을 조회하고 저장할 수 있다', async () => {
+    asStaff();
+    expect((await getProducts(query('gallery'))).status).toBe(200);
+    expect((await getExposure(query('gallery'))).status).toBe(200);
+    expect((await putExposure(body('PUT', { groups: [{ categoryId: 'c1', productIds: [] }] }, 'gallery'))).status).toBe(200);
+    expect(access.mock.calls).toEqual([['gallery'], ['gallery'], ['gallery']]);
+    expect(db.onsiteProduct.findMany.mock.calls.every(([args]) => args.where.storeId === 's2')).toBe(true);
+    expect(db.onsiteProduct.updateMany).toHaveBeenCalledWith({
+      where: { storeId: 's2', productId: { notIn: [] } }, data: { isExposed: false },
+    });
+  });
+
+  it('승인 직원은 지정 상점의 열림 상태를 조회하고 변경할 수 있다', async () => {
+    asStaff();
+    db.store.findUniqueOrThrow.mockResolvedValue({ isOpen: false });
+    db.store.update.mockResolvedValue({ isOpen: true });
+    expect((await (await getOpen(query('gallery'))).json()).data).toEqual({ isOpen: false });
+    expect((await (await patchOpen(body('PATCH', { isOpen: true }, 'gallery'))).json()).data).toEqual({ isOpen: true });
+    expect(access.mock.calls).toEqual([['gallery'], ['gallery']]);
+    expect(db.store.findUniqueOrThrow).toHaveBeenCalledWith({ where: { storeId: 's2' }, select: { isOpen: true } });
+    expect(db.store.update).toHaveBeenCalledWith({ where: { storeId: 's2' }, data: { isOpen: true }, select: { isOpen: true } });
   });
 });
 
 describe('GET /pos/products', () => {
   it('노출 상품과 노출 상품이 있는 카테고리만, 상점 기준으로 조회', async () => {
-    const res = await getProducts();
+    const res = await getProducts(query());
     const { data } = await res.json();
     expect(data.categories).toEqual([{ id: 'c1', name: '키링' }]);
     expect(data.products.map((p: { id: string }) => p.id)).toEqual(['p1', 'p3']);
+    expect(access).toHaveBeenCalledWith(null);
     expect(db.onsiteProduct.findMany.mock.calls[0][0].where).toEqual({ storeId: 's1' });
   });
 });
 
 describe('GET /pos/exposure', () => {
   it('카테고리별 노출 묶음(미분류 맨 뒤)과 전체 상품(isExposed·createdAt 포함)', async () => {
-    const { data } = await (await getExposure()).json();
+    const { data } = await (await getExposure(query())).json();
     expect(data.groups).toEqual([
       { categoryId: 'c1', name: '키링', productIds: ['p1'] },
       { categoryId: null, name: '', productIds: ['p3'] },
@@ -131,6 +153,8 @@ describe('PUT /pos/exposure', () => {
   it('저장하고 저장 뒤 구성을 돌려준다', async () => {
     const res = await putExposure(body('PUT', { groups: [{ categoryId: 'c1', productIds: ['p2', 'p1'] }, { categoryId: null, productIds: [] }] }));
     expect(res.status).toBe(200);
+    expect(db.$queryRaw).toHaveBeenCalledWith(expect.arrayContaining([expect.stringContaining('FOR NO KEY UPDATE')]), 's1');
+    expect(db.$queryRaw).toHaveBeenCalledBefore(db.onsiteProductCategory.findMany);
     expect(db.onsiteProductCategory.update).toHaveBeenCalledWith({ where: { categoryId: 'c1' }, data: { exposureOrder: 1 } });
     expect(db.onsiteProduct.updateMany).toHaveBeenCalledWith({
       where: { storeId: 's1', productId: { notIn: ['p2', 'p1'] } },
@@ -144,7 +168,7 @@ describe('PUT /pos/exposure', () => {
 describe('/pos/store-open', () => {
   it('GET: 상점 열림 여부', async () => {
     db.store.findUniqueOrThrow.mockResolvedValue({ isOpen: false });
-    expect((await (await getOpen()).json()).data).toEqual({ isOpen: false });
+    expect((await (await getOpen(query())).json()).data).toEqual({ isOpen: false });
     expect(db.store.findUniqueOrThrow).toHaveBeenCalledWith({ where: { storeId: 's1' }, select: { isOpen: true } });
   });
 

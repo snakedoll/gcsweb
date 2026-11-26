@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import QrshopCartPanel from './QrshopCartPanel';
 
@@ -35,7 +35,7 @@ describe('QrshopCartPanel', () => {
     expect(screen.getAllByText('15,000원')).toHaveLength(2);
     expect(screen.queryByLabelText('주문자 이름')).not.toBeInTheDocument();
     expect(screen.queryByText('온라인 결제')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '쇼핑몰 이용약관 보기' })).toHaveAttribute('href', '/terms/terms-of-service');
+    expect(screen.getByRole('link', { name: '쇼핑몰 이용약관 보기' })).toHaveAttribute('href', '/QRshop/terms');
 
     fireEvent.click(screen.getByRole('button', { name: '결제하기' }));
     expect(props.onSubmit).toHaveBeenCalledOnce();
@@ -59,6 +59,26 @@ describe('QrshopCartPanel', () => {
     expect(props.onAgreementChange).toHaveBeenLastCalledWith(true);
     fireEvent.click(screen.getByText('결제 시, 쇼핑몰 이용약관 및 결제에 동의합니다.'));
     expect(props.onAgreementChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('QRshop 전용 약관을 읽고 닫아도 선택 상품과 동의 상태를 유지한다', () => {
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.setAttribute('open', ''); } },
+      close: { configurable: true, value: function (this: HTMLDialogElement) {
+        this.removeAttribute('open');
+        this.dispatchEvent(new Event('close'));
+      } },
+    });
+    const props = renderPanel({ agreed: false });
+    fireEvent.click(screen.getByRole('link', { name: '쇼핑몰 이용약관 보기' }));
+    const dialog = screen.getByRole('dialog', { name: '이용약관' });
+    expect(within(dialog).getByRole('heading', { name: '제1조 (목적 및 정의)' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: '부칙 및 사업자 정보' })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: '확인' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: '선택 상품 목록' })).toHaveTextContent('무슨무슨 키링');
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(props.onAgreementChange).not.toHaveBeenCalled();
   });
 
   it('동의된 약관 선택을 해제할 수 있다', () => {

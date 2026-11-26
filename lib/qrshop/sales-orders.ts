@@ -30,6 +30,7 @@ export type SalesOrderView = {
    *   웹훅이나 전체 주문 조회를 열 때의 확인이 마무리한다.
    * soldout_refunded: 결제 뒤 재고가 모자라 서버가 자동 환불한 주문. 화면은 '품절 환불', 환불 버튼 비활성(#40).
    */
+  refundRestoreStock?: boolean;
   refundStatus: 'none' | 'pending' | 'refunded' | 'soldout_refunded';
 };
 
@@ -39,6 +40,7 @@ export type SalesOrdersQuery = {
   channel: SalesOrderChannel;
   search: string;
   page: number;
+  refundedOnly?: boolean;
 };
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -73,7 +75,10 @@ export function parseSalesOrdersQuery(
   if (!['all', 'online', 'onsite'].includes(channel)) return { ok: false };
 
   const pageText = params.get('page')?.trim() || '1';
-  if (!/^\d+$/.test(pageText) || Number(pageText) < 1) return { ok: false };
+  if (!/^\d+$/.test(pageText) || !Number.isSafeInteger(Number(pageText)) || Number(pageText) < 1) return { ok: false };
+
+  const refundedOnly = params.get('refundedOnly');
+  if (refundedOnly !== null && refundedOnly !== 'true' && refundedOnly !== 'false') return { ok: false };
 
   const search = (params.get('q') ?? '').trim();
   if (search.length > SALES_ORDERS_SEARCH_MAX_LENGTH) return { ok: false };
@@ -81,7 +86,10 @@ export function parseSalesOrdersQuery(
   return {
     ok: true,
     // OrderNumber.orderTimeKey 와 같은 형식(KST YYMMDD)
-    value: { date, timeKey: date.slice(2).replace(/-/g, ''), channel, search, page: Number(pageText) },
+    value: {
+      date, timeKey: date.slice(2).replace(/-/g, ''), channel, search, page: Number(pageText),
+      ...(refundedOnly === 'true' ? { refundedOnly: true } : {}),
+    },
   };
 }
 
@@ -90,13 +98,13 @@ export function parseSalesOrdersQuery(
  * 날짜는 주문번호 일자(OrderNumber.orderTimeKey) 기준이며, QR샵은 결제 확정 때 결제 시각으로 정해진다(#44).
  * 품절 자동 환불 주문은 주문번호(일자)가 있어야 날짜 목록에 잡힌다.
  */
-export function salesOrdersWhere(storeId: string, timeKey: string, channel: SalesOrderChannel): Prisma.OrderWhereInput {
+export function salesOrdersWhere(storeId: string, timeKey: string, channel: SalesOrderChannel, refundedOnly = false): Prisma.OrderWhereInput {
   return {
     orderNumber: { storeId, orderTimeKey: timeKey },
     ...(channel === 'online' ? { paymentMethod: 'ONLINE' } : {}),
     ...(channel === 'onsite' ? { paymentMethod: 'ON_SITE' } : {}),
     OR: [
-      { paymentStatus: ORDER_PAYMENT_STATUS.PAID },
+      ...(refundedOnly ? [] : [{ paymentStatus: ORDER_PAYMENT_STATUS.PAID }]),
       { paymentStatus: ORDER_PAYMENT_STATUS.CANCELED, cancelReason: CANCEL_REASON_SELLER_REFUND },
       { paymentStatus: ORDER_PAYMENT_STATUS.CANCELED, cancelReason: CANCEL_REASON_STOCK_SHORTAGE },
     ],
@@ -112,6 +120,7 @@ export const SALES_ORDER_SELECT = {
   paymentStatus: true,
   cancelReason: true,
   refundRequestedAt: true,
+  refundRestoreStock: true,
   paidAt: true,
   orderNumber: { select: { orderNo: true } },
   items: {
@@ -129,6 +138,7 @@ export type SalesOrderRow = {
   paymentStatus: PaymentStatus;
   cancelReason: string | null;
   refundRequestedAt: Date | null;
+  refundRestoreStock?: boolean | null;
   paidAt: Date | null;
   orderNumber: { orderNo: number | null } | null;
   items: { onsiteProductName: string | null; onsiteOptionName: string | null; quantity: number }[];
@@ -167,6 +177,7 @@ export function toSalesOrderView(row: SalesOrderRow): SalesOrderView {
           ? ONSITE_METHOD[row.onsitePaymentType]
           : 'onsite',
     paymentAmount: row.paymentAmount,
+    ...(refunded && row.refundRestoreStock != null ? { refundRestoreStock: row.refundRestoreStock } : {}),
     refundStatus: refunded ? 'refunded' : soldoutRefunded ? 'soldout_refunded' : refundPending ? 'pending' : 'none',
   };
 }

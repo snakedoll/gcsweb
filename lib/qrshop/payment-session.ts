@@ -3,7 +3,6 @@ type PaymentSession = {
   storeSlug: string;
   guestToken: string;
   payment: { storeId: string; channelKey: string; orderName: string };
-  returnedToCatalog?: boolean;
 };
 
 const prefix = 'gcs:qrshop:payment:';
@@ -41,26 +40,59 @@ export function readPaymentSession(orderId: string, storeSlug: string): PaymentS
 
 const returnPrefix = 'gcs:qrshop:return:';
 
-// Only called from a server-confirmed paid result. The catalog rechecks the order
-// before displaying its number; this marker is never evidence of payment.
-export function queuePaymentReturn(orderId: string, storeSlug: string): void {
+type CatalogOrder = { orderId: string; orderedAt?: string };
+
+export function readCatalogOrder(storeSlug: string): CatalogOrder | null {
   try {
-    const session = readPaymentSession(orderId, storeSlug);
-    if (session.returnedToCatalog) return;
-    savePaymentSession(orderId, { ...session, returnedToCatalog: true });
-    window.sessionStorage.setItem(returnPrefix + storeSlug, orderId);
+    const value = window.sessionStorage.getItem(returnPrefix + storeSlug);
+    if (!value) return null;
+    // Previous versions stored just the order ID.
+    if (!value.startsWith('{')) return { orderId: value };
+    const order = JSON.parse(value) as CatalogOrder;
+    return typeof order.orderId === 'string' ? order : null;
+  } catch { return null; }
+}
+
+// The result page remembers the latest paid order, and the catalog rechecks
+// its payment status before displaying the number.
+export function rememberCatalogOrder(storeSlug: string, order: { orderId: string; orderedAt: string }): void {
+  try {
+    readPaymentSession(order.orderId, storeSlug);
+    const previous = readCatalogOrder(storeSlug);
+    if (previous?.orderedAt && Date.parse(previous.orderedAt) > Date.parse(order.orderedAt)) return;
+    window.sessionStorage.setItem(returnPrefix + storeSlug, JSON.stringify(order));
   } catch { /* A blocked store must not prevent returning to the catalog. */ }
 }
 
-export function readPaymentReturn(storeSlug: string): string | null {
-  try { return window.sessionStorage.getItem(returnPrefix + storeSlug); }
-  catch { return null; }
+type CheckoutCart = {
+  orderId: string;
+  quantities: Record<string, number>;
+  restore: boolean;
+};
+
+const checkoutCartKey = (storeSlug: string | null) =>
+  `gcs:qrshop:checkout-cart:${storeSlug === null ? 'mock' : `store:${storeSlug}`}`;
+
+export function rememberCheckoutCart(storeSlug: string | null, orderId: string, quantities: CheckoutCart['quantities']): void {
+  try {
+    window.sessionStorage.setItem(checkoutCartKey(storeSlug), JSON.stringify({ orderId, quantities, restore: false }));
+  } catch { /* Checkout can proceed without the optional cart recovery. */ }
 }
 
-export function consumePaymentReturn(storeSlug: string, orderId: string): boolean {
+export function markRefundCart(storeSlug: string | null, orderId: string): void {
   try {
-    if (readPaymentReturn(storeSlug) !== orderId) return false;
-    window.sessionStorage.removeItem(returnPrefix + storeSlug);
-    return true;
-  } catch { return false; }
+    const key = checkoutCartKey(storeSlug);
+    const cart = JSON.parse(window.sessionStorage.getItem(key) ?? 'null') as CheckoutCart | null;
+    if (cart?.orderId === orderId) window.sessionStorage.setItem(key, JSON.stringify({ ...cart, restore: true }));
+  } catch { /* The order result is still available. */ }
+}
+
+export function takeRefundCart(storeSlug: string | null): CheckoutCart['quantities'] | null {
+  try {
+    const key = checkoutCartKey(storeSlug);
+    const cart = JSON.parse(window.sessionStorage.getItem(key) ?? 'null') as CheckoutCart | null;
+    if (!cart?.restore) return null;
+    window.sessionStorage.removeItem(key);
+    return cart.quantities;
+  } catch { return null; }
 }

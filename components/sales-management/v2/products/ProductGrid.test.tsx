@@ -12,9 +12,15 @@ describe('QA 상품 카드 말줄임', () => {
     expect(screen.getByRole('heading')).toHaveTextContent(length > 20 ? `${'가'.repeat(20)}…` : name);
     expect(screen.getByRole('heading')).toHaveAttribute('title', name);
   });
-  it('21자 옵션 목록부터 줄이고 원문을 보존한다', () => {
-    const name = '가'.repeat(18);
-    render(<ProductGrid products={[{ ...product, options: [{ id: 'option', name, price: 0, stock: 0 }] }]} onDelete={() => {}} />);
-    expect(screen.getByTitle(`${name}(0)`)).toHaveTextContent(`${name}(0…`);
+  it('옵션 요약 원문과 총재고를 별도 줄에 표시한다', () => {
+    const options = [
+      { id: '1', name: '옵션 1', price: 0, stock: 4 },
+      { id: '2', name: '옵션 2', price: 0, stock: 4 },
+      { id: '3', name: '옵션 3', price: 0, stock: 4 },
+    ];
+    render(<ProductGrid products={[{ ...product, options, stock: 12 }]} onDelete={() => {}} />);
+    const summary = '옵션 1(4), 옵션 2(4), 옵션 3(4)';
+    expect(screen.getByText(summary, { exact: true })).toHaveAttribute('title', summary);
+    expect(screen.getByText('총재고 12개', { exact: true })).toBeVisible();
   });
 });

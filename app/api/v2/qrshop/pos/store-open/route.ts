@@ -8,12 +8,12 @@ export const dynamic = 'force-dynamic';
 const StoreOpenSchema = z.object({ isOpen: z.boolean() });
 
 /**
- * GET /api/v2/qrshop/pos/store-open
+ * GET /api/v2/qrshop/pos/store-open?storeSlug={storeSlug}
  * QR shop 토글 상태. 소유자와 승인된 직원.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const auth = await requirePosAccess();
+    const auth = await requirePosAccess(request);
     if (!auth.ok) return auth.response;
 
     const store = await prisma.store.findUniqueOrThrow({
@@ -28,12 +28,12 @@ export async function GET() {
 }
 
 /**
- * PATCH /api/v2/qrshop/pos/store-open
- * body { isOpen } QR샵을 열거나 닫는다. 닫히면 방문객 주문 생성이 409 STORE_CLOSED. 소유자만.
+ * PATCH /api/v2/qrshop/pos/store-open?storeSlug={storeSlug}
+ * body { isOpen } QR샵을 열거나 닫는다. 닫히면 방문객 주문 생성이 409 STORE_CLOSED. 소유자와 승인된 직원.
  */
 export async function PATCH(request: Request) {
   try {
-    const auth = await requirePosAccess({ ownerOnly: true });
+    const auth = await requirePosAccess(request);
     if (!auth.ok) return auth.response;
 
     const parsed = StoreOpenSchema.safeParse(await request.json().catch(() => null));

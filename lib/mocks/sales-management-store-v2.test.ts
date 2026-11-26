@@ -7,7 +7,10 @@ describe('v2 판매 이력과 상점 서비스', () => {
   it('판매 상품을 재고 0으로 수정해도 이력을 유지하고 직접 삭제를 거절한다', async () => {
     const service = createMockLandingV2Service();
     const sold = (await service.getProducts()).items.find(item => item.hasSalesHistory)!;
-    expect(await service.saveProduct(productInput, sold.id)).toMatchObject({ hasSalesHistory: true, stock: 0 });
+    await expect(service.saveProduct(productInput, sold.id)).rejects.toThrow('옵션 구성과 옵션명');
+    expect(await service.saveProduct({
+      ...productInput, usesOptions: true, options: sold.options.map(option => ({ ...option, stock: 0 })),
+    }, sold.id)).toMatchObject({ hasSalesHistory: true, stock: 0, options: sold.options });
     const before = await service.getSellerSummary();
     await expect(service.deleteProduct(sold.id)).rejects.toThrow('판매 이력');
     await expect(service.deleteStore()).rejects.toThrow('판매 이력');
@@ -17,12 +20,15 @@ describe('v2 판매 이력과 상점 서비스', () => {
   it('상점 수정은 내부 ID와 이력을 유지하고 본인 아이디를 허용한다', async () => {
     const service = createMockLandingV2Service();
     const store = (await service.getStore())!;
-    expect(store.visitorOrderUrl).toBe('https://www.gcsweb.kr/QRshop?store=ybbybby0308');
+    expect(store.visitorOrderUrl).toBe(`${window.location.origin}/QRshop?store=ybbybby0308`);
     expect(await service.checkStoreIdentifier(store.storeIdentifier)).toBe(true);
     const saved = await service.saveStore({ name: '변경된 상점', storeIdentifier: 'newshop123' });
     expect(saved).toMatchObject({ id: store.id, hasSalesHistory: true, name: '변경된 상점' });
     expect((await service.getSellerSummary()).store).toEqual(saved);
-    expect(await service.getVisitorOrderQr()).toMatchObject({ isMock: true, visitorOrderUrl: 'https://www.gcsweb.kr/QRshop?store=newshop123' });
+    expect(await service.getVisitorOrderQr()).toMatchObject({
+      isMock: true, visitorOrderUrl: `${window.location.origin}/QRshop?store=newshop123`,
+      imageUrl: expect.stringMatching(/^data:image\/png;base64,/),
+    });
     const snapshot = await service.getStore(); snapshot!.hasSalesHistory = false;
     await expect(service.deleteStore()).rejects.toThrow('판매 이력');
   });

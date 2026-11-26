@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon">
+<g id="Bag 2">
+<path id="Rectangle 2" d="M15.1375 44H32.8625C37.7008 44 41.4318 39.7386 40.7924 34.9427L38.9257 20.9427C38.3958 16.9682 35.0055 14 30.9959 14H17.0041C12.9945 14 9.60423 16.9682 9.07431 20.9427L7.20764 34.9427C6.56819 39.7386 10.2992 44 15.1375 44Z" stroke-width="3" stroke="#F6874C"/>
+<path id="Rectangle 4" d="M32 18V12C32 7.58172 28.4183 4 24 4C19.5817 4 16 7.58172 16 12L16 18" stroke-width="3" stroke-linecap="round" stroke="#F6874C"/>
+</g>
+<circle id="Ellipse 5509" cx="16" cy="24" r="2" fill="#3F3835"/>
+<circle id="Ellipse 5510" cx="32" cy="24" r="2" fill="#3F3835"/>
+</g>
+</svg>

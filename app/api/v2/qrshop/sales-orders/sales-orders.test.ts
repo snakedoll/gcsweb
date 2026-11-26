@@ -127,6 +127,21 @@ describe('GET /api/v2/qrshop/sales-orders', () => {
     expect(byName.data.orders.map((o: { orderNo: string }) => o.orderNo)).toEqual(['011', '003']);
   });
 
+  it('환불완료는 일반·품절 환불만 DB에서 조회하고 페이지를 나누기 전 총 건수를 유지한다', async () => {
+    findMany.mockResolvedValue(Array.from({ length: 31 }, (_, i) => ({
+      ...row(31 - i), paymentStatus: 'CANCELED', cancelReason: i === 30 ? 'STOCK_SHORTAGE' : 'SELLER_REFUND',
+    })));
+    const response = await list('?refundedOnly=true&page=2');
+    const { data } = await response.json();
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ OR: [
+        { paymentStatus: 'CANCELED', cancelReason: 'SELLER_REFUND' },
+        { paymentStatus: 'CANCELED', cancelReason: 'STOCK_SHORTAGE' },
+      ] }),
+    }));
+    expect(data).toMatchObject({ total: 31, page: 2, orders: [{ orderNo: '001', refundStatus: 'soldout_refunded' }] });
+  });
+
   it('30건씩 페이지를 나눈다', async () => {
     findMany.mockResolvedValue(Array.from({ length: 65 }, (_, i) => row(65 - i)));
     const p1 = await (await list('?page=1')).json();

@@ -18,7 +18,7 @@ const refundSchema = z.object({ restoreStock: z.boolean() });
  */
 export async function POST(request: Request, { params }: Params) {
   try {
-    const ctx = await getStoreAccess();
+    const ctx = await getStoreAccess(new URL(request.url).searchParams.get('storeSlug'));
     if (!ctx.ok) return apiErrors.unauthorized();
     if (!ctx.access) return storeErrors.notFound();
 
@@ -51,7 +51,11 @@ export async function POST(request: Request, { params }: Params) {
             count: result.stockNotRestored,
           });
         }
-        return apiSuccess({ ...toSalesOrderView(result.order), refundRestoreStock: parsed.data.restoreStock });
+        return apiSuccess({
+          ...toSalesOrderView(result.order),
+          refundRestoreStock: parsed.data.restoreStock,
+          stockNotRestored: result.stockNotRestored,
+        });
     }
   } catch (error) {
     console.error('[POST /api/v2/qrshop/sales-orders/[orderId]/refund]', error);

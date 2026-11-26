@@ -5,7 +5,7 @@ import Button from '@/components/ui/button/Button';
 type Props = { productName: string; productCount?: number; onConfirm: () => void };
 
 export default function QrshopSoldOutModal({ productName, productCount = 1, onConfirm }: Props) {
-  const lastCharacter = productName.trim().slice(-1).charCodeAt(0);
+  const lastCharacter = productName.trim().replace(/\)$/, '').slice(-1).charCodeAt(0);
   const particle = lastCharacter >= 0xac00 && lastCharacter <= 0xd7a3 && (lastCharacter - 0xac00) % 28 === 0 ? '가' : '이';
   const subject = productCount > 1 ? `${productName} 외 ${productCount - 1}건이` : `${productName}${particle}`;
 

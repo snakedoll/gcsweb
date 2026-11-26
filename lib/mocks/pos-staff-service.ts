@@ -1,13 +1,17 @@
 import type { PosStaffService, PosStaffSnapshot } from '@/lib/services/pos-staff-service';
+import {
+  decideMockStaffInvite, MOCK_STAFF_APPLICANT_NAME, MOCK_STAFF_INVITE_PATH, MOCK_STAFF_REQUEST_ID,
+  readMockStaffInviteRequest, removeMockStaffInvite, subscribeToMockStaffInvite,
+} from './pos-staff-invite-service';
 
 function copy(snapshot: PosStaffSnapshot): PosStaffSnapshot {
   return { ...snapshot, pending: snapshot.pending.map(member => ({ ...member })), registered: snapshot.registered.map(member => ({ ...member })) };
 }
 
-// One in-memory instance per POS Provider. No server, auth, or browser storage writes.
+// Fixture changes stay in the POS Provider. The demo applicant is shared through browser storage.
 export function createMockPosStaffService(initial?: PosStaffSnapshot): PosStaffService {
   const snapshot = copy(initial ?? {
-    inviteUrl: 'https://example.invalid/mock/pos/staff-invite',
+    inviteUrl: MOCK_STAFF_INVITE_PATH,
     pending: [
       { id: 'pending-1', name: '정서윤', requestedAt: '2026-11-07T10:21:00+09:00' },
       { id: 'pending-2', name: '이서준', requestedAt: '2026-11-04T14:30:00+09:00' },
@@ -18,6 +22,19 @@ export function createMockPosStaffService(initial?: PosStaffSnapshot): PosStaffS
     ],
   });
 
+  function getSnapshot() {
+    const result = copy(snapshot);
+    if (initial || typeof window === 'undefined') return result;
+
+    result.inviteUrl = new URL(MOCK_STAFF_INVITE_PATH, window.location.origin).href;
+    const request = readMockStaffInviteRequest();
+    if (!request || request.status === 'rejected') return result;
+    const member = { id: MOCK_STAFF_REQUEST_ID, name: MOCK_STAFF_APPLICANT_NAME, requestedAt: request.requestedAt };
+    if (request.status === 'pending') result.pending.unshift(member);
+    else result.registered.push({ ...member, registeredAt: request.registeredAt });
+    return result;
+  }
+
   function takePending(id: string) {
     const index = snapshot.pending.findIndex(member => member.id === id);
     if (index < 0) throw new Error('승인 대기 직원을 찾을 수 없어요.');
@@ -25,18 +42,29 @@ export function createMockPosStaffService(initial?: PosStaffSnapshot): PosStaffS
   }
 
   return {
-    async getStaff() { return copy(snapshot); },
+    subscribeToInviteChanges: initial ? undefined : subscribeToMockStaffInvite,
+    async getStaff() { return getSnapshot(); },
     async approve(id) {
-      const member = takePending(id);
-      snapshot.registered.push({ ...member, registeredAt: new Date().toISOString() });
-      return copy(snapshot);
+      if (!initial && id === MOCK_STAFF_REQUEST_ID) decideMockStaffInvite('approved');
+      else {
+        const member = takePending(id);
+        snapshot.registered.push({ ...member, registeredAt: new Date().toISOString() });
+      }
+      return getSnapshot();
     },
-    async reject(id) { takePending(id); return copy(snapshot); },
+    async reject(id) {
+      if (!initial && id === MOCK_STAFF_REQUEST_ID) decideMockStaffInvite('rejected');
+      else takePending(id);
+      return getSnapshot();
+    },
     async remove(id) {
-      const index = snapshot.registered.findIndex(member => member.id === id);
-      if (index < 0) throw new Error('등록된 직원을 찾을 수 없어요.');
-      snapshot.registered.splice(index, 1);
-      return copy(snapshot);
+      if (!initial && id === MOCK_STAFF_REQUEST_ID) removeMockStaffInvite();
+      else {
+        const index = snapshot.registered.findIndex(member => member.id === id);
+        if (index < 0) throw new Error('등록된 직원을 찾을 수 없어요.');
+        snapshot.registered.splice(index, 1);
+      }
+      return getSnapshot();
     },
   };
 }

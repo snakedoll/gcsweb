@@ -5,19 +5,18 @@ export type PosPaymentMethod = 'card' | 'cash' | 'transfer';
 
 export interface PosCartLine extends QrshopCartLine {
   optionId?: string;
+  discountAmount?: number;
 }
 
 export interface PosReceipt {
+  orderId?: string;
   orderCode: string;
   lines: PosCartLine[];
   totalAmount: number;
   paymentMethod: PosPaymentMethod;
 }
 
-export interface PosProduct extends SalesProduct {
-  // The shared catalog currently has no registration date. Do not synthesize it.
-  createdAt?: string;
-}
+export type PosProduct = SalesProduct;
 
 export interface PosExposureGroup {
   category: string;
@@ -28,7 +27,11 @@ export interface PosExposureGroup {
 export type PosExposure = PosExposureGroup[];
 
 export interface PosService {
+  readonly dataSource?: 'api';
+  getStoreOpen?(): Promise<boolean>;
+  setStoreOpen?(isOpen: boolean): Promise<boolean>;
   getCatalog(): Promise<SalesProduct[]>;
+  getReceipts(): Promise<PosReceipt[]>;
   getExposureProducts(): Promise<PosProduct[]>;
   getExposure(): Promise<PosExposure>;
   saveExposure(exposure: PosExposure): Promise<void>;
@@ -55,6 +58,32 @@ export function reconcilePosExposure(exposure: PosExposure, products: PosProduct
 }
 
 export const posLineKey = (line: { productId: string; optionId?: string }) => JSON.stringify([line.productId, line.optionId ?? null]);
+export const posLineSubtotal = (line: PosCartLine) => line.unitPrice * line.quantity;
+export const posLineDiscount = (line: PosCartLine) => Math.min(line.discountAmount ?? 0, posLineSubtotal(line));
+
+export interface PosUnavailableItem {
+  productId: string | null;
+  optionId: string | null;
+  name: string;
+  optionName: string | null;
+  availableQuantity: number;
+}
+
+export class PosStockChangedError extends Error {
+  constructor(readonly unavailableLineKeys: string[], readonly items: PosUnavailableItem[] = []) {
+    super('판매할 수 없는 상품이 포함되어 있어요.');
+    this.name = 'PosStockChangedError';
+  }
+}
+
+export function applyPosDiscount(lines: PosCartLine[], selected: ReadonlySet<string>, amount: number): PosCartLine[] {
+  const eligible = lines.filter(line => selected.has(posLineKey(line)) && !posLineDiscount(line));
+  if (!Number.isSafeInteger(amount) || amount <= 0 || !eligible.length || eligible.some(line => amount > posLineSubtotal(line))) {
+    throw new Error('할인 금액을 확인해주세요.');
+  }
+  const eligibleKeys = new Set(eligible.map(posLineKey));
+  return lines.map(line => eligibleKeys.has(posLineKey(line)) ? { ...line, discountAmount: amount } : line);
+}
 
 export function getPosStock(product: SalesProduct, optionId?: string): number {
   if (!product.isVisible) return 0;

@@ -247,3 +247,16 @@ export const qrshopQaProducts: QrshopProduct[] = [
   ...qrshopProducts,
   ...qrshopEdgeCaseProducts,
 ];
+
+export const qrshopStockNoticeProducts: QrshopProduct[] = [
+  { id: 'stock-basic', name: '키링' },
+  { id: 'stock-long', name: '스무 글자 상품명을 확인하는 한정 상품' },
+  { id: 'stock-option', name: '무슨무슨 키링', option: 'BLACK' },
+].map(product => ({
+  ...product,
+  categoryId: 'keyring',
+  categoryName: '키링',
+  imageUrl: PRODUCT_IMAGE,
+  price: 15_000,
+  stock: 2,
+}));

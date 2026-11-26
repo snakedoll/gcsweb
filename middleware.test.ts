@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { config, middleware } from './middleware';
@@ -8,6 +8,7 @@ vi.mock('next-auth/jwt', () => ({ getToken: vi.fn() }));
 
 describe('판매관리 인증 경계', () => {
   beforeEach(() => vi.mocked(getToken).mockReset());
+  afterEach(() => vi.unstubAllEnvs());
 
   it('판매관리 하위 경로를 matcher에 포함한다', () => {
     expect(config.matcher).toContain('/sales-management/:path*');
@@ -19,6 +20,22 @@ describe('판매관리 인증 경계', () => {
     const location = new URL(response.headers.get('location')!);
     expect(location.pathname).toBe('/login');
     expect(location.searchParams.get('callbackUrl')).toBe('/sales-management/v2/products?state=empty');
+  });
+
+  it('Mock 직원 초대 화면에서 세션을 조회하지 않는다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SALES_MANAGEMENT_DATA_SOURCE', 'mock');
+    const response = await middleware(new NextRequest('http://localhost:3000/sales-management/v2/staff/join/demo?preview=error'));
+    expect(response.headers.get('x-middleware-next')).toBe('1');
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it('API 직원 초대 화면에서 비로그인 사용자의 초대 경로를 보존한다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SALES_MANAGEMENT_DATA_SOURCE', 'api');
+    vi.mocked(getToken).mockResolvedValue(null);
+    const response = await middleware(new NextRequest('http://localhost:3000/sales-management/v2/staff/join/code'));
+    const location = new URL(response.headers.get('location')!);
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe('/sales-management/v2/staff/join/code');
   });
 
   it.each([undefined, '', '  '])('세션 ID가 %s이면 접근을 거절한다', async (id) => {

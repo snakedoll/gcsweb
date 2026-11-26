@@ -102,7 +102,7 @@ export default function QrshopPayClient() {
         await service.processPayment(orderId, outcome);
       }
       if (controller.signal.aborted) return;
-      router.push(resultUrl);
+      router.replace(resultUrl);
     } catch (reason) {
       if (controller.signal.aborted) return;
       setChecking(service.dataSource === 'api');
@@ -125,7 +125,7 @@ export default function QrshopPayClient() {
   if (!order) return <div role="status" className="flex min-h-dvh items-center justify-center typo-body-small text-neutral-8">주문 정보를 불러오는 중입니다.</div>;
 
   if (order.status === 'paid' || order.status === 'canceled' || order.status === 'refund-pending') {
-    return <QrshopStateView title={order.status === 'paid' ? '결제가 확인되었습니다' : order.status === 'refund-pending' ? '환불 확인이 필요합니다' : '취소된 주문입니다'} description={order.failureMessage} actionLabel="주문 결과 확인" onAction={() => router.push(resultUrl)} />;
+    return <QrshopStateView title={order.status === 'paid' ? '결제가 확인되었습니다' : order.status === 'refund-pending' ? '환불 확인이 필요합니다' : '취소된 주문입니다'} description={order.failureMessage} actionLabel="주문 결과 확인" onAction={() => router.replace(resultUrl)} />;
   }
 
   if (service.dataSource === 'api' && completeProfile && !error && !checking) {

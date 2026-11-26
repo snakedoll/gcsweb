@@ -20,6 +20,23 @@ beforeEach(() => { fetcher.mockReset(); vi.stubGlobal('fetch', fetcher); });
 afterEach(() => vi.unstubAllGlobals());
 
 describe('upstream 판매자 상품 API 계약', () => {
+  it('수정할 기존 옵션의 ID만 PATCH에 실어 보낸다', async () => {
+    const service = await ready();
+    respond({ categories: [product.category] });
+    await service.getCategories();
+    respond({ product });
+    await service.saveProduct({ ...input, options: [
+      { ...input.options[0], id: 'option-db', name: '이름 수정' },
+      { name: '신규', price: 0, stock: 1 },
+    ] }, 'product-db');
+    const [path, init] = fetcher.mock.calls.at(-1)!;
+    expect(path).toBe('/api/v2/qrshop/products/product-db');
+    expect(JSON.parse(init.body).options).toEqual([
+      { id: 'option-db', name: '이름 수정', surcharge: 200, stock: 5 },
+      { name: '신규', surcharge: 0, stock: 1 },
+    ]);
+  });
+
   it('모든 페이지를 읽고 기본가·추가금·재고·판매 이력을 매핑한다', async () => {
     const service = await ready();
     respond({ products: [product], total: 2, hasNext: true });

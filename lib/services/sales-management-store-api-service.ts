@@ -1,3 +1,5 @@
+import { requestSalesApi as request, StoreApiError } from './sales-management-api-client';
+export { StoreApiError } from './sales-management-api-client';
 import type { SalesManagementV2Service } from './sales-management-service';
 import type { SalesProduct, SalesStore } from '@/types/sales-management';
 
@@ -15,20 +17,6 @@ type SummaryResponse = {
   productCount: number; todayRevenue: number; todayOrderCount: number;
 };
 
-export class StoreApiError extends Error {
-  constructor(public code: string, message: string, public status: number) { super(message); }
-}
-
-const errorMessages: Record<string, string> = {
-  UNAUTHORIZED: '로그인이 필요해요. 다시 로그인해주세요.',
-  NOT_FOUND: '상점을 찾을 수 없거나 접근 권한이 없어요. 다시 불러와주세요.',
-  STORE_ALREADY_EXISTS: '이미 등록한 상점이 있어요. 다시 불러와주세요.',
-  STORE_SLUG_TAKEN: '이미 사용 중인 상점 아이디입니다. 다시 확인해주세요.',
-  PRODUCT_HAS_SALES: '판매 이력이 있는 상품은 삭제할 수 없어요.',
-  STORE_REQUIRED: '상점을 먼저 등록해주세요.',
-  STORE_HAS_SALES: '판매 이력이 있는 상점은 삭제할 수 없어요.',
-};
-
 export function salesApiErrorMessage(error: unknown, fallback: string): string {
   return error instanceof StoreApiError ? error.message : fallback;
 }
@@ -37,16 +25,6 @@ export function createStoreApiService(): SalesManagementV2Service {
   let currentStore: SalesStore | null | undefined;
   let categories: CategoryResponse[] = [];
   let newestProductId: string | null = null;
-  const root = '/api/v2/qrshop';
-  async function request<T>(path: string, init?: RequestInit, base = root): Promise<T> {
-    const response = await fetch(`${base}${path}`, { credentials: 'same-origin', cache: 'no-store', ...init });
-    const body = await response.json().catch(() => null);
-    if (!response.ok || body?.status !== 'success') {
-      const code = body?.code ?? 'SERVER_ERROR';
-      throw new StoreApiError(code, errorMessages[code] ?? body?.message ?? '요청에 실패했어요. 다시 시도해주세요.', response.status);
-    }
-    return body.data as T;
-  }
   const mapStore = (data: StoreResponse): SalesStore => ({
     id: data.storeId, name: data.name, storeIdentifier: data.storeSlug, visitorOrderUrl: data.storeUrl,
     hasSalesHistory: data.hasSalesHistory ?? currentStore?.hasSalesHistory ?? false,
@@ -65,7 +43,7 @@ export function createStoreApiService(): SalesManagementV2Service {
     id: product.id, storeId, name: product.name, price: product.price,
     imageUrl: product.imageUrl || undefined, category: product.category?.name ?? '',
     stock: product.totalStock, hasSalesHistory: product.hasSalesHistory,
-    // Seller product responses have no POS exposure field. API mode never opens Mock POS.
+    // Seller product responses are independent of POS exposure.
     isVisible: true,
     options: product.usesOptions ? product.options.map(option => ({
       id: option.id, name: option.name, price: option.surcharge, stock: option.stock,
@@ -153,8 +131,10 @@ export function createStoreApiService(): SalesManagementV2Service {
           name: input.name.trim(), price: input.price, imageUrl: input.imageUrl ?? (id ? null : undefined),
           categoryId: categoryId ?? (id ? null : undefined), hasOption: input.usesOptions,
           ...(input.usesOptions ? {} : { totalStock: input.stock }),
-          // PATCH replaces all options. [] also clears them when changing to no options.
-          options: input.usesOptions ? input.options.map(option => ({ name: option.name.trim(), surcharge: option.price, stock: option.stock })) : [],
+          options: input.usesOptions ? input.options.map(option => ({
+            ...(id && option.id ? { id: option.id } : {}),
+            name: option.name.trim(), surcharge: option.price, stock: option.stock,
+          })) : [],
         }),
       });
       if (!id) newestProductId = data.product.id;
