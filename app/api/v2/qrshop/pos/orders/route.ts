@@ -15,7 +15,6 @@ const PosSaleSchema = z.object({
         productId: z.string().min(1),
         optionId: z.string().min(1).nullish(),
         quantity: z.number().int().min(1),
-        discountAmount: z.literal(0).optional(),
       }),
     )
     .min(1),
