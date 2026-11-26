@@ -9,7 +9,7 @@ vi.mock('@/lib/seller/store', () => ({ getSellerContext: vi.fn() }));
 vi.mock('@/lib/qrshop/sales-history', () => ({ hasProductPaidSale: vi.fn() }));
 vi.mock('@/lib/db', () => ({
   prisma: {
-    onsiteProduct: { findFirst: vi.fn(), update: vi.fn() },
+    onsiteProduct: { findFirst: vi.fn(), update: vi.fn(), aggregate: vi.fn() },
     onsiteProductCategory: { findFirst: vi.fn() },
     onsiteProductOption: { deleteMany: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(),
@@ -19,7 +19,8 @@ vi.mock('@/lib/db', () => ({
 type Fn = ReturnType<typeof vi.fn>;
 const context = getSellerContext as unknown as Fn;
 const paidSale = hasProductPaidSale as unknown as Fn;
-const product = prisma.onsiteProduct as unknown as Record<'findFirst' | 'update', Fn>;
+const product = prisma.onsiteProduct as unknown as Record<'findFirst' | 'update' | 'aggregate', Fn>;
+const category = prisma.onsiteProductCategory as unknown as Record<'findFirst', Fn>;
 const option = prisma.onsiteProductOption as unknown as Record<'deleteMany' | 'findMany' | 'update', Fn>;
 const transaction = prisma.$transaction as unknown as Fn;
 
@@ -46,7 +47,7 @@ const patch = (body: unknown) =>
 beforeEach(() => {
   vi.resetAllMocks();
   context.mockResolvedValue({ ok: true, userId: 'u1', store: STORE });
-  product.findFirst.mockResolvedValue({ productId: 'p1', hasOption: false, price: 1000 });
+  product.findFirst.mockResolvedValue({ productId: 'p1', hasOption: false, price: 1000, categoryId: 'c1' });
   // data.options 는 { create: [...] } 모양이라 응답 행에는 넣지 않는다.
   product.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
     updatedRow({ ...data, options: [] }),
@@ -234,5 +235,37 @@ describe('PATCH /api/v2/qrshop/products/{onsiteProductId} 옵션 잠금 (#57 기
     await patch({ options: [{ id: 'o1', name: '빨강', surcharge: 500, stock: 1 }] });
     expect(option.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { productId: 'p1' } }));
     expect(transaction).toHaveBeenCalled();
+  });
+});
+
+describe('PATCH /api/v2/qrshop/products/{onsiteProductId} 카테고리 변경과 노출 순서 (#59)', () => {
+  it('다른 카테고리로 옮기면 그 카테고리 노출 순서의 맨 뒤에 둔다', async () => {
+    category.findFirst.mockResolvedValue({ categoryId: 'c2' });
+    product.aggregate.mockResolvedValue({ _max: { exposureOrder: 4 } });
+    const res = await patch({ categoryId: 'c2' });
+    expect(res.status).toBe(200);
+    expect(product.aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: { storeId: 's1', categoryId: 'c2' } }));
+    expect(product.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ categoryId: 'c2', exposureOrder: 5 }) }),
+    );
+  });
+
+  it('카테고리를 떼면 미분류의 맨 뒤에 둔다', async () => {
+    product.aggregate.mockResolvedValue({ _max: { exposureOrder: null } });
+    await patch({ categoryId: null });
+    expect(product.aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: { storeId: 's1', categoryId: null } }));
+    expect(product.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ categoryId: null, exposureOrder: 1 }) }),
+    );
+  });
+
+  it('같은 카테고리를 다시 보내거나 카테고리를 보내지 않으면 순서를 그대로 둔다', async () => {
+    category.findFirst.mockResolvedValue({ categoryId: 'c1' });
+    await patch({ categoryId: 'c1', name: '엽서 세트' });
+    await patch({ name: '엽서 세트' });
+    expect(product.aggregate).not.toHaveBeenCalled();
+    expect(product.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.not.objectContaining({ exposureOrder: expect.anything() }) }),
+    );
   });
 });

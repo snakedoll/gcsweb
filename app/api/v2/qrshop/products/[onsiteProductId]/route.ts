@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { apiError, apiErrors, apiSuccess } from '@/lib/api-response';
+import { nextProductOrder } from '@/lib/qrshop/pos-exposure';
 import { planOptionChanges, type ExistingOption, type OptionPlan } from '@/lib/qrshop/product-options';
 import { hasProductPaidSale } from '@/lib/qrshop/sales-history';
 import { getSellerContext } from '@/lib/seller/store';
@@ -113,7 +114,7 @@ type RouteContext = { params: { onsiteProductId: string } };
 async function findOwnedProduct(storeId: string, productId: string) {
   return prisma.onsiteProduct.findFirst({
     where: { productId, storeId },
-    select: { productId: true, hasOption: true, price: true },
+    select: { productId: true, hasOption: true, price: true, categoryId: true },
   });
 }
 
@@ -232,6 +233,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
       if (plan) await applyOptionPlan(tx, params.onsiteProductId, currentOptions, plan);
 
+      // 다른 카테고리로 옮기면 그 카테고리 노출 순서의 맨 뒤에 둔다(새 상품과 같은 규칙).
+      const categoryChanged = input.categoryId !== undefined && input.categoryId !== existing.categoryId;
+      const exposureOrder = categoryChanged ? await nextProductOrder(tx, storeId, input.categoryId ?? null) : undefined;
+
       const product = await tx.onsiteProduct.update({
         where: { productId: params.onsiteProductId },
         data: {
@@ -239,6 +244,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           ...(input.price !== undefined ? { price: input.price } : {}),
           ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
           ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+          ...(exposureOrder !== undefined ? { exposureOrder } : {}),
           ...(input.hasOption !== undefined ? { hasOption: input.hasOption } : {}),
           ...(stock !== undefined ? { initStock: stock, currentStock: stock } : {}),
           ...(plan && plan.creates.length > 0
